@@ -1,0 +1,15 @@
+{
+  "name": "NOTUA",
+  "short_name": "NOTUA",
+  "description": "Boards für deine Videoprojekte – Notizen, Screenshots, YouTube-Clips und mehr, an einem Ort.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F0F2F5",
+  "theme_color": "#F0F2F5",
+  "icons": [
+    { "src": "app-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
