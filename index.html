@@ -59,6 +59,18 @@ try{
     document.documentElement.classList.add('notua-app-env');
   }
 }catch(e){}
+// Same idea for the Android app (a Trusted Web Activity built with PWABuilder, wrapping this same
+// index.html/manifest.json) — but Android doesn't need a custom UA marker at all. A TWA is a real,
+// unmodified Chrome under the hood, launched the same way an installed PWA is, so the standard
+// `display-mode` media feature already reports it correctly: a normal browser tab is "browser",
+// while the installed TWA (and a PWA installed via "Add to Home Screen") is "standalone" — exactly
+// what manifest.json's own "display":"standalone" asks for. Nothing to bake into the APK at build
+// time, no rebuild ever needed if this check changes; it's purely this web code doing the checking.
+try{
+  if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches){
+    document.documentElement.classList.add('notua-app-env');
+  }
+}catch(e){}
 </script>
 <style>
   :root{
@@ -2704,9 +2716,9 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    `notua-app-env` detection in the early boot <script> in <head> and the matching CSS rule.
    ============================================================ */
 const DOWNLOAD_PLATFORMS=[
-  {key:'windows', label:'download_windows', href:'/NOTUADesktopApp.exe', enabled:true,
+  {key:'windows', label:'download_windows', href:'/notua-setup.exe', enabled:true,
     icon:'<rect x="3.5" y="4.5" width="17" height="12" rx="1.5"/><path d="M8 19.5h8M12 16.5v3"/>'},
-  {key:'android', label:'download_android', href:'/downloads/notua-setup-android.apk', enabled:false,
+  {key:'android', label:'download_android', href:'/Notua.apk', enabled:true,
     icon:'<rect x="7.5" y="2.5" width="9" height="19" rx="2"/><path d="M11 18.2h2"/>'},
   {key:'macos', label:'download_macos', href:'/downloads/notua-setup-macos.dmg', enabled:false,
     icon:'<path d="M3.5 5.5h17v10h-17z"/><path d="M1.5 19.5h21l-2-3.5h-17z"/>'},
