@@ -310,10 +310,24 @@ try{
      so without its own overscroll-behavior, pulling past the top of that list still reaches the
      browser's native rubber-band/pull-to-refresh effect underneath — which is exactly the "app
      shrinks and a white edge appears" look on a swipe-down in the packaged Android app. */
-  #homeView{position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain; background:var(--surface-2);}
+  #homeView{position:absolute; inset:0; overflow:hidden; background:var(--surface-2);}
+  /* The actual scroll container is this inner wrapper, not #homeView itself — #homeView stays a
+     full-bleed, non-scrolling frame (so its background still fills in behind the notch/status bar),
+     while .home-scroll is inset from the top by the safe area and from the bottom by a small fixed
+     gap, so the mobile scrollbar/scroll-indicator itself (which always runs the full height of
+     whichever box has overflow, regardless of that box's own padding) stays clear of the status bar
+     cutout at the top and the rounded bottom corners of the phone instead of running edge-to-edge. */
+  .home-scroll{
+    position:absolute; left:0; right:0; top:env(safe-area-inset-top,0px);
+    bottom:max(10px, env(safe-area-inset-bottom,0px));
+    overflow-y:auto; overscroll-behavior:contain;
+  }
   .home-header{
     display:flex; align-items:baseline; justify-content:space-between;
-    padding:calc(36px + env(safe-area-inset-top,0px)) 44px 18px; max-width:1180px; margin:0 auto; gap:16px; flex-wrap:wrap;
+    /* No env(safe-area-inset-top) here anymore — .home-scroll (the actual scroll container, see
+       above) is already inset from the top by that same safe area, so adding it again here would
+       double the gap on a notched/punch-hole phone. */
+    padding:36px 44px 18px; max-width:1180px; margin:0 auto; gap:16px; flex-wrap:wrap;
   }
   .wordmark{display:flex; align-items:center; gap:10px; cursor:pointer; width:fit-content;}
   .wordmark h1{font-size:1.7rem; font-weight:700; letter-spacing:-0.02em; margin:0; text-wrap:balance; transition:color .18s ease;}
@@ -986,7 +1000,7 @@ try{
   }
   .mobile-scrim.open{opacity:1; pointer-events:auto;}
   .mobile-drawer{
-    position:fixed; top:var(--vv-top,0px); left:0; height:var(--vv-height,100%); width:82vw; max-width:320px; background:var(--surface);
+    position:fixed; top:calc(var(--vv-top,0px) + env(safe-area-inset-top,0px)); left:0; height:calc(var(--vv-height,100%) - env(safe-area-inset-top,0px)); width:82vw; max-width:320px; background:var(--surface);
     border-right:1px solid var(--border); box-shadow:16px 0 40px -16px var(--shadow-lg); z-index:61;
     transform:translateX(-100%); transition:transform .2s ease; display:flex; flex-direction:column; overflow-y:auto;
   }
@@ -1015,7 +1029,7 @@ try{
 
   /* ---------- INSPECTOR ---------- */
   .inspector{
-    position:absolute; top:64px; right:16px; width:238px; background:var(--surface); border:1px solid var(--border);
+    position:absolute; top:calc(64px + env(safe-area-inset-top,0px)); right:16px; width:238px; background:var(--surface); border:1px solid var(--border);
     border-radius:9px; box-shadow:0 14px 34px -12px var(--shadow-lg); z-index:28; padding:14px; display:flex; flex-direction:column; gap:12px;
     animation:pop .12s ease;
   }
@@ -1120,8 +1134,8 @@ try{
   .feedback-status.ok{color:var(--accent);}
 
   /* scrollbars */
-  #homeView::-webkit-scrollbar{width:10px;}
-  #homeView::-webkit-scrollbar-thumb{background:var(--border-strong); border-radius:6px;}
+  .home-scroll::-webkit-scrollbar{width:10px;}
+  .home-scroll::-webkit-scrollbar-thumb{background:var(--border-strong); border-radius:6px;}
 
   @media (max-width:640px){
     .bottom-bars{display:none;}
@@ -1167,6 +1181,7 @@ try{
 
   <!-- ============ HOME VIEW ============ -->
   <div id="homeView" hidden>
+    <div class="home-scroll">
     <div class="home-header">
       <div>
         <div class="wordmark" id="homeWordmark" role="button" tabindex="0" title="Zurück zur Landing-Page"><span class="logo-dot"></span><h1>NOTUA</h1></div>
@@ -1195,6 +1210,7 @@ try{
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/><path d="M8 5v-1"/><path d="M16 5v-1"/></svg>
         <p id="emptyHomeText">Noch keine Boards. Leg dein erstes Board an und beginne mit der Planung deines Videoprojekts.</p>
       </div>
+    </div>
     </div>
   </div>
 
@@ -2740,11 +2756,11 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
 const DOWNLOAD_PLATFORMS=[
   {key:'windows', label:'download_windows', href:'/NOTUADesktopApp.exe', enabled:true,
     icon:'<rect x="3.5" y="4.5" width="17" height="12" rx="1.5"/><path d="M8 19.5h8M12 16.5v3"/>'},
-  {key:'android', label:'download_android', href:'/Notua.apk', enabled:true,
+  {key:'android', label:'download_android', href:'/NOTUAMobileApp.apk', enabled:true,
     icon:'<rect x="7.5" y="2.5" width="9" height="19" rx="2"/><path d="M11 18.2h2"/>'},
-  {key:'macos', label:'download_macos', href:'/downloads/NOTUADesktopApp-macos.dmg', enabled:false,
+  {key:'macos', label:'download_macos', href:'/downloads/notua-setup-macos.dmg', enabled:false,
     icon:'<path d="M3.5 5.5h17v10h-17z"/><path d="M1.5 19.5h21l-2-3.5h-17z"/>'},
-  {key:'ios', label:'download_ios', href:'/downloads/NOTUADesktopApp-ios.ipa', enabled:false,
+  {key:'ios', label:'download_ios', href:'/downloads/notua-setup-ios.ipa', enabled:false,
     icon:'<rect x="7.5" y="2.5" width="9" height="19" rx="2"/><path d="M11 18.2h2"/>'},
 ];
 function showDownloadModal(){
