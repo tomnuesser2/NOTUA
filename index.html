@@ -109,7 +109,7 @@ try{
     --shadow-lg:rgba(24,28,35,0.22);
     --tag-yellow:235,186,66; --tag-pink:227,132,171; --tag-blue:90,159,214;
     --tag-green:107,171,110; --tag-purple:158,128,193; --tag-grey:140,149,160; --tag-orange:222,138,79;
-    --tag-alpha:0.20; --tag-alpha-strong:0.85;
+    --tag-alpha:0.20;
     --scrim:rgba(20,23,28,0.45);
   }
   @media (prefers-color-scheme: dark){
@@ -360,6 +360,33 @@ try{
   .wordmark:hover .logo-dot{transform:scale(1.3); border-radius:50%;}
   .wordmark:hover h1{color:var(--accent);}
   .wordmark:active .logo-dot{transform:scale(1.05); border-radius:50%;}
+
+  /* ---------- PAPIERKORB (trash) VIEW ---------- */
+  /* A muted, dusty amber rather than red/danger — clearly its own place without reading as a
+     warning screen. Used for the header wash, tile spines/borders and the small restore icon. */
+  :root{ --trash-accent:#A9835A; --trash-accent-soft:rgba(169,131,90,0.16); --trash-accent-border:rgba(169,131,90,0.4); }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --trash-accent:#C9A877; --trash-accent-soft:rgba(201,168,119,0.16); --trash-accent-border:rgba(201,168,119,0.4); }
+  }
+  :root[data-theme="dark"]{ --trash-accent:#C9A877; --trash-accent-soft:rgba(201,168,119,0.16); --trash-accent-border:rgba(201,168,119,0.4); }
+  #trashView{background:var(--trash-accent-soft);}
+  /* Cluster outline gets its own warm orange rather than reusing the app's coral/red --accent, so the
+     cluster line reads as clearly "orange" at a glance instead of blending toward red. */
+  :root{ --cluster-accent:#FF9F1C; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --cluster-accent:#FFB13D; } }
+  :root[data-theme="dark"]{ --cluster-accent:#FFB13D; }
+  .trash-title-row{display:flex; align-items:center; gap:6px;}
+  .trash-header .wordmark{cursor:default;}
+  .trash-header .wordmark:hover h1{color:inherit;}
+  .trash-tile{background:var(--trash-accent-soft); border-color:var(--trash-accent-border);}
+  @media (hover:hover) and (pointer:fine){
+    .trash-tile:hover{border-color:var(--trash-accent);}
+  }
+  .restore-btn:hover{background:var(--trash-accent-soft); color:var(--trash-accent);}
+  .restored-badge{
+    align-self:flex-start; margin-top:2px; font-size:0.66rem; font-weight:600; color:var(--accent);
+    background:var(--accent-soft); border-radius:20px; padding:2px 8px;
+  }
   .feedback-btn{
     display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:20px; border:1px solid var(--border);
     background:var(--surface); color:var(--muted); font-size:0.76rem; font-weight:600; cursor:pointer; font-family:inherit; flex:none;
@@ -546,6 +573,12 @@ try{
   }
   .icon-btn:hover{background:var(--surface-2); color:var(--ink);}
   .icon-btn:active{transform:scale(.9);}
+  /* The little dot inside #boardColorBtn (topbar) — mirrors a board-tile's own .spine but as a circle
+     rather than a bar, since it sits in a plain 32×32 icon button alongside search/calendar/home
+     rather than a tile's header row. Its background is set inline from the open board's own b.color
+     (see syncBoardColorDot) — same fallback var(--accent) a tile with no color of its own uses. */
+  .board-color-dot{width:15px; height:15px; border-radius:50%; border:1.5px solid var(--border-strong); background:var(--accent); transition:transform .12s cubic-bezier(.34,1.56,.64,1);}
+  #boardColorBtn:hover .board-color-dot{transform:scale(1.12);}
 
   .canvas-viewport{position:relative; z-index:0; flex:1; overflow:hidden; background:var(--canvas); cursor:default; isolation:isolate; touch-action:none;}
   .canvas-viewport.panning, .canvas-viewport.space-down{cursor:grab;}
@@ -565,7 +598,7 @@ try{
   @keyframes cardSpawn{from{opacity:0; transform:scale(.92);} to{opacity:1; transform:scale(1);}}
   .card.spawn-in{animation:cardSpawn .22s cubic-bezier(.22,1,.36,1);}
   @keyframes badgePop{0%{transform:scale(0);} 65%{transform:scale(1.18);} 100%{transform:scale(1);}}
-  .cluster-badge{animation:badgePop .28s cubic-bezier(.22,1,.36,1);}
+  .cluster-outline-badge{animation:badgePop .28s cubic-bezier(.22,1,.36,1);}
   /* A radial-gradient with both color stops at the SAME radius (the old 1.4px/1.4px) leaves the
      browser to anti-alias the entire dot rather than rendering a real solid core with just a thin
      anti-aliased rim — on a large, non-Retina external monitor (1 device px per CSS px) that whole-
@@ -575,8 +608,8 @@ try{
   .grid-layer.hidden-grid{display:none;}
   #connectorSvg{position:absolute; overflow:visible; left:0; top:0; pointer-events:none;}
   /* Bumped from 2px to 3px — connectors were hard to spot against the dotted canvas background. */
-  #connectorSvg line{stroke:var(--faint); stroke-width:3; stroke-linecap:round; marker-end:url(#arrowhead); transition:stroke .15s ease, stroke-width .15s ease;}
-  #connectorSvg line.selected{stroke:var(--accent); stroke-width:3.5; marker-end:url(#arrowhead-selected);}
+  #connectorSvg line{stroke:var(--faint); stroke-width:3.5; stroke-linecap:round; marker-end:url(#arrowhead); transition:stroke .15s ease, stroke-width .15s ease;}
+  #connectorSvg line.selected{stroke:var(--accent); stroke-width:4; marker-end:url(#arrowhead-selected);}
   #connectorSvg line.hitline{stroke:transparent; stroke-width:18; pointer-events:stroke; cursor:pointer;}
   #connectorSvg .conn-label{font:600 11px inherit; fill:var(--muted); text-anchor:middle; dominant-baseline:middle; pointer-events:none; user-select:none;}
   #connectorSvg .conn-label-bg{fill:var(--surface); opacity:0.92; rx:4; pointer-events:none;}
@@ -596,9 +629,9 @@ try{
 
   /* ---------- CALENDAR PANEL ---------- */
   .calendar-panel{
-    position:absolute; top:60px; right:16px; z-index:29; width:300px; max-height:calc(100% - 80px);
+    position:absolute; top:60px; right:16px; z-index:29; width:340px; max-height:calc(100% - 60px);
     display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border); border-radius:11px;
-    box-shadow:0 14px 34px -12px var(--shadow-lg); padding:12px; gap:8px; animation:pop .12s ease; overflow:hidden;
+    box-shadow:0 14px 34px -12px var(--shadow-lg); padding:14px; gap:9px; animation:pop .12s ease; overflow:hidden;
   }
   .cal-head{display:flex; align-items:center; gap:4px;}
   .cal-nav-btn{width:26px; height:26px; border:none; background:none; color:var(--muted); border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
@@ -632,6 +665,12 @@ try{
   .cal-day-item .cal-item-dot{width:8px; height:8px; border-radius:50%; flex:none;}
   .cal-day-item .cal-item-time{font-size:0.7rem; color:var(--faint); flex:none; width:36px;}
   .cal-day-item .cal-item-label{flex:1; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  /* Which board an entry belongs to — only meaningful now that the calendar aggregates across every
+     board instead of just the currently open one. */
+  .cal-day-item .cal-item-board{
+    flex:none; max-width:88px; font-size:0.66rem; color:var(--faint); background:var(--surface-2);
+    border-radius:10px; padding:2px 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   .cal-day-empty{font-size:0.78rem; color:var(--faint); padding:6px;}
   /* small calendar toggle button in the inspector header — see .card-date-popover below for the
      actual date/time picker it opens */
@@ -648,12 +687,15 @@ try{
     opacity:0; pointer-events:none; transform:translateY(4px) scale(.96); transition:opacity .12s ease, transform .12s ease;
   }
   .card-date-popover.show{opacity:1; pointer-events:auto; transform:translateY(0) scale(1);}
-  .card-date-popover input{
+  .card-date-popover input, .card-date-popover select{
     border:1px solid var(--border); border-radius:6px; padding:6px 7px; font:inherit; font-size:0.76rem;
     background:var(--surface); color:var(--ink); outline:none; min-width:0;
   }
-  .card-date-popover input:focus{border-color:var(--accent);}
-  .card-date-popover input:disabled{opacity:.5;}
+  .card-date-popover input:focus, .card-date-popover select:focus{border-color:var(--accent);}
+  .card-date-popover input:disabled, .card-date-popover select:disabled{opacity:.5;}
+  .cdp-time-group{display:flex; align-items:center; gap:3px;}
+  .cdp-time-group select{padding:6px 3px; text-align:center;}
+  .cdp-time-sep{color:var(--faint); font-weight:600;}
   .card-date-popover .cdp-clear{width:22px; height:22px; border:none; background:none; color:var(--faint); border-radius:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
   .card-date-popover .cdp-clear:hover{background:var(--danger-soft); color:var(--danger);}
 
@@ -673,15 +715,40 @@ try{
     touch-action:none; /* let JS (pointermove) own touch gestures on cards instead of the browser trying to scroll/zoom with them */
     contain:layout style; /* a card's own layout/style changes (typing, resizing) never need to check
       siblings on a big board — keeps per-frame work local instead of scaling with card count */
+    /* Explicit (not just inherited): note-body/table-cell-text/etc never set their own `color`, so
+       without this they'd inherit the plain <body> color:var(--ink) declaration verbatim — a value
+       already resolved at the BODY level, which does NOT re-read a per-card inline --ink override
+       (custom-property inheritance and `color` inheritance are two different mechanisms). Declaring
+       color:var(--ink) here re-evaluates --ink locally, at THIS element, so baseCardShell's inline
+       --ink override on a colored card actually reaches its text. Uncolored cards/columns have no
+       such override, so var(--ink) here just resolves to the same global value as before — no change. */
+    color:var(--ink);
   }
   .card.dragging{box-shadow:0 14px 30px -10px var(--shadow-lg); cursor:grabbing;}
   .card.selected{box-shadow:0 0 0 2px var(--accent), 0 10px 22px -10px var(--shadow-lg);}
-  .card.clustered{outline:1.5px dashed var(--accent); outline-offset:3px;}
-  .cluster-badge{
-    position:absolute; top:-8px; right:-8px; width:18px; height:18px; border-radius:50%;
-    background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center;
+  /* Cluster visual indicator: a single thin accent-colored line traces one continuous loop (a convex
+     hull) around the whole group (see renderClusterOutlines()/convexHull()) instead of the old
+     per-card dashed outline around every single member, which read as "too extreme" once a cluster had more
+     than a couple of cards in it. */
+  .cluster-outline{fill:none; stroke:var(--cluster-accent); stroke-width:1.6; stroke-linejoin:round; stroke-linecap:round;}
+  .cluster-outline-badge{
+    position:absolute; width:20px; height:20px; border-radius:50%; transform:translate(-50%,-50%);
+    background:var(--cluster-accent); color:#fff; display:flex; align-items:center; justify-content:center;
     box-shadow:0 2px 6px -1px var(--shadow-lg); pointer-events:none; z-index:2;
   }
+  .cluster-outline-badge svg{width:11px; height:11px;}
+  /* Connect-mode UX: hovering any card while the tool is active previews it as a valid connection
+     target (dashed ring + faint tint); the card actually picked as the connection's start point gets
+     a firmer solid ring plus the little badge below, so it's unmistakable which element is "armed"
+     while you look for the second one to click. */
+  .canvas-viewport.connect-mode .card:hover{outline:1.5px dashed var(--accent); outline-offset:3px; background-image:linear-gradient(var(--accent-soft),var(--accent-soft));}
+  .card.connect-source{outline:2px solid var(--accent); outline-offset:3px; background-image:linear-gradient(var(--accent-soft),var(--accent-soft));}
+  .connect-source-badge{
+    position:absolute; top:-8px; right:-8px; width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px -1px var(--shadow-lg); pointer-events:none; z-index:3;
+  }
+  .connect-source-badge svg{width:12px; height:12px;}
   .date-badge{
     position:absolute; top:-9px; left:8px; border:none; border-radius:10px; padding:2px 7px;
     background:var(--ink); color:var(--canvas); font-size:0.64rem; font-weight:600; letter-spacing:.01em;
@@ -703,14 +770,18 @@ try{
   }
   .resize-handle{
     position:absolute; right:2px; bottom:2px; width:16px; height:16px; cursor:nwse-resize; z-index:2; touch-action:none;
-    background:linear-gradient(135deg, transparent 50%, var(--border-strong) 50%); border-radius:0 0 6px 0; opacity:0; transition:opacity .12s;
+    /* --card-resize-tint: on a colored card, baseCardShell sets this to the SAME accent-adapted
+       --muted tint used for the icon/title, so the fold indicator matches the card instead of always
+       being neutral grey. Uncolored cards/columns never set it, so it falls back to the old plain
+       var(--border-strong) — unchanged there. */
+    background:linear-gradient(135deg, transparent 50%, var(--card-resize-tint, var(--border-strong)) 50%); border-radius:0 0 6px 0; opacity:0; transition:opacity .12s;
   }
   .card:hover .resize-handle, .card.selected .resize-handle{opacity:1;}
 
   /* note */
   .card-note{padding-bottom:6px;}
   .note-body{
-    flex:1; padding:2px 12px 12px; font-size:0.92rem; line-height:1.5; outline:none; white-space:pre-wrap; word-break:break-word; cursor:text;
+    flex:1; padding:2px 12px 12px; font-size:0.92rem; font-weight:600; line-height:1.5; outline:none; white-space:pre-wrap; word-break:break-word; cursor:text;
     overflow-y:auto; min-height:0;
   }
   /* Cards are meant to grow with their content (fitCardHeight, always on) rather than ever scroll —
@@ -719,7 +790,17 @@ try{
      never be visible; the content still scrolls with wheel/trackpad/touch, just without the bar. */
   .note-body, .checklist-items, .table-scroll{ scrollbar-width:none; -ms-overflow-style:none; }
   .note-body::-webkit-scrollbar, .checklist-items::-webkit-scrollbar, .table-scroll::-webkit-scrollbar{ display:none; width:0; height:0; }
-  .note-body:empty::before{content:attr(data-placeholder); color:var(--faint);}
+  .note-body:empty::before{content:attr(data-placeholder); color:var(--card-placeholder-color, var(--faint));}
+  /* "there's more below" hint — only ever shown (via [hidden] toggling in updateNoteOverflowHint)
+     when dynamic content is off and the note's text doesn't fit its fixed box. Deliberately no
+     background/pill/gradient behind it per "so dezent wie möglich" — just a small low-opacity
+     chevron sitting on the card's own background, centered at the very bottom edge. */
+  .card-note{position:relative;}
+  .note-overflow-hint{
+    position:absolute; left:50%; bottom:3px; transform:translateX(-50%);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--faint); opacity:0.6; pointer-events:none; z-index:1;
+  }
   .note-format-toolbar{
     position:fixed; z-index:80; display:flex; gap:2px; padding:4px; border-radius:9px;
     background:var(--surface); border:1px solid var(--border); box-shadow:0 6px 20px rgba(0,0,0,.22);
@@ -737,7 +818,7 @@ try{
   .column-title{
     font-size:0.98rem; font-weight:700; background:none; border:none; outline:none; font-family:inherit; width:100%; padding:4px 12px 0; color:var(--ink);
   }
-  .column-title::placeholder{color:var(--faint); font-weight:600;}
+  .column-title::placeholder{color:var(--card-placeholder-color, var(--faint)); font-weight:600;}
   .col-add-btn{
     position:absolute; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:50%;
     border:1px solid var(--border-strong); background:var(--surface); color:var(--muted); display:flex; align-items:center; justify-content:center;
@@ -753,31 +834,46 @@ try{
   .checklist-title{
     font-size:0.86rem; font-weight:700; background:none; border:none; outline:none; font-family:inherit; padding:4px 12px 0; color:var(--ink); width:100%;
   }
+  .checklist-title::placeholder{color:var(--card-placeholder-color, var(--faint)); font-weight:600;}
   .checklist-items{display:flex; flex-direction:column; padding:4px 6px 6px; gap:1px; flex:1; overflow-y:auto; min-height:0;}
   .check-row{display:flex; align-items:flex-start; gap:7px; padding:4px 6px; border-radius:5px;}
   .check-row:hover{background:var(--surface-2);}
-  .check-row input[type="checkbox"]{margin-top:3px; accent-color:var(--accent); width:15px; height:15px; flex:none; cursor:pointer; transition:transform .12s cubic-bezier(.34,1.56,.64,1);}
+  /* Custom-drawn (appearance:none) instead of the plain native checkbox, because a native checkbox's
+     `accent-color` can only set ONE color for the whole widget — but the ask is two independent colors:
+     the box/fill should match the card's own adaptive text/icon color (--muted), while the tick itself
+     should be the card's actual picked color from the properties tab (--card-accent-raw). Unchecked
+     stays the same plain bordered box as before ("unausgefüllt so wie jetzt auch"). */
+  .check-row input[type="checkbox"]{
+    -webkit-appearance:none; appearance:none; margin-top:3px; width:15px; height:15px; flex:none; cursor:pointer;
+    border:1.5px solid var(--border-strong); border-radius:4px; background:var(--surface); position:relative;
+    transition:transform .12s cubic-bezier(.34,1.56,.64,1), background .12s ease, border-color .12s ease;
+  }
   .check-row input[type="checkbox"]:active{transform:scale(.8);}
+  .check-row input[type="checkbox"]:checked{ background:var(--muted); border-color:var(--muted); }
+  .check-row input[type="checkbox"]:checked::after{
+    content:''; position:absolute; left:4px; top:1px; width:4px; height:8px;
+    border:solid var(--card-accent-raw, var(--accent)); border-width:0 2px 2px 0; transform:rotate(45deg);
+  }
   @keyframes checkBounce{0%{transform:scale(1);} 40%{transform:scale(1.35);} 100%{transform:scale(1);}}
   /* Triggered explicitly in JS on the change event (a one-shot .check-bounce class, removed again on
      animationend) rather than tied to .done itself — .done also gets reapplied whenever renderItems()
      rebuilds the whole list (e.g. after adding/removing an unrelated item), and an animation keyed to
      .done alone would replay on every already-checked row each time that happens. */
   .check-row input[type="checkbox"].check-bounce{animation:checkBounce .28s cubic-bezier(.34,1.56,.64,1);}
-  .check-row .txt{flex:1; font-size:0.86rem; outline:none; line-height:1.4; word-break:break-word; cursor:text;}
-  .check-row.done .txt{color:var(--faint); text-decoration:line-through;}
+  .check-row .txt{flex:1; font-size:0.86rem; font-weight:600; outline:none; line-height:1.4; word-break:break-word; cursor:text;}
+  .check-row.done .txt{color:var(--card-placeholder-color, var(--faint)); text-decoration:line-through;}
   .check-row .rm{opacity:0; border:none; background:none; color:var(--faint); cursor:pointer; width:18px; height:18px; flex:none; border-radius:3px;}
   .check-row:hover .rm{opacity:1;}
   .check-row .rm:hover{color:var(--danger);}
   .add-item-row{display:flex; align-items:center; gap:6px; padding:4px 12px 10px;}
   .add-item-row input{
-    flex:1; border:none; background:none; outline:none; font-family:inherit; font-size:0.84rem; color:var(--ink); padding:3px 0;
+    flex:1; border:none; background:none; outline:none; font-family:inherit; font-size:0.84rem; font-weight:600; color:var(--ink); padding:3px 0;
   }
-  .add-item-row input::placeholder{color:var(--faint);}
+  .add-item-row input::placeholder{color:var(--card-placeholder-color, var(--faint));}
   .checklist-progress-wrap{padding:2px 12px 4px; display:flex; align-items:center; gap:8px;}
   .checklist-progress{flex:1; height:6px; border-radius:3px; background:var(--surface-2); overflow:hidden;}
-  .checklist-progress-fill{height:100%; background:var(--accent); border-radius:3px; transition:width .25s ease;}
-  .checklist-progress-label{font-size:0.68rem; color:var(--faint); flex:none;}
+  .checklist-progress-fill{height:100%; background:var(--card-accent-raw, var(--accent)); border-radius:3px; transition:width .25s ease;}
+  .checklist-progress-label{font-size:0.68rem; color:var(--card-placeholder-color, var(--faint)); flex:none;}
 
   /* image */
   .card-image{padding:0; overflow:hidden;}
@@ -800,10 +896,17 @@ try{
      isn't removed outright, though: it's how you still select/move/delete the card and reach the
      inspector, so — same technique already used for image cards — it becomes an overlay that's
      invisible until you hover or select the card, then fades in over the player's own corner. */
-  .card-youtube.embedded{background:transparent; border:none; box-shadow:none; padding-bottom:0;}
+  /* A bigger, more deliberate rounding than the standard 6px card radius once a real player is
+     showing ("doller abgerundet... sleek schlicht elegant... hochwertig") — matching a real Spotify/
+     YouTube embed's own premium look rather than NOTUA's plain card chrome. Set on the OUTER element
+     too (not just .yt-frame-wrap below), so the selection/hover box-shadow ring — which always
+     follows whatever border-radius its own element has — rounds at the exact same 14px instead of
+     the mismatched 6px the base .card rule would otherwise leave it at (that mismatch is what used to
+     read as "blöde Ränder": a barely-rounded selection ring around a much-more-rounded video frame). */
+  .card-youtube.embedded{background:transparent; border:none; box-shadow:none; padding-bottom:0; border-radius:14px;}
   .card-youtube.embedded .card-head{
     position:absolute; top:0; left:0; right:0; z-index:2; padding:6px 8px; margin:0;
-    background:linear-gradient(to bottom, rgba(0,0,0,.5), transparent); border-radius:6px 6px 0 0;
+    background:linear-gradient(to bottom, rgba(0,0,0,.5), transparent); border-radius:14px 14px 0 0;
     opacity:0; transition:opacity .12s; pointer-events:none;
   }
   .card-youtube.embedded:hover .card-head, .card-youtube.embedded.selected .card-head{opacity:1; pointer-events:auto;}
@@ -818,7 +921,10 @@ try{
   }
   .card-youtube:not(.embedded){padding-bottom:0;}
   .yt-frame-wrap{flex:1; position:relative; background:#000; border-radius:0 0 6px 6px; overflow:hidden; min-height:60px;}
-  .card-youtube.embedded .yt-frame-wrap{position:absolute; inset:0; border-radius:6px;}
+  /* overflow:hidden above is what actually clips the iframe's own square corners to this radius —
+     dynamic resizing (dragging the card, WIDGET_ASPECT keeping it in-format) never breaks this since
+     the iframe itself always just fills the wrapper (inset:0, 100%/100%), so it re-clips every frame. */
+  .card-youtube.embedded .yt-frame-wrap{position:absolute; inset:0; border-radius:14px; box-shadow:0 10px 26px -10px var(--shadow-lg);}
   .yt-frame-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:none;}
   .yt-input-wrap{flex:1; display:flex; align-items:center; padding:0 12px 12px; gap:8px;}
   .yt-input-wrap input{
@@ -838,17 +944,21 @@ try{
   .table-title{
     font-size:0.86rem; font-weight:700; background:none; border:none; outline:none; font-family:inherit; padding:4px 12px 0; color:var(--ink); width:100%;
   }
-  .table-title::placeholder{color:var(--faint); font-weight:600;}
+  .table-title::placeholder{color:var(--card-placeholder-color, var(--faint)); font-weight:600;}
   .table-progress-wrap{padding:2px 12px 4px; display:flex; align-items:center; gap:8px;}
   .table-progress{flex:1; height:6px; border-radius:3px; background:var(--surface-2); overflow:hidden;}
-  .table-progress-fill{height:100%; background:var(--accent); border-radius:3px; transition:width .25s ease;}
-  .table-progress-label{font-size:0.68rem; color:var(--faint); flex:none;}
+  .table-progress-fill{height:100%; background:var(--card-accent-raw, var(--accent)); border-radius:3px; transition:width .25s ease;}
+  .table-progress-label{font-size:0.68rem; color:var(--card-placeholder-color, var(--faint)); flex:none;}
   .table-scroll{flex:1; overflow:auto; padding:6px 14px 14px 8px; min-height:0;}
   .table-grid{display:grid; position:relative; width:max-content;}
-  .table-corner{background:var(--surface-2); border-right:1px solid var(--border); border-bottom:1px solid var(--border);}
+  /* --card-header-bg/--card-header-ink: a DARKER shade of the card's own color (see baseCardShell),
+     not the flat neutral --surface-2 every table used before it had its own color — "in tabelle das
+     blau müsste dieses dunklere gelb werden". Independent of Deckkraft (like a column's border), so
+     the header stripe always reads clearly even when the main fill is faded way down. */
+  .table-corner{background:var(--card-header-bg, var(--surface-2)); border-right:1px solid var(--border); border-bottom:1px solid var(--border);}
   .table-hcell,.table-vcell{
-    background:var(--surface-2); display:flex; align-items:center; justify-content:center; position:relative;
-    font-size:calc(0.66rem * var(--tscale,1)); font-weight:700; color:var(--muted); cursor:pointer; user-select:none;
+    background:var(--card-header-bg, var(--surface-2)); display:flex; align-items:center; justify-content:center; position:relative;
+    font-size:calc(0.66rem * var(--tscale,1)); font-weight:700; color:var(--card-header-ink, var(--muted)); cursor:pointer; user-select:none;
     border-right:1px solid var(--border); border-bottom:1px solid var(--border);
   }
   .table-hcell:hover,.table-vcell:hover{color:var(--ink);}
@@ -859,7 +969,7 @@ try{
   .table-cell{position:relative; border-right:1px solid var(--border); border-bottom:1px solid var(--border); overflow:hidden;}
   .table-cell-text{
     width:100%; height:100%; padding:calc(3px * var(--tscale,1)) calc(6px * var(--tscale,1));
-    font-size:calc(0.8rem * var(--tscale,1)); outline:none; overflow:hidden;
+    font-size:calc(0.8rem * var(--tscale,1)); font-weight:600; outline:none; overflow:hidden;
     line-height:1.35; word-break:break-word; cursor:text;
   }
   .table-cell.has-ampel .table-cell-text{padding-right:16px;}
@@ -887,12 +997,12 @@ try{
   .table-cell-check{
     position:absolute; top:2px; right:2px; width:13px; height:13px; margin:0; z-index:2; cursor:pointer; accent-color:var(--accent);
   }
-  .table-ampel-popover,.table-tint-popover{
+  .table-ampel-popover,.table-tint-popover,.board-color-popover{
     position:fixed; z-index:80; display:flex; gap:5px; padding:6px; border-radius:9px;
     background:var(--surface); border:1px solid var(--border); box-shadow:0 6px 20px rgba(0,0,0,.22);
     opacity:0; pointer-events:none; transform:translateY(4px) scale(.96); transition:opacity .12s ease, transform .12s ease;
   }
-  .table-ampel-popover.show,.table-tint-popover.show{opacity:1; pointer-events:auto; transform:translateY(0) scale(1);}
+  .table-ampel-popover.show,.table-tint-popover.show,.board-color-popover.show{opacity:1; pointer-events:auto; transform:translateY(0) scale(1);}
   .table-ampel-popover button{width:22px; height:22px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0; transition:transform .12s cubic-bezier(.34,1.56,.64,1);}
   .table-ampel-popover button.opt-green{background:#4CAF50;}
   .table-ampel-popover button.opt-yellow{background:#E3B93B;}
@@ -920,6 +1030,9 @@ try{
   .tag-purple{--tint:var(--tag-purple); border-left:4px solid rgb(var(--tag-purple)); background:rgba(var(--tag-purple),var(--tag-alpha));}
   .tag-grey{--tint:var(--tag-grey); border-left:4px solid rgb(var(--tag-grey)); background:rgba(var(--tag-grey),var(--tag-alpha));}
   .tag-orange{--tint:var(--tag-orange); border-left:4px solid rgb(var(--tag-orange)); background:rgba(var(--tag-orange),var(--tag-alpha));}
+  /* --tint-custom is set inline per-card (see baseCardShell) as an "R,G,B" triplet, same shape as the
+     preset --tag-* tokens, so this reuses exactly the same rgba()/rgb() pattern as every preset above. */
+  .tag-custom{--tint:var(--tint-custom); border-left:4px solid rgb(var(--tint-custom)); background:rgba(var(--tint-custom),var(--tag-alpha));}
   .card-column.tag-none{background:rgba(140,149,160,var(--tag-alpha)); border-color:var(--border-strong);}
   .card-column.tag-yellow{border-color:rgb(var(--tag-yellow));}
   .card-column.tag-pink{border-color:rgb(var(--tag-pink));}
@@ -928,6 +1041,21 @@ try{
   .card-column.tag-purple{border-color:rgb(var(--tag-purple));}
   .card-column.tag-grey{border-color:rgb(var(--tag-grey));}
   .card-column.tag-orange{border-color:rgb(var(--tag-orange));}
+  .card-column.tag-custom{border-color:rgb(var(--tint-custom));}
+  /* A regular note/content card's own tag color is meant to be fully "visible" at its own baseline,
+     and Deckkraft (card.opacity) is meant to fade ONLY that fill color — not the card's text or icon,
+     which stay fully legible at whatever contrast-adapted color baseCardShell computed for them (see
+     cardAccentTextColors() in the script: it picks a darker or lighter shade of the card's OWN color
+     for --ink/--muted, whichever actually reads against that fill, then sets both --ink/--muted and
+     --card-opacity as inline styles on the card element itself — inline wins over every rule here).
+     --card-opacity is what actually varies per card (card.opacity/100, default 1 = fully solid). Every
+     COLUMN gets this exact same treatment now too, colored or not — a column's background is always
+     an alpha wash (falling back to a neutral grey tint with no color of its own), so it also now
+     starts fully solid and Deckkraft is the only thing that fades it, instead of being permanently
+     stuck at a faint, undialable default. baseCardShell only sets --card-opacity where a rule here
+     actually reads it (a colored card or any column) — everything else keeps var(--card-opacity,1)'s
+     fallback of 1, which is simply unused since a plain uncolored card has no alpha background at all. */
+  .card{ --tag-alpha:var(--card-opacity, 1); }
 
   /* ---------- CREATE MENU (double-click on empty canvas) ---------- */
   .create-menu{
@@ -1090,6 +1218,20 @@ try{
      selection still open) and a keyframe keyed to it would replay well beyond the moment of choosing
      a color. */
   .swatch.swatch-pop{animation:swatchPop .22s cubic-bezier(.34,1.56,.64,1);}
+  .swatch-custom{position:relative; overflow:hidden; background:var(--surface-2); color:var(--muted); border:2px dashed var(--border-strong);}
+  .swatch-custom.active{border-style:solid; border-color:var(--ink);}
+  .swatch-custom-input{position:absolute; inset:-6px; width:calc(100% + 12px); height:calc(100% + 12px); opacity:0; cursor:pointer; border:none; padding:0;}
+  .opacity-steps{display:flex; gap:4px; flex-wrap:wrap;}
+  /* A single button that cycles through OPACITY_STEPS on each click, replacing what used to be one
+     button per step (5 buttons in a row for what's really just one "how transparent" dial). */
+  .opacity-cycle-btn{
+    min-width:56px; height:26px; padding:0 10px; border-radius:14px; border:1px solid var(--border);
+    background:var(--surface); color:var(--ink); font:inherit; font-size:0.72rem; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:4px;
+    transition:border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .opacity-cycle-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .opacity-cycle-btn.reduced{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
   .insp-actions{display:flex; gap:6px;}
   .insp-actions button{
     flex:1; display:flex; align-items:center; justify-content:center; gap:5px; padding:7px 6px; border-radius:6px; border:1px solid var(--border);
@@ -1174,6 +1316,36 @@ try{
   .feedback-status.error{color:var(--danger);}
   .feedback-status.ok{color:var(--accent);}
 
+  /* ---------- SECRET THEME MENU (hidden easter egg, beta testers only) ---------- */
+  .theme-secret-btn{
+    position:fixed; right:0; bottom:0; width:26px; height:26px; padding:0; margin:0; border:none;
+    background:transparent; opacity:0; cursor:default; z-index:5;
+  }
+  .secret-password-form{display:flex; flex-direction:column; gap:8px;}
+  .secret-password-form input{
+    border:1px solid var(--border); border-radius:8px; padding:9px 10px; font:inherit; font-size:0.86rem;
+    background:var(--surface); color:var(--ink); outline:none; font-family:inherit; width:100%; letter-spacing:0.08em;
+  }
+  .secret-password-form input:focus{border-color:var(--accent);}
+  .secret-password-form .secret-error{font-size:0.78rem; color:var(--danger); margin:0; min-height:1em;}
+  .theme-menu-section{display:flex; flex-direction:column; gap:8px; padding-top:12px; border-top:1px solid var(--border);}
+  .theme-menu-section:first-of-type{padding-top:0; border-top:none;}
+  .theme-menu-section h5{margin:0; font-size:0.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--faint);}
+  .theme-menu-random-btn{
+    padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink);
+    font:inherit; font-size:0.86rem; font-weight:600; cursor:pointer; text-align:center;
+  }
+  .theme-menu-random-btn:hover{filter:brightness(0.97);}
+  .theme-palette-preview{display:flex; gap:5px; margin-top:2px;}
+  .theme-palette-preview span{flex:1; height:16px; border-radius:4px; border:1px solid var(--border);}
+  .theme-color-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .theme-color-row label{font-size:0.84rem; color:var(--ink);}
+  .theme-color-row input[type="color"]{
+    width:38px; height:30px; border-radius:7px; border:1px solid var(--border); padding:0; background:none; cursor:pointer;
+  }
+  .theme-menu-actions{display:flex; justify-content:space-between; gap:8px; padding-top:2px;}
+  .theme-menu-actions .theme-menu-left{display:flex; gap:8px;}
+
   /* scrollbars */
   .home-scroll::-webkit-scrollbar{width:10px;}
   /* Tall top/bottom transparent border, clipped away from the background, insets the visible
@@ -1245,8 +1417,17 @@ try{
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
             <span id="folderLabel">Ordner wählen</span>
           </button>
+          <!-- Board-independent calendar (see the CALENDAR section in the script) is reachable from
+               here too, not just from inside a board — same panel, same button behavior as the one in
+               the board top bar. -->
+          <button class="icon-btn import-btn" id="homeCalendarBtn" title="Kalender">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+          </button>
           <button class="icon-btn import-btn" id="importBtn" title="Board importieren">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
+          <button class="icon-btn import-btn" id="trashBtn" title="Papierkorb">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg>
           </button>
         </div>
       </div>
@@ -1259,6 +1440,42 @@ try{
       </div>
     </div>
     </div>
+    <!-- Genuinely hidden (no visual affordance, no title tooltip, not in the tab order) — an easter
+         egg for the closest beta testers, per an explicit request: a tiny always-there hit target in
+         the corner that only someone who already knows it's there would ever click. -->
+    <button id="themeSecretBtn" class="theme-secret-btn" aria-hidden="true" tabindex="-1"></button>
+  </div>
+
+  <!-- ============ PAPIERKORB (trash) VIEW ============ -->
+  <!-- Reuses .home-scroll/.home-header/.home-main/.board-grid wholesale (same safe-area, scrollbar-
+       fade and scrollbar-shortening treatment as the normal overview) — the .trash-view modifier
+       classes below are what actually make it read as a distinct place, not a copy of the same
+       screen: a muted header background, a "Papierkorb" title instead of the NOTUA wordmark, and
+       desaturated tile accents (see the CSS). -->
+  <div id="trashView" class="trash-view" hidden>
+    <div class="home-scroll">
+    <div class="home-header trash-header">
+      <div>
+        <div class="trash-title-row">
+          <button class="icon-btn" id="trashBackBtn" title="Zurück zur Übersicht">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <div class="wordmark">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--muted);flex:none;"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg>
+            <h1 id="trashTitle">Papierkorb</h1>
+          </div>
+        </div>
+        <p class="tagline" id="trashTagline">Gelöschte Boards bleiben hier, bis du sie endgültig löschst oder wiederherstellst.</p>
+      </div>
+    </div>
+    <div class="home-main">
+      <div id="trashGrid" class="board-grid"></div>
+      <div id="emptyTrash" class="empty-home" hidden>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg>
+        <p id="emptyTrashText">Der Papierkorb ist leer.</p>
+      </div>
+    </div>
+    </div>
   </div>
 
   <!-- ============ BOARD VIEW ============ -->
@@ -1268,6 +1485,7 @@ try{
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <div class="crumbs" id="crumbs"></div>
+      <button class="icon-btn" id="boardColorBtn"><span class="board-color-dot" id="boardColorDot"></span></button>
       <button class="icon-btn" id="searchBtn" title="Suchen">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       </button>
@@ -1298,16 +1516,22 @@ try{
       <div class="canvas-inner" id="canvasInner">
         <svg id="connectorSvg" width="1" height="1">
           <defs>
-            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0.8 L8.5,5 L0,9.2 L2.3,5 Z" fill="var(--faint)"></path>
+            <!-- Scaled up ~20% from the original 10x10/refX8 version (better visibility, "etwas
+                 dicker") and refX moved to match the shape's actual tip (10.2, was 8 against a tip at
+                 8.5*1.2=10.2) — the old refX undershot the real tip by half a unit, which is why the
+                 head used to sit visibly short of/overlapping the line's actual end point. -->
+            <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10.2" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,1 L10.2,6 L0,11 L2.8,6 Z" fill="var(--faint)"></path>
             </marker>
-            <marker id="arrowhead-selected" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0.8 L8.5,5 L0,9.2 L2.3,5 Z" fill="var(--accent)"></path>
+            <marker id="arrowhead-selected" markerWidth="12" markerHeight="12" refX="10.2" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,1 L10.2,6 L0,11 L2.8,6 Z" fill="var(--accent)"></path>
             </marker>
           </defs>
+          <g id="clusterOutlines"></g>
           <g id="connectorLines"></g>
         </svg>
         <div id="cardsLayer"></div>
+        <div id="clusterBadges"></div>
       </div>
       <div class="empty-board-hint" id="emptyBoardHint">
         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M4 12h16"/></svg>
@@ -1523,6 +1747,37 @@ function extractSpotifyEmbed(url){
   return null;
 }
 const TAG_COLORS=['none','yellow','pink','blue','green','purple','grey','orange'];
+// Deliberately no 0% step — that would just be "invisible", not a genuinely useful transparency level.
+const OPACITY_STEPS=[100,80,60,40,20];
+function hexToRgbTriplet(hex){
+  hex=(hex||'#8A9099').replace('#','');
+  if(hex.length===3) hex=hex.split('').map(ch=>ch+ch).join('');
+  const r=parseInt(hex.substring(0,2),16), g=parseInt(hex.substring(2,4),16), b=parseInt(hex.substring(4,6),16);
+  return (isNaN(r)?138:r)+','+(isNaN(g)?144:g)+','+(isNaN(b)?153:b);
+}
+function iconColorWheel(){return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>`;}
+// Shared by the card inspector's #swatchRow and the connector inspector's #connSwatchRow: one more
+// swatch alongside the fixed presets, backed by a real native <input type="color"> that covers the
+// whole button invisibly (rather than a separate visible button proxying a .click() to a hidden
+// input) — the direct-click approach is the one that reliably opens the native picker on every
+// platform, iOS Safari included, since some browsers only honor a color input's click as a genuine
+// user gesture when it's the actual element the pointer went down on. currentHex is the color to
+// show as already active (null if this card/connector isn't using a custom color right now); onPick
+// is called with the chosen hex string once the user commits a color in the native picker.
+function buildCustomSwatchButton(currentHex,onPick){
+  const sw=document.createElement('span');
+  sw.className='swatch swatch-custom'+(currentHex?' active':'');
+  sw.title=t('color_custom_title');
+  if(currentHex){ sw.style.background=currentHex; }
+  else{ sw.innerHTML=iconColorWheel(); }
+  const picker=document.createElement('input');
+  picker.type='color';
+  picker.className='swatch-custom-input';
+  picker.value=currentHex||'#8A9099';
+  picker.addEventListener('change',()=>onPick(picker.value));
+  sw.appendChild(picker);
+  return sw;
+}
 
 /* ============================================================
    I18N — German / English
@@ -1605,6 +1860,7 @@ const I18N={
   section_view:{de:'Ansicht',en:'View'},
   crumb_home:{de:'Start',en:'Home'},
   search_title:{de:'Suchen',en:'Search'},
+  board_color_title:{de:'Board-Farbe wählen',en:'Choose board color'},
   search_placeholder:{de:'Suchen…',en:'Search…'},
   search_prev_title:{de:'Vorheriges Ergebnis',en:'Previous result'},
   search_next_title:{de:'Nächstes Ergebnis',en:'Next result'},
@@ -1624,11 +1880,28 @@ const I18N={
   new_board_tile:{de:'Neues Board',en:'New board'},
   untitled_board:{de:'Unbenanntes Board',en:'Untitled board'},
   confirm_delete_board_title:{de:'Board löschen?',en:'Delete board?'},
-  confirm_delete_board_body:{de:'„{name}“ und alle enthaltenen Elemente werden entfernt.',en:'"{name}" and everything in it will be removed.'},
+  confirm_delete_board_body:{de:'„{name}“ wandert in den Papierkorb und bleibt dort, bis du es endgültig löschst.',en:'"{name}" moves to the trash and stays there until you delete it for good.'},
   delete_action:{de:'Löschen',en:'Delete'},
   modal_cancel:{de:'Abbrechen',en:'Cancel'},
   toast_board_deleted:{de:'Board gelöscht',en:'Board deleted'},
   toast_undo:{de:'Rückgängig',en:'Undo'},
+  trash_btn_title:{de:'Papierkorb',en:'Trash'},
+  trash_view_title:{de:'Papierkorb',en:'Trash'},
+  trash_back_title:{de:'Zurück zur Übersicht',en:'Back to overview'},
+  trash_tagline:{de:'Gelöschte Boards bleiben hier, bis du sie endgültig löschst oder wiederherstellst.',en:'Deleted boards stay here until you delete them for good or restore them.'},
+  trash_tile_date:{de:'Gelöscht am {date}',en:'Deleted on {date}'},
+  empty_trash_hint:{de:'Der Papierkorb ist leer.',en:'The trash is empty.'},
+  tile_restore_title:{de:'Wiederherstellen',en:'Restore'},
+  tile_delete_forever_title:{de:'Endgültig löschen',en:'Delete forever'},
+  confirm_restore_board_title:{de:'Board wiederherstellen?',en:'Restore board?'},
+  confirm_restore_board_body:{de:'„{name}“ wandert zurück in deine Board-Übersicht.',en:'"{name}" moves back to your board overview.'},
+  restore_action:{de:'Wiederherstellen',en:'Restore'},
+  confirm_delete_forever_title:{de:'Endgültig löschen?',en:'Delete forever?'},
+  confirm_delete_forever_body:{de:'„{name}“ und alles darin wird unwiderruflich gelöscht. Das kann nicht rückgängig gemacht werden.',en:'"{name}" and everything in it will be permanently deleted. This can\'t be undone.'},
+  delete_forever_action:{de:'Endgültig löschen',en:'Delete forever'},
+  toast_board_trashed:{de:'Board in den Papierkorb verschoben – bleibt dort, bis du es endgültig löschst',en:'Board moved to the trash – stays there until you delete it for good'},
+  toast_board_restored:{de:'Board wiederhergestellt',en:'Board restored'},
+  recently_restored_badge:{de:'Kürzlich wiederhergestellt',en:'Recently restored'},
   insp_multi_count:{de:'{n} Elemente ausgewählt',en:'{n} items selected'},
   insp_color_label:{de:'Farbe',en:'Color'},
   insp_link_label:{de:'Link ändern',en:'Change link'},
@@ -1652,6 +1925,26 @@ const I18N={
   color_purple:{de:'Lila',en:'Purple'},
   color_grey:{de:'Grau',en:'Grey'},
   color_orange:{de:'Orange',en:'Orange'},
+  color_custom_title:{de:'Eigene Farbe wählen',en:'Pick a custom color'},
+  insp_opacity_label:{de:'Deckkraft',en:'Opacity'},
+  secret_password_title:{de:'Geheimer Zugang',en:'Secret access'},
+  secret_password_intro:{de:'Nur für die engsten Beta-Tester …',en:'For the closest beta testers only …'},
+  secret_password_placeholder:{de:'Passwort',en:'Password'},
+  secret_password_wrong:{de:'Falsches Passwort',en:'Wrong password'},
+  secret_password_submit:{de:'Bestätigen',en:'Confirm'},
+  theme_menu_title:{de:'Farbwelt',en:'Color theme'},
+  theme_menu_intro:{de:'Verändert die Farben der kompletten Oberfläche. Nur du siehst das – gespeichert auf diesem Gerät.',en:'Changes the color of the entire interface. Only you see this — saved on this device.'},
+  theme_menu_random_title:{de:'Zufällig, aber mit Geschmack',en:'Random, but tasteful'},
+  theme_menu_random_btn:{de:'🎲 Neue Palette auswürfeln',en:'🎲 Roll a new palette'},
+  theme_menu_custom_title:{de:'Eigene 3 Hauptfarben',en:'Your own 3 main colors'},
+  theme_menu_main_label:{de:'Main',en:'Main'},
+  theme_menu_accent_label:{de:'Akzent',en:'Accent'},
+  theme_menu_bg_label:{de:'Background',en:'Background'},
+  theme_menu_apply_btn:{de:'Anwenden',en:'Apply'},
+  theme_menu_reset_btn:{de:'Zurücksetzen',en:'Reset'},
+  theme_menu_close_btn:{de:'Schließen',en:'Close'},
+  theme_menu_applied_toast:{de:'Neue Farbwelt aktiv',en:'New color theme active'},
+  theme_menu_reset_toast:{de:'Standardfarben wiederhergestellt',en:'Default colors restored'},
   toast_elements_deleted:{de:'Elemente gelöscht',en:'Items deleted'},
   toast_element_deleted:{de:'Element gelöscht',en:'Item deleted'},
   confirm_delete_connector_title:{de:'Verbindung entfernen?',en:'Remove connection?'},
@@ -1660,6 +1953,7 @@ const I18N={
   connector_insp_title:{de:'Verbindung',en:'Connector'},
   connector_label_placeholder:{de:'Beschriftung…',en:'Label…'},
   connector_delete_title:{de:'Verbindung löschen',en:'Delete connector'},
+  connector_arrowhead_toggle_title:{de:'Pfeilspitze anzeigen',en:'Show arrowhead'},
   remove_title:{de:'Entfernen',en:'Remove'},
   placeholder_note:{de:'Notiz eingeben…',en:'Type a note…'},
   placeholder_column_title:{de:'Bereich benennen…',en:'Name this area…'},
@@ -1789,11 +2083,13 @@ function applyI18n(){
     ['#importBtn','title',t('import_title')],
     ['#menuBtn','title',t('menu_title')],
     ['#homeBtn','title',t('home_title')],
+    ['#boardColorBtn','title',t('board_color_title')],
     ['#searchBtn','title',t('search_title')],
     ['#searchInput','placeholder',t('search_placeholder')],
     ['#searchPrevBtn','title',t('search_prev_title')],
     ['#searchNextBtn','title',t('search_next_title')],
     ['#calendarBtn','title',t('calendar_title')],
+    ['#homeCalendarBtn','title',t('calendar_title')],
     ['#searchCloseBtn','title',t('close_title')],
     ['#drawerCloseBtn','title',t('close_title')],
     ['.dock-btn[data-add="note"]','title',t('add_note_title')],['.dock-btn[data-add="note"] span','text',t('add_note_label')],
@@ -1825,6 +2121,11 @@ function applyI18n(){
     ['#drawerGridToggle span','text',t('grid_toggle_label')],
     ['#drawerSnapToggle span','text',t('snap_toggle_label')],
     ['#emptyHomeText','text',t('empty_home_hint')],
+    ['#trashBtn','title',t('trash_btn_title')],
+    ['#trashBackBtn','title',t('trash_back_title')],
+    ['#trashTitle','text',t('trash_view_title')],
+    ['#trashTagline','text',t('trash_tagline')],
+    ['#emptyTrashText','text',t('empty_trash_hint')],
     ['#emptyBoardHintText','text',t('empty_board_hint')],
   ];
   const drawerLabels=document.querySelectorAll('.mobile-drawer .drawer-label');
@@ -1878,9 +2179,22 @@ async function clearHandleRef(){
 }
 
 const IDB_DB={
-  async allBoards(){const t=await tx('boards','readonly'); return reqp(t.objectStore('boards').getAll());},
+  // Trashed boards stay in the exact same 'boards' store — there's no separate physical location
+  // for browser-only storage the way a connected folder has a real trash subfolder (see FS_DB
+  // below), so a plain `trashed` flag on the board record is the only signal: allBoards() (the
+  // normal Board-Übersicht) hides anything with that flag set, allTrashedBoards() (the Papierkorb)
+  // shows only those.
+  async allBoards(){const t=await tx('boards','readonly'); const all=await reqp(t.objectStore('boards').getAll()); return all.filter(b=>!b.trashed);},
+  async allTrashedBoards(){const t=await tx('boards','readonly'); const all=await reqp(t.objectStore('boards').getAll()); return all.filter(b=>b.trashed);},
   async getBoard(id){const t=await tx('boards','readonly'); return reqp(t.objectStore('boards').get(id));},
   async putBoard(b){const t=await tx('boards','readwrite'); t.objectStore('boards').put(b); return new Promise(r=>t.oncomplete=r);},
+  async setTrashed(id,trashed){
+    const t=await tx('boards','readwrite'); const s=t.objectStore('boards');
+    const b=await reqp(s.get(id)); if(!b) return;
+    b.trashed=trashed; b.trashedAt=trashed?Date.now():null;
+    s.put(b);
+    return new Promise(r=>t.oncomplete=r);
+  },
   async deleteBoard(id){const t=await tx('boards','readwrite'); t.objectStore('boards').delete(id); return new Promise(r=>t.oncomplete=r);},
 
   async cardsForBoard(boardId){const t=await tx('cards','readonly'); return reqp(t.objectStore('cards').index('boardId').getAll(boardId));},
@@ -1904,6 +2218,7 @@ const FS_SUPPORTED = typeof window.showDirectoryPicker === 'function';
 
 const fsState={
   root:null, rootName:'', pendingHandle:null,
+  trashDir:null,         // FileSystemDirectoryHandle for the "_Papierkorb" subfolder (lazily created)
   dirs:new Map(),        // boardId -> FileSystemDirectoryHandle
   cache:new Map(),       // boardId -> {meta,cards,connectors}
   cardOwner:new Map(),   // cardId -> boardId
@@ -1913,6 +2228,17 @@ const fsState={
   writers:new Map(),     // boardId -> debounced writer fn
   renameLocks:new Map(), // boardId -> Promise chain, serializes fsRenameBoardDir calls per board
 };
+// The Papierkorb's own folder, sitting right next to every board folder in the connected root —
+// named so it's recognizable if the user ever looks at the folder directly on disk, and prefixed
+// with "_" so it sorts away from real boards. allBoards()/allTrashedBoards() below never need to
+// look inside board.json to know what's trashed for folder-backed boards — a board is trashed
+// simply because its folder physically lives in here instead of directly under root.
+async function fsGetTrashDir(){
+  if(!fsState.root) return null;
+  if(fsState.trashDir) return fsState.trashDir;
+  try{ fsState.trashDir=await fsState.root.getDirectoryHandle('_Papierkorb',{create:true}); }catch(e){ return null; }
+  return fsState.trashDir;
+}
 
 function slugify(name){
   const diacritics=new RegExp('['+String.fromCharCode(0x0300)+'-'+String.fromCharCode(0x036f)+']','g');
@@ -2028,6 +2354,69 @@ const FS_DB={
       out.push({...fsState.cache.get(id).meta});
     }
     return out;
+  },
+  // Mirrors allBoards() above exactly, just scoped to the trash subfolder instead of root — every
+  // board sitting in there IS the Papierkorb's contents, nothing to filter by flag.
+  async allTrashedBoards(){
+    if(!fsState.root) return [];
+    const trashDir=await fsGetTrashDir();
+    if(!trashDir) return [];
+    const out=[];
+    for await (const handle of trashDir.values()){
+      if(handle.kind!=='directory') continue;
+      const data=await fsGetFileJSON(handle,'board.json',null);
+      if(!data || !data.meta || !data.meta.id) continue;
+      const id=data.meta.id;
+      fsState.dirs.set(id,handle);
+      if(!fsState.cache.has(id)){
+        fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
+        (data.cards||[]).forEach(c=>{
+          fsState.cardOwner.set(c.id,id);
+          if(c.type==='image' && c.data && c.data.imageId) fsState.imageOwner.set(c.data.imageId,id);
+        });
+        (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
+        if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
+      }
+      out.push({...fsState.cache.get(id).meta});
+    }
+    return out;
+  },
+  // Trashing/restoring a folder-backed board physically relocates its whole folder between root and
+  // _Papierkorb — same manual "create new dir, copy every image across, delete the old dir" dance
+  // fsRenameBoardDirNow above already uses for renames (the File System Access API has no cross-
+  // directory move of its own to rely on here). board.json itself doesn't need copying: it's
+  // regenerated fresh in the new location from the already-cached in-memory data by
+  // fsWriteBoardSoon() at the end, same as a rename does.
+  async setTrashed(id,trashed){
+    const entry=await fsEnsureBoardLoaded(id); if(!entry) return;
+    entry.meta.trashed=trashed; entry.meta.trashedAt=trashed?Date.now():null;
+    const oldDir=fsState.dirs.get(id);
+    if(oldDir && fsState.root){
+      try{
+        const trashDir=await fsGetTrashDir();
+        const destParent=trashed ? trashDir : fsState.root;
+        if(destParent){
+          let oldImages=null;
+          try{ oldImages=await oldDir.getDirectoryHandle('images'); }catch(e){ oldImages=null; }
+          const newDir=await destParent.getDirectoryHandle(oldDir.name,{create:true});
+          if(oldImages){
+            const newImages=await newDir.getDirectoryHandle('images',{create:true});
+            for await (const [name,handle] of oldImages.entries()){
+              if(handle.kind!=='file') continue;
+              const file=await handle.getFile();
+              const w=await (await newImages.getFileHandle(name,{create:true})).createWritable();
+              await w.write(await file.arrayBuffer());
+              await w.close();
+            }
+          }
+          fsState.dirs.set(id,newDir);
+          const removeFrom=trashed ? fsState.root : trashDir;
+          await removeFrom.removeEntry(oldDir.name,{recursive:true});
+        }
+      }catch(e){ /* physical move failed partway (e.g. permissions) — the trashed flag written
+                    below still keeps board.json itself correct, just without the folder move */ }
+    }
+    fsWriteBoardSoon(id);
   },
   async getBoard(id){ const e=await fsEnsureBoardLoaded(id); return e ? {...e.meta} : null; },
   async putBoard(b){
@@ -2146,6 +2535,8 @@ const FS_DB={
 function activeBackend(){ return state.storageMode==='fs' ? FS_DB : IDB_DB; }
 const DB={
   allBoards:(...a)=>activeBackend().allBoards(...a),
+  allTrashedBoards:(...a)=>activeBackend().allTrashedBoards(...a),
+  setTrashed:(...a)=>activeBackend().setTrashed(...a),
   getBoard:(...a)=>activeBackend().getBoard(...a),
   putBoard:(...a)=>activeBackend().putBoard(...a),
   deleteBoard:(...a)=>activeBackend().deleteBoard(...a),
@@ -2193,10 +2584,322 @@ const state={
   selectedConnectorId:null,
   lastDeleted:null,          // undo buffer {kind:'cards'|'board', ...}
   lastPointer:{x:400,y:300}, // last known canvas-space pointer (for paste placement)
+  recentlyRestored:new Set(), // board ids restored from the Papierkorb this session — badge clears on next app start
 };
 const GRID_SIZE=18;
 
 function boardById(id){return state.boards.find(b=>b.id===id);}
+
+/* ============================================================
+   SECRET THEME MENU (hidden easter egg — password "tomistcool")
+   A tiny, invisible button in the board overview (#themeSecretBtn) opens a password prompt; the
+   right password unlocks a menu that recolors the ENTIRE app UI, either via a curated "meaningfully
+   random" palette generator or by picking 3 base colors (Main/Accent/Background) yourself, with
+   every other token in the app derived from those three (lighter/darker tones, rotated hues for the
+   tag colors, etc). Applied as inline custom-property overrides on <html> — which beats both the
+   light and dark stylesheet blocks without needing !important — and persisted to localStorage so it
+   survives reloads. Deliberately leaves --danger/--danger-soft/--shadow(-lg)/--scrim untouched: those
+   are semantic/functional colors (destructive actions, drop shadows, modal backdrops), not decorative
+   brand colors, and re-theming them would blunt their meaning rather than "refresh" the app.
+   ============================================================ */
+function hexToRgbArr(hex){
+  hex=(hex||'#888888').replace('#','');
+  if(hex.length===3) hex=hex.split('').map(ch=>ch+ch).join('');
+  const r=parseInt(hex.substring(0,2),16), g=parseInt(hex.substring(2,4),16), b=parseInt(hex.substring(4,6),16);
+  return [isNaN(r)?136:r, isNaN(g)?136:g, isNaN(b)?136:b];
+}
+function rgbArrToHex(r,g,b){
+  const h=n=>Math.round(Math.max(0,Math.min(255,n))).toString(16).padStart(2,'0');
+  return '#'+h(r)+h(g)+h(b);
+}
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h=0,s=0; const l=(max+min)/2;
+  if(max!==min){
+    const d=max-min;
+    s=l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d+(g<b?6:0); break;
+      case g: h=(b-r)/d+2; break;
+      default: h=(r-g)/d+4;
+    }
+    h/=6;
+  }
+  return [h*360, s*100, l*100];
+}
+function hslToRgbArr(h,s,l){
+  h=((h%360)+360)%360; h/=360; s/=100; l/=100;
+  if(s===0){ const v=l*255; return [v,v,v]; }
+  const q=l<0.5 ? l*(1+s) : l+s-l*s;
+  const p=2*l-q;
+  const hue2rgb=(p,q,t)=>{
+    if(t<0) t+=1; if(t>1) t-=1;
+    if(t<1/6) return p+(q-p)*6*t;
+    if(t<1/2) return q;
+    if(t<2/3) return p+(q-p)*(2/3-t)*6;
+    return p;
+  };
+  return [hue2rgb(p,q,h+1/3)*255, hue2rgb(p,q,h)*255, hue2rgb(p,q,h-1/3)*255];
+}
+function hexToHslArr(hex){ const [r,g,b]=hexToRgbArr(hex); return rgbToHsl(r,g,b); }
+function hslToHex(h,s,l){ const [r,g,b]=hslToRgbArr(h,s,l); return rgbArrToHex(r,g,b); }
+function relLuminance(hex){
+  const rgb=hexToRgbArr(hex).map(v=>{ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4); });
+  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+}
+function contrastInkFor(hex){ return relLuminance(hex)>0.55 ? '#1B2027' : '#FFFFFF'; }
+
+const THEME_OVERRIDE_VARS=['--canvas','--canvas-dot','--surface','--surface-2','--ink','--muted','--faint',
+  '--border','--border-strong','--accent','--accent-ink','--accent-soft',
+  '--tag-yellow','--tag-pink','--tag-blue','--tag-green','--tag-purple','--tag-grey','--tag-orange',
+  '--trash-accent','--trash-accent-soft','--trash-accent-border','--cluster-accent'];
+
+// A small hand-picked set of palettes chosen so the 3 colors in each actually go together — this is
+// the "sinnvoll zufällig" (meaningfully random) part: the randomizer only ever picks between these,
+// it never invents arbitrary hues on its own.
+//
+// The second batch below (from "Greige" onward) comes from actual palette swatches sent in — each
+// one three (or five, for the two richest sets) named colors. For each, the darkest/most saturated
+// tone became Main (it drives the derived ink/text shades), the palette's boldest "pop" color became
+// Accent (used as-is for buttons/the landing circle), and the remaining tone became Background (only
+// its hue/saturation is kept — deriveThemeTokens always re-lightens it for the canvas/surfaces, so it
+// doesn't need to be pale itself). The two 5-color sets ("Lava & Tiefsee", "Oliv & Kupfer") each had
+// two extra tones beyond those three; rather than force them into unrelated slots, the 3 chosen there
+// are simply the ones that carry the set's identity best.
+//
+// Each of these 8 also gets a `dark:true` twin with the exact same Main/Accent/Background — no new
+// hex codes needed, since deriveThemeTokens already re-targets ink/canvas/surface lightness for dark
+// mode from the very same hue/saturation seeds. Rolling a `dark:true` palette also switches the app's
+// own light/dark toggle to dark (and a `dark:false`/undefined one switches it back to light) — see
+// applyCustomTheme — so the two "sides" of a set always present as a matched pair, not just a color
+// swap underneath whatever light/dark mode happened to already be active.
+function withDarkTwin(p){ return [ {...p,dark:false}, {...p,dark:true,name:p.name+' (Dunkel)'} ]; }
+const THEME_CURATED_PALETTES=[
+  {name:'Beige & Braun', main:'#6B4F3A', accent:'#C98A4B', background:'#F2E8DA'},
+  {name:'Rosé & Grün',   main:'#B33F63', accent:'#4C9A6B', background:'#EAF5EC'},
+  {name:'Ozeanblau',     main:'#1F4E79', accent:'#2FB6C4', background:'#E7F5F7'},
+  {name:'Sonnenuntergang', main:'#7A3B69', accent:'#F2A65A', background:'#FBEFE3'},
+  {name:'Waldgrün',      main:'#2E4A34', accent:'#96B45C', background:'#EFF5E7'},
+  {name:'Lavendel',      main:'#4B3B70', accent:'#B98BD6', background:'#F3EEFA'},
+  {name:'Anthrazit & Blau', main:'#2B2F36', accent:'#5B8DEF', background:'#EBEFF5'},
+  {name:'Terrakotta',    main:'#7A3226', accent:'#E08E4F', background:'#F7EBE1'},
+  ...withDarkTwin({name:'Greige',              main:'#9A8F97', accent:'#C3BABA', background:'#E9E3E6'}),
+  ...withDarkTwin({name:'Lavendel-Violett',    main:'#5941A9', accent:'#6D72C3', background:'#E5D4ED'}),
+  ...withDarkTwin({name:'Himmelblau',          main:'#003F91', accent:'#5DA9E9', background:'#E5F4E3'}),
+  ...withDarkTwin({name:'Tiefsee-Teal',        main:'#095256', accent:'#087F8C', background:'#5AAA95'}),
+  ...withDarkTwin({name:'Preußischblau & Koralle', main:'#102542', accent:'#F87060', background:'#CDD7D6'}),
+  ...withDarkTwin({name:'Limette & Salbei',    main:'#639A88', accent:'#51CB20', background:'#76B041'}),
+  ...withDarkTwin({name:'Lava & Tiefsee',      main:'#003049', accent:'#C1121F', background:'#FDF0D5'}),
+  ...withDarkTwin({name:'Oliv & Kupfer',       main:'#283618', accent:'#BC6C25', background:'#FEFAE0'}),
+];
+
+function deriveThemeTokens(main,accent,background,dark){
+  const [mh,ms]=hexToHslArr(main);
+  const [ah]=hexToHslArr(accent);
+  const [bh,bs]=hexToHslArr(background);
+  const bsClamped=Math.min(Math.max(bs,16),42);
+  const bsDarkClamped=Math.min(Math.max(bs,14),30);
+
+  // Light-mode target lightness values are the original formulas; dark-mode ones mirror the shape
+  // of the app's own static :root[data-theme="dark"] stylesheet block near the top of the file
+  // (near-black surfaces, near-white ink) — just driven by this theme's own hue/saturation seeds
+  // instead of one fixed pair of colors, so a `dark:true` curated palette (see THEME_CURATED_PALETTES)
+  // gets a real "darker tones, light text" counterpart rather than the same light-mode math no matter
+  // what data-theme is active.
+  const ink   = dark ? hslToHex(mh, Math.min(ms,35), 92) : hslToHex(mh, Math.min(ms,55), 15);
+  const muted = dark ? hslToHex(mh, Math.min(ms,22), 66) : hslToHex(mh, Math.min(ms,40), 41);
+  const faint = dark ? hslToHex(mh, Math.min(ms,16), 47) : hslToHex(mh, Math.min(ms,26), 61);
+
+  const canvas       = dark ? hslToHex(bh, bsDarkClamped, 9)  : hslToHex(bh, bsClamped, 89);
+  const canvasDot    = dark ? hslToHex(bh, bsDarkClamped, 17) : hslToHex(bh, bsClamped, 77);
+  const border       = dark ? hslToHex(bh, bsDarkClamped, 15) : hslToHex(bh, bsClamped, 82);
+  const borderStrong = dark ? hslToHex(bh, bsDarkClamped, 20) : hslToHex(bh, bsClamped, 73);
+  const surface       = dark ? hslToHex(bh, bsDarkClamped, 14) : hslToHex(bh, Math.min(bs,18), 99);
+  const surface2       = dark ? hslToHex(bh, bsDarkClamped, 11) : hslToHex(bh, bsClamped, 95);
+
+  const accentInk=contrastInkFor(accent);
+  let accentSoft;
+  if(dark){
+    // A pale HSL tint (the light-mode formula below) barely registers against a near-black
+    // surface — the static dark stylesheet block washes the accent itself in at low opacity
+    // instead, so this mirrors that rather than reusing the light-mode approach.
+    const [ar,ag,ab]=hexToRgbArr(accent);
+    accentSoft=`rgba(${ar},${ag},${ab},0.18)`;
+  } else {
+    accentSoft=hslToHex(ah, 82, 90);
+  }
+
+  const tagYellow=hslToHex(ah+0, 58, 62);
+  const tagPink=hslToHex(ah+55, 55, 69);
+  const tagBlue=hslToHex(ah+150, 48, 60);
+  const tagGreen=hslToHex(ah+205, 38, 51);
+  const tagPurple=hslToHex(ah+260, 40, 60);
+  const tagOrange=hslToHex(ah+30, 62, 60);
+  const tagGrey=hslToHex(mh, 10, 60);
+
+  const trashHue=(mh+ah)/2;
+  const trashAccent=dark ? hslToHex(trashHue, 26, 64) : hslToHex(trashHue, 30, 46);
+  const [tr,tg,tb]=hexToRgbArr(trashAccent);
+
+  const clusterAccent=dark ? hslToHex(ah+150, 70, 64) : hslToHex(ah+150, 78, 56);
+
+  return {
+    '--ink':ink, '--muted':muted, '--faint':faint,
+    '--canvas':canvas, '--canvas-dot':canvasDot, '--border':border, '--border-strong':borderStrong,
+    '--surface':surface, '--surface-2':surface2,
+    '--accent':accent, '--accent-soft':accentSoft, '--accent-ink':accentInk,
+    '--tag-yellow':hexToRgbTriplet(tagYellow), '--tag-pink':hexToRgbTriplet(tagPink),
+    '--tag-blue':hexToRgbTriplet(tagBlue), '--tag-green':hexToRgbTriplet(tagGreen),
+    '--tag-purple':hexToRgbTriplet(tagPurple), '--tag-grey':hexToRgbTriplet(tagGrey),
+    '--tag-orange':hexToRgbTriplet(tagOrange),
+    '--trash-accent':trashAccent,
+    '--trash-accent-soft':`rgba(${tr},${tg},${tb},0.16)`,
+    '--trash-accent-border':`rgba(${tr},${tg},${tb},0.4)`,
+    '--cluster-accent':clusterAccent,
+  };
+}
+
+function applyCustomTheme(theme,persist){
+  const tokens=deriveThemeTokens(theme.main,theme.accent,theme.background,!!theme.dark);
+  const rootStyle=document.documentElement.style;
+  Object.keys(tokens).forEach(k=>rootStyle.setProperty(k,tokens[k]));
+  if(persist!==false){ try{ localStorage.setItem('notua-custom-theme',JSON.stringify(theme)); }catch(e){} }
+  // Only curated palettes (see THEME_CURATED_PALETTES) carry an explicit boolean `dark` flag — a
+  // palette rolled from the "🎲 Neue Palette auswürfeln" pool also flips the app's own light/dark
+  // toggle to match (dark:true -> dark mode, dark:false -> light mode, restored the same way on
+  // reload), so the two sides of a set always present as a matched pair. The free-form 3-color
+  // picker has no `dark` key and leaves whatever light/dark choice the user already made alone.
+  if(typeof theme.dark==='boolean' && typeof setTheme==='function'){
+    setTheme(theme.dark?'dark':'light'); // also refreshes the meta theme-color via syncThemeUI()
+  } else {
+    syncThemeMetaColor();
+  }
+  // A colored card's own text/icon color (see cardAccentTextColors() in baseCardShell) is computed
+  // once, at render time, from whatever the tag colors currently resolve to — it doesn't update on
+  // its own just because the CSS variables it read from changed. Re-rendering already-open cards here
+  // is what makes a theme roll/apply while a board is open actually repaint their text/icon too,
+  // instead of only the plain background wash (which DOES track live via CSS custom properties).
+  if(state.screen==='board' && typeof renderAllCards==='function') renderAllCards();
+}
+function resetCustomTheme(){
+  const rootStyle=document.documentElement.style;
+  THEME_OVERRIDE_VARS.forEach(k=>rootStyle.removeProperty(k));
+  try{ localStorage.removeItem('notua-custom-theme'); }catch(e){}
+  syncThemeMetaColor();
+  if(state.screen==='board' && typeof renderAllCards==='function') renderAllCards();
+}
+function loadCustomThemeOnBoot(){
+  try{
+    const raw=localStorage.getItem('notua-custom-theme');
+    if(!raw) return;
+    const theme=JSON.parse(raw);
+    if(theme && theme.main && theme.accent && theme.background) applyCustomTheme(theme,false);
+  }catch(e){}
+}
+function pickRandomPalette(){
+  const current=(()=>{ try{ return JSON.parse(localStorage.getItem('notua-custom-theme')||'null'); }catch(e){ return null; } })();
+  let pool=THEME_CURATED_PALETTES;
+  // Also compares the `dark` flag: a light palette and its `dark:true` twin share the exact same
+  // Main/Accent/Background hex codes (see withDarkTwin), so without this the twin would get wrongly
+  // excluded too right after its sibling was just rolled, even though it'd still look different.
+  if(current) pool=pool.filter(p=>p.main!==current.main || p.accent!==current.accent || p.background!==current.background || !!p.dark!==!!current.dark);
+  if(!pool.length) pool=THEME_CURATED_PALETTES;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function showThemeMenuModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal modal-wide">
+    <h4>${t('theme_menu_title')}</h4>
+    <p>${t('theme_menu_intro')}</p>
+    <div class="theme-menu-section">
+      <h5>${t('theme_menu_random_title')}</h5>
+      <button type="button" class="theme-menu-random-btn" id="themeRandomBtn">${t('theme_menu_random_btn')}</button>
+      <div class="theme-palette-preview" id="themePalettePreview"></div>
+    </div>
+    <div class="theme-menu-section">
+      <h5>${t('theme_menu_custom_title')}</h5>
+      <div class="theme-color-row"><label>${t('theme_menu_main_label')}</label><input type="color" id="themeMainInput" value="#1F4E79"/></div>
+      <div class="theme-color-row"><label>${t('theme_menu_accent_label')}</label><input type="color" id="themeAccentInput" value="#FF6B57"/></div>
+      <div class="theme-color-row"><label>${t('theme_menu_bg_label')}</label><input type="color" id="themeBgInput" value="#F0F2F5"/></div>
+    </div>
+    <div class="theme-menu-actions">
+      <div class="theme-menu-left">
+        <button data-a="reset">${t('theme_menu_reset_btn')}</button>
+        <button data-a="apply" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('theme_menu_apply_btn')}</button>
+      </div>
+      <button data-a="close">${t('theme_menu_close_btn')}</button>
+    </div></div>`;
+  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
+
+  const mainInput=scrim.querySelector('#themeMainInput');
+  const accentInput=scrim.querySelector('#themeAccentInput');
+  const bgInput=scrim.querySelector('#themeBgInput');
+  try{
+    const raw=localStorage.getItem('notua-custom-theme');
+    if(raw){ const cur=JSON.parse(raw); if(cur){ mainInput.value=cur.main; accentInput.value=cur.accent; bgInput.value=cur.background; } }
+  }catch(e){}
+
+  let lastRolled=null;
+  function renderPreview(theme){
+    const prev=scrim.querySelector('#themePalettePreview');
+    prev.innerHTML=`<span style="background:${theme.main}"></span><span style="background:${theme.accent}"></span><span style="background:${theme.background}"></span>`;
+  }
+  renderPreview({main:mainInput.value,accent:accentInput.value,background:bgInput.value});
+
+  scrim.querySelector('#themeRandomBtn').addEventListener('click',()=>{
+    const p=pickRandomPalette();
+    lastRolled=p;
+    mainInput.value=p.main; accentInput.value=p.accent; bgInput.value=p.background;
+    renderPreview(p);
+    applyCustomTheme(p);
+    showToast(t('theme_menu_applied_toast'));
+  });
+  scrim.querySelector('[data-a="apply"]').addEventListener('click',()=>{
+    const theme={main:mainInput.value,accent:accentInput.value,background:bgInput.value};
+    renderPreview(theme);
+    applyCustomTheme(theme);
+    showToast(t('theme_menu_applied_toast'));
+  });
+  scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
+    resetCustomTheme();
+    showToast(t('theme_menu_reset_toast'));
+    scrim.remove();
+  });
+  document.body.appendChild(scrim);
+}
+
+function showSecretPasswordModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('secret_password_title')}</h4>
+    <p>${t('secret_password_intro')}</p>
+    <div class="secret-password-form">
+      <input type="password" id="secretPasswordInput" placeholder="${t('secret_password_placeholder')}" autocomplete="off"/>
+      <p class="secret-error" id="secretPasswordError"></p>
+    </div>
+    <div class="modal-actions">
+      <button data-a="cancel">${t('modal_cancel')}</button>
+      <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('secret_password_submit')}</button>
+    </div></div>`;
+  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  const input=scrim.querySelector('#secretPasswordInput');
+  const errEl=scrim.querySelector('#secretPasswordError');
+  scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
+  function trySubmit(){
+    if(input.value==='tomistcool'){ scrim.remove(); showThemeMenuModal(); }
+    else{ errEl.textContent=t('secret_password_wrong'); input.value=''; input.focus(); }
+  }
+  scrim.querySelector('[data-a="ok"]').addEventListener('click',trySubmit);
+  input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); trySubmit(); } });
+  document.body.appendChild(scrim);
+  setTimeout(()=>input.focus(),0);
+}
+const themeSecretBtn=document.getElementById('themeSecretBtn');
+if(themeSecretBtn) themeSecretBtn.addEventListener('click',showSecretPasswordModal);
+loadCustomThemeOnBoot();
 
 /* ============================================================
    HOME VIEW
@@ -2206,6 +2909,9 @@ const boardView=document.getElementById('boardView');
 const boardGrid=document.getElementById('boardGrid');
 const emptyHome=document.getElementById('emptyHome');
 const boardCountLabel=document.getElementById('boardCountLabel');
+const trashView=document.getElementById('trashView');
+const trashGrid=document.getElementById('trashGrid');
+const emptyTrash=document.getElementById('emptyTrash');
 
 async function refreshHome(){
   const all=await DB.allBoards();
@@ -2250,22 +2956,30 @@ async function refreshHome(){
 
 // Builds one board tile. Used both for standalone boards in the main grid and for boards inside
 // an expanded project panel (opts.projectId set) — the latter also gets a small "eject" button
-// and takes part in project drag-to-reorder / drag-out-to-another-project.
+// and takes part in project drag-to-reorder / drag-out-to-another-project. opts.trash switches the
+// tile into its read-only Papierkorb form (see the branch near the bottom): no rename, no drag,
+// no project actions, no opening the board — just Wiederherstellen/Export/Endgültig-löschen.
 async function buildBoardTile(b,opts){
   opts=opts||{};
   const count=await countBoardElements(b.id);
   const tile=document.createElement('div');
-  tile.className='board-tile';
+  tile.className='board-tile'+(opts.trash?' trash-tile':'');
   tile.dataset.boardId=b.id;
   tile.innerHTML=`
     ${opts.projectId?`<button class="remove-from-project-btn" title="${t('project_remove_board_title')}">${iconCross()}</button>`:''}
     <div class="tile-actions">
+      ${opts.trash ? `
+      <button class="restore-btn" title="${t('tile_restore_title')}">${iconRestore()}</button>
+      <button class="export-btn" title="${t('tile_export_title')}">${iconExport()}</button>
+      <button class="del-btn" title="${t('tile_delete_forever_title')}">${iconTrash()}</button>
+      ` : `
       <button class="export-btn" title="${t('tile_export_title')}">${iconExport()}</button>
       <button class="del-btn" title="${t('tile_delete_title')}">${iconTrash()}</button>
+      `}
     </div>
     <div>
       <div class="spine-row">
-        <div class="spine" style="background:${b.color||'var(--accent)'}"></div>
+        <div class="spine" style="background:${opts.trash ? 'var(--trash-accent)' : (b.color||'var(--accent)')}"></div>
         <div class="tile-logo-wrap" ${b.logoImageId?'':'hidden'}>
           <img class="tile-logo" alt="">
           <button class="tile-logo-remove-btn" title="${t('tile_logo_remove_title')}">${iconCross()}</button>
@@ -2273,11 +2987,41 @@ async function buildBoardTile(b,opts){
       </div>
       <h3 spellcheck="false">${escapeHtml(b.name)}</h3>
     </div>
-    <div class="meta"><span class="mono">${fmtDate(b.updatedAt)}</span><span>${t('tile_element_count',{n:count,e:count===1?'':'e'})}</span></div>
+    <div class="meta">
+      <span class="mono">${opts.trash ? t('trash_tile_date',{date:fmtDate(b.trashedAt||b.updatedAt)}) : fmtDate(b.updatedAt)}</span>
+      <span>${t('tile_element_count',{n:count,e:count===1?'':'e'})}</span>
+    </div>
+    ${(!opts.trash && state.recentlyRestored.has(b.id)) ? `<div class="restored-badge">${escapeHtml(t('recently_restored_badge'))}</div>` : ''}
   `;
   if(b.logoImageId){
     getImageUrl(b.logoImageId).then(url=>{ if(url) tile.querySelector('.tile-logo').src=url; });
   }
+
+  // ---- Papierkorb tiles: a much smaller, self-contained set of behaviors ----
+  if(opts.trash){
+    tile.addEventListener('click',(e)=>{
+      if(e.target.closest('.tile-actions')) return;
+      confirmModal(t('confirm_restore_board_title'),t('confirm_restore_board_body',{name:b.name}),t('restore_action'),async ()=>{
+        await restoreBoardFromTrash(b.id);
+      });
+    });
+    tile.querySelector('.restore-btn').addEventListener('click',(e)=>{
+      e.stopPropagation();
+      restoreBoardFromTrash(b.id);
+    });
+    tile.querySelector('.export-btn').addEventListener('click',(e)=>{
+      e.stopPropagation();
+      exportBoard(b.id);
+    });
+    tile.querySelector('.del-btn').addEventListener('click',(e)=>{
+      e.stopPropagation();
+      confirmModal(t('confirm_delete_forever_title'),t('confirm_delete_forever_body',{name:b.name}),t('delete_forever_action'),async ()=>{
+        await permanentlyDeleteBoard(b.id);
+      });
+    });
+    return tile;
+  }
+
   // Dragging an image file onto a board tile sets it as that board's small logo/thumbnail — a
   // lightweight way to visually label boards beyond the accent-color spine, without opening the
   // board itself. Reuses the same DB.putImage image store the board's own image cards use.
@@ -2312,12 +3056,21 @@ async function buildBoardTile(b,opts){
   let tileClickTimer=null;
   let justDragged=false;
   tile.addEventListener('click',(e)=>{
-    if(e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')) return;
+    if(e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')) return;
     if(justDragged){ justDragged=false; return; }
     if(e.detail>=2) return;
     clearTimeout(tileClickTimer);
     tileClickTimer=setTimeout(()=>openBoard(b.id),220);
   });
+  // "in der Übersicht soll man nur diesen kleinen Strich als Farbe auswählen können" — the stripe
+  // itself is the only thing on a tile that opens the color picker; it never opens the board.
+  const spineEl=tile.querySelector('.spine');
+  if(spineEl){
+    spineEl.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      showBoardColorPopover(e.clientX,e.clientY,b,(hex)=>{ spineEl.style.background=hex; });
+    });
+  }
   tile.querySelector('.export-btn').addEventListener('click',(e)=>{
     e.stopPropagation();
     exportBoard(b.id);
@@ -2336,11 +3089,7 @@ async function buildBoardTile(b,opts){
   tile.querySelector('.del-btn').addEventListener('click',(e)=>{
     e.stopPropagation();
     confirmModal(t('confirm_delete_board_title'),t('confirm_delete_board_body',{name:b.name}),t('delete_action'),async ()=>{
-      const bundle=await collectBoardBundle(b.id);
-      await deleteBundle(bundle);
-      state.lastDeleted=bundle;
-      showToast(t('toast_board_deleted'),restoreLastDeleted);
-      refreshHome();
+      await trashBoard(b.id);
     });
   });
   const removeBtn=tile.querySelector('.remove-from-project-btn');
@@ -2352,6 +3101,69 @@ async function buildBoardTile(b,opts){
   }
   attachTileDrag(tile, b.id, ()=>{ clearTimeout(tileClickTimer); justDragged=true; });
   return tile;
+}
+
+/* ============================================================
+   PAPIERKORB (trash) — soft-delete for boards
+   ============================================================ */
+// Walks a board and every sub-board reachable through its boardlink cards (same traversal
+// collectBoardBundle below uses for hard-delete/export) so trashing or restoring a board cascades
+// to whatever is nested inside it — a boardlink card that used to open into thin air after its
+// target vanished would be far more confusing than the sub-board simply going/coming back together
+// with its parent.
+async function findNestedBoardIds(boardId){
+  const ids=[boardId];
+  const queue=[boardId];
+  const seen=new Set(ids);
+  while(queue.length){
+    const bid=queue.shift();
+    const cards=await DB.cardsForBoard(bid);
+    for(const c of cards){
+      if(c.type==='boardlink' && c.data && c.data.boardId && !seen.has(c.data.boardId)){
+        seen.add(c.data.boardId); ids.push(c.data.boardId); queue.push(c.data.boardId);
+      }
+    }
+  }
+  return ids;
+}
+async function trashBoard(boardId){
+  const board=await DB.getBoard(boardId); if(!board) return;
+  const ids=await findNestedBoardIds(boardId);
+  for(const id of ids) await DB.setTrashed(id,true);
+  await refreshHome();
+  showToast(t('toast_board_trashed'), async ()=>{ await restoreBoardFromTrash(boardId); });
+}
+async function restoreBoardFromTrash(boardId){
+  const ids=await findNestedBoardIds(boardId);
+  for(const id of ids) await DB.setTrashed(id,false);
+  // Cleared on the next full app start (it's a plain in-memory Set, nothing persisted) — exactly
+  // as long as the user asked the "recently restored" hint should last.
+  ids.forEach(id=>state.recentlyRestored.add(id));
+  if(!trashView.hidden) await refreshTrash();
+  await refreshHome();
+  showToast(t('toast_board_restored'));
+}
+async function permanentlyDeleteBoard(boardId){
+  const bundle=await collectBoardBundle(boardId);
+  await deleteBundle(bundle);
+  await refreshTrash();
+}
+async function refreshTrash(){
+  const all=await DB.allTrashedBoards();
+  const roots=all.filter(b=>!b.parentBoardId).sort((a,b)=>(b.trashedAt||b.updatedAt)-(a.trashedAt||a.updatedAt));
+  trashGrid.innerHTML='';
+  emptyTrash.hidden=roots.length>0;
+  for(const b of roots){
+    trashGrid.appendChild(await buildBoardTile(b,{trash:true}));
+  }
+}
+function openTrash(){
+  homeView.hidden=true; trashView.hidden=false;
+  refreshTrash();
+}
+function closeTrash(){
+  trashView.hidden=true; homeView.hidden=false;
+  refreshHome();
 }
 
 /* ============================================================
@@ -2623,10 +3435,65 @@ async function createBoardFlow(){
   await refreshHome();
   openBoard(b.id,true);
 }
+const BOARD_COLOR_PRESETS=['#FF6B57','#5A9FD6','#6BAB6E','#E3A83B','#9E80C1','#DE8A4F','#4EBFB0'];
 function pickAccentColor(){
-  const palette=['#FF6B57','#5A9FD6','#6BAB6E','#E3A83B','#9E80C1','#DE8A4F','#4EBFB0'];
-  return palette[Math.floor(Math.random()*palette.length)];
+  return BOARD_COLOR_PRESETS[Math.floor(Math.random()*BOARD_COLOR_PRESETS.length)];
 }
+// A board's own color — previously assigned once at random (pickAccentColor, above) and never
+// changeable: "die Streifen mit Farben... müssen auch irgendwie wählbar sein". This one small
+// popover (same visual pattern as the table's row/column tint popover) is shared by both places that
+// let you actually pick it: the small dot next to the crumbs bar while a board is open (sets THIS
+// board's own color — see #boardColorBtn), and the stripe on a board tile in the overview (sets
+// that tile's board color directly, without opening it — "im Board kann man die Farbe vom Board
+// auswählen... in der Übersicht soll man nur diesen kleinen Strich als Farbe auswählen können").
+let boardColorPopoverEl=null, boardColorTarget=null;
+function ensureBoardColorPopover(){
+  if(boardColorPopoverEl) return boardColorPopoverEl;
+  const bar=document.createElement('div');
+  bar.className='board-color-popover';
+  BOARD_COLOR_PRESETS.forEach(hex=>{
+    const sw=document.createElement('span');
+    sw.className='swatch'; sw.dataset.color=hex; sw.style.background=hex; sw.title=hex;
+    bar.appendChild(sw);
+  });
+  document.body.appendChild(bar);
+  bar.addEventListener('pointerdown',(e)=>e.preventDefault());
+  bar.addEventListener('click',(e)=>{
+    const sw=e.target.closest('.swatch[data-color]');
+    if(sw) applyBoardColor(sw.dataset.color);
+  });
+  boardColorPopoverEl=bar;
+  return bar;
+}
+function applyBoardColor(hex){
+  if(!boardColorTarget) return;
+  const {board,onChange}=boardColorTarget;
+  board.color=hex; board.updatedAt=Date.now();
+  DB.putBoard(board);
+  if(onChange) onChange(hex);
+  hideBoardColorPopover();
+}
+function hideBoardColorPopover(){ if(boardColorPopoverEl) boardColorPopoverEl.classList.remove('show'); boardColorTarget=null; }
+function showBoardColorPopover(clientX,clientY,board,onChange){
+  const bar=ensureBoardColorPopover();
+  const old=bar.querySelector('.swatch-custom'); if(old) old.remove();
+  const current=(board.color||'').toLowerCase();
+  const presetHexes=BOARD_COLOR_PRESETS.map(h=>h.toLowerCase());
+  bar.querySelectorAll('.swatch[data-color]').forEach(s=>s.classList.toggle('active', s.dataset.color.toLowerCase()===current));
+  const customHex = (current && !presetHexes.includes(current)) ? board.color : null;
+  bar.appendChild(buildCustomSwatchButton(customHex, applyBoardColor));
+  boardColorTarget={board,onChange};
+  bar.classList.add('show');
+  const w=bar.offsetWidth||190, h=bar.offsetHeight||34;
+  let left=Math.max(6,Math.min(clientX-w/2, window.innerWidth-w-6));
+  let top=clientY+10; if(top+h>window.innerHeight-6) top=clientY-h-10;
+  bar.style.left=left+'px'; bar.style.top=top+'px';
+}
+document.addEventListener('pointerdown',(e)=>{
+  if(!boardColorPopoverEl || !boardColorPopoverEl.classList.contains('show')) return;
+  if(e.target.closest('.board-color-popover') || e.target.closest('.spine') || e.target.closest('#boardColorBtn')) return;
+  hideBoardColorPopover();
+});
 
 document.getElementById('homeBtn').addEventListener('click',goHome);
 async function goHome(){
@@ -2946,6 +3813,8 @@ const cardsLayer=document.getElementById('cardsLayer');
 const gridLayer=document.getElementById('gridLayer');
 const connectorLines=document.getElementById('connectorLines');
 const connectorSvg=document.getElementById('connectorSvg');
+const clusterOutlinesG=document.getElementById('clusterOutlines');
+const clusterBadgesLayer=document.getElementById('clusterBadges');
 const emptyBoardHint=document.getElementById('emptyBoardHint');
 
 async function openBoard(id, skipCrumbAnim){
@@ -2971,6 +3840,7 @@ async function openBoard(id, skipCrumbAnim){
   gridLayer.classList.toggle('hidden-grid',!state.gridEnabled);
 
   await renderCrumbs(board);
+  syncBoardColorDot(board);
   applyView();
   renderAllCards();
   renderConnectors();
@@ -3073,6 +3943,18 @@ function zoomAt(clientX,clientY,factor){
 }
 
 viewport.addEventListener('wheel',(e)=>{
+  // Let the wheel event fall through to native scrolling when it started over content that can
+  // scroll itself (a non-dynamic note whose text overflows its box, a checklist's item list, a
+  // table's own scroll area) — without this, preventDefault() below fired unconditionally and ate
+  // the scroll before the browser ever got to move that inner content, even though its scrollbar
+  // chrome was only ever hidden visually (scrollbar-width:none), never functionally disabled.
+  // Ctrl/Meta+wheel is always zoom regardless (that gesture never means "scroll this box").
+  if(!(e.ctrlKey||e.metaKey)){
+    const scrollTarget=e.target.closest && e.target.closest('.note-body, .checklist-items, .table-scroll');
+    if(scrollTarget && scrollTarget.scrollHeight>scrollTarget.clientHeight+1){
+      return;
+    }
+  }
   e.preventDefault();
   if(e.ctrlKey||e.metaKey){
     zoomAt(e.clientX,e.clientY, e.deltaY<0 ? 1.08 : 0.92);
@@ -3084,23 +3966,62 @@ viewport.addEventListener('wheel',(e)=>{
 
 function zoomInAtCenter(){ const r=viewport.getBoundingClientRect(); smoothViewJump(()=>zoomAt(r.left+r.width/2,r.top+r.height/2,1.2)); }
 function zoomOutAtCenter(){ const r=viewport.getBoundingClientRect(); smoothViewJump(()=>zoomAt(r.left+r.width/2,r.top+r.height/2,0.82)); }
-document.getElementById('zoomIn').addEventListener('click',zoomInAtCenter);
-document.getElementById('zoomOut').addEventListener('click',zoomOutAtCenter);
+// Press-and-hold zoom: a quick tap still does the old single discrete 20%-ish step (with its nice
+// smoothViewJump glide), but holding the button down past a short delay switches into a continuous,
+// frame-by-frame zoom — starting slow and accelerating the longer it's held — same as the plain
+// zoomAt() the wheel-zoom already uses every frame, so the % readout (set inside applyView(), which
+// zoomAt() always calls) updates live throughout the hold instead of only at the end.
+function attachZoomHold(btn,direction,discreteFn){
+  if(!btn) return;
+  let delayTimer=null, raf=null, holdStartTs=0, suppressNextClick=false;
+  function frame(ts){
+    if(!holdStartTs) holdStartTs=ts;
+    const elapsed=ts-holdStartTs;
+    // Starts around ~15%/s, ramps up over roughly a second and a half to a capped ~130%/s — fast
+    // enough to reach the zoom limits quickly on a long hold, but never an uncontrollable jump.
+    const speed=clamp(0.004+elapsed/40000,0.004,0.035);
+    const factor=direction>0 ? (1+speed) : (1-speed);
+    const r=viewport.getBoundingClientRect();
+    zoomAt(r.left+r.width/2,r.top+r.height/2,factor);
+    raf=requestAnimationFrame(frame);
+  }
+  function start(e){
+    if(e.type==='mousedown' && e.button!==0) return;
+    suppressNextClick=false; holdStartTs=0;
+    clearTimeout(delayTimer);
+    delayTimer=setTimeout(()=>{ suppressNextClick=true; raf=requestAnimationFrame(frame); },220);
+  }
+  function stop(){
+    clearTimeout(delayTimer);
+    if(raf){ cancelAnimationFrame(raf); raf=null; persistView(); }
+  }
+  btn.addEventListener('mousedown',start);
+  btn.addEventListener('touchstart',start,{passive:true});
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>btn.addEventListener(ev,stop));
+  btn.addEventListener('click',()=>{
+    if(suppressNextClick){ suppressNextClick=false; return; } // already zoomed continuously — ignore the trailing click
+    discreteFn();
+  });
+}
+attachZoomHold(document.getElementById('zoomIn'),1,zoomInAtCenter);
+attachZoomHold(document.getElementById('zoomOut'),-1,zoomOutAtCenter);
+attachZoomHold(document.getElementById('drawerZoomIn'),1,zoomInAtCenter);
+attachZoomHold(document.getElementById('drawerZoomOut'),-1,zoomOutAtCenter);
 document.getElementById('fitBtn').addEventListener('click',fitToContent);
-document.getElementById('drawerZoomIn').addEventListener('click',zoomInAtCenter);
-document.getElementById('drawerZoomOut').addEventListener('click',zoomOutAtCenter);
 document.getElementById('drawerFitBtn').addEventListener('click',fitToContent);
 function fitToContent(){
   // Deliberately anchors on the FIRST-created card rather than bounding-boxing every card: a
   // fixed, predictable "home base" you can always jump back to, however far you've panned or
-  // zoomed away — so the board itself can never truly get "lost".
+  // zoomed away — so the board itself can never truly get "lost". Always resets to exactly 100%
+  // zoom too (not clamped against whatever zoom you happened to be at before clicking) — it used to
+  // reuse the current zoom level, which is why "Einpassen" felt like it landed somewhere different
+  // every time depending on how far in/out you'd zoomed beforehand.
   smoothViewJump(()=>{
     if(state.cards.length===0){ state.view={x:viewport.clientWidth/2-200,y:viewport.clientHeight/2-150,zoom:1}; applyView(); persistView(); return;}
     const firstCard=[...state.cards].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))[0];
-    const zoom=clamp(state.view.zoom||1,0.5,1);
-    state.view.zoom=zoom;
-    state.view.x=viewport.clientWidth/2 - (firstCard.x+firstCard.w/2)*zoom;
-    state.view.y=viewport.clientHeight/2 - (firstCard.y+firstCard.h/2)*zoom;
+    state.view.zoom=1;
+    state.view.x=viewport.clientWidth/2 - (firstCard.x+firstCard.w/2);
+    state.view.y=viewport.clientHeight/2 - (firstCard.y+firstCard.h/2);
     applyView(); persistView();
   });
 }
@@ -3148,6 +4069,13 @@ function toggleDynamicContent(){
       if(el) fitCardHeight(el,c);
     });
   }
+  // The overflow hint only ever shows while dynamic content is off, so it must be refreshed on
+  // BOTH toggle directions: turning dynamic on has to hide any hint left showing from before, and
+  // turning it off has to reveal one on any note whose fixed-height box now overflows its text.
+  state.cards.filter(c=>c.type==='note').forEach(c=>{
+    const el=cardsLayer.querySelector('.card[data-id="'+c.id+'"]');
+    if(el) updateNoteOverflowHint(el,c);
+  });
 }
 document.getElementById('dynamicToggle').addEventListener('click',toggleDynamicContent);
 document.getElementById('drawerDynamicToggle').addEventListener('click',toggleDynamicContent);
@@ -3205,7 +4133,23 @@ function fitCardHeight(el,card){
     card.h=finalH;
     el.style.height=card.h+'px';
     saveCardSoon(card);
+    // Any connector attached to this card ends at a point on its edge (see edgePoint/cardCenter) —
+    // that point moves the instant the card's height changes here, so without this the line stayed
+    // frozen at the old edge until the card was next dragged (which is the only other place that
+    // used to refresh connector positions). Cheap enough to always call: it's the same lightweight
+    // updater already used every frame while dragging, and a no-op when nothing is connected.
+    updateConnectorPositions();
   }
+}
+// Small "there's more below" chevron for a note card — only when dynamic content is OFF (so the
+// card no longer grows to fit) AND its text genuinely overflows the fixed box. Kept separate from
+// fitCardHeight() above since that function does nothing at all while dynamic content is off, which
+// is exactly the situation this needs to detect.
+function updateNoteOverflowHint(el,card){
+  const hint=el.querySelector('.note-overflow-hint');
+  if(!hint) return;
+  const body=el.querySelector('.note-body');
+  hint.hidden = !body || state.dynamicContent || body.scrollHeight<=body.clientHeight+1;
 }
 
 /* ---- panning: space+drag or middle mouse, or empty-canvas left-drag = marquee ---- */
@@ -3261,7 +4205,10 @@ viewport.addEventListener('pointermove',(e)=>{
     state.cards.forEach(c=>{
       if(c.x<c2.x && c.x+c.w>c1.x && c.y<c2.y && c.y+c.h>c1.y) state.selection.add(c.id);
     });
-    applySelectionClasses();
+    // Only the cheap class-toggle here (every mouse-move frame of the drag) — the inspector panel
+    // itself only needs to reflect the final selection once, which the pointerup handler below
+    // already takes care of via the full applySelectionClasses()/updateInspector().
+    syncSelectedCardClasses();
   }
 });
 window.addEventListener('pointerup',(e)=>{
@@ -3358,10 +4305,19 @@ function applyConnectorSelectionClasses(){
     els.hit.classList.toggle('selected',sel);
   });
 }
-function applySelectionClasses(){
+// Just the ".selected" class toggle, with no inspector rebuild — the cheap part of
+// applySelectionClasses() below, split out for hot paths like the marquee/rubber-band select drag
+// (see viewport's pointermove handler) that need to repaint the highlighted cards on every single
+// mouse-move frame, but must NOT also rebuild the whole inspector panel every frame: that used to
+// tear the panel down and recreate it dozens of times a second while drag-selecting, which is exactly
+// what showed up as the properties panel "flickering the entire time".
+function syncSelectedCardClasses(){
   cardsLayer.querySelectorAll('.card').forEach(el=>{
     el.classList.toggle('selected', state.selection.has(el.dataset.id));
   });
+}
+function applySelectionClasses(){
+  syncSelectedCardClasses();
   // A card selection and a connector selection are mutually exclusive (one inspector body at a
   // time) — picking a card while a connector was selected should show the card's inspector, not
   // leave the old connector one stuck on screen underneath updateInspector()'s priority check.
@@ -3426,6 +4382,7 @@ function updateInspector(){
   }
   html+=`<button class="insp-close" id="inspCloseBtn" title="${t('close_title')}">${iconCross()}</button></div></div>`;
   html+=`<div class="insp-row"><div class="insp-label">${t('insp_color_label')}</div><div class="swatches" id="swatchRow"></div></div>`;
+  html+=`<div class="insp-row"><div class="insp-label">${t('insp_opacity_label')}</div><div class="opacity-steps" id="opacityRow"></div></div>`;
   if(cards.length===1 && cards[0].type==='image'){
     html+=`<div class="insp-row"><div class="insp-label">${t('insp_caption_label')}</div><input class="caption-edit" style="border:1px solid var(--border);border-radius:6px;padding:7px 8px;font:inherit;font-size:0.78rem;background:var(--surface);color:var(--ink);outline:none;" placeholder="${t('placeholder_caption')}" value="${cards[0].data.caption?escapeHtml(cards[0].data.caption):''}"/></div>`;
   }
@@ -3485,7 +4442,13 @@ function updateInspector(){
   if(clusterDissolveBtn){
     clusterDissolveBtn.addEventListener('click',()=>{
       const affected=state.cards.filter(c=>c.clusterId && clusterIdsInSelection.has(c.clusterId));
-      affected.forEach(c=>{ c.clusterId=null; });
+      affected.forEach(c=>{
+        c.clusterId=null;
+        // A dissolved column has to actually STAY independent afterwards — without this flag,
+        // reconcileColumnMesh() (called from every renderAllCards()) would see its now-empty
+        // clusterId and immediately wire it right back into the all-columns mesh.
+        if(c.type==='column') c.columnMeshOptOut=true;
+      });
       DB.putCards(affected);
       renderAllCards(); applySelectionClasses(); updateInspector();
     });
@@ -3512,6 +4475,45 @@ function updateInspector(){
     });
     swatchRow.appendChild(sw);
   });
+  swatchRow.appendChild(buildCustomSwatchButton(
+    (cards.length===1 && cards[0].color==='custom') ? cards[0].customColor : null,
+    (hex)=>{
+      cards.forEach(c=>{ c.color='custom'; c.customColor=hex; DB.putCard(c); });
+      renderAllCards();
+      applySelectionClasses();
+      const freshSwatch=document.querySelector('#swatchRow .swatch.active');
+      if(freshSwatch){
+        freshSwatch.classList.remove('swatch-pop'); void freshSwatch.offsetWidth; freshSwatch.classList.add('swatch-pop');
+        freshSwatch.addEventListener('animationend',()=>freshSwatch.classList.remove('swatch-pop'),{once:true});
+      }
+    }
+  ));
+  const opacityRow=inspectorEl.querySelector('#opacityRow');
+  if(opacityRow){
+    // Deliberately its own, separate field from card.color/customColor — previously the color tint
+    // itself was the only thing making a card look "washed out", so it read as if picking a color
+    // also decided how transparent the card was. Opacity now always defaults to 100% (a fresh card
+    // looks exactly as solid as before this existed) and is only ever changed by explicitly using
+    // this control, regardless of which color (or no color) is chosen.
+    // One button that cycles through OPACITY_STEPS on each click (previously a row with one button
+    // per step) — shows the current value and steps to the next one on click, wrapping back to
+    // 100% after the lowest step. Uses the first selected card's current value as the starting
+    // point for a multi-selection, same as color already does when the selection has mixed values.
+    const curOpacity=cards[0].opacity==null?100:cards[0].opacity;
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='opacity-cycle-btn'+(curOpacity<100?' reduced':'');
+    b.textContent=curOpacity+'%';
+    b.title=t('insp_opacity_label');
+    b.addEventListener('click',()=>{
+      const idx=OPACITY_STEPS.indexOf(curOpacity);
+      const next=OPACITY_STEPS[(idx===-1?0:idx+1)%OPACITY_STEPS.length];
+      cards.forEach(c=>{ c.opacity=next; DB.putCard(c); });
+      renderAllCards();
+      applySelectionClasses();
+    });
+    opacityRow.appendChild(b);
+  }
 
   const captionEdit=inspectorEl.querySelector('.caption-edit');
   if(captionEdit){
@@ -3569,6 +4571,7 @@ function renderConnectorInspector(connId){
     </div>
     <div class="insp-row"><div class="insp-label">${t('insp_color_label')}</div><div class="swatches" id="connSwatchRow"></div></div>
     <div class="insp-row"><input class="conn-label-edit" style="border:1px solid var(--border);border-radius:6px;padding:7px 8px;font:inherit;font-size:0.78rem;background:var(--surface);color:var(--ink);outline:none;" placeholder="${t('connector_label_placeholder')}" value="${cn.label?escapeHtml(cn.label):''}"/></div>
+    <div class="insp-row insp-toggle-row"><div class="insp-label">${t('connector_arrowhead_toggle_title')}</div><button type="button" class="insp-switch${cn.arrowhead===false?'':' on'}" data-conn-arrowhead-toggle title="${t('connector_arrowhead_toggle_title')}"></button></div>
     <div class="insp-actions">
       <button id="connDelBtn" class="danger" title="${t('connector_delete_title')}">${iconTrash()}</button>
     </div>
@@ -3585,7 +4588,13 @@ function renderConnectorInspector(connId){
     sw.addEventListener('click',()=>{
       cn.color=color==='none'?null:color;
       DB.putConnector(cn);
-      updateConnectorPositions();
+      // Was updateConnectorPositions() — that hot-path helper only ever refreshes x1/y1/x2/y2 on the
+      // already-existing <line>, it never re-evaluates connectorStroke()/the marker, so the line (and
+      // especially its arrowhead, whose <marker> fill is set once at creation) silently kept showing
+      // whatever color it was last rendered with until some unrelated full rebuild happened to fire —
+      // exactly the "arrowhead ends up some other/random color than the line" symptom. A color change
+      // is an explicit, infrequent click, not a drag hot path, so the full rebuild is cheap here.
+      renderConnectors();
       const freshSwatch=document.querySelector('#connSwatchRow .swatch.active');
       if(freshSwatch){
         freshSwatch.classList.remove('swatch-pop'); void freshSwatch.offsetWidth; freshSwatch.classList.add('swatch-pop');
@@ -3594,10 +4603,32 @@ function renderConnectorInspector(connId){
     });
     swatchRow.appendChild(sw);
   });
+  swatchRow.appendChild(buildCustomSwatchButton(
+    cn.color==='custom' ? cn.customColor : null,
+    (hex)=>{
+      cn.color='custom'; cn.customColor=hex;
+      DB.putConnector(cn);
+      renderConnectors(); // see the color-swatch handler above for why this isn't updateConnectorPositions()
+      const freshSwatch=document.querySelector('#connSwatchRow .swatch.active');
+      if(freshSwatch){
+        freshSwatch.classList.remove('swatch-pop'); void freshSwatch.offsetWidth; freshSwatch.classList.add('swatch-pop');
+        freshSwatch.addEventListener('animationend',()=>freshSwatch.classList.remove('swatch-pop'),{once:true});
+      }
+    }
+  ));
   const labelEdit=inspectorEl.querySelector('.conn-label-edit');
   labelEdit.addEventListener('keydown',(e)=>{ if(e.key==='Enter') labelEdit.blur(); });
   labelEdit.addEventListener('input',()=>{ cn.label=labelEdit.value; updateConnectorPositions(); });
   labelEdit.addEventListener('blur',()=>{ cn.label=labelEdit.value.trim(); DB.putConnector(cn); updateConnectorPositions(); });
+  const arrowheadToggle=inspectorEl.querySelector('[data-conn-arrowhead-toggle]');
+  if(arrowheadToggle){
+    arrowheadToggle.addEventListener('click',()=>{
+      cn.arrowhead = cn.arrowhead===false ? true : false;
+      DB.putConnector(cn);
+      arrowheadToggle.classList.toggle('on',cn.arrowhead!==false);
+      renderConnectors();
+    });
+  }
   inspectorEl.querySelector('#connDelBtn').addEventListener('click',()=>deleteConnectorWithUndo(cn.id));
 }
 async function deleteConnectorWithUndo(connId){
@@ -3777,6 +4808,7 @@ function confirmModal(title,body,confirmLabel,onConfirm){
    ICONS (small inline helpers)
    ============================================================ */
 function iconTrash(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg>`;}
+function iconRestore(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11a9 9 0 1 0 2.6-6.3"/><path d="M3 3.5V8h4.5"/></svg>`;}
 function iconDup(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></svg>`;}
 function iconFront(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="7" width="12" height="12" rx="2"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/></svg>`;}
 function iconCluster(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;}
@@ -3796,6 +4828,7 @@ function iconSwap(){return `<svg width="12" height="12" viewBox="0 0 24 24" fill
    CARD RENDERING
    ============================================================ */
 function renderAllCards(){
+  reconcileColumnMesh();
   cardsLayer.innerHTML='';
   const sorted=[...state.cards].sort((a,b)=>(a.z||0)-(b.z||0));
   sorted.forEach(c=>cardsLayer.appendChild(buildCardEl(c)));
@@ -3806,18 +4839,139 @@ function renderAllCards(){
       if(el) fitCardHeight(el,c);
     });
   }
+  // scrollHeight/clientHeight aren't meaningful until the element is actually in the DOM, so the
+  // overflow hint has to be computed here (after append) rather than inside buildNoteCard() itself.
+  sorted.forEach(c=>{
+    if(c.type!=='note') return;
+    const el=cardsLayer.querySelector('.card[data-id="'+c.id+'"]');
+    if(el) updateNoteOverflowHint(el,c);
+  });
   applySelectionClasses();
+  syncConnectSourceHighlight();
   updateEmptyHint();
 }
 
 function baseCardShell(card,extraClass){
   const el=document.createElement('div');
-  el.className='card '+extraClass+' tag-'+(card.color||'none');
+  const isCustomColor=card.color==='custom' && card.customColor;
+  el.className='card '+extraClass+' tag-'+(isCustomColor?'custom':(card.color||'none'));
+  if(isCustomColor) el.style.setProperty('--tint-custom', hexToRgbTriplet(card.customColor));
   el.dataset.id=card.id;
   el.style.left=card.x+'px'; el.style.top=card.y+'px';
   el.style.width=card.w+'px'; el.style.height=card.h+'px';
   el.style.zIndex=card.z||1;
+  const opacityFrac=(card.opacity==null?100:card.opacity)/100;
+  const isColumn = extraClass==='card-column';
+  const hasOwnColor = card.color && card.color!=='none';
+  // Anything whose background is itself the alpha-driven rgba(tag, --tag-alpha) rule gets Deckkraft
+  // applied to JUST that fill, starting fully solid: a colored regular card, or ANY column — even an
+  // uncolored one, since .card-column always paints a background wash (falls back to a neutral grey
+  // tint with no color of its own) rather than the plain var(--surface) a regular uncolored card gets.
+  // ("Column ist immer noch random Transparent... es wäre besser wenn es auch bei 100% opacity anfängt")
+  // A regular card with NO color has no alpha background to target at all, so it keeps the old
+  // whole-element fade — Deckkraft's only way to affect it.
+  if(hasOwnColor || isColumn){
+    el.style.setProperty('--card-opacity', opacityFrac);
+    el.style.opacity='';
+  }else{
+    el.style.opacity=opacityFrac;
+  }
+  if(hasOwnColor){
+    const rgbTriplet = isCustomColor
+      ? hexToRgbTriplet(card.customColor)
+      : getComputedStyle(document.documentElement).getPropertyValue('--tag-'+card.color).trim();
+    const parts=rgbTriplet.split(',').map(Number);
+    // Contrast has to be computed against what's actually VISIBLE, not the pure/undiluted color —
+    // at a low Deckkraft the fill is mostly see-through, so the true backdrop behind the text is this
+    // color blended with the canvas underneath it, not the full-strength color alone. Skipping this
+    // was the real bug behind "die Schrift und Icon Opacity ändert sich... soll aber immer 100%
+    // bleiben": the TEXT's own color/opacity never actually changed (it's a fixed color-mix() value,
+    // unrelated to --card-opacity) — but a dark-on-yellow text color computed for the FULL-strength
+    // fill loses real contrast once that fill fades toward the (often much darker) canvas behind it,
+    // which reads exactly like the text itself is fading even though no such thing is happening.
+    // Compositing first means the computed color is always tuned for what you actually see.
+    let effectiveTriplet=rgbTriplet;
+    if(parts.length===3 && !parts.some(isNaN)){
+      const canvasHex=getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim();
+      const canvasRgb=hexToRgbArr(canvasHex);
+      const a=Math.max(0,Math.min(1,opacityFrac));
+      const blended=parts.map((c,i)=>c*a+canvasRgb[i]*(1-a));
+      effectiveTriplet=blended.join(',');
+    }
+    const accentVars=cardAccentTextColors(effectiveTriplet);
+    if(accentVars){
+      el.style.setProperty('--ink', accentVars.ink); el.style.setProperty('--muted', accentVars.muted);
+      // Same tint as the icon/title (--muted) so the resize-fold in the corner reads as "part of the
+      // card" instead of a leftover neutral grey — one consistent accent color across icon, title and handle.
+      el.style.setProperty('--card-resize-tint', accentVars.muted);
+      // The RAW picked color (not the contrast-adapted --ink/--muted, and NOT composited against the
+      // canvas — this one is meant to show the actual "Eigenschaften tab" color verbatim, regardless
+      // of Deckkraft) — used e.g. for a checklist's checkmark tick.
+      el.style.setProperty('--card-accent-raw', 'rgb('+rgbTriplet+')');
+      // Placeholder text (an empty note, an unnamed column's "Bereich benennen…") should also read as
+      // "this card's color", not the flat neutral --faint every card used before it had its own color.
+      el.style.setProperty('--card-placeholder-color', accentVars.muted);
+      // A table's header row / row-number column: a visibly DARKER shade of the card's own raw color
+      // (not composited/Deckkraft-dependent, like a column's border) instead of the flat --surface-2
+      // every table used before — "in tabelle das blau müsste dieses dunklere gelb werden". Needs its
+      // own contrast pass (a darker shade doesn't always want the same light/dark text direction the
+      // lighter main fill does).
+      if(parts.length===3 && !parts.some(isNaN)){
+        const headerRgb=parts.map(c=>Math.round(c*0.62));
+        el.style.setProperty('--card-header-bg', 'rgb('+headerRgb.join(',')+')');
+        const headerAccent=cardAccentTextColors(headerRgb.join(','));
+        if(headerAccent) el.style.setProperty('--card-header-ink', headerAccent.ink);
+      }
+    }
+  }
   return el;
+}
+// Picks a darker (on a light fill) or lighter (on a dark fill) shade of a card's OWN color for its
+// text/icon, instead of the app's plain --ink/--muted (only ever tuned for the neutral --surface
+// background) — a duotone look, like a Post-it, that stays legible whichever direction the fill
+// itself goes. Reuses the secret theme menu's color-math helpers (hexToRgbArr/rgbArrToHex/
+// relLuminance, defined further up) rather than duplicating that math a second time.
+// A flat mix percentage (the original approach) looks great on mid-tone colors but reads as low
+// contrast on pale/pastel fills — 55% of a light-yellow mixed with 45% black is still fairly light.
+// So instead of a fixed ratio, mixPctForContrast() SEARCHES for the most "accent-colored" mix that
+// still clears a real WCAG contrast-ratio target against the card's own fill — on a pale color that
+// pulls the result much closer to pure black/white (readable), while a already-dark/saturated color
+// keeps most of its own hue (still stylish, not flattened to grey for every card).
+function mixPctForContrast(rgb, bgLum, mixRgb, targetRatio, maxPct){
+  for(let pct=maxPct; pct>=0; pct-=2){
+    const mixed=[0,1,2].map(i=>rgb[i]*pct/100 + mixRgb[i]*(100-pct)/100);
+    const lum=relLuminance(rgbArrToHex(mixed[0],mixed[1],mixed[2]));
+    const hi=Math.max(lum,bgLum)+0.05, lo=Math.min(lum,bgLum)+0.05;
+    if(hi/lo>=targetRatio) return pct;
+  }
+  return 0; // even pure black/white barely clears the target (a rare, very mid-grey fill) — go all the way.
+}
+function cardAccentTextColors(rgbTriplet){
+  if(!rgbTriplet) return null;
+  const parts=rgbTriplet.split(',').map(Number);
+  if(parts.length<3 || parts.some(isNaN)) return null;
+  const [r,g,b]=parts;
+  const bgLum=relLuminance(rgbArrToHex(r,g,b));
+  // Which direction (toward black or toward white) can even REACH better contrast against this exact
+  // fill — not the fixed 0.55 luminance cutoff contrastInkFor() uses elsewhere. That flat cutoff picks
+  // the "looks light/dark" side, which isn't always the side with more contrast headroom: a medium-grey
+  // or golden-yellow fill (luminance ~0.3–0.55) reads as "not light" under 0.55, so it got mixed toward
+  // WHITE — but pure black actually contrasts far better against those exact fills (the true crossover,
+  // where black and white give equal contrast, works out to ~0.179, not 0.55). Comparing the two real
+  // contrast ratios directly, instead of guessing from a cutoff, is what fixed the low-contrast cases.
+  const crBlack=(bgLum+0.05)/0.05, crWhite=1.05/(bgLum+0.05);
+  const light = crBlack>=crWhite;
+  const mixWith = light ? 'black' : 'white';
+  const mixRgb = light ? [0,0,0] : [255,255,255];
+  // ink (the actual note/card text) targets WCAG AA body-text contrast (4.5:1); muted (icon + title,
+  // more decorative/secondary) targets the WCAG non-text/UI-component floor (3:1, with a small margin)
+  // — both real, checked ratios now, not a guessed-at flat percentage.
+  const inkPct=mixPctForContrast([r,g,b], bgLum, mixRgb, 4.5, 70);
+  const mutedPct=mixPctForContrast([r,g,b], bgLum, mixRgb, 3.5, 80);
+  return {
+    ink:`color-mix(in srgb, rgb(${r},${g},${b}) ${inkPct}%, ${mixWith})`,
+    muted:`color-mix(in srgb, rgb(${r},${g},${b}) ${mutedPct}%, ${mixWith})`,
+  };
 }
 
 function buildCardEl(card){
@@ -3831,14 +4985,8 @@ function buildCardEl(card){
   else if(card.type==='boardlink') el=buildBoardlinkCard(card);
   else { el=baseCardShell(card,'card-note'); }
   attachDragAndSelect(el,card);
-  if(card.clusterId){
-    el.classList.add('clustered');
-    const badge=document.createElement('div');
-    badge.className='cluster-badge';
-    badge.title=t('cluster_badge_title');
-    badge.innerHTML=iconClusterBadge();
-    el.appendChild(badge);
-  }
+  // No more per-card cluster styling here — the whole cluster now gets one shared silhouette outline
+  // and one shared badge instead, built in renderClusterOutlines() from the full card list.
   if(card.date){
     const dateBadge=document.createElement('button');
     dateBadge.type='button';
@@ -3858,12 +5006,17 @@ function buildCardEl(card){
 }
 
 function typeChipIcon(type){
+  // Same path data as the matching .dock-btn icon further up the page (the "Elemente-Leiste" you
+  // pick a type from) — this used to be its own, slightly different/older icon set (a plainer note,
+  // a 2-bar column instead of 3, a single-check instead of the dock's double-check, ...), so a card's
+  // own header chip didn't visually match the button you'd used to create it. Just rendered smaller
+  // (13px, stroke-width 2 vs the dock's 19px/1.8) to fit the compact card header.
   const map={
-    note:'<path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7"/>',
-    column:'<rect x="4" y="4" width="4.6" height="16" rx="1"/><rect x="10" y="4" width="4.6" height="16" rx="1"/>',
-    checklist:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7.5 12l1.8 1.8L13 10"/>',
-    table:'<rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 9.3h16M4 14.6h16M9.3 4v16M14.6 4v16"/>',
-    image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.4"/>',
+    note:'<path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7M9 18h4"/>',
+    column:'<rect x="3.5" y="4.5" width="4.6" height="15" rx="1.2"/><rect x="9.7" y="4.5" width="4.6" height="15" rx="1.2"/><rect x="15.9" y="4.5" width="4.6" height="15" rx="1.2"/>',
+    checklist:'<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M6.8 9.2l1.3 1.3 2.3-2.3"/><path d="M12.5 9h5"/><path d="M6.8 15.2l1.3 1.3 2.3-2.3"/><path d="M12.5 15h5"/>',
+    table:'<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9.3h17M3.5 14.7h17M9.2 4v16M15 4v16"/>',
+    image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5.5-5.5L13 15l3-3 4 4.5"/>',
     youtube:'<rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M10.5 9.5l5 2.5-5 2.5z" fill="currentColor" stroke="none"/>',
     boardlink:'<path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/>'
   };
@@ -3931,6 +5084,7 @@ function buildNoteCard(card){
       <div class="type-chip">${typeChipIcon('note')}</div>
     </div>
     <div class="note-body" contenteditable="true" data-placeholder="${t('placeholder_note')}" spellcheck="false"></div>
+    <div class="note-overflow-hint" hidden aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></div>
   `;
   const body=el.querySelector('.note-body');
   if(card.data.html!=null) body.innerHTML=card.data.html;
@@ -3938,7 +5092,7 @@ function buildNoteCard(card){
   body.addEventListener('pointerdown',(e)=>{ if(state.connectMode) return; e.stopPropagation(); });
   body.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); insertPlainNewlineAtCaret(body); } });
   wirePlainTextPaste(body);
-  body.addEventListener('input',()=>{ card.data.text=body.textContent; card.data.html=body.innerHTML; saveCardSoon(card); fitCardHeight(el,card); });
+  body.addEventListener('input',()=>{ card.data.text=body.textContent; card.data.html=body.innerHTML; saveCardSoon(card); fitCardHeight(el,card); updateNoteOverflowHint(el,card); });
   body.addEventListener('blur',()=>{ card.data.text=body.textContent; card.data.html=body.innerHTML; DB.putCard(card); });
   body.addEventListener('mouseup',()=>updateNoteFormatToolbar());
   body.addEventListener('keyup',(e)=>{ if(e.shiftKey||e.key.startsWith('Arrow')) updateNoteFormatToolbar(); });
@@ -4028,6 +5182,10 @@ function buildColumnCard(card){
   input.addEventListener('pointerdown',(e)=>{ if(state.connectMode) return; e.stopPropagation(); });
   input.addEventListener('input',()=>{ card.data.title=input.value; saveCardSoon(card); });
   input.addEventListener('blur',()=>DB.putCard(card));
+  // Enter had no effect at all before (a plain <input> outside a <form> just swallows it) — "kann man
+  // column nicht enter drücken um eine zeile runterzuspringen": confirm the title and hop out of edit
+  // mode, same as every other per-item text field in the app already does on Enter.
+  input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); input.blur(); } });
   const addLeftBtn=el.querySelector('.col-add-btn.left');
   const addRightBtn=el.querySelector('.col-add-btn.right');
   [addLeftBtn,addRightBtn].forEach(btn=>btn.addEventListener('pointerdown',(e)=>e.stopPropagation()));
@@ -4035,17 +5193,85 @@ function buildColumnCard(card){
   addRightBtn.addEventListener('click',(e)=>{ e.stopPropagation(); addAdjacentColumn(card,'right'); });
   return el;
 }
+// Deterministic (not random) shared clusterId for "every column on this board" — deterministic on
+// purpose, so any column, whenever it's created, can recognize and join the same mesh without first
+// having to look one up from some other card. See reconcileColumnMesh() for how it actually gets
+// applied, and columnMeshOptOut for how a manual dissolve keeps a column out of it going forward.
+function columnMeshId(boardId){ return 'colmesh:'+boardId; }
+// Keeps every column card on the current board wired into one shared cluster by default ("die
+// Spalten sollen alle immer verbunden sein und zu einem Geflecht werden"), so dragging any one of
+// them pulls the whole row along via the existing cluster-drag mechanism. Deliberately only touches
+// columns that have NO clusterId of their own yet: one already holding some other clusterId (a
+// custom cluster the user built by hand, e.g. grouping a column together with a note) is left alone
+// rather than silently reassigned, and one explicitly pulled out via the normal dissolve button
+// (columnMeshOptOut) stays independent — that's the escape hatch the feature needs to stay
+// dissolvable rather than "always snapping back together".
+function reconcileColumnMesh(){
+  const cols=state.cards.filter(c=>c.type==='column');
+  if(cols.length<2) return;
+  const meshId=columnMeshId(state.currentBoardId);
+  const untouched=cols.filter(c=>!c.clusterId && !c.columnMeshOptOut);
+  if(!untouched.length) return;
+  untouched.forEach(c=>{ c.clusterId=meshId; });
+  DB.putCards(untouched);
+}
+// Finds the nearest other column that's roughly on the same row as `card` and sits on the given
+// side of it — "roughly the same row" meaning their y-ranges actually overlap, not just close y
+// values, so a column two rows down/up is never mistaken for the immediate neighbor.
+function findAdjacentColumn(card,side){
+  const cy0=card.y, cy1=card.y+card.h;
+  let best=null, bestDist=Infinity;
+  state.cards.forEach(c=>{
+    if(c.id===card.id || c.type!=='column') return;
+    if(Math.min(cy1,c.y+c.h)-Math.max(cy0,c.y)<=0) return;
+    if(side==='right' && c.x>card.x+card.w-1){ const d=c.x-(card.x+card.w); if(d<bestDist){bestDist=d;best=c;} }
+    if(side==='left' && c.x+c.w<card.x+1){ const d=card.x-(c.x+c.w); if(d<bestDist){bestDist=d;best=c;} }
+  });
+  return best;
+}
 // The little +/left and +/right buttons on a column: adds a fresh, fully independent column of the
 // same size right alongside the one clicked, separated by a small fixed gap — independent meaning
-// its own card id/data, not linked to the original in any way, it's just placed next to it.
+// its own card id/data, not linked to the original in any way, it's just placed next to it. When
+// there's already another column sitting on that same side (roughly the same row), this is a true
+// INSERT rather than a squeeze: the new column gets its full normal width — never narrowed to fit a
+// tight gap — and that neighbor, plus every column further along the row past it, is pushed further
+// out to make room ("beim Plus zwischen 1 und 2 soll die neue Spalte Platz 2 einnehmen und Spalte 2
+// wird zu 3" — a real reflow, not "shrink both columns until it fits between them").
 async function addAdjacentColumn(card,side){
   const gap=24;
-  const x = side==='left' ? card.x-gap-card.w : card.x+card.w+gap;
+  const w=card.w;
+  const x = side==='left' ? card.x-gap-w : card.x+card.w+gap;
+  const neighbor=findAdjacentColumn(card,side);
   const newCard={
     id:uid(), boardId:state.currentBoardId, type:'column', color:card.color||'none',
-    x:snap(x), y:card.y, w:card.w, h:card.h, z:Math.min(0,...state.cards.map(c=>c.z||0))-1,
+    // Match the clicked column's own Deckkraft if it has one, same as inheriting its color above —
+    // a new column dropped into an existing row should look like it belongs there. Falls back to the
+    // same 60% starting point a column gets from the dock button when there's no sibling to match.
+    opacity:card.opacity==null?60:card.opacity,
+    x:snap(x), y:card.y, w:snap(w), h:card.h, z:Math.min(0,...state.cards.map(c=>c.z||0))-1,
+    clusterId:columnMeshId(state.currentBoardId),
     data:{title:''}, createdAt:Date.now(), updatedAt:Date.now()
   };
+  if(neighbor){
+    // How far the new column's own footprint (plus the gap after it) reaches into the neighbor —
+    // that's exactly how far the neighbor, and everything past it in the same direction, must move
+    // to no longer overlap. Only the pushed columns are touched; anything before the insertion point
+    // stays exactly where it was.
+    const delta = side==='right'
+      ? Math.max(0, (x+w+gap)-neighbor.x)
+      : Math.max(0, (neighbor.x+neighbor.w)-(x-gap));
+    if(delta>0){
+      const dir = side==='right' ? 1 : -1;
+      const cy0=card.y, cy1=card.y+card.h;
+      const pushed=state.cards.filter(c=>{
+        if(c.type!=='column' || c.id===card.id) return false;
+        if(Math.min(cy1,c.y+c.h)-Math.max(cy0,c.y)<=0) return false; // same row only
+        return side==='right' ? c.x>=neighbor.x-1 : (c.x+c.w)<=(neighbor.x+neighbor.w+1);
+      });
+      pushed.forEach(c=>{ c.x=snap(c.x+dir*delta); c.updatedAt=Date.now(); });
+      if(pushed.length) DB.putCards(pushed);
+    }
+  }
   state.cards.push(newCard);
   renderAllCards();
   selectOnly(newCard.id);
@@ -4071,7 +5297,7 @@ function buildChecklistCard(card){
     <div class="checklist-progress-wrap" hidden><div class="checklist-progress"><div class="checklist-progress-fill"></div></div><span class="checklist-progress-label"></span></div>
     <div class="checklist-items"></div>
     <div class="add-item-row">
-      <span style="color:var(--faint);font-size:0.9rem;">+</span>
+      <span style="color:var(--card-placeholder-color, var(--faint));font-size:0.9rem;">+</span>
       <input placeholder="${t('placeholder_add_task')}" spellcheck="false"/>
     </div>
   `;
@@ -4080,6 +5306,7 @@ function buildChecklistCard(card){
   titleInput.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
   titleInput.addEventListener('input',()=>{card.data.title=titleInput.value; saveCardSoon(card);});
   titleInput.addEventListener('blur',()=>DB.putCard(card));
+  titleInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); titleInput.blur(); } });
 
   // The "show progress bar" setting itself now lives in the inspector (moved there so the card
   // header stays clean by default — see updateInspector's checklist personalization row); this
@@ -4350,7 +5577,12 @@ function syncTableCardSize(card,el){
   if(card.w===targetW && card.h===targetH) return;
   card.w=targetW; card.h=targetH;
   el.style.width=card.w+'px'; el.style.height=card.h+'px';
-  renderConnectors();
+  // This runs on every single pointermove while dragging a table's own column/row resize grips (see
+  // call sites below), so it needs the cheap position-only refresh here, not a full renderConnectors()
+  // rebuild — that used to tear down and recreate every connector line (and every cluster outline/
+  // badge) on the WHOLE board on every frame, which is what made completely unrelated elements
+  // visibly flicker while just resizing a table.
+  updateConnectorPositions();
   DB.putCard(card);
 }
 
@@ -4373,6 +5605,7 @@ function buildTableCard(card){
   titleInput.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
   titleInput.addEventListener('input',()=>{ card.data.title=titleInput.value; saveCardSoon(card); });
   titleInput.addEventListener('blur',()=>DB.putCard(card));
+  titleInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); titleInput.blur(); } });
 
   // Ampel-mode and "show progress bar" are both now set from the inspector's personalization rows
   // (moved there for the same decluttering reason as the checklist's progress toggle) — this function
@@ -4706,6 +5939,11 @@ function buildBoardlinkCard(card){
     </div>
   `;
   el.querySelector('.bl-name').textContent=card.data.title||t('untitled_board');
+  // The sub-board's own stripe — "die Farbe vom Strich färbt sich passend mit" — read live from the
+  // linked board's own b.color (state.boards is populated by the time any card renders; see
+  // openBoard()), same value the home tile's spine and #boardColorBtn's dot show for that board.
+  const linkedBoard=boardById(card.data.boardId);
+  if(linkedBoard) el.querySelector('.bl-spine').style.background=linkedBoard.color||'var(--accent)';
   const nameEl=el.querySelector('.bl-name');
   nameEl.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
   // Editing this label also renames the linked board itself — but only commit that on blur/Enter,
@@ -4731,10 +5969,9 @@ function buildBoardlinkCard(card){
       refreshBoardLinkCardsFor(nb.id);
     }
   });
-  el.addEventListener('dblclick',(e)=>{
-    if(e.target===nameEl) return;
-    openBoard(card.data.boardId);
-  });
+  // Opening on click now happens centrally in attachDragAndSelect()'s endDrag() (a clean, no-drag
+  // click/tap on any boardlink card opens it) — reliable on touch/trackpad, unlike the dblclick this
+  // used to depend on.
   return el;
 }
 
@@ -4745,6 +5982,10 @@ const saveCardSoon=debounce((card)=>{ DB.putCard(card); },350);
    ============================================================ */
 function attachDragAndSelect(el,card){
   let dragState=null;
+  // For a boardlink ("Unterboard") card: two clean (non-drag) clicks/taps within this window count
+  // as a double-click to actually open the sub-board — see endDrag() below for why this isn't the
+  // browser's native dblclick event.
+  let lastCleanClickAt=0;
   const head = el.querySelector('.card-head') || el;
   // Image cards: the header strip is only 26px tall and invisible until hover (it overlays the
   // photo), so requiring users to find it to move a screenshot is not discoverable — the whole
@@ -4763,7 +6004,7 @@ function attachDragAndSelect(el,card){
     else if(isMultiSelectKey(e)) toggleSelect(card.id,true);
     const movers=clusterExpandedMovers(state.selection);
     const startPositions=movers.map(c=>({card:c, x:c.x, y:c.y}));
-    dragState={sx:e.clientX, sy:e.clientY, moved:false, movers:startPositions};
+    dragState={sx:e.clientX, sy:e.clientY, moved:false, movers:startPositions, multiKey:isMultiSelectKey(e)};
     startPositions.forEach(m=>{
       const domEl=cardsLayer.querySelector(`.card[data-id="${m.card.id}"]`);
       if(domEl) domEl.classList.add('dragging');
@@ -4784,12 +6025,27 @@ function attachDragAndSelect(el,card){
   }
   function endDrag(){
     if(!dragState) return;
+    const wasCleanClick=!dragState.moved && !dragState.multiKey;
     dragState.movers.forEach(m=>{
       const domEl=cardsLayer.querySelector(`.card[data-id="${m.card.id}"]`);
       if(domEl) domEl.classList.remove('dragging');
     });
     if(dragState.moved){ DB.putCards(dragState.movers.map(m=>m.card)); }
     dragState=null;
+    // A boardlink card's whole body is its own drag handle. A SINGLE clean click/tap just selects
+    // it (so it can be dragged, recolored, resized, etc. without immediately jumping away) — opening
+    // the sub-board needs a genuine double click/tap, same as before it briefly opened on a single
+    // click. That single-click version turned out too eager: any quick click meant to just select or
+    // reposition the card also navigated away from the board. Tracked here as two clean clicks within
+    // 400ms rather than the browser's native dblclick event, which doesn't fire reliably from a
+    // trackpad or touchscreen tap-tap on some devices (basically never on some Apple devices) — this
+    // reuses the exact same pointer bookkeeping endDrag() already does, so it works identically
+    // across mouse, trackpad and touch.
+    if(wasCleanClick && card.type==='boardlink'){
+      const now=Date.now();
+      if(now-lastCleanClickAt<400){ lastCleanClickAt=0; openBoard(card.data.boardId); }
+      else{ lastCleanClickAt=now; }
+    }
   }
 
   dragHandle.addEventListener('pointerdown',(e)=>{
@@ -4909,12 +6165,22 @@ function attachResize(handle,el,card){
         gridEl.style.gridTemplateColumns=tableColTemplate(card);
         gridEl.style.gridTemplateRows=tableRowTemplate(card);
       }
+    }else if(card.type==='column'){
+      // Columns are meant to work as thin side-by-side lanes/areas, so they get their own, noticeably
+      // lower width floor than a note/checklist card — 90px still leaves enough room for the title
+      // input and the two "+" insert buttons at its edges without them overlapping.
+      card.w=snap(clamp(rs.w+dx,90,2000));
+      card.h=snap(clamp(rs.h+dy,80,2000));
     }else{
       card.w=snap(clamp(rs.w+dx,140,2000));
       card.h=snap(clamp(rs.h+dy,80,2000));
     }
     el.style.width=card.w+'px'; el.style.height=card.h+'px';
-    renderConnectors();
+    // Position-only refresh here, not the full renderConnectors() rebuild — this fires on every
+    // single pointermove while dragging a card's resize handle, and a full rebuild used to tear
+    // down and recreate every connector line (and cluster outline/badge) on the WHOLE board each
+    // frame, which is what made completely unrelated elements visibly flicker during a resize drag.
+    updateConnectorPositions();
   });
   handle.addEventListener('pointerup',(e)=>{
     if(!rs) return;
@@ -4927,15 +6193,37 @@ function attachResize(handle,el,card){
    ============================================================ */
 const connectBtn=document.getElementById('connectBtn');
 const drawerConnectBtn=document.getElementById('drawerConnectBtn');
+// Same icon as the "Verbinden" dock button itself, reused as the little badge marking whichever
+// card is currently armed as the connection's start point — so the marker reads as "this is the
+// connect tool talking to you" rather than an unrelated checkmark or dot.
+const CONNECT_ICON_SVG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="6" cy="7" r="2.4"/><circle cx="18" cy="17" r="2.4"/><path d="M8 8.5l8 7"/></svg>';
 function syncConnectUI(){
   connectBtn.classList.toggle('active',state.connectMode);
   drawerConnectBtn.classList.toggle('active',state.connectMode);
+}
+// Reflects state.connectFrom onto the DOM: at most one card ever carries the connect-source ring +
+// badge, so it's simplest to always clear whatever had it before re-applying to the current one.
+function syncConnectSourceHighlight(){
+  cardsLayer.querySelectorAll('.card.connect-source').forEach(el=>{
+    el.classList.remove('connect-source');
+    const badge=el.querySelector('.connect-source-badge');
+    if(badge) badge.remove();
+  });
+  if(!state.connectFrom) return;
+  const el=cardsLayer.querySelector('.card[data-id="'+state.connectFrom+'"]');
+  if(!el) return;
+  el.classList.add('connect-source');
+  const badge=document.createElement('div');
+  badge.className='connect-source-badge';
+  badge.innerHTML=CONNECT_ICON_SVG;
+  el.appendChild(badge);
 }
 function toggleConnectMode(){
   state.connectMode=!state.connectMode;
   syncConnectUI();
   viewport.classList.toggle('connect-mode',state.connectMode);
   state.connectFrom=null;
+  syncConnectSourceHighlight();
   if(state.connectMode) closeDrawer();
 }
 connectBtn.addEventListener('click',toggleConnectMode);
@@ -4943,14 +6231,16 @@ drawerConnectBtn.addEventListener('click',toggleConnectMode);
 function cancelConnect(){
   if(state.connectMode){ state.connectMode=false; syncConnectUI(); viewport.classList.remove('connect-mode'); }
   state.connectFrom=null;
+  syncConnectSourceHighlight();
 }
 async function handleConnectClick(cardId){
-  if(!state.connectFrom){ state.connectFrom=cardId; return; }
-  if(state.connectFrom===cardId){ state.connectFrom=null; return; }
+  if(!state.connectFrom){ state.connectFrom=cardId; syncConnectSourceHighlight(); return; }
+  if(state.connectFrom===cardId){ state.connectFrom=null; syncConnectSourceHighlight(); return; }
   const conn={id:uid(), boardId:state.currentBoardId, fromId:state.connectFrom, toId:cardId};
   await DB.putConnector(conn);
   state.connectors.push(conn);
   state.connectFrom=null;
+  syncConnectSourceHighlight();
   renderConnectors();
 }
 function cardCenter(c){ return {x:c.x+c.w/2, y:c.y+c.h/2}; }
@@ -4972,7 +6262,175 @@ function edgePoint(c, towardX, towardY){
 // SVG — including re-attaching a click-listener to every line — on every animation frame.
 const connectorLineEls=new Map();
 function connectorStroke(cn){
+  if(cn.color==='custom' && cn.customColor) return cn.customColor;
   return cn.color ? `rgb(var(--tag-${cn.color}))` : null; // null = fall back to the CSS default (var(--faint)/accent)
+}
+// The two static <marker> defs in the HTML (#arrowhead / #arrowhead-selected) always draw a gray or
+// accent-colored arrowhead — fine for a connector with no color of its own, but a connector WITH a
+// chosen color (see connectorStroke()) only ever got that color on the line itself: the arrowhead
+// kept using the same static gray marker regardless, since an SVG marker's own fill is independent of
+// whatever line references it. This lazily creates (and caches, one per distinct color actually used)
+// a matching <marker> so a colored connector's arrowhead matches its line.
+const connectorMarkerCache=new Map();
+function ensureConnectorMarker(color){
+  if(connectorMarkerCache.has(color)) return connectorMarkerCache.get(color);
+  const id='arrowhead-c'+connectorMarkerCache.size;
+  const defs=connectorSvg.querySelector('defs');
+  const marker=document.createElementNS('http://www.w3.org/2000/svg','marker');
+  marker.setAttribute('id',id);
+  // Same shape/size as the two static #arrowhead(-selected) markers above (see their comment) — kept
+  // in sync by hand since this one has to be built dynamically per connector color.
+  marker.setAttribute('markerWidth','12'); marker.setAttribute('markerHeight','12');
+  marker.setAttribute('refX','10.2'); marker.setAttribute('refY','6');
+  marker.setAttribute('orient','auto'); marker.setAttribute('markerUnits','userSpaceOnUse');
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d','M0,1 L10.2,6 L0,11 L2.8,6 Z');
+  path.setAttribute('fill',color);
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  connectorMarkerCache.set(color,id);
+  return id;
+}
+// ============================================================
+// CLUSTER OUTLINE — replaces the old per-card dashed outline with one thin accent-colored line
+// tracing around the whole cluster in one continuous loop, plus a single small badge marking the
+// group (not one per card). Recomputed alongside connectors, from the same call sites
+// (renderConnectors() for structural changes, updateConnectorPositions() for the drag hot path)
+// since both depend on nothing but the current card list.
+//
+// The line is the CONVEX HULL of every member card's (padded) corners — "einmal um alle rumgehen…
+// den schnellsten Weg um alle herum" is, almost by definition, exactly what a convex hull is: the
+// shortest closed boundary that still encloses every point. An earlier version tried to trace the
+// tight union-of-rectangles silhouette instead, which looked nicer for a tightly-packed group but
+// fell apart the moment members weren't touching (which is the common case here, since columns are
+// auto-clustered across the whole board width): it would split into several small disconnected
+// loops, or a lone card tracing only itself, rather than one line around the whole group. A hull is
+// guaranteed to always be a single loop enclosing every member, whatever their spacing.
+// ============================================================
+// Standard monotone-chain convex hull. Returns hull points in a consistent winding order (needed by
+// chaikinSmooth() below, which walks the polygon edge by edge).
+function convexHull(points){
+  const pts=[...points].sort((a,b)=>a.x-b.x||a.y-b.y);
+  if(pts.length<3) return pts;
+  const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+  const lower=[];
+  for(const p of pts){
+    while(lower.length>=2 && cross(lower[lower.length-2],lower[lower.length-1],p)<=0) lower.pop();
+    lower.push(p);
+  }
+  const upper=[];
+  for(let i=pts.length-1;i>=0;i--){
+    const p=pts[i];
+    while(upper.length>=2 && cross(upper[upper.length-2],upper[upper.length-1],p)<=0) upper.pop();
+    upper.push(p);
+  }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
+}
+// Rounds a polygon's corners via Chaikin's corner-cutting: each edge (P,Q) contributes two new points
+// 25% and 75% of the way along it, and connecting those in order (dropping the original sharp
+// vertices) yields a smoother polygon; repeating a few times converges to a nicely rounded shape. This
+// replaced an earlier version that placed each rounded corner "by hand" with a quadratic curve, which
+// could occasionally compute a wildly wrong point (a stray corner spiking off across the board,
+// visually mangling the whole line) — Chaikin's method only ever produces points that are a weighted
+// average of two existing, already-correct points, so a badly-placed point simply can't happen and
+// the result can never cross itself, whatever the input polygon's shape.
+function chaikinSmooth(pts,iterations){
+  let cur=pts;
+  for(let it=0;it<iterations;it++){
+    const next=[];
+    const n=cur.length;
+    for(let i=0;i<n;i++){
+      const p=cur[i], q=cur[(i+1)%n];
+      next.push({x:p.x*0.75+q.x*0.25, y:p.y*0.75+q.y*0.25});
+      next.push({x:p.x*0.25+q.x*0.75, y:p.y*0.25+q.y*0.75});
+    }
+    cur=next;
+  }
+  return cur;
+}
+function polygonPathD(pts){
+  if(!pts.length) return '';
+  let d='M'+pts[0].x+','+pts[0].y;
+  for(let i=1;i<pts.length;i++) d+=' L'+pts[i].x+','+pts[i].y;
+  return d+' Z';
+}
+// Computes one cluster's outline path data + badge position from its member cards. Pulled out on its
+// own so both the full rebuild and the hot-path updater below share the exact same geometry.
+function clusterOutlineGeometry(cards){
+  const pad=14;
+  // Every member's 4 corners (already pushed outward by `pad`, so the padding is baked straight into
+  // the hull instead of needing a separate polygon-offset step afterwards).
+  const pts=[];
+  cards.forEach(c=>{
+    pts.push({x:c.x-pad,y:c.y-pad});
+    pts.push({x:c.x+c.w+pad,y:c.y-pad});
+    pts.push({x:c.x-pad,y:c.y+c.h+pad});
+    pts.push({x:c.x+c.w+pad,y:c.y+c.h+pad});
+  });
+  const hull=convexHull(pts);
+  if(hull.length<3) return null;
+  const smooth=chaikinSmooth(hull,3);
+  // One small badge per cluster (not per card) — placed at the group's own top-left corner, same
+  // spot as the circle in the hand-drawn sketch.
+  let bx=Infinity, by=Infinity;
+  cards.forEach(c=>{ bx=Math.min(bx,c.x); by=Math.min(by,c.y); });
+  return {d:polygonPathD(smooth), bx, by};
+}
+function groupCardsByCluster(){
+  const byCluster=new Map();
+  state.cards.forEach(c=>{
+    if(!c.clusterId) return;
+    if(!byCluster.has(c.clusterId)) byCluster.set(c.clusterId,[]);
+    byCluster.get(c.clusterId).push(c);
+  });
+  // Only from 3 cards up ("erst ab 3 Einheiten") — for just 2, no outline at all rather than one
+  // drawn around a pair.
+  byCluster.forEach((cards,id)=>{ if(cards.length<3) byCluster.delete(id); });
+  return byCluster;
+}
+// clusterId -> {path, badge} DOM elements, populated by the full rebuild below. Lets the drag hot
+// path (updateClusterOutlinePositions()) update just the existing elements' geometry in place
+// instead of tearing down and recreating every cluster's outline+badge on every single frame — which
+// used to make completely unrelated clusters' badges visibly flicker while dragging or resizing any
+// card anywhere on the board, since cluster membership never actually changes mid-drag, only card
+// positions do.
+const clusterOutlineEls=new Map();
+function renderClusterOutlines(){
+  clusterOutlinesG.innerHTML='';
+  clusterBadgesLayer.innerHTML='';
+  clusterOutlineEls.clear();
+  groupCardsByCluster().forEach((cards,clusterId)=>{
+    const geo=clusterOutlineGeometry(cards);
+    if(!geo) return;
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('class','cluster-outline');
+    path.setAttribute('d',geo.d);
+    clusterOutlinesG.appendChild(path);
+    const badge=document.createElement('div');
+    badge.className='cluster-outline-badge';
+    badge.title=t('cluster_badge_title');
+    badge.innerHTML=iconClusterBadge();
+    badge.style.left=geo.bx+'px'; badge.style.top=geo.by+'px';
+    clusterBadgesLayer.appendChild(badge);
+    clusterOutlineEls.set(clusterId,{path,badge});
+  });
+}
+// Hot-path companion to renderClusterOutlines() — same relationship as updateConnectorPositions() has
+// to renderConnectors(). If the cluster *set* itself has changed since the last full render (a
+// cluster newly crossed the 3-card threshold, was dissolved, etc. — never just from dragging), it
+// falls back to the full rebuild; otherwise it only updates each existing element's geometry.
+function updateClusterOutlinePositions(){
+  const byCluster=groupCardsByCluster();
+  const sameSet = byCluster.size===clusterOutlineEls.size && [...byCluster.keys()].every(id=>clusterOutlineEls.has(id));
+  if(!sameSet){ renderClusterOutlines(); return; }
+  byCluster.forEach((cards,clusterId)=>{
+    const els=clusterOutlineEls.get(clusterId);
+    const geo=clusterOutlineGeometry(cards);
+    if(!els || !geo) return;
+    els.path.setAttribute('d',geo.d);
+    els.badge.style.left=geo.bx+'px'; els.badge.style.top=geo.by+'px';
+  });
 }
 function renderConnectors(){
   connectorLines.innerHTML='';
@@ -4980,6 +6438,7 @@ function renderConnectors(){
   let maxX=800,maxY=600;
   state.cards.forEach(c=>{maxX=Math.max(maxX,c.x+c.w+400); maxY=Math.max(maxY,c.y+c.h+400);});
   connectorSvg.setAttribute('width',maxX); connectorSvg.setAttribute('height',maxY);
+  renderClusterOutlines();
   state.connectors.forEach(cn=>{
     const a=state.cards.find(c=>c.id===cn.fromId), b=state.cards.find(c=>c.id===cn.toId);
     if(!a||!b) return;
@@ -4994,6 +6453,12 @@ function renderConnectors(){
     line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y); line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
     const stroke=connectorStroke(cn);
     if(stroke) line.style.stroke=stroke;
+    // cn.arrowhead===false is the explicit "Pfeilspitze ausblenden" toggle from the connector's
+    // inspector — always wins, whatever color the connector has. Otherwise a colored connector gets
+    // its own matching marker (see ensureConnectorMarker); an uncolored one leaves marker-end unset
+    // entirely so it falls back to the plain CSS default (#arrowhead / .selected → #arrowhead-selected).
+    if(cn.arrowhead===false) line.style.markerEnd='none';
+    else if(stroke) line.style.markerEnd='url(#'+ensureConnectorMarker(stroke)+')';
     const labelBg=document.createElementNS('http://www.w3.org/2000/svg','rect');
     labelBg.setAttribute('class','conn-label-bg');
     const label=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -5028,6 +6493,7 @@ function updateConnectorPositions(){
   let maxX=800,maxY=600;
   state.cards.forEach(c=>{maxX=Math.max(maxX,c.x+c.w+400); maxY=Math.max(maxY,c.y+c.h+400);});
   connectorSvg.setAttribute('width',maxX); connectorSvg.setAttribute('height',maxY);
+  updateClusterOutlinePositions();
   state.connectors.forEach(cn=>{
     const els=connectorLineEls.get(cn.id);
     if(!els) return;
@@ -5041,6 +6507,7 @@ function updateConnectorPositions(){
     // inspector — cheap enough to always refresh these too rather than needing a separate path.
     const stroke=connectorStroke(cn);
     els.line.style.stroke=stroke||'';
+    els.line.style.markerEnd=stroke ? 'url(#'+ensureConnectorMarker(stroke)+')' : '';
     els.label.style.fill=stroke||'';
     positionConnectorLabel(cn,p1,p2,els.label,els.labelBg);
   });
@@ -5126,12 +6593,15 @@ document.getElementById('searchCloseBtn').addEventListener('click',closeSearchBa
 
 /* ============================================================
    CALENDAR — any card can get an optional date (and optional time) via the
-   inspector; the calendar icon in the top bar opens a small month-view panel
-   over the CURRENT board (board-scoped, like search, rather than aggregating
-   across every board) showing which days have dated cards, with a day's
-   items listed below the grid — clicking one jumps straight to that card.
-   A small badge on a dated card mirrors the link the other way: click it to
-   open the calendar already showing that card's day.
+   inspector; the calendar icon (in the board top bar, and in the board
+   overview's header) opens a small month-view panel showing which days have
+   dated cards ACROSS EVERY BOARD, not just the currently open one — unlike
+   search, which stays board-scoped. A day's items are listed below the grid,
+   each tagged with its own board; clicking one jumps to that card, switching
+   boards first if needed, with a brief zoom-in so it's obvious "this is where
+   it landed" (see jumpToCardAcrossBoards). A small badge on a dated card
+   mirrors the link the other way: click it to open the calendar already
+   showing that card's day.
    ============================================================ */
 const MONTH_NAMES={
   de:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
@@ -5158,7 +6628,20 @@ function cardPreviewLabel(c){
 }
 
 const calendarBtn=document.getElementById('calendarBtn');
-const calendarState={viewYear:null, viewMonth:null, selectedKey:null};
+const homeCalendarBtn=document.getElementById('homeCalendarBtn');
+const boardColorBtn=document.getElementById('boardColorBtn');
+const boardColorDot=document.getElementById('boardColorDot');
+function syncBoardColorDot(board){ if(boardColorDot) boardColorDot.style.background=(board&&board.color)||'var(--accent)'; }
+boardColorBtn.addEventListener('click',(e)=>{
+  const board=boardById(state.currentBoardId);
+  if(!board) return;
+  const r=boardColorBtn.getBoundingClientRect();
+  showBoardColorPopover(r.left+r.width/2, r.bottom, board, ()=>syncBoardColorDot(board));
+});
+// allDated: cached [{card, boardId, boardName}, ...] across EVERY board, populated by
+// allDatedCardsAcrossBoards() — see openCalendarPanel()/refreshCalendarIfOpen() for when it's
+// (re)loaded. null until the panel has been opened at least once.
+const calendarState={viewYear:null, viewMonth:null, selectedKey:null, allDated:null};
 let calendarPanelEl=null;
 function ensureCalendarPanel(){
   if(calendarPanelEl) return calendarPanelEl;
@@ -5179,7 +6662,12 @@ function ensureCalendarPanel(){
       <div class="cal-day-list-items"></div>
     </div>
   `;
-  document.getElementById('boardView').appendChild(panel);
+  // Appended to #app (not #boardView) — #boardView is display:none whenever the home overview is
+  // showing, which would hide the panel along with it and made it impossible to open the calendar
+  // from the home view's own button. #app is the always-visible positioned ancestor both the home
+  // and board screens sit inside, so the panel's existing position:absolute;top:60px;right:16px
+  // lands in exactly the same visual spot as before on the board screen, and now also works on home.
+  document.getElementById('app').appendChild(panel);
   panel.querySelectorAll('.cal-nav-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const dir=parseInt(btn.dataset.dir,10);
@@ -5198,13 +6686,27 @@ function ensureCalendarPanel(){
   calendarPanelEl=panel;
   return panel;
 }
+// Loads every board's dated cards from storage — the calendar is board-independent, so this can't
+// just read state.cards (that's only ever the currently open board). Only called when the panel
+// actually opens (and to patch in edits made while it's open — see refreshCalendarIfOpen()), never
+// on every render, since it touches every board's storage.
+async function allDatedCardsAcrossBoards(){
+  const boards=await DB.allBoards();
+  const perBoardCards=await Promise.all(boards.map(b=>DB.cardsForBoard(b.id)));
+  const out=[];
+  boards.forEach((b,i)=>{
+    perBoardCards[i].forEach(c=>{
+      if(c.date) out.push({card:c, boardId:b.id, boardName:b.name});
+    });
+  });
+  return out;
+}
 function cardsByDateKey(){
   const map={};
-  state.cards.forEach(c=>{
-    if(!c.date) return;
-    (map[c.date]=map[c.date]||[]).push(c);
+  (calendarState.allDated||[]).forEach(entry=>{
+    (map[entry.card.date]=map[entry.card.date]||[]).push(entry);
   });
-  Object.values(map).forEach(list=>list.sort((a,b)=>(a.time||'').localeCompare(b.time||'')));
+  Object.values(map).forEach(list=>list.sort((a,b)=>(a.card.time||'').localeCompare(b.card.time||'')));
   return map;
 }
 function renderCalendarGrid(){
@@ -5233,7 +6735,7 @@ function renderCalendarGrid(){
     const btn=document.createElement('button'); btn.type='button';
     btn.className='cal-day'+(cell.outside?' outside':'')+(key===todK?' today':'')+(key===calendarState.selectedKey?' active':'');
     const items=byDate[key]||[];
-    btn.innerHTML=`<span>${cell.day}</span>${items.length?`<div class="cal-day-dots">${items.slice(0,4).map(c=>`<span style="background:${c.color&&c.color!=='none'?`rgb(var(--tag-${c.color}))`:'currentColor'}"></span>`).join('')}</div>`:''}`;
+    btn.innerHTML=`<span>${cell.day}</span>${items.length?`<div class="cal-day-dots">${items.slice(0,4).map(entry=>`<span style="background:${entry.card.color&&entry.card.color!=='none'?`rgb(var(--tag-${entry.card.color}))`:'currentColor'}"></span>`).join('')}</div>`:''}`;
     btn.addEventListener('click',()=>{
       calendarState.selectedKey=key;
       calendarState.viewYear=cy; calendarState.viewMonth=cm;
@@ -5257,16 +6759,19 @@ function renderCalendarGrid(){
     return;
   }
   listItems.innerHTML='';
-  dayItems.forEach(c=>{
+  dayItems.forEach(entry=>{
+    const c=entry.card;
     const item=document.createElement('button'); item.type='button'; item.className='cal-day-item';
     const dotColor=c.color&&c.color!=='none'?`rgb(var(--tag-${c.color}))`:'var(--faint)';
-    item.innerHTML=`<span class="cal-item-dot" style="background:${dotColor}"></span><span class="cal-item-time">${c.time||''}</span><span class="cal-item-label"></span>`;
+    item.innerHTML=`<span class="cal-item-dot" style="background:${dotColor}"></span><span class="cal-item-time">${c.time||''}</span><span class="cal-item-label"></span><span class="cal-item-board"></span>`;
     item.querySelector('.cal-item-label').textContent=cardPreviewLabel(c);
-    item.addEventListener('click',()=>{ closeCalendarPanel(); flashAndCenterCard(c); });
+    // Board-scoped context, since a day's items can now come from several different boards at once.
+    item.querySelector('.cal-item-board').textContent=entry.boardName||'';
+    item.addEventListener('click',()=>{ closeCalendarPanel(); jumpToCardAcrossBoards(entry.boardId, c.id); });
     listItems.appendChild(item);
   });
 }
-function openCalendarPanel(dateStr){
+async function openCalendarPanel(dateStr){
   const panel=ensureCalendarPanel();
   let y,m,selKey;
   if(dateStr){
@@ -5277,17 +6782,69 @@ function openCalendarPanel(dateStr){
   }
   calendarState.viewYear=y; calendarState.viewMonth=m; calendarState.selectedKey=selKey;
   panel.hidden=false;
+  // Paint immediately with whatever was cached from last time (instant, no visible blank state),
+  // then refresh from storage and repaint once the aggregate load across every board resolves.
   renderCalendarGrid();
+  calendarState.allDated=await allDatedCardsAcrossBoards();
+  if(!panel.hidden) renderCalendarGrid();
 }
 function closeCalendarPanel(){ if(calendarPanelEl) calendarPanelEl.hidden=true; }
-function refreshCalendarIfOpen(){ if(calendarPanelEl && !calendarPanelEl.hidden) renderCalendarGrid(); }
-calendarBtn.addEventListener('click',()=>{
+function refreshCalendarIfOpen(){
+  if(!calendarPanelEl || calendarPanelEl.hidden) return;
+  // Keeps this snappy for the common case (setting/clearing a date on a card of the currently open
+  // board while the panel happens to already be open) by patching just that board's entries into the
+  // cached aggregate, instead of re-fetching every board from storage on every date edit — only the
+  // current board could possibly have changed, since editing only ever happens through it.
+  if(calendarState.allDated){
+    const curBoard=boardById(state.currentBoardId);
+    calendarState.allDated=calendarState.allDated
+      .filter(entry=>entry.boardId!==state.currentBoardId)
+      .concat(state.cards.filter(c=>c.date).map(c=>({card:c, boardId:state.currentBoardId, boardName:curBoard?curBoard.name:''})));
+  }
+  renderCalendarGrid();
+}
+// Shared "jump to this dated card" target for the calendar panel — unlike flashAndCenterCard() (used
+// by search, and by the calendar before it became board-independent), the target card can be on a
+// DIFFERENT board than the one currently open, so this switches boards first if needed, then does a
+// brief zoom-IN animation (not just a pan) centered on the card so it's unmistakable that this is
+// where the jump landed, even right after the view visibly changed to a whole different board.
+async function jumpToCardAcrossBoards(boardId, cardId){
+  // Also switch when we're not even ON the board screen yet (e.g. the calendar was opened from the
+  // home overview): checking currentBoardId alone missed this — the home screen can easily still be
+  // holding the id of whatever board was last open, so a click on an entry for THAT board looked like
+  // "already there" and skipped openBoard() entirely, leaving the user stuck looking at the home
+  // overview while the jump silently happened on a hidden, invisible board view underneath it.
+  if(state.currentBoardId!==boardId || state.screen!=='board'){
+    await openBoard(boardId);
+  }
+  const card=state.cards.find(c=>c.id===cardId);
+  if(!card) return;
+  const targetZoom=Math.min(state.view.zoom||1, 1);
+  state.view.zoom=Math.max(0.35, targetZoom*0.55);
+  state.view.x=viewport.clientWidth/2-(card.x+card.w/2)*state.view.zoom;
+  state.view.y=viewport.clientHeight/2-(card.y+card.h/2)*state.view.zoom;
+  applyView();
+  requestAnimationFrame(()=>{
+    selectOnly(card.id);
+    smoothViewJump(()=>{
+      state.view.zoom=targetZoom;
+      state.view.x=viewport.clientWidth/2-(card.x+card.w/2)*state.view.zoom;
+      state.view.y=viewport.clientHeight/2-(card.y+card.h/2)*state.view.zoom;
+      applyView(); persistView();
+    });
+    const el=cardsLayer.querySelector(`.card[data-id="${card.id}"]`);
+    if(el){ el.classList.remove('search-flash'); void el.offsetWidth; el.classList.add('search-flash'); }
+  });
+}
+function toggleCalendarPanel(){
   if(!calendarPanelEl || calendarPanelEl.hidden) openCalendarPanel(calendarState.selectedKey);
   else closeCalendarPanel();
-});
+}
+calendarBtn.addEventListener('click',toggleCalendarPanel);
+if(homeCalendarBtn) homeCalendarBtn.addEventListener('click',toggleCalendarPanel);
 document.addEventListener('pointerdown',(e)=>{
   if(!calendarPanelEl || calendarPanelEl.hidden) return;
-  if(e.target.closest('#calendarPanel') || e.target.closest('#calendarBtn')) return;
+  if(e.target.closest('#calendarPanel') || e.target.closest('#calendarBtn') || e.target.closest('#homeCalendarBtn')) return;
   closeCalendarPanel();
 });
 window.addEventListener('keydown',(e)=>{
@@ -5300,19 +6857,28 @@ function ensureCardDatePopover(){
   if(cardDatePopoverEl) return cardDatePopoverEl;
   const el=document.createElement('div');
   el.className='card-date-popover';
-  el.innerHTML=`<input type="date" class="cdp-date"><input type="time" class="cdp-time"><button type="button" class="cdp-clear" title="${t('date_clear_title')}">${iconCross()}</button>`;
+  // A plain <input type="time"> hands the actual display format to the OS/browser — on Safari
+  // (macOS and iOS both) that follows the system's regional format, which for a lot of people means
+  // a 12-hour AM/PM picker instead of 24h, and in practice some Safari versions barely render the
+  // native control at all. Two ordinary <select> dropdowns render identically and predictably on
+  // every platform and can only ever show "00".."23" / "00".."59", so the 24h format is guaranteed
+  // rather than hoping the OS is configured a certain way.
+  el.innerHTML=`<input type="date" class="cdp-date"><span class="cdp-time-group"><select class="cdp-hour"><option value="">--</option></select><span class="cdp-time-sep">:</span><select class="cdp-min"><option value="">--</option></select></span><button type="button" class="cdp-clear" title="${t('date_clear_title')}">${iconCross()}</button>`;
   document.body.appendChild(el);
   cardDatePopoverEl=el;
   const dateInput=el.querySelector('.cdp-date');
-  const timeInput=el.querySelector('.cdp-time');
+  const hourSelect=el.querySelector('.cdp-hour');
+  const minSelect=el.querySelector('.cdp-min');
+  for(let h=0;h<24;h++){ const o=document.createElement('option'); o.value=o.textContent=String(h).padStart(2,'0'); hourSelect.appendChild(o); }
+  for(let m=0;m<60;m++){ const o=document.createElement('option'); o.value=o.textContent=String(m).padStart(2,'0'); minSelect.appendChild(o); }
   const clearBtn=el.querySelector('.cdp-clear');
   el.addEventListener('pointerdown',e=>e.stopPropagation());
   const persist=async()=>{
     if(!cardDateTarget) return;
     const card=cardDateTarget;
     card.date=dateInput.value||null;
-    card.time=card.date?(timeInput.value||null):null;
-    timeInput.disabled=!card.date;
+    card.time=(card.date && hourSelect.value && minSelect.value) ? (hourSelect.value+':'+minSelect.value) : null;
+    hourSelect.disabled=minSelect.disabled=!card.date;
     await DB.putCard(card);
     renderAllCards();
     applySelectionClasses();
@@ -5321,9 +6887,10 @@ function ensureCardDatePopover(){
     positionCardDatePopover(card);
   };
   dateInput.addEventListener('change',persist);
-  timeInput.addEventListener('change',persist);
+  hourSelect.addEventListener('change',persist);
+  minSelect.addEventListener('change',persist);
   clearBtn.addEventListener('click',async()=>{
-    dateInput.value=''; timeInput.value='';
+    dateInput.value=''; hourSelect.value=''; minSelect.value='';
     await persist();
     hideCardDatePopover();
   });
@@ -5346,9 +6913,11 @@ function positionCardDatePopover(card){
 function showCardDatePopover(card){
   const pop=ensureCardDatePopover();
   cardDateTarget=card;
+  const [h,m]=(card.time||'').split(':');
   pop.querySelector('.cdp-date').value=card.date||'';
-  pop.querySelector('.cdp-time').value=card.time||'';
-  pop.querySelector('.cdp-time').disabled=!card.date;
+  pop.querySelector('.cdp-hour').value=h||'';
+  pop.querySelector('.cdp-min').value=m||'';
+  pop.querySelector('.cdp-hour').disabled=pop.querySelector('.cdp-min').disabled=!card.date;
   pop.classList.add('show');
   positionCardDatePopover(card);
 }
@@ -5380,6 +6949,11 @@ function cascadeCenter(){
   return {x:base.x+step, y:base.y+step};
 }
 async function addCard(type, extra){
+  // Creating something new while connect-mode is armed almost always means the user has moved on
+  // to a different task — leaving it on invites the next accidental click to wire up a connector
+  // nobody meant to make, so it switches itself off here exactly like clicking the toolbar button
+  // again would (this also clears any half-picked connect-source highlight).
+  cancelConnect();
   const center = extra && extra.at ? extra.at : cascadeCenter();
   let w=260,h=160,data={};
   if(type==='note'){ w=220; h=140; data={text:''}; }
@@ -5406,6 +6980,11 @@ async function addCard(type, extra){
     x:snap(center.x-w/2), y:snap(center.y-h/2), w, h, z:nextZ(), data,
     createdAt:Date.now(), updatedAt:Date.now()
   };
+  // "ich glaube leicht transparent, also startend auf 60%, sah für die Spalten besser aus" — a
+  // column's own default Deckkraft, unlike every other card type (which stays at the shared 100%
+  // default). Still just the STARTING value — the same Deckkraft control changes it from there on,
+  // exactly like any other card.
+  if(type==='column') card.opacity=60;
   if(type==='column') card.z = Math.min(0,...state.cards.map(c=>c.z||0)) - 1;
   // render + focus immediately (optimistic UI) so the toolbar button is never left
   // focused while the user starts typing; persist to IndexedDB in the background.
@@ -5653,11 +7232,15 @@ const importBtn=document.getElementById('importBtn');
 
 function updateFolderStatusUI(){
   if(!folderBtn) return;
+  // Safari (macOS and iOS both) has no File System Access API at all, so a local folder can never
+  // actually be connected there — showing the button with a permanent "not available" label just
+  // invited people to keep clicking something that could never work. Hiding it outright is clearer:
+  // Apple users simply don't see a folder option, the same way this app already hides features that
+  // don't apply to the current platform elsewhere.
+  if(!FS_SUPPORTED){ folderBtn.hidden=true; return; }
+  folderBtn.hidden=false;
   folderBtn.classList.remove('connected','pending');
-  if(!FS_SUPPORTED){
-    folderLabel.textContent=t('folder_unavailable_label');
-    folderBtn.title=t('folder_unavailable_title');
-  }else if(state.storageMode==='fs' && fsState.root){
+  if(state.storageMode==='fs' && fsState.root){
     folderBtn.classList.add('connected');
     folderLabel.textContent=fsState.rootName;
     folderBtn.title=t('folder_connected_title',{name:fsState.rootName});
@@ -5874,7 +7457,13 @@ async function getEmbeddedFontFaceCSS(){
     const cssResp=await fetch(linkEl.href);
     if(!cssResp.ok) throw new Error('font css fetch failed: '+cssResp.status);
     let cssText=await cssResp.text();
-    const urls=[...new Set([...cssText.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g)].map(m=>m[1]))];
+    // Tolerate both url(https://...) and url("https://...") / url('https://...') — Google's font CSS
+    // response can come back either way, and the earlier unquoted-only pattern silently matched
+    // nothing at all for a quoted response, leaving every @font-face pointing at an external
+    // fonts.gstatic.com URL instead of an embedded data: URI. Because the export is rasterized
+    // synchronously right after this, an external font request essentially always lost that race and
+    // fell back to the browser's generic system sans-serif — exactly the "wrong font" symptom.
+    const urls=[...new Set([...cssText.matchAll(/url\((['"]?)(https:\/\/fonts\.gstatic\.com\/[^'")]+)\1\)/g)].map(m=>m[2]))];
     const swaps=await Promise.all(urls.map(async(url)=>{
       const res=await fetch(url);
       const blob=await res.blob();
@@ -5931,10 +7520,12 @@ async function renderCardsToCanvas(cards){
 
   const defs=document.createElementNS(svgNS,'defs');
   const marker=document.createElementNS(svgNS,'marker');
-  marker.setAttribute('id','exportArrow'); marker.setAttribute('markerWidth','10'); marker.setAttribute('markerHeight','10');
-  marker.setAttribute('refX','8'); marker.setAttribute('refY','5'); marker.setAttribute('orient','auto'); marker.setAttribute('markerUnits','userSpaceOnUse');
+  // Same shape/size/refX fix as the live #arrowhead marker (see its comment near the top of the
+  // page) — kept in sync by hand since export builds its own standalone SVG.
+  marker.setAttribute('id','exportArrow'); marker.setAttribute('markerWidth','12'); marker.setAttribute('markerHeight','12');
+  marker.setAttribute('refX','10.2'); marker.setAttribute('refY','6'); marker.setAttribute('orient','auto'); marker.setAttribute('markerUnits','userSpaceOnUse');
   const markerPath=document.createElementNS(svgNS,'path');
-  markerPath.setAttribute('d','M0,0.8 L8.5,5 L0,9.2 L2.3,5 Z'); markerPath.setAttribute('fill',faint);
+  markerPath.setAttribute('d','M0,1 L10.2,6 L0,11 L2.8,6 Z'); markerPath.setAttribute('fill',faint);
   marker.appendChild(markerPath); defs.appendChild(marker); svgRoot.appendChild(defs);
 
   // Connectors whose both ends are inside the exported set, redrawn in the export's local space.
@@ -5949,7 +7540,7 @@ async function renderCardsToCanvas(cards){
     line.setAttribute('x1',p1.x-minX); line.setAttribute('y1',p1.y-minY);
     line.setAttribute('x2',p2.x-minX); line.setAttribute('y2',p2.y-minY);
     line.setAttribute('stroke',faint); line.setAttribute('stroke-width','2'); line.setAttribute('stroke-linecap','round');
-    line.setAttribute('marker-end','url(#exportArrow)');
+    if(cn.arrowhead!==false) line.setAttribute('marker-end','url(#exportArrow)');
     linesSvg.appendChild(line);
   });
 
@@ -5999,6 +7590,16 @@ async function renderCardsToCanvas(cards){
     clone.classList.remove('selected','dragging');
     clone.querySelectorAll('.resize-handle').forEach(h=>h.remove());
     clone.querySelectorAll('[contenteditable]').forEach(ce=>ce.setAttribute('contenteditable','false'));
+    // An empty note/column/etc. shows a CSS-generated hint like "Notiz eingeben…" (via
+    // :empty::before{content:attr(data-placeholder)}) or a native input placeholder — useful while
+    // actually editing the board, meaningless (and visually just leftover "ghost" text) in a static
+    // export of it. Removing the attributes these hints read from removes the hint text itself,
+    // leaving a genuinely empty box exactly like an empty card should look.
+    clone.querySelectorAll('[data-placeholder]').forEach(n=>n.removeAttribute('data-placeholder'));
+    clone.querySelectorAll('[placeholder]').forEach(n=>n.removeAttribute('placeholder'));
+    // The "more content below" overflow hint (a live-interaction affordance) has no meaning on a
+    // static, non-scrollable exported image either way.
+    clone.querySelectorAll('.note-overflow-hint').forEach(n=>n.remove());
     clone.style.left=(c.x-minX)+'px';
     clone.style.top=(c.y-minY)+'px';
     wrap.appendChild(clone);
@@ -6183,6 +7784,8 @@ importInput.addEventListener('change',async ()=>{
   }catch(e){ showToast(t('toast_import_failed')); }
 });
 importBtn.addEventListener('click',triggerImport);
+document.getElementById('trashBtn').addEventListener('click',openTrash);
+document.getElementById('trashBackBtn').addEventListener('click',closeTrash);
 
 async function importBundle(payload){
   const idMap=new Map();
