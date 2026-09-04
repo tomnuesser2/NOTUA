@@ -269,9 +269,16 @@ try{
   .download-cta:hover{transform:translateY(-1px); filter:brightness(1.06);}
   .download-cta:active{transform:translateY(0) scale(0.97);}
   @keyframes dcRingTravel{ to{ stroke-dashoffset:-100; } }
-  .download-cta-floating{position:absolute; top:22px; right:22px; z-index:6;}
+  /* The viewport meta tag sets viewport-fit=cover so the page can draw edge-to-edge under a
+     notch/status bar — great for the app itself, but it means a fixed pixel `top` here can land
+     the button right under (or half-hidden behind) the phone's own status bar / battery icons on
+     a mobile browser. env(safe-area-inset-top) reports how tall that off-limits strip actually is
+     (0 on a normal display, non-zero behind a notch/status overlay); adding it pushes the button
+     below it instead of guessing a fixed offset. The plain 22px/14px stay as the fallback (env()
+     resolves to 0 where safe-area insets aren't a thing, e.g. desktop), so nothing changes there. */
+  .download-cta-floating{position:absolute; top:calc(22px + env(safe-area-inset-top,0px)); right:22px; z-index:6;}
   @media (max-width:640px){
-    .download-cta-floating{top:14px; right:14px; padding:9px 13px; font-size:0.76rem; gap:5px;}
+    .download-cta-floating{top:calc(14px + env(safe-area-inset-top,0px)); right:14px; padding:9px 13px; font-size:0.76rem; gap:5px;}
   }
   .download-platform-list{display:flex; flex-direction:column; gap:8px; margin-top:4px;}
   .download-platform-row{
@@ -297,10 +304,16 @@ try{
   .reveal-overlay{position:fixed; inset:0; background:var(--accent); z-index:200; pointer-events:none; clip-path:circle(0px at 50% 50%);}
 
   /* ---------- HOME VIEW ---------- */
-  #homeView{position:absolute; inset:0; overflow-y:auto; background:var(--surface-2);}
+  /* overscroll-behavior:none on html/body/#app (above) only contains the bounce for THOSE
+     elements — it doesn't automatically protect a scrollable child inside them. #homeView is its
+     own independent scroll container (the board list can scroll while the rest of the app can't),
+     so without its own overscroll-behavior, pulling past the top of that list still reaches the
+     browser's native rubber-band/pull-to-refresh effect underneath — which is exactly the "app
+     shrinks and a white edge appears" look on a swipe-down in the packaged Android app. */
+  #homeView{position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain; background:var(--surface-2);}
   .home-header{
     display:flex; align-items:baseline; justify-content:space-between;
-    padding:36px 44px 18px; max-width:1180px; margin:0 auto; gap:16px; flex-wrap:wrap;
+    padding:calc(36px + env(safe-area-inset-top,0px)) 44px 18px; max-width:1180px; margin:0 auto; gap:16px; flex-wrap:wrap;
   }
   .wordmark{display:flex; align-items:center; gap:10px; cursor:pointer; width:fit-content;}
   .wordmark h1{font-size:1.7rem; font-weight:700; letter-spacing:-0.02em; margin:0; text-wrap:balance; transition:color .18s ease;}
@@ -469,6 +482,15 @@ try{
 
   /* ---------- BOARD VIEW ---------- */
   #boardView{position:absolute; inset:0; display:flex; flex-direction:column;}
+  /* On a phone with a punch-hole/notch camera, viewport-fit=cover lets the page draw under it —
+     without this, the top of .topbar (breadcrumbs + icons) renders partly behind the cutout. Not
+     touching .topbar itself here on purpose: it keeps its exact original 52px layout, unchanged.
+     Instead this ::before is a plain same-colored spacer strip that sits above it, exactly as
+     tall as the unsafe area the device reports (0 on any normal screen, so nothing changes there)
+     — it just gives the status bar / camera cutout a matching-colored strip to sit over, rather
+     than pushing .topbar's own content down to make room. Being an empty flex item in #boardView's
+     column layout is enough to occupy that space ahead of .topbar without any markup changes. */
+  #boardView::before{content:''; display:block; flex:none; height:env(safe-area-inset-top,0px); background:var(--surface);}
   .topbar{
     display:flex; align-items:center; gap:10px; padding:0 16px; height:52px; flex:none;
     background:var(--surface); border-bottom:1px solid var(--border); z-index:30;
