@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "site.notua.twa",
-        "sha256_cert_fingerprints": ["8B:57:6F:B7:37:5A:A5:25:B7:1F:09:75:39:23:EC:BB:B6:FC:7D:29:FE:45:93:EE:06:44:03:26:41:47:67:22"]
+        "package_name": "site.notua.www.twa",
+        "sha256_cert_fingerprints": ["90:52:16:33:85:CF:F8:86:6F:F8:A0:67:F0:E6:4C:FE:45:70:A9:1D:72:B1:C5:35:EE:B9:DE:C6:91:64:B2:41"]
       }
     }]
