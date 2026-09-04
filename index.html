@@ -59,15 +59,18 @@ try{
     document.documentElement.classList.add('notua-app-env');
   }
 }catch(e){}
-// Same idea for the Android app (a Trusted Web Activity built with PWABuilder, wrapping this same
+// Same idea for the Android app (a Trusted Web Activity built with Bubblewrap, wrapping this same
 // index.html/manifest.json) — but Android doesn't need a custom UA marker at all. A TWA is a real,
-// unmodified Chrome under the hood, launched the same way an installed PWA is, so the standard
-// `display-mode` media feature already reports it correctly: a normal browser tab is "browser",
-// while the installed TWA (and a PWA installed via "Add to Home Screen") is "standalone" — exactly
-// what manifest.json's own "display":"standalone" asks for. Nothing to bake into the APK at build
-// time, no rebuild ever needed if this check changes; it's purely this web code doing the checking.
+// unmodified Chrome under the hood, so the standard `display-mode` media feature reports how it was
+// launched. This app's Android build specifically uses TWA "Fullscreen Sticky" (immersive) mode —
+// not the plain "standalone" chrome-less mode — which is exactly why this used to fail silently:
+// checking ONLY for "standalone" never matched inside the installed app (it actually reports
+// "fullscreen"), so notua-app-env never got added and the download button stayed visible no matter
+// how often the site's cache was cleared — this was a logic bug, not a caching issue. Checking every
+// "installed app" display-mode value covers this (and any future display-mode choice) in one go; a
+// normal browser tab never reports any of these, so this stays exactly as safe as the old check.
 try{
-  if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches){
+  if(window.matchMedia && window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)').matches){
     document.documentElement.classList.add('notua-app-env');
   }
 }catch(e){}
@@ -2856,7 +2859,7 @@ function isIOSDevice(){
 }
 function needsStorageNotice(){
   if(FS_SUPPORTED) return false; // folder-connected boards live on disk, not in browser storage
-  const isStandalone=window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+  const isStandalone=window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)').matches || window.navigator.standalone===true;
   if(isStandalone) return false; // already added to home screen -> exempt from the 7-day eviction
   const ua=navigator.userAgent;
   const isSafariEngine=/^((?!chrome|android|crios|fxios|edgios|opios).)*safari/i.test(ua);
