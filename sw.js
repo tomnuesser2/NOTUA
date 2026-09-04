@@ -1,7 +1,7 @@
 // NOTUA – service worker: caches the app shell so it opens instantly and works offline.
 // Your boards themselves are never stored here — those already live in IndexedDB / your chosen
 // folder (see the app's own storage code). This only caches the static files that draw the UI.
-const CACHE_NAME = 'notua-v2';
+const CACHE_NAME = 'notua-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
