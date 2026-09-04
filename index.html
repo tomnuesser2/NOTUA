@@ -74,6 +74,19 @@ try{
     document.documentElement.classList.add('notua-app-env');
   }
 }catch(e){}
+// Belt-and-suspenders on top of the display-mode check above: the display-mode value a TWA actually
+// reports has turned out to be unreliable in practice for this app (the button kept reappearing even
+// after broadening that check), so this adds Google's own documented, TWA-specific signal as a second,
+// independent path — when Chrome launches a page inside a Trusted Web Activity, it always sets
+// document.referrer to "android-app://<package-name>" (here: android-app://site.notua.twa, matching
+// assetlinks.json), no matter which display mode the TWA is configured with. A normal browser tab,
+// bookmark, or link never has this referrer, so it's exactly as safe as the checks above — this one
+// just doesn't depend on display-mode being reported the way Chrome's TWA runtime happens to report it.
+try{
+  if(document.referrer && document.referrer.indexOf('android-app://')===0){
+    document.documentElement.classList.add('notua-app-env');
+  }
+}catch(e){}
 </script>
 <style>
   :root{
@@ -322,8 +335,14 @@ try{
      cutout at the top and the rounded bottom corners of the phone instead of running edge-to-edge. */
   .home-scroll{
     position:absolute; left:0; right:0; top:env(safe-area-inset-top,0px);
-    bottom:max(10px, env(safe-area-inset-bottom,0px));
+    bottom:max(16px, env(safe-area-inset-bottom,0px) + 4px);
     overflow-y:auto; overscroll-behavior:contain;
+    /* Content that's scrolled up used to just hard-cut at this box's own top edge, right against the
+       solid-colored strip behind it (from #homeView above) — a visible flat line where whatever was
+       scrolling simply vanished. A mask fades it to transparent over the last ~28px before that edge
+       instead, so it softly dissolves into the status-bar strip's color rather than being clipped. */
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 28px);
+    mask-image:linear-gradient(to bottom, transparent 0, #000 28px);
   }
   .home-header{
     display:flex; align-items:baseline; justify-content:space-between;
@@ -1003,12 +1022,31 @@ try{
   }
   .mobile-scrim.open{opacity:1; pointer-events:auto;}
   .mobile-drawer{
-    position:fixed; top:calc(var(--vv-top,0px) + env(safe-area-inset-top,0px)); left:0; height:calc(var(--vv-height,100%) - env(safe-area-inset-top,0px)); width:82vw; max-width:320px; background:var(--surface);
+    /* The panel itself stays full-bleed at the top (top:var(--vv-top,0px), no safe-area subtracted
+       here) so its own background still fills in behind the notch/status bar instead of leaving a
+       gap there — only the HEADER TEXT inside it (.drawer-head, below) gets pushed down clear of
+       that area via padding. The bottom stays inset though, so the box (and its scrollbar) still
+       stops a bit above the phone's rounded bottom corner instead of running into it. */
+    position:fixed; top:var(--vv-top,0px); left:0;
+    height:calc(var(--vv-height,100%) - max(16px, env(safe-area-inset-bottom,0px) + 4px));
+    width:82vw; max-width:320px; background:var(--surface);
     border-right:1px solid var(--border); box-shadow:16px 0 40px -16px var(--shadow-lg); z-index:61;
     transform:translateX(-100%); transition:transform .2s ease; display:flex; flex-direction:column; overflow-y:auto;
   }
+  /* Shrinks the visible painted length of the scroll thumb itself (not just where the box stops):
+     a tall top/bottom transparent border on the thumb, clipped away from its background, insets the
+     actual colored bar from both ends of its own draggable area — so it reads as noticeably shorter
+     than the full track instead of nearly filling it. */
+  .mobile-drawer::-webkit-scrollbar{width:10px;}
+  .mobile-drawer::-webkit-scrollbar-thumb{
+    background:var(--border-strong); background-clip:padding-box; border-radius:6px;
+    border:8px solid transparent; border-left-width:2px; border-right-width:2px;
+  }
   .mobile-drawer.open{transform:translateX(0);}
-  .drawer-head{display:flex; align-items:center; justify-content:space-between; padding:16px 14px 10px; flex:none;}
+  /* padding-top carries the safe-area push instead of the panel's own top offset above — so only
+     the "Werkzeuge" label (and the close button next to it) starts below the notch/status bar,
+     while the panel behind it already reaches all the way up. */
+  .drawer-head{display:flex; align-items:center; justify-content:space-between; padding:calc(16px + env(safe-area-inset-top,0px)) 14px 10px; flex:none;}
   .drawer-head span{font-weight:700; font-size:1rem;}
   .drawer-section{padding:8px 10px; border-top:1px solid var(--border);}
   .drawer-section:first-of-type{border-top:none;}
@@ -1138,7 +1176,13 @@ try{
 
   /* scrollbars */
   .home-scroll::-webkit-scrollbar{width:10px;}
-  .home-scroll::-webkit-scrollbar-thumb{background:var(--border-strong); border-radius:6px;}
+  /* Tall top/bottom transparent border, clipped away from the background, insets the visible
+     painted bar from both ends of its own draggable thumb area — reads as noticeably shorter than
+     the full track instead of nearly filling it. */
+  .home-scroll::-webkit-scrollbar-thumb{
+    background:var(--border-strong); background-clip:padding-box; border-radius:6px;
+    border:8px solid transparent; border-left-width:2px; border-right-width:2px;
+  }
 
   @media (max-width:640px){
     .bottom-bars{display:none;}
