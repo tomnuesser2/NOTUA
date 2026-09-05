@@ -429,6 +429,19 @@ try{
     display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer;
   }
   .icon-btn.import-btn:hover{border-color:var(--border-strong); color:var(--ink);}
+  .tools-dropdown{position:relative;}
+  .tools-menu{
+    position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; box-shadow:0 14px 34px -12px var(--shadow-lg); padding:6px; min-width:190px;
+    display:flex; flex-direction:column; gap:2px; z-index:50;
+  }
+  .tools-menu[hidden]{display:none;}
+  .tools-menu button{
+    text-align:left; padding:8px 10px; border-radius:7px; border:none; background:none; color:var(--ink);
+    font:inherit; font-size:0.84rem; cursor:pointer; transition:background .12s ease;
+  }
+  .tools-menu button:hover{background:var(--surface-2);}
+  .tools-menu button:disabled{opacity:.4; cursor:not-allowed; background:none;}
   .home-main{max-width:1180px; margin:0 auto; padding:8px 44px 80px;}
   .board-grid{
     display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
@@ -485,6 +498,35 @@ try{
   .tile-actions button:active{transform:scale(.88);}
   .tile-actions .del-btn:hover{background:var(--danger-soft); color:var(--danger);}
   .tile-actions .export-btn:hover{background:var(--accent-soft); color:var(--accent);}
+  /* Home-screen board-tile SELECTION (distinct from .tile-marked above, the touch-only merge-into-
+     project mark): a click on a tile now selects it instead of opening it right away — this is what
+     makes .tile-actions' icons reachable without the fiddly hover targeting, and lets several tiles be
+     picked at once for the bulk "move to Papierkorb" action. See buildBoardTile / toggleHomeSelect. */
+  .board-tile.tile-selected{box-shadow:0 0 0 2.5px var(--accent), 0 14px 28px -8px var(--shadow-lg);}
+  .board-tile.tile-selected .tile-actions{opacity:1;}
+  .tile-go-btn{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    display:flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; border:none;
+    background:var(--accent); color:#fff; font:inherit; font-size:0.82rem; font-weight:600; cursor:pointer;
+    box-shadow:0 10px 24px -8px var(--shadow-lg); z-index:4; white-space:nowrap;
+  }
+  .tile-go-btn:hover{filter:brightness(1.08);}
+  .tile-go-btn:active{transform:translate(-50%,-50%) scale(.96);}
+  .tile-go-btn[hidden]{display:none;}
+  /* Floating bulk-action bar — appears only while state.homeSelection has 2+ members (a single
+     selected tile gets its own centered .tile-go-btn instead; see applyHomeSelectionUI). */
+  .home-bulk-bar{
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:40;
+    display:flex; align-items:center; gap:12px; padding:9px 12px 9px 18px; border-radius:999px;
+    background:var(--surface); border:1px solid var(--border); box-shadow:0 14px 34px -12px var(--shadow-lg);
+  }
+  .home-bulk-bar span{font-size:0.84rem; color:var(--ink); font-weight:500;}
+  .home-bulk-bar button{
+    width:34px; height:34px; border-radius:50%; border:none; background:var(--danger-soft); color:var(--danger);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .14s ease;
+  }
+  .home-bulk-bar button:hover{background:var(--danger); color:#fff;}
+  .home-bulk-bar[hidden]{display:none;}
   .board-tile.new-tile{
     align-items:center; justify-content:center; flex-direction:row; gap:8px;
     border:1.5px dashed var(--border-strong); background:transparent; color:var(--muted); font-weight:500;
@@ -895,11 +937,21 @@ try{
   .checklist-progress-label{font-size:0.68rem; color:var(--card-placeholder-color, var(--faint)); flex:none;}
 
   /* image */
-  .card-image{padding:0; overflow:hidden;}
-  .card-image .card-head{position:absolute; top:0; left:0; right:0; padding:6px 8px; background:linear-gradient(to bottom, rgba(0,0,0,.42), transparent); border-radius:6px 6px 0 0; opacity:0; transition:opacity .12s;}
-  .card-image:hover .card-head, .card-image.selected .card-head{opacity:1;}
-  .card-image .card-title-field{color:#fff;}
-  .card-image .type-chip{color:#fff;}
+  /* Frameless by default ("freigestellt") — no opaque background AND no visible border/shadow of its
+     own (unlike the base .card rule), so a transparent PNG's see-through regions show the canvas
+     behind the card instead of the app's own solid surface color and a rectangular outline breaking
+     the illusion. border-color (not the `border` shorthand) is overridden here so the width/style stay
+     put — just invisible — which keeps this a single, cheap property to toggle back in .framed below.
+     Switchable per image via the "Transparenz" switch in the inspector (data.transparent===false). */
+  .card-image{padding:0; overflow:hidden; background:transparent; border-color:transparent; box-shadow:none;}
+  .card-image.framed{background:var(--surface); border-color:var(--border);}
+  /* :not(.selected) here, not just .framed alone — .card.selected's own accent selection ring is the
+     same specificity (two classes) as a plain .card-image.framed rule would be, and this one comes
+     later in the stylesheet, so an unqualified version would silently win and hide the ring on a
+     selected + framed image card. Excluding .selected here means the two rules never fight over the
+     same element: the resting 1px shadow only when NOT selected, the accent ring takes over instead
+     of fighting it once selected. */
+  .card-image.framed:not(.selected){box-shadow:0 1px 2px var(--shadow);}
   .card-image img{width:100%; height:100%; object-fit:cover; display:block; flex:1; pointer-events:none;}
   .card-image .caption{
     position:absolute; left:0; right:0; bottom:0; padding:6px 10px; font-size:0.74rem; color:#fff;
@@ -1364,6 +1416,50 @@ try{
   }
   .theme-menu-actions{display:flex; justify-content:space-between; gap:8px; padding-top:2px;}
   .theme-menu-actions .theme-menu-left{display:flex; gap:8px;}
+  /* This row never actually had the .modal-actions class, so its buttons only ever got the bare
+     browser default look (no padding/radius/border/font) instead of matching every other modal's
+     buttons — exactly what read as "these don't belong to the UI". Mirrors .modal-actions button
+     exactly, rather than just adding that class, so the existing space-between + left-group layout
+     here (as opposed to .modal-actions' flex-end) stays intact. */
+  .theme-menu-actions button{
+    padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.84rem; cursor:pointer;
+  }
+  .theme-menu-actions button.primary{color:#fff;}
+  .theme-menu-actions button:hover{filter:brightness(0.97);}
+
+  /* ---------- TEMPLATES (Vorlagen) picker — deliberately echoes the board overview's own tiles
+     (spine + name), just compact enough to fit a modal instead of the full board grid. ---------- */
+  .template-modal{width:560px; max-height:82vh; overflow-y:auto;}
+  .template-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+  .template-tile{
+    position:relative; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    padding:12px 12px 10px; display:flex; flex-direction:column; gap:8px; min-height:86px;
+  }
+  .template-tile .spine{width:28px; height:5px; border-radius:3px; background:var(--accent); flex:none;}
+  .template-tile-name{font-size:0.88rem; font-weight:600; line-height:1.3; flex:1;}
+  .template-tile-actions{display:flex; gap:6px;}
+  .template-insert-btn{
+    flex:1; padding:6px 10px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface);
+    color:var(--ink); font:inherit; font-size:0.78rem; font-weight:600; cursor:pointer;
+  }
+  .template-insert-btn:hover{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .template-delete-btn{
+    flex:none; width:30px; border:none; border-radius:6px; background:var(--surface); color:var(--muted);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .template-delete-btn:hover{background:var(--danger-soft); color:var(--danger);}
+  .template-tile-save{
+    align-items:center; justify-content:center; text-align:center; gap:6px; cursor:pointer;
+    border-style:dashed; color:var(--muted); background:transparent;
+  }
+  .template-tile-save:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
+  .template-tile-save svg{width:20px; height:20px;}
+  .template-tile-save span{font-size:0.8rem; font-weight:600;}
+  .template-name-input{
+    border:1px solid var(--border); border-radius:6px; padding:8px 10px; font:inherit; font-size:0.86rem;
+    background:var(--surface); color:var(--ink); outline:none; width:100%; box-sizing:border-box;
+  }
+  .template-name-input:focus{border-color:var(--accent);}
 
   /* scrollbars */
   .home-scroll::-webkit-scrollbar{width:10px;}
@@ -1442,9 +1538,16 @@ try{
           <button class="icon-btn import-btn" id="homeCalendarBtn" title="Kalender">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
           </button>
-          <button class="icon-btn import-btn" id="importBtn" title="Board importieren">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-          </button>
+          <div class="tools-dropdown" id="toolsDropdown">
+            <button class="icon-btn import-btn" id="toolsBtn" title="Werkzeuge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l1 1 5.3-5.3a4 4 0 0 1 5.4-5.4l-2.1 2.1 1 1z"/></svg>
+            </button>
+            <div class="tools-menu" id="toolsMenu" hidden>
+              <button type="button" id="toolsTemplatesItem"></button>
+              <button type="button" id="toolsImportItem"></button>
+              <button type="button" id="toolsExportItem"></button>
+            </div>
+          </div>
           <button class="icon-btn import-btn" id="trashBtn" title="Papierkorb">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg>
           </button>
@@ -1521,6 +1624,9 @@ try{
       </button>
       <button class="icon-btn" id="calendarBtn" title="Kalender">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+      </button>
+      <button class="icon-btn" id="templateBtn" title="Vorlagen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
       </button>
       <button class="icon-btn" id="homeBtn" title="Zur Übersicht">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9h12v-9"/></svg>
@@ -1995,6 +2101,8 @@ const I18N={
   type_table:{de:'Tabelle',en:'Table'},
   placeholder_table_title:{de:'Tabelle benennen…',en:'Name this table…'},
   table_ampel_toggle_title:{de:'Ampelsystem ein/aus',en:'Toggle traffic-light status'},
+  image_lock_aspect_toggle_title:{de:'Seitenverhältnis sperren',en:'Lock aspect ratio'},
+  image_transparent_toggle_title:{de:'Transparenz',en:'Transparency'},
   table_cell_check_title:{de:'Als erledigt markieren',en:'Mark as done'},
   table_add_col_title:{de:'Spalte hinzufügen',en:'Add column'},
   table_add_row_title:{de:'Zeile hinzufügen',en:'Add row'},
@@ -2032,6 +2140,32 @@ const I18N={
   confirm_empty_trash_body2:{de:'Letzte Bestätigung: Es gibt danach keine Möglichkeit mehr, diese Boards zurückzuholen.',en:'Last confirmation: after this there\'s no way to get these boards back.'},
   empty_trash_action:{de:'Ja, alle endgültig löschen',en:'Yes, delete all for good'},
   toast_trash_emptied:{de:'Papierkorb geleert',en:'Trash emptied'},
+  template_btn_title:{de:'Vorlagen',en:'Templates'},
+  tools_btn_title:{de:'Werkzeuge',en:'Tools'},
+  tools_templates_item:{de:'Vorlagen',en:'Templates'},
+  tools_import_item:{de:'Board importieren',en:'Import board'},
+  tools_export_item:{de:'Board exportieren',en:'Export board'},
+  toast_export_select_one:{de:'Bitte genau ein Board auswählen',en:'Please select exactly one board'},
+  tile_go_to_board_btn:{de:'Zum Board',en:'Go to board'},
+  home_bulk_selected_count:{de:'{n} ausgewählt',en:'{n} selected'},
+  home_bulk_trash_title:{de:'Ausgewählte in den Papierkorb verschieben',en:'Move selected to trash'},
+  template_picker_title:{de:'Vorlagen',en:'Templates'},
+  template_picker_intro:{de:'Speichere das aktuelle Board als eigene Vorlage, oder füge eine deiner gespeicherten Vorlagen als neues Subboard ein.',en:'Save the current board as your own template, or insert one of your saved templates as a new sub-board.'},
+  template_save_current_btn:{de:'Aktuelles Board als Vorlage speichern',en:'Save current board as template'},
+  template_insert_btn:{de:'Einfügen',en:'Insert'},
+  template_delete_title:{de:'Vorlage endgültig löschen',en:'Delete template forever'},
+  confirm_delete_template_title:{de:'Vorlage löschen?',en:'Delete template?'},
+  confirm_delete_template_body:{de:'„{name}“ wird endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',en:'"{name}" will be permanently deleted. This can\'t be undone.'},
+  template_save_title:{de:'Als Vorlage speichern',en:'Save as template'},
+  template_save_body:{de:'Das aktuelle Board wird als neue, unabhängige Vorlage gespeichert – Änderungen am Original wirken sich später nicht mehr darauf aus.',en:'The current board is saved as a new, independent template — later changes to the original won\'t affect it.'},
+  template_name_placeholder:{de:'Name der Vorlage',en:'Template name'},
+  template_save_action:{de:'Speichern',en:'Save'},
+  template_saved_toast:{de:'Als Vorlage gespeichert',en:'Saved as template'},
+  template_insert_choice_title:{de:'Was soll übernommen werden?',en:'What should be included?'},
+  template_insert_choice_body:{de:'Nur die Struktur (Spalten, Karten, Cluster – ohne Text) oder alles inklusive deiner Inhalte?',en:'Just the structure (columns, cards, clusters – no text) or everything including your content?'},
+  template_insert_structure_btn:{de:'Nur Struktur',en:'Structure only'},
+  template_insert_content_btn:{de:'Mit Inhalt',en:'With content'},
+  template_inserted_toast:{de:'Subboard aus Vorlage hinzugefügt',en:'Sub-board added from template'},
   confirm_migrate_title:{de:'Vorhandene Boards übernehmen?',en:'Bring in existing boards?'},
   confirm_migrate_body:{de:'Es gibt Boards, die bisher nur lokal im Browser gespeichert waren. Sollen sie in den gewählten Ordner kopiert werden?',en:'Some boards were only stored locally in the browser so far. Should they be copied into the folder you chose?'},
   migrate_action:{de:'Übernehmen',en:'Bring in'},
@@ -2120,7 +2254,10 @@ function applyI18n(){
     ['#downloadBtnLabel','text',t('download_label')],
     ['#impressumBtn','text',t('impressum_label')],
     ['#aboutBtn','text',t('about_label')],
-    ['#importBtn','title',t('import_title')],
+    ['#toolsBtn','title',t('tools_btn_title')],
+    ['#toolsTemplatesItem','text',t('tools_templates_item')],
+    ['#toolsImportItem','text',t('tools_import_item')],
+    ['#toolsExportItem','text',t('tools_export_item')],
     ['#menuBtn','title',t('menu_title')],
     ['#homeBtn','title',t('home_title')],
     ['#boardColorBtn','title',t('board_color_title')],
@@ -2168,6 +2305,7 @@ function applyI18n(){
     ['#emptyTrashText','text',t('empty_trash_hint')],
     ['#emptyBoardHintText','text',t('empty_board_hint')],
     ['#emptyTrashAllBtn','title',t('empty_trash_all_title')],
+    ['#templateBtn','title',t('template_btn_title')],
     ['#folderReconnectTitle','text',t('folder_reconnect_banner_title')],
     ['#folderReconnectBody','text',t('folder_reconnect_banner_body')],
     ['#folderReconnectBtn','text',t('folder_reconnect_banner_btn')],
@@ -2228,8 +2366,13 @@ const IDB_DB={
   // below), so a plain `trashed` flag on the board record is the only signal: allBoards() (the
   // normal Board-Übersicht) hides anything with that flag set, allTrashedBoards() (the Papierkorb)
   // shows only those.
-  async allBoards(){const t=await tx('boards','readonly'); const all=await reqp(t.objectStore('boards').getAll()); return all.filter(b=>!b.trashed);},
-  async allTrashedBoards(){const t=await tx('boards','readonly'); const all=await reqp(t.objectStore('boards').getAll()); return all.filter(b=>b.trashed);},
+  async allBoards(){const t=await tx('boards','readonly'); const all=await reqp(t.objectStore('boards').getAll()); return all.filter(b=>!b.trashed && !b.isTemplate);},
+  async allTrashedBoards(){const t=await tx('boards','readonly'); const all=await reqp(t.objectStore('boards').getAll()); return all.filter(b=>b.trashed && !b.isTemplate);},
+  // Saved templates share the exact same 'boards' store as everything else (see the comment on
+  // allBoards/allTrashedBoards above for why a plain flag, rather than a physical location, is how
+  // browser-cache storage tells things apart) — just its own flag and its own listing, kept out of
+  // both the normal overview and the Papierkorb.
+  async allTemplates(){const t=await tx('boards','readonly'); const all=await reqp(t.objectStore('boards').getAll()); return all.filter(b=>b.isTemplate && !b.trashed);},
   async getBoard(id){const t=await tx('boards','readonly'); return reqp(t.objectStore('boards').get(id));},
   async putBoard(b){const t=await tx('boards','readwrite'); t.objectStore('boards').put(b); return new Promise(r=>t.oncomplete=r);},
   async setTrashed(id,trashed){
@@ -2397,7 +2540,35 @@ const FS_DB={
       }
       out.push({...fsState.cache.get(id).meta});
     }
-    return out;
+    // Saved templates live as ordinary board folders right alongside real boards (simplest option —
+    // no separate physical subfolder to maintain, unlike the trash's real move-to-_Papierkorb dance
+    // above), so they're kept out of the normal overview purely by this flag, mirroring how IDB mode
+    // does it too.
+    return out.filter(b=>!b.isTemplate);
+  },
+  // Same enumeration as allBoards() above, just keeping the isTemplate:true boards instead of
+  // filtering them out — the template picker's own listing.
+  async allTemplates(){
+    if(!fsState.root) return [];
+    const out=[];
+    for await (const handle of fsState.root.values()){
+      if(handle.kind!=='directory') continue;
+      const data=await fsGetFileJSON(handle,'board.json',null);
+      if(!data || !data.meta || !data.meta.id) continue;
+      const id=data.meta.id;
+      fsState.dirs.set(id,handle);
+      if(!fsState.cache.has(id)){
+        fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
+        (data.cards||[]).forEach(c=>{
+          fsState.cardOwner.set(c.id,id);
+          if(c.type==='image' && c.data && c.data.imageId) fsState.imageOwner.set(c.data.imageId,id);
+        });
+        (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
+        if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
+      }
+      out.push({...fsState.cache.get(id).meta});
+    }
+    return out.filter(b=>b.isTemplate);
   },
   // Mirrors allBoards() above exactly, just scoped to the trash subfolder instead of root — every
   // board sitting in there IS the Papierkorb's contents, nothing to filter by flag.
@@ -2580,6 +2751,7 @@ function activeBackend(){ return state.storageMode==='fs' ? FS_DB : IDB_DB; }
 const DB={
   allBoards:(...a)=>activeBackend().allBoards(...a),
   allTrashedBoards:(...a)=>activeBackend().allTrashedBoards(...a),
+  allTemplates:(...a)=>activeBackend().allTemplates(...a),
   setTrashed:(...a)=>activeBackend().setTrashed(...a),
   getBoard:(...a)=>activeBackend().getBoard(...a),
   putBoard:(...a)=>activeBackend().putBoard(...a),
@@ -2629,6 +2801,7 @@ const state={
   lastDeleted:null,          // undo buffer {kind:'cards'|'board', ...}
   lastPointer:{x:400,y:300}, // last known canvas-space pointer (for paste placement)
   recentlyRestored:new Set(), // board ids restored from the Papierkorb this session — badge clears on next app start
+  homeSelection:new Set(),   // board ids currently marked in the home/overview grid (click/long-press to (de)select, multi-select for bulk-trash and the Tools "Board exportieren" action) — normal board-grid + project-panel tiles only, never the Papierkorb view
 };
 const GRID_SIZE=18;
 
@@ -2875,7 +3048,7 @@ function showThemeMenuModal(){
       </div>
       <button data-a="close">${t('theme_menu_close_btn')}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
 
   const mainInput=scrim.querySelector('#themeMainInput');
@@ -2928,7 +3101,7 @@ function showSecretPasswordModal(){
       <button data-a="cancel">${t('modal_cancel')}</button>
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('secret_password_submit')}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   const input=scrim.querySelector('#secretPasswordInput');
   const errEl=scrim.querySelector('#secretPasswordError');
   scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
@@ -3043,6 +3216,61 @@ async function refreshHome(){
   boardGrid.appendChild(newTile);
 }
 
+// ---- Home-screen board-tile SELECTION (multi-select for bulk "move to Papierkorb", plus feeding
+// the Werkzeuge > "Board exportieren" menu item) — see buildBoardTile for how a tile enters/leaves
+// this set (click, dblclick opens instead, long-press). Deliberately scoped to the normal board-grid
+// / project-panel tiles only, never the Papierkorb view (which already has its own per-tile actions).
+function toggleHomeSelect(id){
+  if(state.homeSelection.has(id)) state.homeSelection.delete(id);
+  else state.homeSelection.add(id);
+  refreshHomeSelectionUI();
+}
+function clearHomeSelection(){
+  if(!state.homeSelection.size) return;
+  state.homeSelection.clear();
+  refreshHomeSelectionUI();
+}
+// Reflects state.homeSelection onto one already-built tile: the persistent selected outline/actions,
+// and the big centered "Zum Board" button — shown only while this tile is the SOLE selection (with
+// 2+ selected, opening one of several at once doesn't make sense; the floating bulk bar takes over).
+function setTileSelectedUI(tile,id){
+  const selected=state.homeSelection.has(id);
+  tile.classList.toggle('tile-selected',selected);
+  const goBtn=tile.querySelector('.tile-go-btn');
+  if(goBtn) goBtn.hidden=!(selected && state.homeSelection.size===1);
+}
+function refreshHomeSelectionUI(){
+  boardGrid.querySelectorAll('.board-tile[data-board-id]').forEach(tile=>{
+    setTileSelectedUI(tile,tile.dataset.boardId);
+  });
+  updateHomeBulkBar();
+}
+// Small floating pill, built once and reused — only ever visible while 2+ boards are marked (a lone
+// selection gets its own per-tile "Zum Board" button instead, see setTileSelectedUI above).
+const homeBulkBar=document.createElement('div');
+homeBulkBar.className='home-bulk-bar'; homeBulkBar.hidden=true;
+document.body.appendChild(homeBulkBar);
+function updateHomeBulkBar(){
+  const n=state.homeSelection.size;
+  if(n<2){ homeBulkBar.hidden=true; homeBulkBar.innerHTML=''; return; }
+  homeBulkBar.hidden=false;
+  homeBulkBar.innerHTML=`<span>${escapeHtml(t('home_bulk_selected_count',{n}))}</span><button type="button" id="homeBulkTrashBtn" title="${t('home_bulk_trash_title')}">${iconTrash()}</button>`;
+  homeBulkBar.querySelector('#homeBulkTrashBtn').addEventListener('click',async ()=>{
+    const ids=[...state.homeSelection];
+    clearHomeSelection();
+    for(const id of ids) await trashBoard(id);
+    await refreshHome();
+  });
+}
+// A tap/click anywhere that ISN'T a board tile, a project tile/panel, the bulk bar, or the Tools
+// dropdown clears the whole selection — same "stray tap resets it" convention already used for the
+// touch drag-to-merge mark (see the markedTileBoardId listener further below).
+document.addEventListener('pointerdown',(e)=>{
+  if(!state.homeSelection.size) return;
+  if(e.target.closest('.board-tile, .project-tile, .project-panel, .home-bulk-bar, #toolsDropdown')) return;
+  clearHomeSelection();
+});
+
 // Builds one board tile. Used both for standalone boards in the main grid and for boards inside
 // an expanded project panel (opts.projectId set) — the latter also gets a small "eject" button
 // and takes part in project drag-to-reorder / drag-out-to-another-project. opts.trash switches the
@@ -3062,7 +3290,6 @@ async function buildBoardTile(b,opts){
       <button class="export-btn" title="${t('tile_export_title')}">${iconExport()}</button>
       <button class="del-btn" title="${t('tile_delete_forever_title')}">${iconTrash()}</button>
       ` : `
-      <button class="export-btn" title="${t('tile_export_title')}">${iconExport()}</button>
       <button class="del-btn" title="${t('tile_delete_title')}">${iconTrash()}</button>
       `}
     </div>
@@ -3081,6 +3308,7 @@ async function buildBoardTile(b,opts){
       <span>${t('tile_element_count',{n:count,e:count===1?'':'e'})}</span>
     </div>
     ${(!opts.trash && state.recentlyRestored.has(b.id)) ? `<div class="restored-badge">${escapeHtml(t('recently_restored_badge'))}</div>` : ''}
+    ${opts.trash ? '' : `<button type="button" class="tile-go-btn" hidden>${t('tile_go_to_board_btn')}${iconChevronRight()}</button>`}
   `;
   if(b.logoImageId){
     getImageUrl(b.logoImageId).then(url=>{ if(url) tile.querySelector('.tile-logo').src=url; });
@@ -3136,23 +3364,62 @@ async function buildBoardTile(b,opts){
     if(oldId) DB.deleteImage(oldId);
     logoWrap.hidden=true;
   });
-  // Opening on click has to tolerate a double-click landing on the title (which should rename,
-  // not open+rename at once): a plain click schedules the open with a short delay, and the
-  // title's dblclick handler below cancels that pending open before it fires. e.detail>=2 skips
-  // scheduling on the click that is itself the second half of a double-click. A completed
-  // drag-and-drop (see attachTileDrag below) also cancels it via justDragged, since a drag that
-  // starts and ends on this same tile still fires a native 'click' at the end.
-  let tileClickTimer=null;
+  // A single click now SELECTS the tile (see toggleHomeSelect) instead of opening it right away —
+  // that's what makes .tile-actions reachable without fiddly hover-targeting, and lets several tiles
+  // be marked at once for the bulk "move to Papierkorb" action. Opening a board is now a dblclick (or
+  // the big centered "Zum Board" button a lone selected tile shows, or a long-press — see below and
+  // applyHomeSelectionUI). justDragged (a completed mouse drag-reorder) and justLongPressedSelect (the
+  // long-press-to-select gesture just below) each suppress the ONE native click that follows them, the
+  // same way a completed drag always has here.
   let justDragged=false;
+  let justLongPressedSelect=false;
+  const tileExcluded=(e)=>e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')||e.target.closest('.tile-go-btn');
   tile.addEventListener('click',(e)=>{
-    if(e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')) return;
+    if(tileExcluded(e)) return;
     if(justDragged){ justDragged=false; return; }
-    if(e.detail>=2) return;
-    clearTimeout(tileClickTimer);
-    tileClickTimer=setTimeout(()=>openBoard(b.id),220);
+    if(justLongPressedSelect){ justLongPressedSelect=false; return; }
+    if(e.detail>=2) return; // the second half of a dblclick — let the dblclick handler below open it
+    toggleHomeSelect(b.id);
   });
+  tile.addEventListener('dblclick',(e)=>{
+    if(tileExcluded(e)) return;
+    openBoard(b.id);
+  });
+  // Long-press (mouse OR touch — holding down without moving) also selects/marks the tile, per "wenn
+  // man lange auf ein Board drückt es festmarkieren": handy on touch (no hover to reveal .tile-actions
+  // otherwise) and as a quick way to start a multi-selection without a first plain click. Independent
+  // of attachTileDrag's own touch long-press below (which marks a tile for the drag-to-merge-into-
+  // project flow) — both can fire off the same physical press without conflicting, since this one only
+  // ever ADDS to the selection.
+  let selectPressTimer=null;
+  tile.addEventListener('pointerdown',(e)=>{
+    if(e.button!==undefined && e.button!==0) return;
+    if(tileExcluded(e)) return;
+    const sx=e.clientX, sy=e.clientY, pid=e.pointerId;
+    const cleanup=()=>{
+      clearTimeout(selectPressTimer);
+      tile.removeEventListener('pointermove',onMove);
+      tile.removeEventListener('pointerup',onUp);
+      tile.removeEventListener('pointercancel',onCancel);
+    };
+    const onMove=(ev)=>{ if(ev.pointerId!==pid) return; if(Math.abs(ev.clientX-sx)>10||Math.abs(ev.clientY-sy)>10) cleanup(); };
+    const onUp=(ev)=>{ if(ev.pointerId!==pid) return; cleanup(); };
+    const onCancel=(ev)=>{ if(ev.pointerId!==pid) return; cleanup(); };
+    selectPressTimer=setTimeout(()=>{
+      cleanup();
+      justLongPressedSelect=true;
+      tile.classList.add('long-press-flash');
+      setTimeout(()=>tile.classList.remove('long-press-flash'),160);
+      if(!state.homeSelection.has(b.id)) toggleHomeSelect(b.id);
+    },450);
+    tile.addEventListener('pointermove',onMove);
+    tile.addEventListener('pointerup',onUp);
+    tile.addEventListener('pointercancel',onCancel);
+  });
+  const goBtn=tile.querySelector('.tile-go-btn');
+  if(goBtn) goBtn.addEventListener('click',(e)=>{ e.stopPropagation(); openBoard(b.id); });
   // "in der Übersicht soll man nur diesen kleinen Strich als Farbe auswählen können" — the stripe
-  // itself is the only thing on a tile that opens the color picker; it never opens the board.
+  // itself is the only thing on a tile that opens the color picker; it never selects or opens the board.
   const spineEl=tile.querySelector('.spine');
   if(spineEl){
     spineEl.addEventListener('click',(e)=>{
@@ -3160,12 +3427,8 @@ async function buildBoardTile(b,opts){
       showBoardColorPopover(e.clientX,e.clientY,b,(hex)=>{ spineEl.style.background=hex; });
     });
   }
-  tile.querySelector('.export-btn').addEventListener('click',(e)=>{
-    e.stopPropagation();
-    exportBoard(b.id);
-  });
   const h3=tile.querySelector('h3');
-  h3.addEventListener('dblclick',(e)=>{e.stopPropagation(); clearTimeout(tileClickTimer); h3.contentEditable='true'; h3.focus(); document.execCommand('selectAll',false,null);});
+  h3.addEventListener('dblclick',(e)=>{e.stopPropagation(); h3.contentEditable='true'; h3.focus(); document.execCommand('selectAll',false,null);});
   h3.addEventListener('click',(e)=>{if(h3.isContentEditable) e.stopPropagation();});
   h3.addEventListener('blur',async ()=>{
     h3.contentEditable='false';
@@ -3188,7 +3451,8 @@ async function buildBoardTile(b,opts){
       removeBoardFromProject(b.id);
     });
   }
-  attachTileDrag(tile, b.id, ()=>{ clearTimeout(tileClickTimer); justDragged=true; });
+  attachTileDrag(tile, b.id, ()=>{ justDragged=true; });
+  setTileSelectedUI(tile,b.id);
   return tile;
 }
 
@@ -3658,6 +3922,16 @@ function revealToHome(originEl){
     landingView.hidden=true;
     homeView.hidden=false;
     homeView.classList.add('home-view-enter');
+    // This class was never removed again anywhere — its .home-header/.home-main entrance animation
+    // uses `both` fill-mode, which (like transform/opacity/filter) makes BOTH of them their own,
+    // permanent stacking contexts for as long as the class stays on, even long after the .5s animation
+    // itself has finished. Since .home-main comes after .home-header in the DOM and neither of them
+    // carries its own z-index, that made .home-main's entire subtree (the board tiles) always paint
+    // ABOVE .home-header's entire subtree — no z-index set *inside* .home-header (like the Werkzeuge
+    // dropdown's) can ever escape that once both sides are separately stacked. Stripping the class once
+    // the (short, one-shot) entrance animation is actually done removes that ambient stacking context
+    // again, so a floating menu opened from the header can correctly sit on top of the boards below it.
+    setTimeout(()=>homeView.classList.remove('home-view-enter'),700);
     state.screen='home';
     pushNavState();
   }, ()=>document.querySelector('#homeWordmark .logo-dot'));
@@ -3716,7 +3990,7 @@ function showImpressum(){
     <div class="modal-actions">
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('close_title')}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
   document.body.appendChild(scrim);
 }
@@ -3740,7 +4014,7 @@ function showAbout(){
     <div class="modal-actions">
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('close_title')}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
   // Opens the same feedback form used elsewhere (see showFeedbackModal) — closes the About modal
   // first so the two don't stack on top of each other.
@@ -3787,7 +4061,7 @@ function showDownloadModal(){
     <div class="modal-actions">
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('close_title')}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
   document.body.appendChild(scrim);
 }
@@ -3820,7 +4094,7 @@ function showFeedbackModal(){
       <button data-a="cancel">${t('modal_cancel')}</button>
       <button data-a="send" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('feedback_send')}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   const closeBtn=scrim.querySelector('[data-a="cancel"]');
   const sendBtn=scrim.querySelector('[data-a="send"]');
   const textEl=scrim.querySelector('.feedback-text');
@@ -3882,7 +4156,7 @@ function showStorageNotice(){
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('storage_notice_ok')}</button>
     </div></div>`;
   const dismiss=()=>{ scrim.remove(); try{ localStorage.setItem('notua-storage-notice-seen','1'); }catch(e){} };
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) dismiss(); });
+  bindScrimDismiss(scrim,dismiss);
   scrim.querySelector('[data-a="ok"]').addEventListener('click',dismiss);
   document.body.appendChild(scrim);
 }
@@ -3916,6 +4190,10 @@ async function openBoard(id, skipCrumbAnim){
   state.gridEnabled=board.gridEnabled!==false;
   state.snapEnabled=board.snapEnabled!==false;
   state.selection.clear();
+  // A home-screen multi-selection is scoped to the overview, not something that should still be
+  // "active" once you've actually navigated into a board — stale-looking selected tiles waiting on
+  // the home screen for whenever you come back would be confusing, not useful.
+  state.homeSelection.clear();
   closeInspector();
   closeSearchBar();
   closeCalendarPanel();
@@ -4489,6 +4767,15 @@ function updateInspector(){
   html+=`<div class="insp-row"><div class="insp-label">${t('insp_opacity_label')}</div><div class="opacity-steps" id="opacityRow"></div></div>`;
   if(cards.length===1 && cards[0].type==='image'){
     html+=`<div class="insp-row"><div class="insp-label">${t('insp_caption_label')}</div><input class="caption-edit" style="border:1px solid var(--border);border-radius:6px;padding:7px 8px;font:inherit;font-size:0.78rem;background:var(--surface);color:var(--ink);outline:none;" placeholder="${t('placeholder_caption')}" value="${cards[0].data.caption?escapeHtml(cards[0].data.caption):''}"/></div>`;
+    // Undefined counts as locked (the default set on every newly created image card, see addCard) —
+    // only an explicit false means someone has switched this particular image to free-form resizing.
+    const lockedNow=cards[0].data.lockAspect!==false;
+    html+=`<div class="insp-row insp-toggle-row"><div class="insp-label">${t('image_lock_aspect_toggle_title')}</div><button type="button" class="insp-switch${lockedNow?' on':''}" id="imageLockAspectToggle" title="${t('image_lock_aspect_toggle_title')}"></button></div>`;
+    // Same undefined-counts-as-on convention as lockAspect above — frameless/see-through is the
+    // default look (see .card-image/.framed), an explicit false switches back to the classic opaque,
+    // bordered card look (useful for a photo/screenshot where a frame reads better than floating).
+    const transparentNow=cards[0].data.transparent!==false;
+    html+=`<div class="insp-row insp-toggle-row"><div class="insp-label">${t('image_transparent_toggle_title')}</div><button type="button" class="insp-switch${transparentNow?' on':''}" id="imageTransparentToggle" title="${t('image_transparent_toggle_title')}"></button></div>`;
   }
   if(cards.length===1 && cards[0].type==='boardlink'){
     html+=`<div class="insp-row"><button id="openBoardLinkBtn" class="insp-action-btn">${t('insp_open_board')}</button></div>`;
@@ -4663,6 +4950,29 @@ function updateInspector(){
   });
   const widgetChangeBtn=inspectorEl.querySelector('#widgetChangeBtn');
   if(widgetChangeBtn) widgetChangeBtn.addEventListener('click',()=>resetWidgetEmbed(cards[0]));
+
+  // Not routed through the generic .insp-switch[data-toggle] handler above: that one does a plain
+  // `!c.data[key]` flip, which breaks for a field whose default (unset) state means "on" (locked) —
+  // flipping `undefined` gives `true`, i.e. a no-op on the very first click. This flips off the
+  // DISPLAYED state instead, so unset/true -> false -> true -> ... behaves as shown.
+  const lockAspectToggle=inspectorEl.querySelector('#imageLockAspectToggle');
+  if(lockAspectToggle){
+    lockAspectToggle.addEventListener('click',()=>{
+      const c=cards[0];
+      c.data.lockAspect = (c.data.lockAspect===false) ? true : false;
+      DB.putCard(c);
+      renderAllCards(); applySelectionClasses(); updateInspector();
+    });
+  }
+  const transparentToggle=inspectorEl.querySelector('#imageTransparentToggle');
+  if(transparentToggle){
+    transparentToggle.addEventListener('click',()=>{
+      const c=cards[0];
+      c.data.transparent = (c.data.transparent===false) ? true : false;
+      DB.putCard(c);
+      renderAllCards(); applySelectionClasses(); updateInspector();
+    });
+  }
 
   const dateBtn=inspectorEl.querySelector('.insp-date-btn');
   if(dateBtn){
@@ -4912,6 +5222,25 @@ function showToast(msg,onUndo){
 /* ============================================================
    MODAL (confirm)
    ============================================================ */
+// Closing a modal on an "outside click" has to check where the interaction STARTED, not just where
+// it happened to end — a plain single 'click' check (the old approach, everywhere a scrim used it)
+// gets this wrong in two real, reachable cases. (1) A native <input type="color"> swatch's own color
+// picker popup isn't a DOM overlay the page controls — when the user clicks away from it to close it,
+// the browser still delivers that click to whatever's actually underneath on the page, and if that
+// lands on the dark scrim background rather than inside the modal box (very easy, since the native
+// picker floats outside the modal's own layout), the old check treated it as "clicked outside the
+// modal" and closed the WHOLE panel — silently discarding whatever color was just picked. This is what
+// made the secret theme menu's colors stick only "sometimes": purely a matter of where that dismiss-
+// click for the native picker happened to land, nothing to do with applyCustomTheme() itself (verified
+// separately — repeated apply cycles driven directly always update every CSS variable correctly).
+// (2) selecting/dragging text that starts inside the modal but releases after the pointer drifts
+// outside it, which used to close the modal mid-drag too. Tracking the pointerdown target as well
+// fixes both without changing how a genuine outside click (down AND up outside the modal) behaves.
+function bindScrimDismiss(scrim,onDismiss){
+  let downOnScrim=false;
+  scrim.addEventListener('pointerdown',(e)=>{ downOnScrim=(e.target===scrim); });
+  scrim.addEventListener('click',(e)=>{ if(downOnScrim && e.target===scrim) onDismiss(); downOnScrim=false; });
+}
 function confirmModal(title,body,confirmLabel,onConfirm){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   scrim.innerHTML=`<div class="modal">
@@ -4920,7 +5249,7 @@ function confirmModal(title,body,confirmLabel,onConfirm){
       <button data-a="cancel">${escapeHtml(t('modal_cancel'))}</button>
       <button data-a="ok" class="primary">${escapeHtml(confirmLabel)}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
   scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>{ scrim.remove(); onConfirm(); });
   document.body.appendChild(scrim);
@@ -5536,12 +5865,14 @@ function iconCross(){return `<svg width="12" height="12" viewBox="0 0 24 24" fil
 
 function buildImageCard(card){
   const el=baseCardShell(card,'card-image');
-  el.innerHTML=`
-    <div class="card-head">
-      <div class="type-chip">${typeChipIcon('image')}</div>
-    </div>
-    <div class="img-slot"></div>
-  `;
+  // No .card-head/.type-chip badge here (unlike every other card type) — "Bilder sollen auch das
+  // Icon im Element nicht haben": a small corner icon read as leftover UI chrome once the card lost
+  // its frame/background (see the .framed toggle below), breaking the "just a picture" look. Dragging
+  // still works with no header at all: wholeCardDrag already makes the ENTIRE image card its own drag
+  // handle (see attachDragAndSelect), and `el.querySelector('.card-head') || el` there falls back to
+  // the card itself when there's no header to find.
+  el.classList.toggle('framed', card.data.transparent===false);
+  el.innerHTML=`<div class="img-slot"></div>`;
   const slot=el.querySelector('.img-slot');
   slot.style.cssText='flex:1;position:relative;overflow:hidden;';
   if(card.data.imageId){
@@ -6330,6 +6661,15 @@ function attachResize(handle,el,card){
         gridEl.style.gridTemplateColumns=tableColTemplate(card);
         gridEl.style.gridTemplateRows=tableRowTemplate(card);
       }
+    }else if(card.type==='image' && card.data.lockAspect!==false){
+      // Locked (the default): the box is always resized to the image's own natural width:height
+      // ratio, so a circular graphic (or anything else) never gets stretched/cropped out of shape by
+      // object-fit:cover just because the box's own shape drifted away from the image's — width leads
+      // the drag (same convention as the youtube/widget case above), height follows via the ratio.
+      const imgEl=el.querySelector('.img-slot img');
+      const ratio=(imgEl && imgEl.naturalWidth && imgEl.naturalHeight) ? imgEl.naturalWidth/imgEl.naturalHeight : (rs.w/rs.h);
+      card.w=snap(clamp(rs.w+dx,140,2000));
+      card.h=clamp(Math.round(card.w/ratio),80,2000);
     }else if(card.type==='column'){
       // Columns are meant to work as thin side-by-side lanes/areas, so they get their own, noticeably
       // lower width floor than a note/checklist card — 90px still leaves enough room for the title
@@ -7138,7 +7478,10 @@ async function addCard(type, extra){
     w=380; h=220;
     data={title:'', cols:[{id:uid(),w:90},{id:uid(),w:90},{id:uid(),w:90}], rows:[{id:uid(),h:30},{id:uid(),h:30},{id:uid(),h:30}], cells:{}, rowColors:{}, colColors:{}, ampelMode:false, showProgress:false};
   }
-  if(type==='image'){ w=280; h=200; data={imageId:extra&&extra.imageId?extra.imageId:null, caption:''}; }
+  // lockAspect defaults to true (locked): resizing keeps the image's own natural proportions instead
+  // of letting the box's shape drift away from it — a switch in the Eigenschaften/inspector panel
+  // lets it be turned off per-image for the old free-form (crop via object-fit:cover) behavior.
+  if(type==='image'){ w=280; h=200; data={imageId:extra&&extra.imageId?extra.imageId:null, caption:'', lockAspect:true}; }
   if(type==='youtube'){ w=320; h=200; data={kind:'youtube', videoId:extra&&extra.videoId?extra.videoId:null, url:extra&&extra.url?extra.url:''}; }
   if(type==='boardlink'){
     if(!(await ensureStorageReady())) return;
@@ -7348,7 +7691,11 @@ async function addImageFile(file, at){
   await DB.putImage(id,file);
   await addCard('image',{imageId:id, at:at||viewportCenterCanvas()});
   const card=state.cards[state.cards.length-1];
-  card.w=w; card.h=h+34; DB.putCard(card);
+  // No extra chrome height added on top of h here (an earlier "+34" fudge was removed) — the image
+  // fills the card's ENTIRE box (see .card-image .img-slot, flex:1, no reserved header row), so a box
+  // that already matches the natural w:h ratio is what keeps e.g. a circular graphic looking like a
+  // full circle instead of already being squashed the moment the card is created.
+  card.w=w; card.h=h; DB.putCard(card);
   renderAllCards(); applySelectionClasses();
 }
 async function setBoardLogo(b,file){
@@ -7403,7 +7750,6 @@ window.addEventListener('paste',async (e)=>{
    ============================================================ */
 const folderBtn=document.getElementById('folderBtn');
 const folderLabel=document.getElementById('folderLabel');
-const importBtn=document.getElementById('importBtn');
 
 function updateFolderStatusUI(){
   if(!folderBtn) return;
@@ -7551,7 +7897,7 @@ function folderStatusModal(){
       <button data-a="disconnect">${t('folder_disconnect_action')}</button>
       <button data-a="change" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('folder_change_action')}</button>
     </div></div>`;
-  scrim.addEventListener('click',(e)=>{ if(e.target===scrim) scrim.remove(); });
+  bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="disconnect"]').addEventListener('click',async ()=>{ scrim.remove(); await disconnectFolder(); });
   scrim.querySelector('[data-a="change"]').addEventListener('click',async ()=>{ scrim.remove(); await connectFolder(); });
   document.body.appendChild(scrim);
@@ -7971,11 +8317,64 @@ importInput.addEventListener('change',async ()=>{
     await importBundle(payload);
   }catch(e){ showToast(t('toast_import_failed')); }
 });
-importBtn.addEventListener('click',triggerImport);
+// ---- Werkzeuge (Tools) dropdown — home screen only. Replaces the old standalone import button and
+// per-tile hover export button: both that functionality now lives in here instead (see buildBoardTile,
+// which no longer renders a .export-btn on a normal, non-Papierkorb tile). "Board exportieren" acts on
+// whichever board is currently marked in the home selection (state.homeSelection) — disabled unless
+// exactly one is picked, same idea as the canvas inspector only offering single-card actions.
+const toolsBtn=document.getElementById('toolsBtn');
+const toolsMenu=document.getElementById('toolsMenu');
+function closeToolsMenu(){ if(toolsMenu) toolsMenu.hidden=true; }
+function openToolsMenu(){
+  const exportItem=document.getElementById('toolsExportItem');
+  if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
+  toolsMenu.hidden=false;
+}
+if(toolsBtn){
+  toolsBtn.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    if(toolsMenu.hidden) openToolsMenu(); else closeToolsMenu();
+  });
+  document.getElementById('toolsTemplatesItem').addEventListener('click',()=>{
+    closeToolsMenu();
+    showTemplatePickerModal();
+  });
+  document.getElementById('toolsImportItem').addEventListener('click',()=>{
+    closeToolsMenu();
+    triggerImport();
+  });
+  document.getElementById('toolsExportItem').addEventListener('click',()=>{
+    closeToolsMenu();
+    if(state.homeSelection.size!==1){ showToast(t('toast_export_select_one')); return; }
+    const [onlyId]=state.homeSelection;
+    exportBoard(onlyId);
+  });
+  document.addEventListener('pointerdown',(e)=>{
+    if(toolsMenu.hidden) return;
+    if(e.target.closest('#toolsDropdown')) return;
+    closeToolsMenu();
+  });
+}
 document.getElementById('trashBtn').addEventListener('click',openTrash);
 document.getElementById('trashBackBtn').addEventListener('click',closeTrash);
 
-async function importBundle(payload){
+// Deep-clones a full board bundle (root board + every nested sub-board, their cards, connectors and
+// images — the exact shape collectBoardBundle()/exportBoard() already produce) under entirely FRESH
+// ids, so the clone can be persisted as a real, independent set of records without colliding with
+// whatever the bundle was copied from. Originally just the board-IMPORT logic (a .notua.json file is
+// this same shape, with base64-encoded images since it has to survive a trip through JSON); pulled out
+// on its own so both importing a file AND the template system (saving "the current board" as a
+// template, and later inserting a template as a new board) share one battle-tested remap instead of
+// three near-duplicates of it.
+// opts:
+//   name        — override the cloned root board's name (falls back to keeping whatever it already had)
+//   isTemplate  — stamp every cloned board with this (true when SAVING as a template, false/omitted
+//                 for a normal import or when INSERTING a template as a real board)
+//   stripText   — blank out note text, checklist item text (and un-check them) and table cell content
+//                 on every cloned card, while leaving every structural label (board/column/card/table
+//                 titles, colors, positions, connectors, clustering) untouched — see stripCardText()
+async function instantiateBundle(payload,opts){
+  opts=opts||{};
   const idMap=new Map();
   function remap(id){ if(!id) return id; if(!idMap.has(id)) idMap.set(id,uid()); return idMap.get(id); }
 
@@ -7983,32 +8382,203 @@ async function importBundle(payload){
     ...b, id:remap(b.id),
     parentBoardId: (b.parentBoardId && payload.boards.some(x=>x.id===b.parentBoardId)) ? remap(b.parentBoardId) : null,
     parentCardId:null,
+    isTemplate:!!opts.isTemplate,
   }));
   const rootNewId=idMap.get(payload.rootBoardId);
   const rootBoard=newBoards.find(b=>b.id===rootNewId);
-  if(rootBoard) rootBoard.parentBoardId=null;
+  if(rootBoard){
+    // A plain import (or "save as template") makes the copy a new top-level board — but inserting a
+    // saved template always attaches it as a sub-board of whatever board is currently open instead
+    // (see insertTemplate), so opts.parentBoardId lets that caller wire it in directly here.
+    rootBoard.parentBoardId=opts.parentBoardId||null;
+    if(opts.name) rootBoard.name=opts.name;
+  }
 
-  const newImages=(payload.images||[]).map(img=>({id:remap(img.id), mime:img.mime, dataBase64:img.dataBase64}));
   const newCards=(payload.cards||[]).map(c=>{
     const nc={...c, id:remap(c.id), boardId:remap(c.boardId), data:JSON.parse(JSON.stringify(c.data||{}))};
     if(nc.type==='boardlink' && nc.data.boardId) nc.data.boardId=remap(nc.data.boardId);
     if(nc.type==='image' && nc.data.imageId) nc.data.imageId=remap(nc.data.imageId);
+    if(opts.stripText) stripCardText(nc);
     return nc;
   });
+  // Two shapes show up here: a JSON import's images are base64 (payload.images[].dataBase64/mime,
+  // survived a trip through a text file), while collectBoardBundle()'s (the template path) are real
+  // in-memory Blobs already (payload.images[].blob) — no round trip needed, so no re-encoding either.
+  const newImages=(payload.images||[]).map(img=>({
+    id:remap(img.id),
+    blob: img.blob || null,
+    mime: img.mime, dataBase64: img.dataBase64,
+  }));
   const newConnectors=(payload.connectors||[]).map(cn=>({...cn, id:remap(cn.id), boardId:remap(cn.boardId), fromId:remap(cn.fromId), toId:remap(cn.toId)}));
 
   const now=Date.now();
   for(const b of newBoards){ b.createdAt=now; b.updatedAt=now; await DB.putBoard(b); }
   for(const img of newImages){
-    const blob=await base64ToBlob(img.dataBase64,img.mime);
+    const blob = img.blob || await base64ToBlob(img.dataBase64,img.mime);
     const ownerCard=newCards.find(c=>c.type==='image' && c.data.imageId===img.id);
     await DB.putImage(img.id, blob, ownerCard?ownerCard.boardId:rootNewId);
   }
   for(const c of newCards) await DB.putCard(c);
   for(const cn of newConnectors) await DB.putConnector(cn);
 
+  return rootNewId;
+}
+// What "nur Struktur (ohne Text)" strips on a template insert — every field a person actually TYPED as
+// content — versus what it deliberately leaves alone: board/column/checklist/table TITLES, card colors,
+// positions, clustering and connectors, since those are the template's own designed scaffold, not
+// someone's personal content.
+function stripCardText(c){
+  if(c.type==='note'){ c.data.text=''; if('html' in c.data) c.data.html=''; }
+  else if(c.type==='checklist'){ (c.data.items||[]).forEach(it=>{ it.text=''; it.done=false; }); }
+  else if(c.type==='table'){ c.data.cells={}; }
+  else if(c.type==='image'){ c.data.caption=''; }
+}
+async function importBundle(payload){
+  await instantiateBundle(payload,{});
   showToast(t('toast_import_success'));
   if(state.screen==='home') await refreshHome();
+}
+
+/* ============================================================
+   TEMPLATES (Vorlagen)
+   A template is just an ordinary board bundle (see instantiateBundle above): a real board the user
+   chose to save as a template — a full, independent copy via collectBoardBundle() +
+   instantiateBundle(...,{isTemplate:true}) — flagged and hidden from the normal overview/Papierkorb
+   (see DB.allTemplates() / allBoards()'s isTemplate filter). Reachable via the small grid-icon button
+   in the board top bar (#templateBtn). Inserting a saved template never creates a new top-level
+   board — it always adds a new SUB-BOARD of whichever board is currently open (a boardlink card on
+   the current board, pointing at the freshly instantiated template copy), so e.g. inserting while
+   inside "Start/Tomsboard" adds "Start/Tomsboard/<template name>".
+   ============================================================ */
+const templateBtn=document.getElementById('templateBtn');
+if(templateBtn) templateBtn.addEventListener('click',showTemplatePickerModal);
+
+async function showTemplatePickerModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal modal-wide template-modal">
+    <h4>${t('template_picker_title')}</h4>
+    <p>${t('template_picker_intro')}</p>
+    <div class="template-grid" id="templateGrid"></div>
+    <div class="modal-actions"><button data-a="close">${t('modal_cancel')}</button></div>
+  </div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
+  document.body.appendChild(scrim);
+  await renderTemplateGrid(scrim);
+}
+async function renderTemplateGrid(scrim){
+  const grid=scrim.querySelector('#templateGrid');
+  grid.innerHTML='';
+  if(state.screen==='board' && state.currentBoardId){
+    const saveTile=document.createElement('button');
+    saveTile.type='button'; saveTile.className='template-tile template-tile-save';
+    saveTile.innerHTML=`${iconPlus()}<span>${t('template_save_current_btn')}</span>`;
+    saveTile.addEventListener('click',()=>promptSaveCurrentAsTemplate(scrim));
+    grid.appendChild(saveTile);
+  }
+  const userTemplates=await DB.allTemplates();
+  const canInsert = state.screen==='board' && !!state.currentBoardId;
+  for(const b of userTemplates){
+    const tile=document.createElement('div');
+    tile.className='template-tile';
+    tile.innerHTML=`<div class="spine" style="background:${b.color||'var(--accent)'}"></div><div class="template-tile-name">${escapeHtml(b.name)}</div>
+      <div class="template-tile-actions">
+        ${canInsert ? `<button type="button" class="template-insert-btn">${t('template_insert_btn')}</button>` : ''}
+        <button type="button" class="template-delete-btn" title="${t('template_delete_title')}">${iconTrash()}</button>
+      </div>`;
+    if(canInsert){
+      tile.querySelector('.template-insert-btn').addEventListener('click',async ()=>{
+        scrim.remove();
+        await promptInsertUserTemplate(b);
+      });
+    }
+    tile.querySelector('.template-delete-btn').addEventListener('click',(e)=>{
+      e.stopPropagation();
+      confirmModal(t('confirm_delete_template_title'), t('confirm_delete_template_body',{name:b.name}), t('delete_forever_action'), async ()=>{
+        const bundle=await collectBoardBundle(b.id);
+        await deleteBundle(bundle);
+        await renderTemplateGrid(scrim);
+      });
+    });
+    grid.appendChild(tile);
+  }
+}
+function promptSaveCurrentAsTemplate(scrim){
+  const board=boardById(state.currentBoardId);
+  const inner=document.createElement('div'); inner.className='modal-scrim';
+  inner.innerHTML=`<div class="modal">
+    <h4>${t('template_save_title')}</h4>
+    <p>${t('template_save_body')}</p>
+    <input type="text" id="templateNameInput" class="template-name-input" value="${escapeHtml(board?board.name:'')}" placeholder="${t('template_name_placeholder')}"/>
+    <div class="modal-actions">
+      <button data-a="cancel">${t('modal_cancel')}</button>
+      <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('template_save_action')}</button>
+    </div></div>`;
+  bindScrimDismiss(inner,()=>inner.remove());
+  inner.querySelector('[data-a="cancel"]').addEventListener('click',()=>inner.remove());
+  inner.querySelector('[data-a="ok"]').addEventListener('click',async ()=>{
+    const name=inner.querySelector('#templateNameInput').value.trim() || t('untitled_board');
+    inner.remove();
+    // A card just typed into has its in-memory card.data updated immediately, but the actual DB write
+    // is debounced (see saveCardSoon, 350ms) — collectBoardBundle() below reads straight from DB, so
+    // saving as a template right after typing could otherwise silently capture stale (empty) text.
+    // state.cards IS the live, current board's data already, so just flush it before reading it back.
+    if(state.screen==='board' && state.currentBoardId){
+      await DB.putCards(state.cards);
+    }
+    const bundle=await collectBoardBundle(state.currentBoardId);
+    await instantiateBundle({...bundle, rootBoardId:state.currentBoardId}, {isTemplate:true, name});
+    showToast(t('template_saved_toast'));
+    if(scrim.isConnected) await renderTemplateGrid(scrim);
+  });
+  document.body.appendChild(inner);
+  inner.querySelector('#templateNameInput').focus();
+}
+async function promptInsertUserTemplate(templateBoard){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('template_insert_choice_title')}</h4>
+    <p>${t('template_insert_choice_body')}</p>
+    <div class="modal-actions">
+      <button data-a="structure">${t('template_insert_structure_btn')}</button>
+      <button data-a="content" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('template_insert_content_btn')}</button>
+    </div></div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="structure"]').addEventListener('click',async ()=>{
+    scrim.remove();
+    const bundle=await collectBoardBundle(templateBoard.id);
+    await insertTemplate({...bundle, rootBoardId:templateBoard.id},{stripText:true});
+  });
+  scrim.querySelector('[data-a="content"]').addEventListener('click',async ()=>{
+    scrim.remove();
+    const bundle=await collectBoardBundle(templateBoard.id);
+    await insertTemplate({...bundle, rootBoardId:templateBoard.id},{stripText:false});
+  });
+  document.body.appendChild(scrim);
+}
+async function insertTemplate(bundle,opts){
+  opts=opts||{};
+  // Templates are never inserted as a new top-level board — they always land as a new SUB-BOARD of
+  // whichever board is currently open, exactly like manually adding a board-link card would (see
+  // addCard('boardlink') above), just pre-filled with the template's own structure/content instead of
+  // an empty board. promptInsertUserTemplate only offers "Einfügen" while state.screen==='board', so
+  // state.currentBoardId is expected to be set here.
+  const parentBoardId=state.currentBoardId;
+  const rootId=await instantiateBundle(bundle,{stripText:!!opts.stripText, isTemplate:false, parentBoardId});
+  const rootBoard=await DB.getBoard(rootId);
+  const center=cascadeCenter();
+  const linkCard={
+    id:uid(), boardId:parentBoardId, type:'boardlink', color:'none',
+    x:snap(center.x-100), y:snap(center.y-70), w:200, h:140, z:nextZ(),
+    data:{boardId:rootId, title:rootBoard?rootBoard.name:t('untitled_board')},
+    createdAt:Date.now(), updatedAt:Date.now(),
+  };
+  state.cards.push(linkCard);
+  await DB.putCard(linkCard);
+  renderAllCards();
+  selectOnly(linkCard.id);
+  touchBoard();
+  showToast(t('template_inserted_toast'));
 }
 
 /* ============================================================
