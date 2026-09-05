@@ -370,6 +370,25 @@ try{
   }
   :root[data-theme="dark"]{ --trash-accent:#C9A877; --trash-accent-soft:rgba(201,168,119,0.16); --trash-accent-border:rgba(201,168,119,0.4); }
   #trashView{background:var(--trash-accent-soft);}
+  /* Aligns with the header's baseline-aligned flex row (see .home-header) without inheriting that
+     baseline alignment itself, which would sit a plain icon button oddly low next to the title text. */
+  #emptyTrashAllBtn{align-self:flex-start; margin-top:2px; color:var(--danger);}
+  #emptyTrashAllBtn:hover{background:var(--danger-soft); color:var(--danger);}
+  .folder-reconnect-banner{
+    display:flex; align-items:flex-start; gap:12px; max-width:1180px; margin:0 auto 20px;
+    padding:14px 16px; border-radius:12px; background:var(--danger-soft); border:1px solid var(--danger);
+    color:var(--ink);
+  }
+  .folder-reconnect-banner > svg{flex:none; margin-top:1px; color:var(--danger);}
+  .folder-reconnect-text{flex:1; display:flex; flex-direction:column; gap:3px; min-width:220px;}
+  .folder-reconnect-text strong{font-size:0.92rem;}
+  .folder-reconnect-text span{font-size:0.8rem; color:var(--muted); line-height:1.45;}
+  .folder-reconnect-banner button{
+    flex:none; align-self:center; border:none; border-radius:8px; padding:9px 14px; font:inherit;
+    font-size:0.82rem; font-weight:600; cursor:pointer; background:var(--danger); color:#fff;
+    transition:opacity .15s ease;
+  }
+  .folder-reconnect-banner button:hover{opacity:0.88;}
   /* Cluster outline gets its own warm orange rather than reusing the app's coral/red --accent, so the
      cluster line reads as clearly "orange" at a glance instead of blending toward red. */
   :root{ --cluster-accent:#FF9F1C; }
@@ -1433,6 +1452,14 @@ try{
       </div>
     </div>
     <div class="home-main">
+      <div id="folderReconnectBanner" class="folder-reconnect-banner" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
+        <div class="folder-reconnect-text">
+          <strong id="folderReconnectTitle">Ordner-Zugriff bestätigen</strong>
+          <span id="folderReconnectBody"></span>
+        </div>
+        <button id="folderReconnectBtn" class="primary">Ordner erneut verbinden</button>
+      </div>
       <div id="boardGrid" class="board-grid"></div>
       <div id="emptyHome" class="empty-home" hidden>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/><path d="M8 5v-1"/><path d="M16 5v-1"/></svg>
@@ -1467,6 +1494,9 @@ try{
         </div>
         <p class="tagline" id="trashTagline">Gelöschte Boards bleiben hier, bis du sie endgültig löschst oder wiederherstellst.</p>
       </div>
+      <button class="icon-btn danger" id="emptyTrashAllBtn" title="Papierkorb leeren" hidden>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg>
+      </button>
     </div>
     <div class="home-main">
       <div id="trashGrid" class="board-grid"></div>
@@ -1992,6 +2022,16 @@ const I18N={
   folder_pending_title:{de:'Zugriff auf den zuletzt verbundenen Ordner erneut bestätigen',en:'Re-confirm access to the last connected folder'},
   folder_choose_label:{de:'Ordner wählen',en:'Choose folder'},
   folder_choose_title:{de:'Speicherordner für deine Boards wählen',en:'Choose a storage folder for your boards'},
+  folder_reconnect_banner_title:{de:'Ordner-Zugriff bestätigen',en:'Confirm folder access'},
+  folder_reconnect_banner_body:{de:'Deine Boards liegen in einem verbundenen Ordner, aber der Zugriff darauf muss erneut bestätigt werden (das passiert z. B. nach jedem Neustart des Browsers). Bis dahin werden hier absichtlich keine Boards angezeigt – so kannst du nicht aus Versehen an einer alten, nicht verbundenen Kopie weiterschreiben.',en:'Your boards live in a connected folder, but access to it needs to be re-confirmed (this happens after every browser restart, for example). Until then, no boards are shown here on purpose — so you can\'t accidentally keep editing an old, disconnected copy.'},
+  folder_reconnect_banner_btn:{de:'Ordner erneut verbinden',en:'Reconnect folder'},
+  empty_trash_all_title:{de:'Papierkorb leeren',en:'Empty trash'},
+  confirm_empty_trash_title:{de:'Papierkorb leeren?',en:'Empty trash?'},
+  confirm_empty_trash_body:{de:'Alle {n} Boards im Papierkorb werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',en:'All {n} boards in the trash will be permanently deleted. This can\'t be undone.'},
+  confirm_empty_trash_title2:{de:'Wirklich alle endgültig löschen?',en:'Really delete all of them for good?'},
+  confirm_empty_trash_body2:{de:'Letzte Bestätigung: Es gibt danach keine Möglichkeit mehr, diese Boards zurückzuholen.',en:'Last confirmation: after this there\'s no way to get these boards back.'},
+  empty_trash_action:{de:'Ja, alle endgültig löschen',en:'Yes, delete all for good'},
+  toast_trash_emptied:{de:'Papierkorb geleert',en:'Trash emptied'},
   confirm_migrate_title:{de:'Vorhandene Boards übernehmen?',en:'Bring in existing boards?'},
   confirm_migrate_body:{de:'Es gibt Boards, die bisher nur lokal im Browser gespeichert waren. Sollen sie in den gewählten Ordner kopiert werden?',en:'Some boards were only stored locally in the browser so far. Should they be copied into the folder you chose?'},
   migrate_action:{de:'Übernehmen',en:'Bring in'},
@@ -2127,6 +2167,10 @@ function applyI18n(){
     ['#trashTagline','text',t('trash_tagline')],
     ['#emptyTrashText','text',t('empty_trash_hint')],
     ['#emptyBoardHintText','text',t('empty_board_hint')],
+    ['#emptyTrashAllBtn','title',t('empty_trash_all_title')],
+    ['#folderReconnectTitle','text',t('folder_reconnect_banner_title')],
+    ['#folderReconnectBody','text',t('folder_reconnect_banner_body')],
+    ['#folderReconnectBtn','text',t('folder_reconnect_banner_btn')],
   ];
   const drawerLabels=document.querySelectorAll('.mobile-drawer .drawer-label');
   const labelKeys=['section_add','section_tool','section_view'];
@@ -2912,8 +2956,53 @@ const boardCountLabel=document.getElementById('boardCountLabel');
 const trashView=document.getElementById('trashView');
 const trashGrid=document.getElementById('trashGrid');
 const emptyTrash=document.getElementById('emptyTrash');
+const emptyTrashAllBtn=document.getElementById('emptyTrashAllBtn');
+const folderReconnectBanner=document.getElementById('folderReconnectBanner');
+const folderReconnectBtn=document.getElementById('folderReconnectBtn');
+if(folderReconnectBtn){
+  folderReconnectBtn.addEventListener('click',async ()=>{
+    await confirmPendingFolder();
+    await refreshHome();
+  });
+}
+if(emptyTrashAllBtn){
+  emptyTrashAllBtn.addEventListener('click',async ()=>{
+    const all=await DB.allTrashedBoards();
+    const roots=all.filter(b=>!b.parentBoardId);
+    if(!roots.length) return;
+    // Deliberately two separate confirmations chained together (not one modal with stronger wording)
+    // — this permanently wipes every board in the trash at once, with no per-board undo afterwards,
+    // so it gets the same two-step "are you sure, are you REALLY sure" guard as any other bulk
+    // irreversible action in the app.
+    confirmModal(t('confirm_empty_trash_title'), t('confirm_empty_trash_body',{n:roots.length}), t('empty_trash_action'), ()=>{
+      confirmModal(t('confirm_empty_trash_title2'), t('confirm_empty_trash_body2'), t('empty_trash_action'), async ()=>{
+        for(const b of roots) await permanentlyDeleteBoard(b.id);
+        await refreshTrash();
+        showToast(t('toast_trash_emptied'));
+      });
+    });
+  });
+}
 
 async function refreshHome(){
+  // A connected folder that's still waiting on its access re-confirmation (see tryReconnectFolder)
+  // must NOT silently show whatever's sitting in the browser-cache backend instead — that's exactly
+  // how someone ends up editing a stale, disconnected copy without noticing. Show a clear, blocking
+  // banner instead and skip straight past the (now correctly empty) board grid.
+  if(folderReconnectBanner){
+    const blocked=fsStorageBlocked();
+    folderReconnectBanner.hidden=!blocked;
+    if(blocked){
+      const nameGuess=fsState.pendingHandle && fsState.pendingHandle.name;
+      document.getElementById('folderReconnectBody').textContent=nameGuess
+        ? t('folder_reconnect_banner_body')+' ("'+nameGuess+'")'
+        : t('folder_reconnect_banner_body');
+      boardGrid.innerHTML='';
+      emptyHome.hidden=true;
+      boardCountLabel.textContent='';
+      return;
+    }
+  }
   const all=await DB.allBoards();
   state.boards=all;
   const roots=all.filter(b=>!b.parentBoardId).sort((a,b)=>b.updatedAt-a.updatedAt);
@@ -3153,6 +3242,7 @@ async function refreshTrash(){
   const roots=all.filter(b=>!b.parentBoardId).sort((a,b)=>(b.trashedAt||b.updatedAt)-(a.trashedAt||a.updatedAt));
   trashGrid.innerHTML='';
   emptyTrash.hidden=roots.length>0;
+  if(emptyTrashAllBtn) emptyTrashAllBtn.hidden=roots.length===0;
   for(const b of roots){
     trashGrid.appendChild(await buildBoardTile(b,{trash:true}));
   }
@@ -4182,7 +4272,13 @@ viewport.addEventListener('pointerdown',(e)=>{
     const cp=screenToCanvas(e.clientX,e.clientY);
     marqueeState={sx:e.clientX, sy:e.clientY, additive:isMultiSelectKey(e)};
     if(!isMultiSelectKey(e)){ clearSelection(); }
-    marqueeEl.hidden=false;
+    // NOT revealed here — a plain click (mousedown+mouseup with no movement in between, the common
+    // case: clicking empty canvas just to deselect) used to flash the marquee box into view for one
+    // frame at whatever size/position it was last left at, since hidden was cleared immediately on
+    // mousedown regardless of whether any actual drag followed ("immer wenn man linksklick drückt
+    // taucht die auf"). It's revealed instead in pointermove below, the first time there's real
+    // in-progress drag geometry to show — so it only ever appears already sized/positioned correctly,
+    // never stale.
     viewport.setPointerCapture(e.pointerId);
   }
 });
@@ -4200,6 +4296,7 @@ viewport.addEventListener('pointermove',(e)=>{
     const r=viewport.getBoundingClientRect();
     marqueeEl.style.left=(x1-r.left)+'px'; marqueeEl.style.top=(y1-r.top)+'px';
     marqueeEl.style.width=(x2-x1)+'px'; marqueeEl.style.height=(y2-y1)+'px';
+    marqueeEl.hidden=false;
     const c1=screenToCanvas(x1,y1), c2=screenToCanvas(x2,y2);
     state.selection.clear();
     state.cards.forEach(c=>{
@@ -4213,7 +4310,14 @@ viewport.addEventListener('pointermove',(e)=>{
 });
 window.addEventListener('pointerup',(e)=>{
   if(panState){ panState=null; viewport.classList.remove('panning-active'); persistView(); }
-  if(marqueeState){ marqueeState=null; marqueeEl.hidden=true; updateInspector(); }
+  if(marqueeState){
+    marqueeState=null; marqueeEl.hidden=true;
+    // Reset the geometry too, not just hidden — belt and braces against the exact "stale box flashes
+    // back up" bug above ever resurfacing some other way: a hidden element with leftover width/height
+    // is still a loaded gun the next time something clears `hidden` unconditionally.
+    marqueeEl.style.width='0px'; marqueeEl.style.height='0px';
+    updateInspector();
+  }
 });
 
 /* ---- touch: one finger on empty canvas pans, two fingers pinch-zoom ---- */
@@ -4433,8 +4537,26 @@ function updateInspector(){
   if(clusterCreateBtn){
     clusterCreateBtn.addEventListener('click',()=>{
       const newClusterId=uid();
-      cards.forEach(c=>{ c.clusterId=newClusterId; });
-      DB.putCards(cards);
+      // If any selected card already belongs to a cluster, growing the group has to carry EVERY
+      // existing member of that cluster along too — not just whichever ones happen to be selected
+      // right now. Without this, selecting only one member of an existing 2-card cluster plus a new
+      // card and hitting "Cluster erstellen" (meaning "add this to the group") would instead splinter
+      // the original cluster: the unselected original member gets left behind with a now-orphaned,
+      // single-member (so invisible) cluster of its own, while the new outline is drawn only around
+      // the newly-selected subset — which, depending on layout, can visually cut straight across the
+      // orphaned card. This is what was actually behind "der Cluster-Rahmen geht durch die Notiz
+      // durch" / "beim Einfügen einer Notiz verschiebt sich die Linie": not a hull-geometry bug, but
+      // this selection footgun. Selecting cards from two DIFFERENT existing clusters and clustering
+      // them now simply merges both clusters together, which is the same fix applied generally.
+      const existingIds=new Set(cards.map(c=>c.clusterId).filter(Boolean));
+      const allMembers = existingIds.size
+        ? state.cards.filter(c=>cards.includes(c) || (c.clusterId && existingIds.has(c.clusterId)))
+        : cards;
+      allMembers.forEach(c=>{ c.clusterId=newClusterId; });
+      DB.putCards(allMembers);
+      // renderAllCards() now refreshes connectors/cluster outlines internally (see its own comment) —
+      // it used not to, which meant clicking "Cluster erstellen" visibly did nothing at all until the
+      // next unrelated drag happened to trigger the outline's own stale-set fallback.
       renderAllCards(); applySelectionClasses(); updateInspector();
     });
   }
@@ -4832,6 +4954,16 @@ function renderAllCards(){
   cardsLayer.innerHTML='';
   const sorted=[...state.cards].sort((a,b)=>(a.z||0)-(b.z||0));
   sorted.forEach(c=>cardsLayer.appendChild(buildCardEl(c)));
+  // Connectors and cluster outlines both depend on nothing but the current card list, exactly like
+  // the cards themselves — so any renderAllCards() call refreshes them too now, rather than leaving
+  // every caller responsible for remembering a separate renderConnectors() call alongside it. Missing
+  // that pairing is exactly what caused three separate real bugs this round: clicking "Cluster
+  // erstellen"/"auflösen" drew nothing until some unrelated later drag refreshed it, and
+  // addCard()/addAdjacentColumn() creating a 2nd or 3rd column (auto-clustered into the column mesh)
+  // never showed its outline at all. renderConnectors() itself is not on any hot path — dragging
+  // calls the cheaper updateConnectorPositions()/updateClusterOutlinePositions() instead — so folding
+  // it in here costs nothing on the frequent path and permanently closes off this whole class of bug.
+  renderConnectors();
   if(state.dynamicContent){
     sorted.forEach(c=>{
       if(c.type!=='note' && c.type!=='checklist') return;
@@ -4876,10 +5008,22 @@ function baseCardShell(card,extraClass){
   }else{
     el.style.opacity=opacityFrac;
   }
-  if(hasOwnColor){
+  // A colorless ("Standard") column is NOT the same as a colorless regular card: .card-column.tag-none
+  // still paints a real, visible grey wash background (rgba(140,149,160, --tag-alpha) — see that rule
+  // above), it just has no color OF ITS OWN. Skipping the contrast computation for it (the old
+  // `if(hasOwnColor)` below) left it stuck on the flat theme --ink/--muted, which was never tuned for
+  // sitting on top of that grey wash — exactly the low-contrast complaint ("das selbe Spiel wie bei
+  // allen anderen... gleiches Auswahlverfahren nach Farbe wie bei den anderen Elementen"). Running it
+  // through the same real-background-aware algorithm as every colored card also happens to solve the
+  // separate "Texte nicht weiß, sondern heller graublauer Ton" ask for free: mixPctForContrast() mixes
+  // toward black/white by at most 70-80%, so the result is always a tinted shade of the fill color
+  // (here, a blue-leaning grey) rather than a flat pure white/black.
+  if(hasOwnColor || isColumn){
     const rgbTriplet = isCustomColor
       ? hexToRgbTriplet(card.customColor)
-      : getComputedStyle(document.documentElement).getPropertyValue('--tag-'+card.color).trim();
+      : hasOwnColor
+        ? getComputedStyle(document.documentElement).getPropertyValue('--tag-'+card.color).trim()
+        : '140,149,160';
     const parts=rgbTriplet.split(',').map(Number);
     // Contrast has to be computed against what's actually VISIBLE, not the pure/undiluted color —
     // at a low Deckkraft the fill is mostly see-through, so the true backdrop behind the text is this
@@ -5090,7 +5234,15 @@ function buildNoteCard(card){
   if(card.data.html!=null) body.innerHTML=card.data.html;
   else body.textContent=card.data.text||'';
   body.addEventListener('pointerdown',(e)=>{ if(state.connectMode) return; e.stopPropagation(); });
-  body.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); insertPlainNewlineAtCaret(body); } });
+  // A note's own Enter never blurs it (it's a multi-line field — Enter just starts a new line), so it
+  // never hit either of saveCardSoon()'s two flush paths (the blur handler right below, or
+  // flushActiveEditable() forcing a blur on unload). That left a real gap: type a line, hit Enter, then
+  // close the app right away (before the 350ms debounce fires) — the newline landed in the DOM and in
+  // `card.data` immediately, but never actually reached IndexedDB. "Board existiert, aber der Text
+  // fehlt" is exactly that gap. An Enter is also the single most natural "pause point" while writing a
+  // note, so flushing immediately right here — same as the blur handler below does — closes it without
+  // waiting on the debounce at all.
+  body.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); insertPlainNewlineAtCaret(body); DB.putCard(card); } });
   wirePlainTextPaste(body);
   body.addEventListener('input',()=>{ card.data.text=body.textContent; card.data.html=body.innerHTML; saveCardSoon(card); fitCardHeight(el,card); updateNoteOverflowHint(el,card); });
   body.addEventListener('blur',()=>{ card.data.text=body.textContent; card.data.html=body.innerHTML; DB.putCard(card); });
@@ -5248,7 +5400,16 @@ async function addAdjacentColumn(card,side){
     // a new column dropped into an existing row should look like it belongs there. Falls back to the
     // same 60% starting point a column gets from the dock button when there's no sibling to match.
     opacity:card.opacity==null?60:card.opacity,
-    x:snap(x), y:card.y, w:snap(w), h:card.h, z:Math.min(0,...state.cards.map(c=>c.z||0))-1,
+    // Neither w (a straight copy of the clicked column's own width — see below) nor x gets snap()'d
+    // here. snap()'ing x alone used to be exactly the bug: the default column width (380) isn't
+    // itself a multiple of GRID_SIZE (18), so x = neighbor's edge + gap almost never lands on the
+    // grid either, and rounding it while `delta` below is still computed from the UNROUNDED x threw
+    // the new column's actual position out of step with the gap math by a few px on this side only —
+    // "die Lücke zwischen den Spalten ist unterschiedlich". x here is a precisely computed adjacent
+    // position, not a user drag position grid-snapping exists for in the first place, so leaving it
+    // exact (like y, w and h already are) guarantees the same `gap` on both sides every time instead
+    // of only when the rounding happens to fall the right way.
+    x, y:card.y, w, h:card.h, z:Math.min(0,...state.cards.map(c=>c.z||0))-1,
     clusterId:columnMeshId(state.currentBoardId),
     data:{title:''}, createdAt:Date.now(), updatedAt:Date.now()
   };
@@ -5268,7 +5429,11 @@ async function addAdjacentColumn(card,side){
         if(Math.min(cy1,c.y+c.h)-Math.max(cy0,c.y)<=0) return false; // same row only
         return side==='right' ? c.x>=neighbor.x-1 : (c.x+c.w)<=(neighbor.x+neighbor.w+1);
       });
-      pushed.forEach(c=>{ c.x=snap(c.x+dir*delta); c.updatedAt=Date.now(); });
+      // Same reasoning as newCard.x above: delta was computed to close the gap EXACTLY, so applying
+      // it exactly (no snap()) is what actually keeps that gap consistent — re-snapping it here was
+      // the other half of the same bug, capable of throwing the pushed side out of step even when
+      // the new column's own position above was already correct.
+      pushed.forEach(c=>{ c.x=c.x+dir*delta; c.updatedAt=Date.now(); });
       if(pushed.length) DB.putCards(pushed);
     }
   }
@@ -6292,23 +6457,28 @@ function ensureConnectorMarker(color){
   return id;
 }
 // ============================================================
-// CLUSTER OUTLINE — replaces the old per-card dashed outline with one thin accent-colored line
-// tracing around the whole cluster in one continuous loop, plus a single small badge marking the
-// group (not one per card). Recomputed alongside connectors, from the same call sites
-// (renderConnectors() for structural changes, updateConnectorPositions() for the drag hot path)
-// since both depend on nothing but the current card list.
+// CLUSTER OUTLINE — ONE thin accent-colored line drawn around the WHOLE group together (not one
+// line per card — "eine Linie, die um alle gemeinsam geht, sodass man erkennt: das ist jetzt ein
+// Cluster"), plus a single small badge at the group's top-left corner. Recomputed alongside
+// connectors, from the same call sites (renderConnectors() for structural changes,
+// updateConnectorPositions() for the drag hot path) since both depend on nothing but the current
+// card list.
 //
-// The line is the CONVEX HULL of every member card's (padded) corners — "einmal um alle rumgehen…
-// den schnellsten Weg um alle herum" is, almost by definition, exactly what a convex hull is: the
-// shortest closed boundary that still encloses every point. An earlier version tried to trace the
-// tight union-of-rectangles silhouette instead, which looked nicer for a tightly-packed group but
-// fell apart the moment members weren't touching (which is the common case here, since columns are
-// auto-clustered across the whole board width): it would split into several small disconnected
-// loops, or a lone card tracing only itself, rather than one line around the whole group. A hull is
-// guaranteed to always be a single loop enclosing every member, whatever their spacing.
+// The line is the CONVEX HULL of every member card's (padded) corners — the shortest single loop
+// that still encloses every member, whatever their spacing (an earlier attempt traced the tight
+// union-of-rectangles silhouette instead, which fell apart into several disconnected loops the
+// moment members weren't touching — the common case, since columns auto-cluster across the whole
+// board width). What actually made THAT version look wrong ("es ist jetzt stumpf ein Kreis") wasn't
+// the hull itself but the corner treatment on top of it: Chaikin corner-cutting, repeated 3 times,
+// doesn't just round the corners — it erodes every straight edge along its whole length too, so a
+// plain row of same-height columns (whose hull is just their own bounding rectangle) turned into a
+// smooth oval blob instead of a line that still visibly follows the cards' own rectangular layout.
+// roundedPolygonPath() below rounds only a small fixed distance around each actual corner instead
+// (the same "rounded rectangle" treatment the cards' own CSS border-radius uses), leaving every
+// straight hull edge in between perfectly straight.
 // ============================================================
 // Standard monotone-chain convex hull. Returns hull points in a consistent winding order (needed by
-// chaikinSmooth() below, which walks the polygon edge by edge).
+// roundedPolygonPath() below, which walks the polygon edge by edge).
 function convexHull(points){
   const pts=[...points].sort((a,b)=>a.x-b.x||a.y-b.y);
   if(pts.length<3) return pts;
@@ -6327,27 +6497,28 @@ function convexHull(points){
   lower.pop(); upper.pop();
   return lower.concat(upper);
 }
-// Rounds a polygon's corners via Chaikin's corner-cutting: each edge (P,Q) contributes two new points
-// 25% and 75% of the way along it, and connecting those in order (dropping the original sharp
-// vertices) yields a smoother polygon; repeating a few times converges to a nicely rounded shape. This
-// replaced an earlier version that placed each rounded corner "by hand" with a quadratic curve, which
-// could occasionally compute a wildly wrong point (a stray corner spiking off across the board,
-// visually mangling the whole line) — Chaikin's method only ever produces points that are a weighted
-// average of two existing, already-correct points, so a badly-placed point simply can't happen and
-// the result can never cross itself, whatever the input polygon's shape.
-function chaikinSmooth(pts,iterations){
-  let cur=pts;
-  for(let it=0;it<iterations;it++){
-    const next=[];
-    const n=cur.length;
-    for(let i=0;i<n;i++){
-      const p=cur[i], q=cur[(i+1)%n];
-      next.push({x:p.x*0.75+q.x*0.25, y:p.y*0.75+q.y*0.25});
-      next.push({x:p.x*0.25+q.x*0.75, y:p.y*0.25+q.y*0.75});
-    }
-    cur=next;
+// Rounds each corner of a polygon by a small FIXED distance along its two adjacent edges, connecting
+// the two points with a quadratic curve (using the original sharp corner itself as the curve's
+// control point — the standard "rounded corner" construction). Every straight run between corners is
+// left completely untouched, unlike Chaikin smoothing (see comment above), so the result always still
+// reads as "a rounded version of the actual hull shape" rather than a generic smoothed blob, no matter
+// how few vertices that hull has (a plain rectangle for an in-a-row group included).
+function roundedPolygonPath(pts,r){
+  const n=pts.length;
+  if(n<3) return polygonPathD(pts);
+  let d='';
+  for(let i=0;i<n;i++){
+    const prev=pts[(i-1+n)%n], cur=pts[i], next=pts[(i+1)%n];
+    const toPrev={x:prev.x-cur.x,y:prev.y-cur.y}, toNext={x:next.x-cur.x,y:next.y-cur.y};
+    const lenPrev=Math.hypot(toPrev.x,toPrev.y)||1, lenNext=Math.hypot(toNext.x,toNext.y)||1;
+    // Never eat more than half of either adjacent edge, so two corners close together (a narrow
+    // sliver of a hull) can't have their rounding overlap and cross itself.
+    const rr=Math.min(r, lenPrev/2, lenNext/2);
+    const a={x:cur.x+toPrev.x/lenPrev*rr, y:cur.y+toPrev.y/lenPrev*rr};
+    const b={x:cur.x+toNext.x/lenNext*rr, y:cur.y+toNext.y/lenNext*rr};
+    d += (i===0 ? `M${a.x},${a.y} ` : `L${a.x},${a.y} `) + `Q${cur.x},${cur.y} ${b.x},${b.y} `;
   }
-  return cur;
+  return d+'Z';
 }
 function polygonPathD(pts){
   if(!pts.length) return '';
@@ -6370,12 +6541,14 @@ function clusterOutlineGeometry(cards){
   });
   const hull=convexHull(pts);
   if(hull.length<3) return null;
-  const smooth=chaikinSmooth(hull,3);
-  // One small badge per cluster (not per card) — placed at the group's own top-left corner, same
-  // spot as the circle in the hand-drawn sketch.
+  // One small badge per cluster (not per card) — placed at the outline's own top-left corner. This
+  // has to be the PADDED corner (matching the `pts` fed into the hull above), not the raw card
+  // corner — using the raw card corner here sat the badge exactly on top of that card's own border
+  // instead of pad-outside the line, which read as the badge (and the line right by it) overlapping
+  // straight into the card.
   let bx=Infinity, by=Infinity;
-  cards.forEach(c=>{ bx=Math.min(bx,c.x); by=Math.min(by,c.y); });
-  return {d:polygonPathD(smooth), bx, by};
+  cards.forEach(c=>{ bx=Math.min(bx,c.x-pad); by=Math.min(by,c.y-pad); });
+  return {d:roundedPolygonPath(hull,10), bx, by};
 }
 function groupCardsByCluster(){
   const byCluster=new Map();
@@ -6384,9 +6557,11 @@ function groupCardsByCluster(){
     if(!byCluster.has(c.clusterId)) byCluster.set(c.clusterId,[]);
     byCluster.get(c.clusterId).push(c);
   });
-  // Only from 3 cards up ("erst ab 3 Einheiten") — for just 2, no outline at all rather than one
-  // drawn around a pair.
-  byCluster.forEach((cards,id)=>{ if(cards.length<3) byCluster.delete(id); });
+  // From 2 cards up: a cluster of exactly 2 now gets its own hull line + badge too, rather than no
+  // visual at all — clustering 2 cards worked (they really did move together, could be dissolved
+  // again) but with zero visible feedback it looked completely broken ("kann man jetzt gar nicht
+  // mehr clustern").
+  byCluster.forEach((cards,id)=>{ if(cards.length<2) byCluster.delete(id); });
   return byCluster;
 }
 // clusterId -> {path, badge} DOM elements, populated by the full rebuild below. Lets the drag hot
@@ -7293,7 +7468,20 @@ async function tryReconnectFolder(){
   try{
     const perm=await handle.queryPermission({mode:'readwrite'});
     if(perm==='granted'){ await activateFolder(handle,{offerMigration:false}); }
-    else{ fsState.pendingHandle=handle; updateFolderStatusUI(); }
+    else{
+      // A previously-connected folder that just needs re-confirming (the normal case after any
+      // browser restart — see the comment on confirmPendingFolder for why) has to keep the app in
+      // folder mode, NOT quietly fall back to 'idb'. state.storageMode defaults to 'idb' and this
+      // used to leave it there while only pending, which meant fsStorageBlocked() (storageMode==='fs'
+      // && !fsState.root) never tripped and activeBackend() kept serving the browser-cache copy of
+      // whatever boards were last in IndexedDB — typically a stale pre-migration snapshot. Someone
+      // who didn't notice the small folder-button color change could then happily keep editing that
+      // stale copy, believing it was their real, folder-synced board, while the actual folder on disk
+      // never received any of it. Setting storageMode here makes fsStorageBlocked()/ensureStorageReady()
+      // correctly refuse to serve the stale IDB data until the folder is actually reconnected.
+      state.storageMode='fs';
+      fsState.pendingHandle=handle; updateFolderStatusUI();
+    }
   }catch(e){}
 }
 // Central guard for every board-creating/opening entry point (createBoardFlow, openBoard, and the
