@@ -94,6 +94,7 @@ try{
     --canvas:#E7EAEE;
     --canvas-dot:#C6CCD4;
     --surface:#FFFFFF;
+    --surface-rgb:255,255,255;
     --surface-2:#F0F2F5;
     --ink:#1B2027;
     --muted:#5C6570;
@@ -114,7 +115,7 @@ try{
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --canvas:#14171C; --canvas-dot:#262B33; --surface:#1E222A; --surface-2:#191C22;
+      --canvas:#14171C; --canvas-dot:#262B33; --surface:#1E222A; --surface-rgb:30,34,42; --surface-2:#191C22;
       --ink:#ECEEF2; --muted:#9AA3AF; --faint:#6B7480; --border:#2C3038; --border-strong:#383D46;
       --accent:#FF7A66; --accent-ink:#1B0E0B; --accent-soft:rgba(255,122,102,0.18);
       --danger:#FF6B6B; --danger-soft:rgba(255,107,107,0.16);
@@ -123,7 +124,7 @@ try{
     }
   }
   :root[data-theme="dark"]{
-    --canvas:#14171C; --canvas-dot:#262B33; --surface:#1E222A; --surface-2:#191C22;
+    --canvas:#14171C; --canvas-dot:#262B33; --surface:#1E222A; --surface-rgb:30,34,42; --surface-2:#191C22;
     --ink:#ECEEF2; --muted:#9AA3AF; --faint:#6B7480; --border:#2C3038; --border-strong:#383D46;
     --accent:#FF7A66; --accent-ink:#1B0E0B; --accent-soft:rgba(255,122,102,0.18);
     --danger:#FF6B6B; --danger-soft:rgba(255,107,107,0.16);
@@ -464,6 +465,31 @@ try{
   .board-tile:active{transform:translateY(-1px) scale(.98); transition-duration:.08s;}
   .board-tile.logo-drop-target{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft);}
   .board-tile .spine{width:34px; height:6px; border-radius:3px; background:var(--accent);}
+  /* Board badge — the colored icon square shown for a board wherever it's referenced (home tile
+     here, and the subboard link card inside a parent board — see .bl-badge below): a letter (default:
+     the board's own initial), one of a small preset icon set, or an uploaded image applied as a mask
+     so it reads as a tinted glyph rather than a raw photo. board.icon holds which of the three it is
+     (see boardBadgeContentHtml/paintBoardBadgeElement) and board.color is always its background —
+     "man soll Farbe ändern können... Bilder drauf maskieren". Replaces the old plain .spine bar. */
+  .board-badge{
+    width:34px; height:34px; border-radius:8px; flex:none; display:flex; align-items:center; justify-content:center;
+    color:#fff; overflow:hidden;
+  }
+  .board-badge svg{width:16px; height:16px;}
+  .board-badge-letter{font-size:0.9rem; font-weight:700; line-height:1;}
+  .board-badge-mask{
+    width:100%; height:100%; background:#fff;
+    mask-size:58%; mask-repeat:no-repeat; mask-position:center;
+    -webkit-mask-size:58%; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+  }
+  /* Bigger variant for the subboard link card, where the badge is the card's main visual element
+     rather than a small tile accent — and the clickable trigger variant shown in the inspector. */
+  .board-badge-lg{width:42px; height:42px; border-radius:10px;}
+  .board-badge-lg svg{width:19px; height:19px;}
+  .board-badge-lg .board-badge-letter{font-size:1.08rem;}
+  .board-icon-trigger{border:none; padding:0; cursor:pointer; transition:transform .12s cubic-bezier(.34,1.56,.64,1);}
+  .board-icon-trigger:hover{transform:scale(1.06);}
+  .board-icon-row{display:flex; align-items:center; gap:8px;}
   .board-tile .tile-logo{
     width:34px; height:34px; border-radius:8px; object-fit:cover; flex:none;
     border:1px solid var(--border); background:var(--surface-2);
@@ -855,8 +881,17 @@ try{
   /* "there's more below" hint — only ever shown (via [hidden] toggling in updateNoteOverflowHint)
      when dynamic content is off and the note's text doesn't fit its fixed box. Deliberately no
      background/pill/gradient behind it per "so dezent wie möglich" — just a small low-opacity
-     chevron sitting on the card's own background, centered at the very bottom edge. */
-  .card-note{position:relative;}
+     chevron sitting on the card's own background, centered at the very bottom edge. Its containing
+     block is the note card itself — which needs NO extra position:relative here for that, since
+     .card is already position:absolute (any non-static position already anchors absolutely-
+     positioned children). That old, redundant .card-note{position:relative} actually OVERRODE the
+     card's real position:absolute (later same-specificity rule wins the cascade) — so every note
+     was secretly laid out in normal document flow, with its own top/left inline styles applied as an
+     OFFSET from that flow position rather than as true canvas coordinates. Harmless-looking for a
+     single lone note (whose flow position starts near the origin anyway), but each further note
+     card sitting right after another one in the DOM stacked its flow position below the previous
+     note's own rendered height first, silently pulling it away from its real x/y — found while
+     building a template with two notes side by side, exactly the scenario that exposes it. */
   .note-overflow-hint{
     position:absolute; left:50%; bottom:3px; transform:translateX(-50%);
     display:flex; align-items:center; justify-content:center;
@@ -877,9 +912,21 @@ try{
   .card-column{background:rgba(var(--tint,140,149,160), var(--tag-alpha)); border-style:dashed; border-width:1.5px;}
   .card-column .card-head{cursor:grab;}
   .column-title{
-    font-size:0.98rem; font-weight:700; background:none; border:none; outline:none; font-family:inherit; width:100%; padding:4px 12px 0; color:var(--ink);
+    font-size:0.98rem; font-weight:700; background:none; border:none; outline:none; font-family:inherit; width:100%; padding:4px 12px; color:var(--ink); flex:none;
   }
   .column-title::placeholder{color:var(--card-placeholder-color, var(--faint)); font-weight:600;}
+  /* The heading (.column-title, a plain <input>) is intentionally still single-line — a lane label
+     reads best as one short line, and Enter there confirms/blurs it same as before. The actual
+     "kein Enter Zeilenumbruch" ask is this second field: a real multi-line body, same contenteditable
+     pattern as .note-body (Enter inserts a plain newline instead of doing nothing), so a column can
+     carry real freeform notes/instructions under its heading, not just a name for the lane. */
+  .column-text{
+    flex:1; padding:0 12px 10px; font-size:0.86rem; font-weight:500; line-height:1.5; outline:none;
+    white-space:pre-wrap; word-break:break-word; cursor:text; overflow-y:auto; min-height:0; color:var(--ink);
+  }
+  .column-text, .column-text::-webkit-scrollbar{ scrollbar-width:none; -ms-overflow-style:none; }
+  .column-text::-webkit-scrollbar{ display:none; width:0; height:0; }
+  .column-text:empty::before{content:attr(data-placeholder); color:var(--card-placeholder-color, var(--faint)); font-weight:500;}
   .col-add-btn{
     position:absolute; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:50%;
     border:1px solid var(--border-strong); background:var(--surface); color:var(--muted); display:flex; align-items:center; justify-content:center;
@@ -1003,6 +1050,14 @@ try{
      chrome) regardless of the app's light/dark theme, same as the real thing looks anywhere else. */
   .yt-frame-wrap.pin-frame{background:#fff; overflow-y:auto; overflow-x:hidden;}
   .yt-frame-wrap.pin-frame a[data-pin-do]{display:block; width:100%;}
+  /* Spotify's compact embed always ends up exactly filling this box (card.h is kept pinned to
+     SPOTIFY_COMPACT_HEIGHT specifically so it does) — transparent rather than the video-letterboxing
+     black above, so nothing but Spotify's own surface is ever visible even for a stray sub-pixel
+     rounding gap or the instant before the iframe finishes loading. */
+  .yt-frame-wrap.spotify-frame{background:transparent;}
+  /* Cosmos/Eyecandy: a plain page in an iframe, not a themed widget — white background (matches
+     what a loading/blank web page looks like) rather than YouTube's video-letterboxing black. */
+  .yt-frame-wrap.creative-frame{background:#fff;}
   .yt-input-wrap{flex:1; display:flex; align-items:center; padding:0 12px 12px; gap:8px;}
   .yt-input-wrap input{
     flex:1; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-family:inherit; font-size:0.82rem; outline:none; background:var(--surface); color:var(--ink);
@@ -1015,6 +1070,20 @@ try{
   .widget-tab{flex:1; padding:6px 4px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); font:inherit; font-size:0.76rem; font-weight:600; cursor:pointer;}
   .widget-tab.active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
   .widget-tab:hover:not(.active){border-color:var(--border-strong); color:var(--ink);}
+  /* The dock/drawer/create-menu "Widgets" button no longer adds a card directly — it opens this small
+     submenu (YouTube / Spotify / Creative) first. One shared, body-appended element positioned via JS
+     next to whichever trigger opened it (see openWidgetSubmenu), by default ABOVE the trigger — the
+     dock sits at the very bottom of the screen, so opening downward would run straight off-viewport. */
+  .widget-submenu{
+    position:fixed; z-index:60; min-width:132px; background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:6px; display:flex; flex-direction:column; gap:2px;
+    box-shadow:0 10px 30px -10px var(--shadow-lg);
+  }
+  .widget-submenu-item{
+    border:none; background:none; text-align:left; padding:8px 10px; border-radius:6px;
+    font:inherit; font-size:0.82rem; font-weight:500; color:var(--ink); cursor:pointer;
+  }
+  .widget-submenu-item:hover{background:var(--surface-2);}
 
   /* table */
   .card-table{padding-bottom:6px;}
@@ -1033,23 +1102,32 @@ try{
      blau müsste dieses dunklere gelb werden". Independent of Deckkraft (like a column's border), so
      the header stripe always reads clearly even when the main fill is faded way down. */
   .table-corner{background:var(--card-header-bg, var(--surface-2)); border-right:1px solid var(--border); border-bottom:1px solid var(--border);}
+  /* "die Tabelle soll mehr die Form bekommen die diese Tabelle in Notion hat, von der Schlichtheit,
+     aber trotzdem Notua-Design beibehalten" — the grid/borders/checkbox/ampel mechanics are unchanged;
+     this is purely a typography pass toward Notion's quieter look: small uppercase muted header labels
+     (the exact same treatment .insp-label already uses elsewhere in the app, so it reads as "Notua",
+     not a copied Notion style) instead of bold dark text, and regular-weight cell text instead of
+     semibold — still tinted by the card's own color when one is set (--card-header-bg/-ink), same as
+     before.
+  */
   .table-hcell,.table-vcell{
     background:var(--card-header-bg, var(--surface-2)); display:flex; align-items:center; justify-content:center; position:relative;
-    font-size:calc(0.66rem * var(--tscale,1)); font-weight:700; color:var(--card-header-ink, var(--muted)); cursor:pointer; user-select:none;
+    font-size:calc(0.64rem * var(--tscale,1)); font-weight:600; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--card-header-ink, var(--muted)); cursor:pointer; user-select:none;
     border-right:1px solid var(--border); border-bottom:1px solid var(--border);
   }
   .table-hcell:hover,.table-vcell:hover{color:var(--ink);}
   .table-hcell span[contenteditable="true"],.table-vcell span[contenteditable="true"]{
     user-select:text; cursor:text; background:var(--surface); color:var(--ink); border-radius:3px;
-    padding:0 3px; box-shadow:0 0 0 2px var(--accent); outline:none;
+    padding:0 3px; box-shadow:0 0 0 2px var(--accent); outline:none; text-transform:none; letter-spacing:normal;
   }
   .table-cell{position:relative; border-right:1px solid var(--border); border-bottom:1px solid var(--border); overflow:hidden;}
   .table-cell-text{
-    width:100%; height:100%; padding:calc(3px * var(--tscale,1)) calc(6px * var(--tscale,1));
-    font-size:calc(0.8rem * var(--tscale,1)); font-weight:600; outline:none; overflow:hidden;
-    line-height:1.35; word-break:break-word; cursor:text;
+    width:100%; height:100%; padding:calc(4px * var(--tscale,1)) calc(8px * var(--tscale,1));
+    font-size:calc(0.8rem * var(--tscale,1)); font-weight:500; outline:none; overflow:hidden;
+    line-height:1.4; word-break:break-word; cursor:text;
   }
-  .table-cell.has-ampel .table-cell-text{padding-right:16px;}
+  .table-cell.has-ampel .table-cell-text{padding-right:18px;}
   .table-col-grip{position:absolute; right:-3px; top:0; bottom:0; width:6px; cursor:col-resize; z-index:2;}
   .table-row-grip{position:absolute; left:0; right:0; bottom:-3px; height:6px; cursor:row-resize; z-index:2;}
   .table-remove-col,.table-remove-row{
@@ -1090,12 +1168,34 @@ try{
   .table-tint-popover button.active{border-color:var(--ink);}
   .table-tint-popover button:hover{transform:scale(1.12);}
 
-  /* board-link (nested board) */
+  /* board icon/mask picker — "eine kleine Liste an Icons... alle Buchstaben als Icons... eigene
+     Bilder als Maske" — one flat, scrollable grid of preset icons + A-Z letters + an upload option,
+     opened from the subboard card's own inspector (see wireBoardlinkInspectorRow / openBoardIconPopover). */
+  .board-icon-popover{
+    position:fixed; z-index:80; width:214px; max-height:200px; overflow-y:auto;
+    display:flex; flex-wrap:wrap; gap:6px; padding:8px; border-radius:9px;
+    background:var(--surface); border:1px solid var(--border); box-shadow:0 6px 20px rgba(0,0,0,.22);
+    opacity:0; pointer-events:none; transform:translateY(4px) scale(.96); transition:opacity .12s ease, transform .12s ease;
+  }
+  .board-icon-popover.show{opacity:1; pointer-events:auto; transform:translateY(0) scale(1);}
+  .board-icon-opt{
+    width:25px; height:25px; border-radius:6px; border:1.5px solid transparent; background:var(--surface-2); color:var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; flex:none;
+    font:inherit; font-size:0.72rem; font-weight:700; transition:border-color .14s ease, background .14s ease;
+  }
+  .board-icon-opt:hover{background:var(--border-strong);}
+  .board-icon-opt.active{border-color:var(--accent); background:var(--accent-soft); color:var(--accent);}
+  .board-icon-opt-upload{color:var(--muted); margin-left:auto;}
+
+  /* board-link (nested board / "Subboard") — badge (see .board-badge above) + name + a small meta
+     line combining the element count with the existing "open" hint, replacing the old plain
+     color-spine-only design ("Erstell ein neues Design"). */
   .card-boardlink{background:var(--surface); cursor:pointer;}
-  .card-boardlink .bl-body{flex:1; display:flex; flex-direction:column; justify-content:flex-end; padding:10px 12px 12px; gap:6px;}
-  .bl-spine{width:26px; height:5px; border-radius:3px; background:var(--accent);}
+  .card-boardlink .bl-body{flex:1; display:flex; flex-direction:column; justify-content:flex-end; padding:10px 12px 12px; gap:7px;}
   .bl-name{font-size:0.9rem; font-weight:700; outline:none; word-break:break-word;}
-  .bl-open{font-size:0.7rem; color:var(--muted); display:flex; align-items:center; gap:3px;}
+  .bl-meta{font-size:0.7rem; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:6px;}
+  .bl-count{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .bl-open{display:flex; align-items:center; gap:3px; flex:none;}
 
   /* ---------- TAG COLOR CLASSES ---------- */
   .tag-none{--tint:255,255,255; }
@@ -1111,6 +1211,17 @@ try{
      preset --tag-* tokens, so this reuses exactly the same rgba()/rgb() pattern as every preset above. */
   .tag-custom{--tint:var(--tint-custom); border-left:4px solid rgb(var(--tint-custom)); background:rgba(var(--tint-custom),var(--tag-alpha));}
   .card-column.tag-none{background:rgba(140,149,160,var(--tag-alpha)); border-color:var(--border-strong);}
+  /* A colorless Note/Checklist/Table/Boardlink got its base solid var(--surface) fill from .card above,
+     which — unlike every colored card or any column — has no alpha-driven rule for Deckkraft to target,
+     so baseCardShell had no choice but to fade the WHOLE element (text included) via plain CSS opacity.
+     Giving these an alpha-blendable neutral fill too (same rgba(...,--tag-alpha) pattern as every tag
+     color) lets baseCardShell route them through the same contrast-safe text-color math as a colored
+     card instead — "Note/Notiz... mit Opacity die Schrift so angepasst wird, dass sie leserlich bleibt".
+     Image/youtube cards are deliberately NOT included here: their content already fully covers the card
+     (a photo/embed), so fading the whole element is exactly the wanted effect there, not a bug to fix. */
+  .card-note.tag-none, .card-checklist.tag-none, .card-table.tag-none, .card-boardlink.tag-none{
+    background:rgba(var(--surface-rgb), var(--tag-alpha));
+  }
   .card-column.tag-yellow{border-color:rgb(var(--tag-yellow));}
   .card-column.tag-pink{border-color:rgb(var(--tag-pink));}
   .card-column.tag-blue{border-color:rgb(var(--tag-blue));}
@@ -1320,11 +1431,26 @@ try{
   .insp-actions button.danger:hover{background:var(--danger-soft); color:var(--danger); border-color:var(--danger-soft);}
   .insp-count{font-size:0.78rem; color:var(--muted);}
   .insp-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:-2px -2px 0 0;}
+  /* Was an unstyled plain <div> — with the calendar button that used to also live in here now moved
+     down next to Opacity (see insp-row-line below), this only ever wraps the close button, but it's
+     still declared as its own small flex row (rather than dropped) so a future header action doesn't
+     silently regress into the old bug: an un-flexed wrapper around two block-level flex buttons made
+     them stack on top of each other instead of sitting side by side — which is exactly why the close
+     button used to render low/off-corner instead of flush in the top-right ("das X soll oben rechts
+     in der Ecke sein"). */
+  .insp-head-actions{display:flex; align-items:center; gap:4px;}
   .insp-close{
-    width:22px; height:22px; border:none; background:none; color:var(--faint); cursor:pointer; flex:none;
-    display:flex; align-items:center; justify-content:center; border-radius:5px; transition:background .14s ease, color .14s ease;
+    width:22px; height:22px; border:none; background:var(--surface-2); color:var(--faint); cursor:pointer; flex:none;
+    display:flex; align-items:center; justify-content:center; border-radius:6px; transition:background .14s ease, color .14s ease;
   }
-  .insp-close:hover{background:var(--surface-2); color:var(--ink);}
+  .insp-close:hover{background:var(--border-strong); color:var(--ink);}
+  /* Wraps two independent insp-row blocks (each with its own insp-label) side by side on one line,
+     rather than sharing a single label — used for Opacity + the small calendar/date button
+     ("Kalender soll neben Opacity", but "das Datumsfeld... soll trotzdem eine eigene Kategorie
+     sein"): Opacity keeps its own DECKKRAFT label, Date gets its own DATUM label, top-aligned. */
+  .insp-row-line{display:flex; align-items:flex-start; gap:16px;}
+  .insp-row-opacity{flex:1; min-width:0;}
+  .insp-row-date{flex:none;}
   /* per-content-type personalization rows (#39: settings that used to live as small buttons on the
      card itself — checklist/table progress bar, table ampel mode, widget embed swap — now live here
      instead, so the card surface stays clean and every such setting has one consistent home). */
@@ -1480,7 +1606,24 @@ try{
   @media (max-width:640px){
     .bottom-bars{display:none;}
     .menu-btn{display:flex;}
-    .inspector{width:200px;}
+    /* "das Eigenschaftenfeld... wäre gut wenn es von ganz oben über die Start/Board Leiste geht" —
+       on phones the inspector no longer floats as a small box in the top-right corner (that's the
+       desktop layout, still used above 640px); instead it becomes a full-width sheet pinned to the
+       very top of the screen, overlaying the topbar/crumbs underneath it entirely. Closing it just
+       removes this element (see closeInspector/clearSelection), which reveals the normal topbar
+       again automatically — no extra show/hide logic needed for that. */
+    .inspector{
+      position:fixed; top:0; left:0; right:0; width:auto;
+      padding-top:calc(14px + env(safe-area-inset-top,0px));
+      border-radius:0; border-left:none; border-right:none; border-top:none;
+      max-height:calc(100% - env(safe-area-inset-top,0px)); overflow-y:auto;
+      z-index:45;
+    }
+    /* Bigger, clearly-tappable close button just for this full-width mobile mode ("ein größerer
+       Schließbutton... den man erkennen kann") — the desktop 22px icon button stays as-is above
+       640px. */
+    .insp-close{width:36px; height:36px; border-radius:9px;}
+    .insp-close svg{width:17px; height:17px;}
     .home-header, .home-main{padding-left:20px; padding-right:20px;}
   }
 </style>
@@ -1546,7 +1689,10 @@ try{
           </button>
           <div class="tools-dropdown" id="toolsDropdown">
             <button class="icon-btn import-btn" id="toolsBtn" title="Werkzeuge">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l1 1 5.3-5.3a4 4 0 0 1 5.4-5.4l-2.1 2.1 1 1z"/></svg>
+              <!-- "sieht merkwürdig aus mach daraus bitte einen Hammer" — was an odd little pipe-wrench
+                   squiggle before; now a plain claw-hammer silhouette (diagonal handle + notched head),
+                   matching the plain stroke-outline look every other icon in this toolbar already uses. -->
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13.2 10.8 L5.3 18.7 L6.8 20.2 L14.7 12.3 M11.7 9.3 L15.2 5.8 C15.9 5.1 17.3 4.6 18.4 5.1 L20.5 3 L21.4 3.9 L19.3 6 C19.8 7.1 19.3 8.5 18.6 9.2 L15.1 12.7 Z"/></svg>
             </button>
             <div class="tools-menu" id="toolsMenu" hidden>
               <button type="button" id="toolsTemplatesItem"></button>
@@ -1921,6 +2067,23 @@ function loadPinIt(){
   });
   return pinitLoadPromise;
 }
+// Cosmos (cosmos.so) and Eyecandy (eyecannndy.com) neither one offers an official embed widget the
+// way Pinterest does — these are plain, direct iframes of whatever page URL was pasted (a profile, a
+// specific item, a technique page, the whole site), so unlike Pinterest there's no board-shape to
+// validate beyond "it's actually a link to that site". If a given page refuses to render inside the
+// iframe, that's the site's own embedding policy (a security header we have no way to see or route
+// around from here) — not something fixable from this side; pasting a different page on the same
+// site is the only recourse.
+function extractCosmosUrl(url){
+  if(!url) return null;
+  url=url.trim();
+  return /^https?:\/\/(?:www\.)?cosmos\.so\//i.test(url) ? url : null;
+}
+function extractEyecandyUrl(url){
+  if(!url) return null;
+  url=url.trim();
+  return /^https?:\/\/(?:www\.)?eyecannndy\.com\//i.test(url) ? url : null;
+}
 const TAG_COLORS=['none','yellow','pink','blue','green','purple','grey','orange'];
 // Deliberately no 0% step — that would just be "invisible", not a genuinely useful transparency level.
 const OPACITY_STEPS=[100,80,60,40,20];
@@ -1985,11 +2148,14 @@ const I18N={
   add_note_label:{de:'Notiz',en:'Note'},
   add_image_title:{de:'Bild / Screenshot hinzufügen',en:'Add image / screenshot'},
   add_image_label:{de:'Bild',en:'Image'},
-  add_youtube_title:{de:'Widget einbetten (YouTube/Spotify/Pinterest)',en:'Embed widget (YouTube/Spotify/Pinterest)'},
+  add_youtube_title:{de:'Widget hinzufügen (YouTube, Spotify, Creative)',en:'Add widget (YouTube, Spotify, Creative)'},
   add_youtube_label:{de:'Widgets',en:'Widgets'},
   widget_change_title:{de:'Anderes Widget einbetten',en:'Embed a different widget'},
+  widget_family_creative_label:{de:'Creative',en:'Creative'},
   placeholder_spotify_link:{de:'Spotify-Link einfügen',en:'Paste a Spotify link'},
   placeholder_pinterest_link:{de:'Pinterest-Board-Link einfügen (z. B. pinterest.com/name/board/)',en:'Paste a Pinterest board link (e.g. pinterest.com/name/board/)'},
+  placeholder_cosmos_link:{de:'Cosmos-Link einfügen (cosmos.so/…)',en:'Paste a Cosmos link (cosmos.so/…)'},
+  placeholder_eyecandy_link:{de:'Eyecandy-Link einfügen (eyecannndy.com/…)',en:'Paste an Eyecandy link (eyecannndy.com/…)'},
   add_column_title:{de:'Spalte / Bereich hinzufügen',en:'Add column / area'},
   add_column_label:{de:'Spalte',en:'Column'},
   column_add_left_title:{de:'Spalte links hinzufügen',en:'Add column to the left'},
@@ -2086,6 +2252,8 @@ const I18N={
   insp_link_label:{de:'Link ändern',en:'Change link'},
   yt_link_placeholder:{de:'YouTube-Link',en:'YouTube link'},
   insp_open_board:{de:'Board öffnen →',en:'Open board →'},
+  insp_board_icon_label:{de:'Icon',en:'Icon'},
+  board_icon_upload_title:{de:'Eigenes Bild als Icon hochladen (als Maske)',en:'Upload your own image as icon (as a mask)'},
   insp_caption_label:{de:'Bildunterschrift',en:'Caption'},
   dup_title:{de:'Duplizieren',en:'Duplicate'},
   front_title:{de:'Nach vorne',en:'Bring to front'},
@@ -2106,6 +2274,8 @@ const I18N={
   color_orange:{de:'Orange',en:'Orange'},
   color_custom_title:{de:'Eigene Farbe wählen',en:'Pick a custom color'},
   insp_opacity_label:{de:'Deckkraft',en:'Opacity'},
+  insp_columns_per_row_label:{de:'Spalten pro Reihe',en:'Columns per row'},
+  columns_per_row_off:{de:'Aus',en:'Off'},
   secret_password_title:{de:'Geheimer Zugang',en:'Secret access'},
   secret_password_intro:{de:'Nur für die engsten Beta-Tester …',en:'For the closest beta testers only …'},
   secret_password_placeholder:{de:'Passwort',en:'Password'},
@@ -2136,6 +2306,7 @@ const I18N={
   remove_title:{de:'Entfernen',en:'Remove'},
   placeholder_note:{de:'Notiz eingeben…',en:'Type a note…'},
   placeholder_column_title:{de:'Bereich benennen…',en:'Name this area…'},
+  placeholder_column_text:{de:'Text eingeben…',en:'Type text…'},
   placeholder_checklist_title:{de:'Checkliste benennen…',en:'Name this checklist…'},
   placeholder_add_task:{de:'Aufgabe hinzufügen…',en:'Add a task…'},
   checklist_progress_toggle_title:{de:'Fortschrittsbalken anzeigen',en:'Show progress bar'},
@@ -2209,6 +2380,51 @@ const I18N={
   template_insert_structure_btn:{de:'Nur Struktur',en:'Structure only'},
   template_insert_content_btn:{de:'Mit Inhalt',en:'With content'},
   template_inserted_toast:{de:'Subboard aus Vorlage hinzugefügt',en:'Sub-board added from template'},
+  // ---- Built-in "Shotlist" template (ensureBuiltinTemplates/seedShotlistTemplate) — a video-shoot
+  // b-roll tracker, structured from Notes + a Column section + one Table, adapted from the general
+  // shape of shot-list trackers used by video creators (own generic example rows, not any specific
+  // creator's actual footage/branding).
+  template_shotlist_name:{de:'Shotlist',en:'Shotlist'},
+  template_shotlist_visuals_name:{de:'Shotlist Visuals',en:'Shotlist Visuals'},
+  template_shotlist_context_name:{de:'Context Board',en:'Context Board'},
+  template_shotlist_col_shot:{de:'Shot',en:'Shot'},
+  template_shotlist_col_equipment:{de:'Equipment',en:'Equipment'},
+  template_shotlist_col_lens:{de:'Lens',en:'Lens'},
+  template_shotlist_col_shotsize:{de:'Shot Size',en:'Shot Size'},
+  template_shotlist_col_movement:{de:'Movement',en:'Movement'},
+  template_shotlist_col_cameraangle:{de:'Camera Angle',en:'Camera Angle'},
+  template_shotlist_col_actiondesc:{de:'Action / Description',en:'Action / Description'},
+  template_shotlist_shot_heading:{de:'Shot {n}',en:'Shot {n}'},
+  template_shotlist_scene_text:{
+    de:'Was passiert in dieser Szene?\n\nOrt: \nHandlung: \nStimmung: ',
+    en:'What happens in this scene?\n\nLocation: \nAction: \nMood: '
+  },
+  // ---- "Context Board" v2 content (About the film / Inspiration / Story / Filming) — a genericized
+  // recreation of Milanote's own "Pre-production plan" example board, built from 4 Columns wrapped at
+  // columnsPerRow:4. Blank labeled fields stand in for the reference's specific demo content (no names,
+  // company, address or premise reproduced) — same principle as the Notion Shotlist template earlier.
+  template_ctx_col_about:{de:'About the film',en:'About the film'},
+  template_ctx_col_inspiration:{de:'Inspiration',en:'Inspiration'},
+  template_ctx_col_story:{de:'Story',en:'Story'},
+  template_ctx_col_filming:{de:'Filming',en:'Filming'},
+  template_ctx_subboard_ideas:{de:'Ideas',en:'Ideas'},
+  template_ctx_subboard_moodboard:{de:'Moodboard',en:'Moodboard'},
+  template_ctx_subboard_storyboard:{de:'Storyboard',en:'Storyboard'},
+  template_ctx_subboard_callsheet:{de:'Call Sheet',en:'Call Sheet'},
+  template_ctx_note_film_info:{de:'Filmtitel\n\nKurzbeschreibung: ',en:'Film title\n\nShort synopsis: '},
+  template_ctx_note_soundtrack:{de:'🎵 Soundtrack\nLink oder Datei einfügen',en:'🎵 Soundtrack\nAdd a link or file'},
+  template_ctx_note_script:{de:'📄 Skript\nLink oder Datei einfügen',en:'📄 Script\nAdd a link or file'},
+  template_ctx_note_reference_clip:{de:'🎬 Referenz-Clip\nLink einfügen',en:'🎬 Reference clip\nAdd a link'},
+  template_ctx_note_shootday:{
+    de:'Drehtag: \nUhrzeit: \nOrt: \nAdresse: \nKontakt: ',
+    en:'Shoot day: \nTime: \nLocation: \nAddress: \nContact: '
+  },
+  template_ctx_checklist_title:{de:'Ausrüstung',en:'Equipment'},
+  template_ctx_checklist_item1:{de:'Kamera (z.B. Panasonic GH5, 4K)',en:'Camera (e.g. Panasonic GH5, 4K)'},
+  template_ctx_checklist_item2:{de:'Stativ / Schulterrig / Dolly',en:'Tripod / shoulder rig / dolly'},
+  template_ctx_checklist_item3:{de:'Richtmikrofon / Funkmikros / Boom',en:'Shotgun mic / wireless mics / boom'},
+  template_ctx_checklist_item4:{de:'Ersatzakkus',en:'Spare batteries'},
+  template_ctx_checklist_item5:{de:'Objektiv (z.B. 35mm f1.4)',en:'Lens (e.g. 35mm f1.4)'},
   confirm_migrate_title:{de:'Vorhandene Boards übernehmen?',en:'Bring in existing boards?'},
   confirm_migrate_body:{de:'Es gibt Boards, die bisher nur lokal im Browser gespeichert waren. Sollen sie in den gewählten Ordner kopiert werden?',en:'Some boards were only stored locally in the browser so far. Should they be copied into the folder you chose?'},
   migrate_action:{de:'Übernehmen',en:'Bring in'},
@@ -3338,7 +3554,7 @@ async function buildBoardTile(b,opts){
     </div>
     <div>
       <div class="spine-row">
-        <div class="spine" style="background:${opts.trash ? 'var(--trash-accent)' : (b.color||'var(--accent)')}"></div>
+        <div class="board-badge"></div>
         <div class="tile-logo-wrap" ${b.logoImageId?'':'hidden'}>
           <img class="tile-logo" alt="">
           <button class="tile-logo-remove-btn" title="${t('tile_logo_remove_title')}">${iconCross()}</button>
@@ -3353,6 +3569,10 @@ async function buildBoardTile(b,opts){
     ${(!opts.trash && state.recentlyRestored.has(b.id)) ? `<div class="restored-badge">${escapeHtml(t('recently_restored_badge'))}</div>` : ''}
     ${opts.trash ? '' : `<button type="button" class="tile-go-btn" hidden>${t('tile_go_to_board_btn')}${iconChevronRight()}</button>`}
   `;
+  // The badge (see BOARD BADGE / ICON PICKER block) replaces the old plain color-only .spine bar —
+  // same size/position, now also carrying the board's chosen letter/preset/masked-image icon.
+  const badgeEl=tile.querySelector('.board-badge');
+  paintBoardBadgeElement(badgeEl, opts.trash ? {...b, color:'var(--trash-accent)'} : b);
   if(b.logoImageId){
     getImageUrl(b.logoImageId).then(url=>{ if(url) tile.querySelector('.tile-logo').src=url; });
   }
@@ -3891,6 +4111,130 @@ function showBoardColorPopover(clientX,clientY,board,onChange){
   let top=clientY+10; if(top+h>window.innerHeight-6) top=clientY-h-10;
   bar.style.left=left+'px'; bar.style.top=top+'px';
 }
+
+/* ============================================================
+   BOARD BADGE / ICON PICKER — "eine kleine Liste an Icons, darunter alle Buchstaben als Icons, und
+   man auch selbst Bilder hinzufügen kann die dann als Maske drauf angewandt werden" — a board's
+   badge shows either its initial letter (default), one of a small preset icon set, or an uploaded
+   image used as a CSS mask (so it reads as a flat tinted glyph, not a raw photo thumbnail — that's
+   what board.logoImageId/.tile-logo already do). board.color is always the badge's background,
+   editable from the very same properties tab ("über den Eigenschaftentab... Farbe ändern können") via
+   the small color-dot button next to it, which just reuses showBoardColorPopover above. Shown
+   everywhere a board is referenced — the home-screen tile and the subboard link card — from the one
+   shared board.icon field, so both stay in sync automatically.
+   ============================================================ */
+const BOARD_ICON_PRESETS=['folder','star','heart','bookmark','image','note','tag','pin'];
+function boardIconPresetSvg(key){
+  switch(key){
+    case 'folder': return iconFolder();
+    case 'star': return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7z"/></svg>`;
+    case 'heart': return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.5s-7.5-4.6-9.8-9.1C.6 8 2 4.5 5.5 3.8c2-.4 3.9.6 5 2.4 1.1-1.8 3-2.8 5-2.4C19 4.5 20.4 8 18.8 11.4 16.5 15.9 12 20.5 12 20.5z"/></svg>`;
+    case 'bookmark': return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3.5h12v17l-6-4-6 4z"/></svg>`;
+    case 'image': return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>`;
+    case 'note': return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>`;
+    case 'tag': return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12.6 3.4H5a1.5 1.5 0 0 0-1.5 1.5v7.6c0 .4.2.8.4 1.1l9 9c.6.6 1.5.6 2.1 0l6.6-6.6c.6-.6.6-1.5 0-2.1l-9-9c-.3-.3-.7-.4-1-.5z"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/></svg>`;
+    case 'pin': return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6.8 7-12a7 7 0 1 0-14 0c0 5.2 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></svg>`;
+    default: return iconFolder();
+  }
+}
+function boardBadgeContentHtml(board){
+  const icon=board&&board.icon;
+  if(icon && icon.kind==='image' && icon.imageId){
+    return `<div class="board-badge-mask" data-board-icon-image="${icon.imageId}"></div>`;
+  }
+  if(icon && icon.kind==='preset' && icon.value){
+    return boardIconPresetSvg(icon.value);
+  }
+  const letter = (icon && icon.kind==='letter' && icon.value) ? icon.value : (board&&board.name||'?').trim().charAt(0);
+  return `<span class="board-badge-letter">${escapeHtml((letter||'?').toUpperCase())}</span>`;
+}
+function paintBoardBadgeElement(el,board){
+  if(!el || !board) return;
+  el.style.background=board.color||'var(--accent)';
+  el.innerHTML=boardBadgeContentHtml(board);
+  const maskEl=el.querySelector('.board-badge-mask');
+  if(maskEl){
+    getImageUrl(maskEl.dataset.boardIconImage).then(url=>{
+      if(!url || !maskEl.isConnected) return;
+      maskEl.style.setProperty('mask-image', `url("${url}")`);
+      maskEl.style.setProperty('-webkit-mask-image', `url("${url}")`);
+    });
+  }
+}
+let boardIconPopoverEl=null, boardIconPopoverTarget=null, boardIconUploadInput=null;
+function ensureBoardIconPopover(){
+  if(boardIconPopoverEl) return boardIconPopoverEl;
+  const pop=document.createElement('div');
+  pop.className='board-icon-popover';
+  document.body.appendChild(pop);
+  pop.addEventListener('pointerdown',(e)=>e.preventDefault());
+  pop.addEventListener('click',(e)=>{
+    const btn=e.target.closest('.board-icon-opt[data-kind]');
+    if(!btn || !boardIconPopoverTarget) return;
+    const {board,onChange}=boardIconPopoverTarget;
+    const kind=btn.dataset.kind;
+    if(kind==='upload'){ ensureBoardIconUploadInput().click(); return; }
+    board.icon = kind==='letter' ? {kind:'letter', value:btn.dataset.value} : {kind:'preset', value:btn.dataset.value};
+    board.updatedAt=Date.now();
+    DB.putBoard(board);
+    if(onChange) onChange();
+    hideBoardIconPopover();
+  });
+  boardIconPopoverEl=pop;
+  return pop;
+}
+function ensureBoardIconUploadInput(){
+  if(boardIconUploadInput) return boardIconUploadInput;
+  const input=document.createElement('input');
+  input.type='file'; input.accept='image/*'; input.hidden=true;
+  document.body.appendChild(input);
+  input.addEventListener('change',async ()=>{
+    const file=input.files && input.files[0];
+    input.value='';
+    if(!file || !boardIconPopoverTarget) return;
+    const {board,onChange}=boardIconPopoverTarget;
+    const oldId = (board.icon && board.icon.kind==='image') ? board.icon.imageId : null;
+    const id=uid();
+    await DB.putImage(id,file,board.id);
+    board.icon={kind:'image', imageId:id};
+    board.updatedAt=Date.now();
+    await DB.putBoard(board);
+    if(oldId && oldId!==id) DB.deleteImage(oldId);
+    if(onChange) onChange();
+    hideBoardIconPopover();
+  });
+  boardIconUploadInput=input;
+  return input;
+}
+function hideBoardIconPopover(){ if(boardIconPopoverEl) boardIconPopoverEl.classList.remove('show'); boardIconPopoverTarget=null; }
+function openBoardIconPopover(clientX,clientY,board,onChange){
+  const pop=ensureBoardIconPopover();
+  let html='';
+  BOARD_ICON_PRESETS.forEach(key=>{
+    const active = board.icon && board.icon.kind==='preset' && board.icon.value===key;
+    html+=`<button type="button" class="board-icon-opt${active?' active':''}" data-kind="preset" data-value="${key}" title="${key}">${boardIconPresetSvg(key)}</button>`;
+  });
+  for(let i=65;i<=90;i++){
+    const ch=String.fromCharCode(i);
+    const active = board.icon && board.icon.kind==='letter' && board.icon.value===ch;
+    html+=`<button type="button" class="board-icon-opt${active?' active':''}" data-kind="letter" data-value="${ch}">${ch}</button>`;
+  }
+  const uploadActive = board.icon && board.icon.kind==='image';
+  html+=`<button type="button" class="board-icon-opt board-icon-opt-upload${uploadActive?' active':''}" data-kind="upload" title="${t('board_icon_upload_title')}">${iconExport()}</button>`;
+  pop.innerHTML=html;
+  boardIconPopoverTarget={board,onChange};
+  pop.classList.add('show');
+  const w=pop.offsetWidth||214, h=pop.offsetHeight||160;
+  let left=Math.max(6,Math.min(clientX, window.innerWidth-w-6));
+  let top=clientY; if(top+h>window.innerHeight-6) top=Math.max(6, window.innerHeight-h-6);
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+}
+document.addEventListener('pointerdown',(e)=>{
+  if(!boardIconPopoverEl || !boardIconPopoverEl.classList.contains('show')) return;
+  if(e.target.closest('.board-icon-popover') || e.target.closest('.board-icon-trigger')) return;
+  hideBoardIconPopover();
+});
+window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') hideBoardIconPopover(); });
 // One-time (per board) setup popup shown right after a new top-level board is created and opened —
 // lets the name and color be picked immediately, in place, instead of only via the crumb-rename and
 // the small #boardColorBtn dot afterwards (which still both keep working exactly as before). Reuses
@@ -4701,17 +5045,20 @@ window.addEventListener('pointerup',(e)=>{
 });
 
 /* ---- touch: one finger on empty canvas pans, two fingers pinch-zoom ---- */
-// A single finger held still (no pan movement) for ~420ms on empty canvas ARMS a second gesture,
-// mirroring what a mouse gets for free from hover/click/drag/dblclick — touch never had an equivalent
-// for either "double-click empty canvas to open the add-element menu" or "drag to marquee-select", so
-// both were simply unreachable on a phone before this. A quick swipe (movement crosses the 10px
-// threshold before the timer fires) cancels the timer and pans exactly as before — nothing changes for
-// the common "just move around the board" gesture. Once armed: releasing without any further movement
-// opens the create menu at that point (touch's "double-click"); dragging instead drives the same
-// marquee-select box/logic the mouse path above uses, instead of panning.
+// A single finger held still (no pan movement) for ~420ms on empty canvas ARMS marquee-select — touch
+// never had an equivalent of "drag to marquee-select" the way a mouse does, so it was simply
+// unreachable on a phone before this. A quick swipe (movement crosses the 10px threshold before the
+// timer fires) cancels the timer and pans exactly as before — nothing changes for the common "just
+// move around the board" gesture. Once armed, dragging drives the same marquee-select box/logic the
+// mouse path above uses, instead of panning; releasing without any further movement is just a no-op
+// (not a menu trigger — see below for why).
+// Opening the add-element menu is its own, separate gesture: a real double-tap (two quick taps, close
+// together in both time and position — "es soll am besten ein Doppelklick aufs leere Board sein"),
+// mirroring the existing desktop dblclick on empty canvas exactly, rather than overloading the
+// long-press hold used for marquee-select above with a second meaning.
 const activeTouches=new Map();
 let touchPanState=null, pinchLastDist=null;
-let touchLongPressTimer=null, touchLongPressArmed=false, touchMarqueeState=null;
+let touchLongPressTimer=null, touchLongPressArmed=false, touchMarqueeState=null, touchLastTap=null;
 function clearTouchLongPress(){ clearTimeout(touchLongPressTimer); touchLongPressTimer=null; touchLongPressArmed=false; }
 viewport.addEventListener('pointerdown',(e)=>{
   if(e.pointerType!=='touch') return;
@@ -4734,12 +5081,14 @@ viewport.addEventListener('pointerdown',(e)=>{
       if(navigator.vibrate){ try{ navigator.vibrate(12); }catch(err){} }
       touchPanState=null; // no visible pan happened yet — movement past the threshold would already have cancelled this timer
       touchMarqueeState={sx, sy, additive:false};
+      touchLastTap=null; // a long-press is never half of a double-tap
       if(!isMultiSelectKey(e)) clearSelection();
     },420);
   }else if(activeTouches.size>=2){
     touchPanState=null;
     clearTouchLongPress();
     touchMarqueeState=null; marqueeEl.hidden=true;
+    touchLastTap=null; // a pinch starting mid-tap-sequence isn't a double-tap either
     const pts=[...activeTouches.values()];
     pinchLastDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
   }
@@ -4767,7 +5116,10 @@ viewport.addEventListener('pointermove',(e)=>{
     });
     syncSelectedCardClasses();
   }else if(touchPanState){
-    if(touchLongPressTimer && Math.hypot(e.clientX-touchPanState.sx, e.clientY-touchPanState.sy)>10) clearTouchLongPress();
+    if(Math.hypot(e.clientX-touchPanState.sx, e.clientY-touchPanState.sy)>10){
+      if(touchLongPressTimer) clearTouchLongPress();
+      touchLastTap=null; // this turned into a real pan, not a tap — doesn't count toward a double-tap
+    }
     state.view.x=touchPanState.ox+(e.clientX-touchPanState.sx);
     state.view.y=touchPanState.oy+(e.clientY-touchPanState.sy);
     applyView();
@@ -4779,13 +5131,22 @@ function endTouchPointer(e){
   if(activeTouches.size<2) pinchLastDist=null;
   if(activeTouches.size===0){
     if(touchMarqueeState){
-      // Long-press fired but the box never actually grew past its starting point (marqueeEl still
-      // hidden) — that's touch's stand-in for a plain double-click: open the add-element menu right
-      // where the finger was held, instead of leaving the gesture as a no-op.
-      if(marqueeEl.hidden) openCreateMenu(touchMarqueeState.sx, touchMarqueeState.sy);
-      else updateInspector();
+      // Long-press armed (marquee mode) but the box never actually grew past its starting point — a
+      // hold-then-release-in-place isn't a recognized gesture on its own (see the double-tap handling
+      // below for how the create menu actually opens), so this is simply a no-op.
+      if(!marqueeEl.hidden) updateInspector();
       touchMarqueeState=null; marqueeEl.hidden=true;
       marqueeEl.style.width='0px'; marqueeEl.style.height='0px';
+    }else if(touchPanState && !touchLongPressArmed && Math.hypot(e.clientX-touchPanState.sx, e.clientY-touchPanState.sy)<10){
+      // A plain, quick tap that never grew into a pan or a long-press — check whether it's the second
+      // half of a double-tap (close enough in time and position to the previous one).
+      const now=Date.now();
+      if(touchLastTap && now-touchLastTap.t<400 && Math.hypot(e.clientX-touchLastTap.x, e.clientY-touchLastTap.y)<30){
+        openCreateMenu(e.clientX, e.clientY);
+        touchLastTap=null;
+      }else{
+        touchLastTap={x:e.clientX, y:e.clientY, t:now};
+      }
     }
     clearTouchLongPress();
     touchPanState=null; persistView();
@@ -4803,7 +5164,7 @@ viewport.addEventListener('pointerup',endTouchPointer);
 // make the board feel frozen — reset on any of these interruption signals.
 function resetTouchState(){
   activeTouches.clear(); touchPanState=null; pinchLastDist=null;
-  clearTouchLongPress(); touchMarqueeState=null; marqueeEl.hidden=true;
+  clearTouchLongPress(); touchMarqueeState=null; marqueeEl.hidden=true; touchLastTap=null;
 }
 viewport.addEventListener('lostpointercapture',(e)=>{ if(e.pointerType==='touch') endTouchPointer(e); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ resetTouchState(); flushActiveEditable(); } });
@@ -4910,20 +5271,18 @@ function updateInspector(){
   }else{
     html+=`<div class="insp-count">${typeLabel(cards[0].type)}</div>`;
   }
-  html+=`<div class="insp-head-actions">`;
-  if(cards.length===1){
-    // A date (and optional time) can be attached to ANY single-selected card — this is the
-    // "überall den Kalender verbinden" hook. Deliberately NOT an always-visible field: just a small
-    // calendar icon here, so the inspector stays uncluttered for the (common) case of not wanting a
-    // date at all. Clicking it opens a small floating picker above the card itself, same "bubble
-    // popover above the content" pattern already used for the note font-size toolbar and the table's
-    // ampel/tint popovers — once a date IS set, this button shows the date itself instead of the icon.
-    const dc=cards[0];
-    html+=`<button type="button" class="insp-date-btn${dc.date?' has-date':''}" title="${t('insp_date_label')}">${dc.date?escapeHtml(fmtCardDateShort(dc.date)):iconCalendarSmall()}</button>`;
-  }
-  html+=`<button class="insp-close" id="inspCloseBtn" title="${t('close_title')}">${iconCross()}</button></div></div>`;
+  html+=`<div class="insp-head-actions"><button class="insp-close" id="inspCloseBtn" title="${t('close_title')}">${iconCross()}</button></div></div>`;
   html+=`<div class="insp-row"><div class="insp-label">${t('insp_color_label')}</div><div class="swatches" id="swatchRow"></div></div>`;
-  html+=`<div class="insp-row"><div class="insp-label">${t('insp_opacity_label')}</div><div class="opacity-steps" id="opacityRow"></div></div>`;
+  // A date (and optional time) can be attached to ANY single-selected card — this is the "überall den
+  // Kalender verbinden" hook, next to Opacity ("der Kalender soll neben Opacity hinzugefügt werden")
+  // rather than up in the header, so the corner stays reserved for the close button alone. Deliberately
+  // not an always-visible date FIELD: just a small calendar icon, so the inspector stays uncluttered
+  // for the (common) case of not wanting a date at all. Clicking it opens a small floating picker
+  // above the card itself — once a date IS set, this button shows the date itself instead of the icon.
+  const dateBtnHtml = cards.length===1
+    ? `<div class="insp-row insp-row-date"><div class="insp-label">${t('insp_date_label')}</div><button type="button" class="insp-date-btn${cards[0].date?' has-date':''}" title="${t('insp_date_label')}">${cards[0].date?escapeHtml(fmtCardDateShort(cards[0].date)):iconCalendarSmall()}</button></div>`
+    : '';
+  html+=`<div class="insp-row-line"><div class="insp-row insp-row-opacity"><div class="insp-label">${t('insp_opacity_label')}</div><div class="opacity-steps" id="opacityRow"></div></div>${dateBtnHtml}</div>`;
   if(cards.length===1 && cards[0].type==='image'){
     html+=`<div class="insp-row"><div class="insp-label">${t('insp_caption_label')}</div><input class="caption-edit" style="border:1px solid var(--border);border-radius:6px;padding:7px 8px;font:inherit;font-size:0.78rem;background:var(--surface);color:var(--ink);outline:none;" placeholder="${t('placeholder_caption')}" value="${cards[0].data.caption?escapeHtml(cards[0].data.caption):''}"/></div>`;
     // Undefined counts as locked (the default set on every newly created image card, see addCard) —
@@ -4938,6 +5297,11 @@ function updateInspector(){
   }
   if(cards.length===1 && cards[0].type==='boardlink'){
     html+=`<div class="insp-row"><button id="openBoardLinkBtn" class="insp-action-btn">${t('insp_open_board')}</button></div>`;
+    // Icon (letter/preset/masked-image) + the linked board's own color, both editable right here
+    // ("Erstell ein neues Design aber man soll Farbe ändern können und Bilder drauf maskieren können
+    // über den Eigenschaftentab") — populated async in wireBoardlinkInspectorRow() below once the
+    // linked board is confirmed loaded, same defensive pattern boardColorBtn already uses.
+    html+=`<div class="insp-row"><div class="insp-label">${t('insp_board_icon_label')}</div><div class="board-icon-row"><button type="button" class="board-badge board-icon-trigger" id="boardIconTriggerBtn" title="${t('insp_board_icon_label')}"></button><button type="button" class="icon-btn" id="boardIconColorBtn" title="${t('insp_color_label')}"><span class="board-color-dot" id="boardIconColorDot"></span></button></div></div>`;
   }
   // #39: per-content-type personalization, consolidated here instead of as small buttons scattered
   // on the card itself (checklist/table progress bar, table ampel mode, widget embed swap).
@@ -4950,12 +5314,18 @@ function updateInspector(){
     html+=`<div class="insp-row insp-toggle-row"><div class="insp-label">${t('table_ampel_toggle_title')}</div><button type="button" class="insp-switch${dc.data.ampelMode?' on':''}" data-toggle="ampelMode" title="${t('table_ampel_toggle_title')}"></button></div>`;
     html+=`<div class="insp-row insp-toggle-row"><div class="insp-label">${t('checklist_progress_toggle_title')}</div><button type="button" class="insp-switch${dc.data.showProgress?' on':''}" data-toggle="showProgress" title="${t('checklist_progress_toggle_title')}"></button></div>`;
   }
+  if(cards.length===1 && cards[0].type==='column'){
+    // "einen Button im Eigenschaftenfeld haben, dass angibt wie viele von den Feldern in einer Reihe
+    // sein können" — cycles Aus/2/3/4/5/6, same one-button-cycles-through-steps pattern as Deckkraft
+    // above. Reads/writes columnsPerRow, which lives on every column of the same mesh in lockstep (see
+    // setColumnsPerRowForMesh) since a per-row limit is really a property of the whole row-group, not
+    // of one single column card.
+    const curPerRow=cards[0].columnsPerRow||0;
+    html+=`<div class="insp-row"><div class="insp-label">${t('insp_columns_per_row_label')}</div><button type="button" class="opacity-cycle-btn${curPerRow?' reduced':''}" id="colsPerRowBtn" title="${t('insp_columns_per_row_label')}">${curPerRow?curPerRow:t('columns_per_row_off')}</button></div>`;
+  }
   if(cards.length===1 && cards[0].type==='youtube'){
     const dc=cards[0];
-    const embedded = dc.data.kind==='spotify' ? !!dc.data.spotifyId
-      : dc.data.kind==='pinterest' ? !!dc.data.pinterestUrl
-      : !!dc.data.videoId;
-    if(embedded){
+    if(isWidgetEmbedded(dc)){
       html+=`<div class="insp-row"><button id="widgetChangeBtn" class="insp-action-btn">${iconSwap()}${t('widget_change_title')}</button></div>`;
     }
   }
@@ -5096,6 +5466,18 @@ function updateInspector(){
   }
   const openBoardLinkBtn=inspectorEl.querySelector('#openBoardLinkBtn');
   if(openBoardLinkBtn) openBoardLinkBtn.addEventListener('click',()=>openBoard(cards[0].data.boardId));
+  if(cards.length===1 && cards[0].type==='boardlink') wireBoardlinkInspectorRow(cards[0]);
+  const colsPerRowBtn=inspectorEl.querySelector('#colsPerRowBtn');
+  if(colsPerRowBtn){
+    colsPerRowBtn.addEventListener('click',()=>{
+      const STEPS=[0,2,3,4,5,6];
+      const cur=cards[0].columnsPerRow||0;
+      const idx=STEPS.indexOf(cur);
+      const next=STEPS[(idx===-1?0:idx+1)%STEPS.length];
+      setColumnsPerRowForMesh(cards[0], next);
+      updateInspector();
+    });
+  }
 
   // #39 personalization rows: boolean settings that used to be small toggle buttons on the card
   // itself (checklist/table progress bar, table ampel mode) now live here as switches.
@@ -5147,6 +5529,44 @@ function updateInspector(){
   inspectorEl.querySelector('#dupBtn').addEventListener('click',()=>duplicateCards(cards));
   inspectorEl.querySelector('#frontBtn').addEventListener('click',()=>bringToFront(cards));
   inspectorEl.querySelector('#delBtn').addEventListener('click',()=>deleteCards(ids));
+}
+// Wires the boardlink card's icon+color row (see updateInspector above) to the LINKED board object,
+// not the card itself — the badge and its color are properties of the sub-board being pointed at,
+// shared with its home-screen tile, not of this particular link card. state.boards is populated with
+// every board up front the first time any board is opened (see openBoard's DB.allBoards() call), so
+// the linked board is normally already there; the DB.getBoard() fallback only covers the same narrow
+// timing edge case the #boardColorBtn fix (v1.0.32) guarded against — a board referenced before that
+// initial load has landed.
+async function wireBoardlinkInspectorRow(card){
+  let linkedBoard=boardById(card.data.boardId);
+  if(!linkedBoard){
+    linkedBoard=await DB.getBoard(card.data.boardId);
+    if(linkedBoard && !boardById(linkedBoard.id)) state.boards.push(linkedBoard);
+  }
+  if(!linkedBoard || !inspectorEl) return;
+  const triggerBtn=inspectorEl.querySelector('#boardIconTriggerBtn');
+  const colorDot=inspectorEl.querySelector('#boardIconColorDot');
+  if(!triggerBtn) return; // inspector may have moved on (closed/rebuilt) while this await was in flight
+  paintBoardBadgeElement(triggerBtn,linkedBoard);
+  if(colorDot) colorDot.style.background=linkedBoard.color||'var(--accent)';
+  const refreshEverywhere=()=>{
+    paintBoardBadgeElement(triggerBtn,linkedBoard);
+    if(colorDot) colorDot.style.background=linkedBoard.color||'var(--accent)';
+    // Repaints the badge on the boardlink card(s) in THIS board that point at it right away —
+    // renderAllCards() re-reads state.boards fresh, same as every other card-affecting change.
+    renderAllCards(); applySelectionClasses();
+  };
+  triggerBtn.addEventListener('click',()=>{
+    const r=triggerBtn.getBoundingClientRect();
+    openBoardIconPopover(r.left, r.bottom+8, linkedBoard, refreshEverywhere);
+  });
+  const colorBtn=inspectorEl.querySelector('#boardIconColorBtn');
+  if(colorBtn){
+    colorBtn.addEventListener('click',()=>{
+      const r=colorBtn.getBoundingClientRect();
+      showBoardColorPopover(r.left+r.width/2, r.bottom, linkedBoard, refreshEverywhere);
+    });
+  }
 }
 // Connectors get their own small inspector body — reachable by clicking the line itself (a click now
 // selects+edits, rather than immediately asking to delete it, per the "Pfeile sollen klickbar sein und
@@ -5485,35 +5905,52 @@ function baseCardShell(card,extraClass){
   const opacityFrac=(card.opacity==null?100:card.opacity)/100;
   const isColumn = extraClass==='card-column';
   const hasOwnColor = card.color && card.color!=='none';
+  // Every OTHER card type with real text content (note, checklist, table, boardlink) paints its own
+  // colorless fill the same alpha-blendable way a column always has (see the .tag-none rule for these
+  // classes above) — so Deckkraft can fade just that fill everywhere text lives, not only on cards
+  // that happen to have a tag color. Image/youtube stay out of this: their content IS the whole card
+  // (a photo/embed), so the plain whole-element opacity fade further below is the correct, wanted
+  // effect there, not something to route through the text-contrast machinery.
+  const isPlainTextCard = !isColumn && ['card-note','card-checklist','card-table','card-boardlink'].includes(extraClass);
   // Anything whose background is itself the alpha-driven rgba(tag, --tag-alpha) rule gets Deckkraft
-  // applied to JUST that fill, starting fully solid: a colored regular card, or ANY column — even an
-  // uncolored one, since .card-column always paints a background wash (falls back to a neutral grey
-  // tint with no color of its own) rather than the plain var(--surface) a regular uncolored card gets.
+  // applied to JUST that fill, starting fully solid: a colored regular card, ANY column, or now any
+  // plain-text card type above — even uncolored, since all of these always paint an alpha wash rather
+  // than the flat, non-fadeable var(--surface) a colorless image/youtube card still gets.
   // ("Column ist immer noch random Transparent... es wäre besser wenn es auch bei 100% opacity anfängt")
-  // A regular card with NO color has no alpha background to target at all, so it keeps the old
-  // whole-element fade — Deckkraft's only way to affect it.
-  if(hasOwnColor || isColumn){
+  // Only image/youtube (no own color) has no alpha background at all, so those keep the old
+  // whole-element fade — Deckkraft's only way to affect them, and exactly what a fading photo wants.
+  if(hasOwnColor || isColumn || isPlainTextCard){
     el.style.setProperty('--card-opacity', opacityFrac);
     el.style.opacity='';
   }else{
     el.style.opacity=opacityFrac;
   }
-  // A colorless ("Standard") column is NOT the same as a colorless regular card: .card-column.tag-none
-  // still paints a real, visible grey wash background (rgba(140,149,160, --tag-alpha) — see that rule
-  // above), it just has no color OF ITS OWN. Skipping the contrast computation for it (the old
-  // `if(hasOwnColor)` below) left it stuck on the flat theme --ink/--muted, which was never tuned for
-  // sitting on top of that grey wash — exactly the low-contrast complaint ("das selbe Spiel wie bei
-  // allen anderen... gleiches Auswahlverfahren nach Farbe wie bei den anderen Elementen"). Running it
-  // through the same real-background-aware algorithm as every colored card also happens to solve the
-  // separate "Texte nicht weiß, sondern heller graublauer Ton" ask for free: mixPctForContrast() mixes
-  // toward black/white by at most 70-80%, so the result is always a tinted shade of the fill color
-  // (here, a blue-leaning grey) rather than a flat pure white/black.
-  if(hasOwnColor || isColumn){
+  // A colorless ("Standard") column — or now a colorless note/checklist/table/boardlink — is NOT the
+  // same as a colorless image/youtube card: it still paints a real, visible alpha-wash background (a
+  // neutral grey for a column, the theme's own --surface tone for everything else — see the .tag-none
+  // rules above), it just has no color OF ITS OWN. Skipping the contrast computation for it left it
+  // stuck on the flat theme --ink/--muted, which was never tuned for sitting on top of that composited
+  // wash — exactly the low-contrast complaint ("das selbe Spiel wie bei allen anderen... gleiches
+  // Auswahlverfahren nach Farbe wie bei den anderen Elementen", later: "bei Note/Notiz... mit Opacity
+  // die Schrift so angepasst wird, dass sie leserlich bleibt"). Running it through the same
+  // real-background-aware algorithm as every colored card also happens to solve the separate "Texte
+  // nicht weiß, sondern heller graublauer Ton" ask for free: mixPctForContrast() mixes toward
+  // black/white by at most 70-80%, so the result is always a tinted shade of the fill color (here, a
+  // blue-leaning grey, or the theme's own near-black/near-white) rather than a flat pure white/black.
+  if(hasOwnColor || isColumn || isPlainTextCard){
     const rgbTriplet = isCustomColor
       ? hexToRgbTriplet(card.customColor)
       : hasOwnColor
         ? getComputedStyle(document.documentElement).getPropertyValue('--tag-'+card.color).trim()
-        : '140,149,160';
+        : isColumn
+          ? '140,149,160'
+          // Plain note/checklist/table/boardlink with no color of its own: the "color" its fill is
+          // actually alpha-blending is just the theme surface tone (see --surface-rgb), not a real
+          // accent — used below ONLY for the composited ink/muted/placeholder contrast math, never for
+          // the accent-echoing extras (raw accent color, darker header shade) further down, which stay
+          // exclusive to an actual chosen color/column so a default table/checklist keeps looking
+          // exactly as before.
+          : getComputedStyle(document.documentElement).getPropertyValue('--surface-rgb').trim();
     const parts=rgbTriplet.split(',').map(Number);
     // Contrast has to be computed against what's actually VISIBLE, not the pure/undiluted color —
     // at a low Deckkraft the fill is mostly see-through, so the true backdrop behind the text is this
@@ -5535,26 +5972,35 @@ function baseCardShell(card,extraClass){
     const accentVars=cardAccentTextColors(effectiveTriplet);
     if(accentVars){
       el.style.setProperty('--ink', accentVars.ink); el.style.setProperty('--muted', accentVars.muted);
-      // Same tint as the icon/title (--muted) so the resize-fold in the corner reads as "part of the
-      // card" instead of a leftover neutral grey — one consistent accent color across icon, title and handle.
-      el.style.setProperty('--card-resize-tint', accentVars.muted);
-      // The RAW picked color (not the contrast-adapted --ink/--muted, and NOT composited against the
-      // canvas — this one is meant to show the actual "Eigenschaften tab" color verbatim, regardless
-      // of Deckkraft) — used e.g. for a checklist's checkmark tick.
-      el.style.setProperty('--card-accent-raw', 'rgb('+rgbTriplet+')');
-      // Placeholder text (an empty note, an unnamed column's "Bereich benennen…") should also read as
-      // "this card's color", not the flat neutral --faint every card used before it had its own color.
+      // Placeholder text (an empty note, an unnamed column's "Bereich benennen…") should also stay
+      // legible at whatever Deckkraft the card is at, not fade with the flat neutral --faint every
+      // card used before it had this treatment.
       el.style.setProperty('--card-placeholder-color', accentVars.muted);
-      // A table's header row / row-number column: a visibly DARKER shade of the card's own raw color
-      // (not composited/Deckkraft-dependent, like a column's border) instead of the flat --surface-2
-      // every table used before — "in tabelle das blau müsste dieses dunklere gelb werden". Needs its
-      // own contrast pass (a darker shade doesn't always want the same light/dark text direction the
-      // lighter main fill does).
-      if(parts.length===3 && !parts.some(isNaN)){
-        const headerRgb=parts.map(c=>Math.round(c*0.62));
-        el.style.setProperty('--card-header-bg', 'rgb('+headerRgb.join(',')+')');
-        const headerAccent=cardAccentTextColors(headerRgb.join(','));
-        if(headerAccent) el.style.setProperty('--card-header-ink', headerAccent.ink);
+      // Everything below this point (the corner-fold tint, the raw un-composited accent color used for
+      // a checklist's own checkmark tick, and a table's darker header shade) is specifically about
+      // echoing the card's OWN chosen color — meaningless for a plain colorless card, and setting them
+      // anyway would visibly change the established look of every default table/checklist (e.g. a
+      // white --surface-rgb "accent" would turn checkmarks/progress bars white-on-white). Kept scoped
+      // to an actual color or a column, exactly as before.
+      if(hasOwnColor || isColumn){
+        // Same tint as the icon/title (--muted) so the resize-fold in the corner reads as "part of the
+        // card" instead of a leftover neutral grey — one consistent accent color across icon, title and handle.
+        el.style.setProperty('--card-resize-tint', accentVars.muted);
+        // The RAW picked color (not the contrast-adapted --ink/--muted, and NOT composited against the
+        // canvas — this one is meant to show the actual "Eigenschaften tab" color verbatim, regardless
+        // of Deckkraft) — used e.g. for a checklist's checkmark tick.
+        el.style.setProperty('--card-accent-raw', 'rgb('+rgbTriplet+')');
+        // A table's header row / row-number column: a visibly DARKER shade of the card's own raw color
+        // (not composited/Deckkraft-dependent, like a column's border) instead of the flat --surface-2
+        // every table used before — "in tabelle das blau müsste dieses dunklere gelb werden". Needs its
+        // own contrast pass (a darker shade doesn't always want the same light/dark text direction the
+        // lighter main fill does).
+        if(parts.length===3 && !parts.some(isNaN)){
+          const headerRgb=parts.map(c=>Math.round(c*0.62));
+          el.style.setProperty('--card-header-bg', 'rgb('+headerRgb.join(',')+')');
+          const headerAccent=cardAccentTextColors(headerRgb.join(','));
+          if(headerAccent) el.style.setProperty('--card-header-ink', headerAccent.ink);
+        }
       }
     }
   }
@@ -5816,6 +6262,7 @@ function buildColumnCard(card){
   el.innerHTML=`
     <div class="card-head"><div class="type-chip">${typeChipIcon('column')}</div></div>
     <input class="column-title" placeholder="${t('placeholder_column_title')}" spellcheck="false"/>
+    <div class="column-text" contenteditable="true" data-placeholder="${t('placeholder_column_text')}" spellcheck="false"></div>
     <button type="button" class="col-add-btn left" title="${t('column_add_left_title')}">${iconPlus()}</button>
     <button type="button" class="col-add-btn right" title="${t('column_add_right_title')}">${iconPlus()}</button>
   `;
@@ -5824,15 +6271,25 @@ function buildColumnCard(card){
   input.addEventListener('pointerdown',(e)=>{ if(state.connectMode) return; e.stopPropagation(); });
   input.addEventListener('input',()=>{ card.data.title=input.value; saveCardSoon(card); });
   input.addEventListener('blur',()=>DB.putCard(card));
-  // Enter had no effect at all before (a plain <input> outside a <form> just swallows it) — "kann man
-  // column nicht enter drücken um eine zeile runterzuspringen": confirm the title and hop out of edit
-  // mode, same as every other per-item text field in the app already does on Enter.
+  // The heading stays a single line on purpose (a lane label) — Enter here just confirms it and hops
+  // out of edit mode, same as every other per-item text field in the app already does on Enter.
   input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); input.blur(); } });
   const addLeftBtn=el.querySelector('.col-add-btn.left');
   const addRightBtn=el.querySelector('.col-add-btn.right');
   [addLeftBtn,addRightBtn].forEach(btn=>btn.addEventListener('pointerdown',(e)=>e.stopPropagation()));
   addLeftBtn.addEventListener('click',(e)=>{ e.stopPropagation(); addAdjacentColumn(card,'left'); });
   addRightBtn.addEventListener('click',(e)=>{ e.stopPropagation(); addAdjacentColumn(card,'right'); });
+  // New freeform text field below the heading ("soll gern eine Überschrift und ein Textfeld haben") —
+  // wired exactly like .note-body: Enter inserts a real newline instead of doing nothing/blurring, so
+  // this is the field that actually gets the "Enter Zeilenumbruch" the column itself never had.
+  const text=el.querySelector('.column-text');
+  if(card.data.html!=null) text.innerHTML=card.data.html;
+  else text.textContent=card.data.text||'';
+  text.addEventListener('pointerdown',(e)=>{ if(state.connectMode) return; e.stopPropagation(); });
+  text.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); insertPlainNewlineAtCaret(text); DB.putCard(card); } });
+  wirePlainTextPaste(text);
+  text.addEventListener('input',()=>{ card.data.text=text.textContent; card.data.html=text.innerHTML; saveCardSoon(card); });
+  text.addEventListener('blur',()=>{ card.data.text=text.textContent; card.data.html=text.innerHTML; DB.putCard(card); });
   return el;
 }
 // Deterministic (not random) shared clusterId for "every column on this board" — deterministic on
@@ -5857,6 +6314,65 @@ function reconcileColumnMesh(){
   untouched.forEach(c=>{ c.clusterId=meshId; });
   DB.putCards(untouched);
 }
+// "wie viele von den Feldern in einer Reihe sein können... immer dynamisch" — reads the current
+// per-row limit for a mesh. Stored on card.columnsPerRow (every column in the mesh is kept in sync —
+// see setColumnsPerRowForMesh), so any one of them answers for the whole group; 0/undefined means "no
+// limit", i.e. the original single free-form row every column already had before this existed.
+function meshColumnsPerRow(meshId){
+  const c=state.cards.find(cc=>cc.type==='column' && cc.clusterId===meshId && cc.columnsPerRow);
+  return c ? c.columnsPerRow : 0;
+}
+// Applies a new per-row limit to every column sharing `card`'s mesh, then reflows them into that grid
+// right away — changing the number is meant to visibly regroup the row(s) on the spot, not just take
+// effect the next time a column is added.
+function setColumnsPerRowForMesh(card, n){
+  const meshId=card.clusterId || columnMeshId(state.currentBoardId);
+  const cols=state.cards.filter(c=>c.type==='column' && (c.clusterId===meshId || c.id===card.id));
+  const now=Date.now();
+  cols.forEach(c=>{ c.clusterId=meshId; c.columnsPerRow=n||null; c.updatedAt=now; });
+  DB.putCards(cols);
+  reflowColumnGrid(meshId, n);
+}
+// Pure grid-position math, shared by the live-board reflow below AND by template seeding (which
+// can't go through reflowColumnGrid itself — seeding writes straight to DB.putBoard/putCards for a
+// board that usually isn't the currently open one, so there's no state.cards entry yet for it to
+// filter). One formula either way guarantees a seeded template and a later "+" on a live board always
+// produce identical spacing. Each row's height is that row's own tallest item (sizes can differ), and
+// `gap` is reused for both axes so a wrapped grid reads as consistently spaced as a single row always has.
+function layoutColumnsGrid(sizes, originX, originY, perRow, gap){
+  const positions=[];
+  let x=originX, y=originY, rowMaxH=0;
+  sizes.forEach((s,i)=>{
+    if(i>0 && i%perRow===0){ x=originX; y+=rowMaxH+gap; rowMaxH=0; }
+    positions.push({x,y});
+    x+=s.w+gap;
+    rowMaxH=Math.max(rowMaxH,s.h);
+  });
+  return positions;
+}
+// Live-board version: walks the mesh's columns in reading order (current row first, then left to
+// right within it), anchored at the group's own existing top-left corner so a count change reflows in
+// place instead of jumping the whole mesh elsewhere. `appendLastId`, when given, forces that one card
+// to sort after every other column regardless of its (still provisional) x/y — how a freshly-added
+// column always lands as the newest, last slot rather than wherever it happened to spawn.
+function reflowColumnGrid(meshId, perRow, appendLastId){
+  if(!perRow) return;
+  const cols=state.cards.filter(c=>c.type==='column' && c.clusterId===meshId);
+  if(cols.length<2) return;
+  const sorted=[...cols].sort((a,b)=>{
+    if(appendLastId){ if(a.id===appendLastId) return 1; if(b.id===appendLastId) return -1; }
+    return (Math.round(a.y/40)-Math.round(b.y/40)) || (a.x-b.x);
+  });
+  const gap=24;
+  const positions=layoutColumnsGrid(sorted.map(c=>({w:c.w,h:c.h})), sorted[0].x, sorted[0].y, perRow, gap);
+  const now=Date.now();
+  const touched=[];
+  sorted.forEach((c,i)=>{
+    const p=positions[i];
+    if(c.x!==p.x || c.y!==p.y){ c.x=p.x; c.y=p.y; c.updatedAt=now; touched.push(c); }
+  });
+  if(touched.length){ DB.putCards(touched); renderAllCards(); applySelectionClasses(); updateConnectorPositions(); }
+}
 // Finds the nearest other column that's roughly on the same row as `card` and sits on the given
 // side of it — "roughly the same row" meaning their y-ranges actually overlap, not just close y
 // values, so a column two rows down/up is never mistaken for the immediate neighbor.
@@ -5879,7 +6395,34 @@ function findAdjacentColumn(card,side){
 // tight gap — and that neighbor, plus every column further along the row past it, is pushed further
 // out to make room ("beim Plus zwischen 1 und 2 soll die neue Spalte Platz 2 einnehmen und Spalte 2
 // wird zu 3" — a real reflow, not "shrink both columns until it fits between them").
+// Once a mesh has a per-row limit, "+" always appends a fresh column at the very END of the row
+// order and reflows the whole grid to fit it — the left/right insert-and-push dance below stops
+// making sense once columns can wrap onto more than one row (there's no single row left "of" or
+// "right of" a card to push along anymore). "der 6te den man erstellt soll neben 5 in der zweiten
+// Zeile beginnen" — exactly this: always the next open slot, regardless of which column's own +
+// button was actually clicked.
+async function addColumnToGrid(card, meshId, perRow){
+  const newCard={
+    id:uid(), boardId:state.currentBoardId, type:'column', color:card.color||'none',
+    opacity:card.opacity==null?60:card.opacity,
+    x:card.x, y:card.y, w:card.w, h:card.h, z:Math.min(0,...state.cards.map(c=>c.z||0))-1,
+    clusterId:meshId, columnsPerRow:perRow,
+    data:{title:''}, createdAt:Date.now(), updatedAt:Date.now()
+  };
+  state.cards.push(newCard);
+  await DB.putCard(newCard);
+  reflowColumnGrid(meshId, perRow, newCard.id);
+  selectOnly(newCard.id);
+  touchBoard();
+  focusNewCard(newCard);
+  const newEl=cardsLayer.querySelector(`.card[data-id="${newCard.id}"]`);
+  if(newEl){ newEl.classList.add('spawn-in'); newEl.addEventListener('animationend',()=>newEl.classList.remove('spawn-in'),{once:true}); }
+  return newCard;
+}
 async function addAdjacentColumn(card,side){
+  const meshId=card.clusterId || columnMeshId(state.currentBoardId);
+  const perRow=card.columnsPerRow || meshColumnsPerRow(meshId);
+  if(perRow) return addColumnToGrid(card, meshId, perRow);
   const gap=24;
   const w=card.w;
   const x = side==='left' ? card.x-gap-w : card.x+card.w+gap;
@@ -6061,50 +6604,84 @@ function typeChipIconBig(){return `<svg width="22" height="22" viewBox="0 0 24 2
 // Clears whatever is currently embedded so the card falls back to the tab-selection/link-input state —
 // used by the inspector's "embed a different widget" personalization button (moved there, off the card
 // itself, same decluttering as the checklist/table toggles).
+// Five kinds now share this one card type: YouTube and Spotify are their own standalone widgets
+// (added directly from the dock's Widgets submenu, no tab switcher on the card itself any more —
+// "YouTube und Spotify sollen standalone Dinger sein"); Pinterest/Cosmos/Eyecandy instead share a
+// single "Creative" widget with its own internal tab switch between the three, exactly like
+// YouTube/Spotify used to share one card before this. CREATIVE_KINDS is the one place that grouping
+// is defined — everything else (which tabs render, which resize behavior applies) reads from it.
+const CREATIVE_KINDS=new Set(['pinterest','cosmos','eyecandy']);
 function resetWidgetEmbed(card){
-  card.data.videoId=null; card.data.spotifyId=null; card.data.spotifyType=null; card.data.pinterestUrl=null; card.data.url='';
+  card.data.videoId=null; card.data.spotifyId=null; card.data.spotifyType=null;
+  card.data.pinterestUrl=null; card.data.cosmosUrl=null; card.data.eyecandyUrl=null; card.data.url='';
   DB.putCard(card); renderAllCards(); applySelectionClasses();
+}
+const WIDGET_KIND_LABEL={youtube:'YouTube', spotify:'Spotify', pinterest:'Pinterest', cosmos:'Cosmos', eyecandy:'Eyecandy'};
+function isWidgetEmbedded(card){
+  switch(card.data.kind){
+    case 'spotify': return !!card.data.spotifyId;
+    case 'pinterest': return !!card.data.pinterestUrl;
+    case 'cosmos': return !!card.data.cosmosUrl;
+    case 'eyecandy': return !!card.data.eyecandyUrl;
+    default: return !!card.data.videoId;
+  }
 }
 function buildWidgetCard(card){
   const el=baseCardShell(card,'card-youtube');
   if(!card.data.kind) card.data.kind='youtube';
-  const embedded = card.data.kind==='spotify' ? !!card.data.spotifyId
-    : card.data.kind==='pinterest' ? !!card.data.pinterestUrl
-    : !!card.data.videoId;
+  const kind=card.data.kind;
+  const embedded=isWidgetEmbedded(card);
   el.classList.toggle('embedded',embedded);
   if(embedded){
-    const isYt=card.data.kind==='youtube';
-    const isPin=card.data.kind==='pinterest';
-    const label=isPin?'Pinterest':(isYt?'YouTube':'Spotify');
+    const label=WIDGET_KIND_LABEL[kind];
     let frameHtml;
-    if(isPin){
+    if(kind==='pinterest'){
       frameHtml=`<div class="yt-frame-wrap pin-frame"><a data-pin-do="embedBoard" href="${escapeHtml(card.data.pinterestUrl)}"></a></div>`;
-    }else{
-      const src=isYt
-        ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(card.data.videoId)}`
-        : `https://open.spotify.com/embed/${encodeURIComponent(card.data.spotifyType)}/${encodeURIComponent(card.data.spotifyId)}`;
+    }else if(kind==='cosmos' || kind==='eyecandy'){
+      // Plain page embeds, not an official widget script the way Pinterest's is — a raw <iframe> to
+      // whatever URL was pasted. Unlike Pinterest, this DOES track further CSS resizes live and
+      // reactively (it's just width/height:100%, no fixed size baked in at load time), so — unlike
+      // Pinterest — no extra rebuild-on-resize-end is needed for these two.
+      const url=kind==='cosmos'?card.data.cosmosUrl:card.data.eyecandyUrl;
+      frameHtml=`<div class="yt-frame-wrap creative-frame"><iframe src="${escapeHtml(url)}" title="${label} Widget" loading="lazy"></iframe></div>`;
+    }else if(kind==='youtube'){
+      const src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(card.data.videoId)}`;
       frameHtml=`<div class="yt-frame-wrap"><iframe src="${src}" title="${label} Widget" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    }else{
+      const src=`https://open.spotify.com/embed/${encodeURIComponent(card.data.spotifyType)}/${encodeURIComponent(card.data.spotifyId)}`;
+      // Spotify's iframe has exactly two internal layouts (a short "compact" bar or a tall card with
+      // tracklist) picked by the height it's given, not a continuously scaling player like YouTube's —
+      // giving it any other height just shows Spotify's own dark backdrop padded around a
+      // fixed-size compact bar ("soll wirklich nur Oberfläche von Spotify zu sehen sein", no border).
+      // card.h is kept pinned to SPOTIFY_COMPACT_HEIGHT (see attachResize/commit below) specifically
+      // so this box always matches that compact layout exactly, with nothing left over to pad.
+      frameHtml=`<div class="yt-frame-wrap spotify-frame"><iframe src="${src}" title="${label} Widget" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
     }
     el.innerHTML=`
       <div class="card-head"><div class="type-chip">${typeChipIcon('youtube')}</div><span class="card-title-field" style="pointer-events:none;">${label}</span></div>
       ${frameHtml}
     `;
-    if(isPin){
+    if(kind==='pinterest'){
       loadPinIt().then(()=>{ if(window.PinUtils && PinUtils.build) PinUtils.build(); });
     }
   }else{
-    const isYt=card.data.kind==='youtube';
-    const isPin=card.data.kind==='pinterest';
-    const placeholder=isPin?t('placeholder_pinterest_link'):(isYt?t('placeholder_youtube_link'):t('placeholder_spotify_link'));
+    const isCreative=CREATIVE_KINDS.has(kind);
+    const placeholderKey={youtube:'placeholder_youtube_link', spotify:'placeholder_spotify_link',
+      pinterest:'placeholder_pinterest_link', cosmos:'placeholder_cosmos_link', eyecandy:'placeholder_eyecandy_link'}[kind];
+    // YouTube/Spotify are standalone now — no tab switcher on the card itself, just that one kind's
+    // input. Creative (Pinterest/Cosmos/Eyecandy) keeps the same in-card tab switch the old combined
+    // widget used to have, just scoped to those three instead of all five.
+    const tabsHtml=isCreative ? `
+      <div class="widget-tabs">
+        <button type="button" class="widget-tab${kind==='pinterest'?' active':''}" data-kind="pinterest">Pinterest</button>
+        <button type="button" class="widget-tab${kind==='cosmos'?' active':''}" data-kind="cosmos">Cosmos</button>
+        <button type="button" class="widget-tab${kind==='eyecandy'?' active':''}" data-kind="eyecandy">Eyecandy</button>
+      </div>` : '';
     el.innerHTML=`
       <div class="card-head"><div class="type-chip">${typeChipIcon('youtube')}</div></div>
-      <div class="widget-tabs">
-        <button type="button" class="widget-tab${isYt?' active':''}" data-kind="youtube">YouTube</button>
-        <button type="button" class="widget-tab${card.data.kind==='spotify'?' active':''}" data-kind="spotify">Spotify</button>
-        <button type="button" class="widget-tab${isPin?' active':''}" data-kind="pinterest">Pinterest</button>
-      </div>
+      ${tabsHtml}
       <div class="yt-input-wrap">
-        <input placeholder="${placeholder}" spellcheck="false"/>
+        <input placeholder="${t(placeholderKey)}" spellcheck="false"/>
         <button class="yt-go">${t('yt_embed_button')}</button>
       </div>
     `;
@@ -6119,12 +6696,26 @@ function buildWidgetCard(card){
     const input=el.querySelector('input'); const go=el.querySelector('.yt-go');
     input.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
     function commit(){
-      if(card.data.kind==='spotify'){
+      if(kind==='spotify'){
         const sp=extractSpotifyEmbed(input.value);
-        if(sp){ card.data.spotifyType=sp.type; card.data.spotifyId=sp.id; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
-      }else if(card.data.kind==='pinterest'){
+        if(sp){
+          card.data.spotifyType=sp.type; card.data.spotifyId=sp.id; card.data.url=input.value;
+          // Snap straight to the compact-embed height the moment a link is embedded — otherwise the
+          // card keeps whatever height it happened to have (e.g. a leftover 16:9-ish size from
+          // before), and Spotify pads that mismatch with its own dark backdrop until the next manual
+          // resize fixes it.
+          card.h=SPOTIFY_COMPACT_HEIGHT; card.w=clamp(card.w,220,2000);
+          DB.putCard(card); renderAllCards(); applySelectionClasses();
+        }
+      }else if(kind==='pinterest'){
         const board=extractPinterestBoard(input.value);
         if(board){ card.data.pinterestUrl=board; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
+      }else if(kind==='cosmos'){
+        const url=extractCosmosUrl(input.value);
+        if(url){ card.data.cosmosUrl=url; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
+      }else if(kind==='eyecandy'){
+        const url=extractEyecandyUrl(input.value);
+        if(url){ card.data.eyecandyUrl=url; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
       }else{
         const vid=extractYouTubeId(input.value);
         if(vid){ card.data.videoId=vid; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
@@ -6608,17 +7199,28 @@ function buildBoardlinkCard(card){
   el.innerHTML=`
     <div class="card-head"><div class="type-chip">${typeChipIcon('boardlink')}</div></div>
     <div class="bl-body">
-      <div class="bl-spine"></div>
+      <div class="board-badge board-badge-lg"></div>
       <div class="bl-name" contenteditable="true" spellcheck="false"></div>
-      <div class="bl-open">${t('bl_open_label')} ${iconLink()}</div>
+      <div class="bl-meta"><span class="bl-count"></span><span class="bl-open" title="${t('bl_open_label')}">${iconLink()}</span></div>
     </div>
   `;
   el.querySelector('.bl-name').textContent=card.data.title||t('untitled_board');
-  // The sub-board's own stripe — "die Farbe vom Strich färbt sich passend mit" — read live from the
-  // linked board's own b.color (state.boards is populated by the time any card renders; see
-  // openBoard()), same value the home tile's spine and #boardColorBtn's dot show for that board.
+  // The badge — letter/preset/masked-image icon, plus the linked board's own color — reads live from
+  // state.boards (populated by the time any card renders; see openBoard()), same source the home
+  // tile's badge and #boardColorBtn's dot use for that board. Editing it lives in this card's own
+  // inspector now ("über den Eigenschaftentab"), not on the card face itself — see
+  // wireBoardlinkInspectorRow. The element-count half of .bl-meta mirrors the home tile's own
+  // "{n} Elemente" meta line ("16 cards, 2 files" in spirit — see BOARD BADGE block above for why a
+  // single combined count was used instead of a literal cards/files split).
   const linkedBoard=boardById(card.data.boardId);
-  if(linkedBoard) el.querySelector('.bl-spine').style.background=linkedBoard.color||'var(--accent)';
+  const badgeEl=el.querySelector('.board-badge');
+  if(linkedBoard){
+    paintBoardBadgeElement(badgeEl, linkedBoard);
+    countBoardElements(linkedBoard.id).then(n=>{
+      const countEl=el.querySelector('.bl-count');
+      if(countEl) countEl.textContent=t('tile_element_count',{n,e:n===1?'':'e'});
+    });
+  }
   const nameEl=el.querySelector('.bl-name');
   nameEl.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
   // Editing this label also renames the linked board itself — but only commit that on blur/Enter,
@@ -6802,12 +7404,18 @@ function attachDragAndSelect(el,card){
   }
 }
 
-// YouTube's actual player is always 16:9; Spotify's iframe embed doesn't have a true "native"
-// ratio the way video does, but its own official embeds read as noticeably taller-than-wide at
-// normal size — this is a reasonable stand-in for "looks like the real thing" rather than an
-// exact spec. Widget cards resize freely along one axis and derive the other from this ratio,
-// so they always end up in-format instead of an arbitrarily-shaped box around the player.
-const WIDGET_ASPECT={youtube:16/9, spotify:300/352};
+// YouTube's actual player is always 16:9, so it resizes width-leads/height-follows via a fixed
+// ratio. Spotify and Pinterest each get their own, different treatment right below — neither of
+// them is a fixed-ratio player the way a video is.
+const WIDGET_ASPECT={youtube:16/9};
+// Spotify's own /embed/ iframe has exactly two internal layouts, picked by the height it's given —
+// a short "compact" bar (this one, Spotify's own documented default for a track/episode embed) or a
+// taller card with a full tracklist — not a continuously-scaling player. Any other height just
+// shows Spotify's own dark backdrop padded around the same fixed-size compact bar, which is what
+// read as "falsches Format... schwarzer Rand". Pinning the card's height here and only ever
+// resizing its width keeps it exactly in Spotify's own compact layout, "wirklich nur die Oberfläche
+// von Spotify".
+const SPOTIFY_COMPACT_HEIGHT=152;
 function attachResize(handle,el,card){
   let rs=null;
   handle.addEventListener('pointerdown',(e)=>{
@@ -6819,17 +7427,21 @@ function attachResize(handle,el,card){
     if(!rs) return;
     const dx=(e.clientX-rs.sx)/state.view.zoom;
     const dy=(e.clientY-rs.sy)/state.view.zoom;
-    if(card.type==='youtube' && card.data.kind!=='pinterest'){
+    if(card.type==='youtube' && card.data.kind==='youtube'){
       // Width leads (matches the drag direction most people reach for on a wide media box);
       // height always follows it via the fixed ratio, so the frame can't drift out of format.
-      const ratio=WIDGET_ASPECT[card.data.kind]||WIDGET_ASPECT.youtube;
       card.w=snap(clamp(rs.w+dx,180,2000));
-      card.h=clamp(Math.round(card.w/ratio),120,2000);
-    }else if(card.type==='youtube' && card.data.kind==='pinterest'){
-      // Pinterest's board widget isn't a fixed-ratio player — it's a scrollable list of pin
-      // thumbnails, so unlike YouTube/Spotify it resizes freely on both axes (same floors as a
-      // plain note card) and any extra height just means more of the board is visible before
-      // the internal scrollbar kicks in.
+      card.h=clamp(Math.round(card.w/WIDGET_ASPECT.youtube),120,2000);
+    }else if(card.type==='youtube' && card.data.kind==='spotify'){
+      // Width-only: height stays pinned to the compact embed's own fixed height (see
+      // SPOTIFY_COMPACT_HEIGHT above) no matter how the corner handle is dragged.
+      card.w=snap(clamp(rs.w+dx,220,2000));
+      card.h=SPOTIFY_COMPACT_HEIGHT;
+    }else if(card.type==='youtube' && CREATIVE_KINDS.has(card.data.kind)){
+      // Pinterest/Cosmos/Eyecandy: none of the three is a fixed-ratio player — Pinterest's board
+      // widget is a scrollable list of pin thumbnails, Cosmos/Eyecandy are plain page embeds — so all
+      // three resize freely on both axes (same floors as a plain note card) and any extra height
+      // just shows more of the board/page rather than distorting anything.
       card.w=snap(clamp(rs.w+dx,180,2000));
       card.h=snap(clamp(rs.h+dy,120,2000));
     }else if(card.type==='table'){
@@ -6876,6 +7488,16 @@ function attachResize(handle,el,card){
   handle.addEventListener('pointerup',(e)=>{
     if(!rs) return;
     rs=null; DB.putCard(card);
+    if(card.type==='youtube' && card.data.kind==='pinterest'){
+      // Pinterest's own widget script measures its container's width once and builds a FIXED-size
+      // iframe from it — unlike a plain <iframe> (width/height:100%), it does NOT reactively track
+      // further CSS resizes, so the box above grows live during the drag but the actual pin grid
+      // inside stays whatever size it started at, leaving a growing gap of bare white space instead
+      // of "mehr Inhalte des Boards" ("eigentlich sollte ja auch das Pinterest Ding größer werden").
+      // Rebuilding the card re-creates a fresh, unconverted anchor at the new width and re-runs
+      // pinit.js against it, so the widget itself actually grows to fill it.
+      renderAllCards(); applySelectionClasses();
+    }
   });
 }
 
@@ -7224,7 +7846,7 @@ function updateConnectorPositions(){
 function cardSearchText(c){
   if(c.type==='note') return c.data.text||'';
   if(c.type==='checklist') return (c.data.title||'')+' '+(c.data.items||[]).map(i=>i.text||'').join(' ');
-  if(c.type==='column') return c.data.title||'';
+  if(c.type==='column') return (c.data.title||'')+' '+(c.data.text||'');
   if(c.type==='table') return (c.data.title||'')+' '+Object.values(c.data.cells||{}).map(cell=>cell&&cell.text||'').join(' ');
   if(c.type==='boardlink') return c.data.title||'';
   return '';
@@ -7669,7 +8291,7 @@ async function addCard(type, extra){
   const center = extra && extra.at ? extra.at : cascadeCenter();
   let w=260,h=160,data={};
   if(type==='note'){ w=220; h=140; data={text:''}; }
-  if(type==='column'){ w=380; h=280; data={title:''}; }
+  if(type==='column'){ w=380; h=280; data={title:'', text:''}; }
   if(type==='checklist'){ w=260; h=180; data={title:'',items:[]}; }
   if(type==='table'){
     w=380; h=220;
@@ -7679,7 +8301,7 @@ async function addCard(type, extra){
   // of letting the box's shape drift away from it — a switch in the Eigenschaften/inspector panel
   // lets it be turned off per-image for the old free-form (crop via object-fit:cover) behavior.
   if(type==='image'){ w=280; h=200; data={imageId:extra&&extra.imageId?extra.imageId:null, caption:'', lockAspect:true}; }
-  if(type==='youtube'){ w=320; h=200; data={kind:'youtube', videoId:extra&&extra.videoId?extra.videoId:null, url:extra&&extra.url?extra.url:''}; }
+  if(type==='youtube'){ w=320; h=200; data={kind:(extra&&extra.kind)||'youtube', videoId:extra&&extra.videoId?extra.videoId:null, url:extra&&extra.url?extra.url:''}; }
   if(type==='boardlink'){
     if(!(await ensureStorageReady())) return;
     w=200; h=140;
@@ -7751,6 +8373,62 @@ function handleAddTool(type,at){
   addCard(type, at?{at}:undefined);
 }
 
+// "Widgets" no longer adds a card directly — it opens this small submenu (YouTube / Spotify /
+// Creative) first, shared by the dock button, the mobile drawer entry, and the create-menu's own
+// Widgets tile, all three routed through here rather than each keeping a separate copy. Labels are
+// resolved fresh on every open (not cached at module-load time) so a language switch via setLang()
+// is picked up immediately, same as every other dynamically-built menu in the app.
+const WIDGET_FAMILY_KINDS=[
+  {familyKind:'youtube', label:'YouTube'},
+  {familyKind:'spotify', label:'Spotify'},
+  {familyKind:'creative', labelKey:'widget_family_creative_label'},
+];
+function addWidgetCardOfKind(familyKind,at){
+  // "Creative" isn't a real embed kind on its own — it opens on Pinterest, the first of its three
+  // internal tabs (Cosmos/Eyecandy are still one click away via the tab switch on the card itself).
+  const initialKind = familyKind==='creative' ? 'pinterest' : familyKind;
+  addCard('youtube', {kind:initialKind, at});
+}
+let widgetSubmenuEl=null;
+function ensureWidgetSubmenu(){
+  if(widgetSubmenuEl) return widgetSubmenuEl;
+  const el=document.createElement('div');
+  el.className='widget-submenu'; el.hidden=true;
+  document.body.appendChild(el);
+  widgetSubmenuEl=el;
+  return el;
+}
+function closeWidgetSubmenu(){ if(widgetSubmenuEl) widgetSubmenuEl.hidden=true; }
+// anchor is either a real element (dock/drawer button, still in the DOM when this runs) or a plain
+// {top,left,right,bottom,width,height} rect already captured earlier (the create-menu tile, which
+// is removed from the DOM — via closeCreateMenu() — before this ever gets a chance to measure it).
+function openWidgetSubmenu(anchor,onPick){
+  const el=ensureWidgetSubmenu();
+  const r=(anchor instanceof Element) ? anchor.getBoundingClientRect() : anchor;
+  el.innerHTML=WIDGET_FAMILY_KINDS.map(it=>
+    `<button type="button" class="widget-submenu-item" data-kind="${it.familyKind}">${it.labelKey?t(it.labelKey):it.label}</button>`
+  ).join('');
+  el.hidden=false;
+  el.querySelectorAll('.widget-submenu-item').forEach(btn=>{
+    btn.addEventListener('click',(e)=>{ e.stopPropagation(); closeWidgetSubmenu(); onPick(btn.dataset.kind); });
+  });
+  const mw=el.offsetWidth||132, mh=el.offsetHeight||110;
+  let left=Math.max(6, Math.min(r.left+r.width/2-mw/2, window.innerWidth-mw-6));
+  // Opens upward by default — the dock sits at the very bottom of the screen, so a downward menu
+  // would run straight off-viewport — falling back to below only if there's genuinely no room above.
+  let top=r.top-mh-8;
+  if(top<6) top=r.bottom+8;
+  el.style.left=left+'px'; el.style.top=top+'px';
+}
+document.addEventListener('pointerdown',(e)=>{
+  if(!widgetSubmenuEl || widgetSubmenuEl.hidden) return;
+  if(e.target.closest('.widget-submenu')) return;
+  closeWidgetSubmenu();
+});
+window.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape' && widgetSubmenuEl && !widgetSubmenuEl.hidden) closeWidgetSubmenu();
+});
+
 /* ---------- CREATE MENU (double-click on empty canvas) ---------- */
 const CREATE_MENU_TYPES=['note','image','youtube','column','checklist','table','board'];
 const CREATE_MENU_LABEL_KEY={
@@ -7813,6 +8491,15 @@ function wireCreateMenuItem(itemEl){
       itemEl.removeEventListener('pointerup',onUp);
       itemEl.removeEventListener('pointercancel',onUp);
       const finalAt=dragging?screenToCanvas(ev.clientX,ev.clientY):dropAt;
+      if(type==='youtube' && !dragging){
+        // Widgets: a plain click (not a drag-out) opens the YouTube/Spotify/Creative submenu instead
+        // of dropping a card outright — dragging it out still places a standalone YouTube widget
+        // directly, same as before, so that shortcut isn't lost.
+        const anchorRect=itemEl.getBoundingClientRect();
+        closeCreateMenu();
+        openWidgetSubmenu(anchorRect,(familyKind)=>{ addWidgetCardOfKind(familyKind,finalAt); });
+        return;
+      }
       closeCreateMenu();
       handleAddTool(type,finalAt);
     }
@@ -7838,11 +8525,28 @@ document.getElementById('dock').addEventListener('click',(e)=>{
   const btn=e.target.closest('.dock-btn[data-add]');
   if(!btn) return;
   btn.blur(); // never leave the toolbar button focused — typing right after must land in the new card, not re-trigger this button
+  if(btn.dataset.add==='youtube'){
+    e.stopPropagation();
+    // Toggle: clicking the already-open trigger again just closes it, rather than reopening in the
+    // exact same place.
+    if(widgetSubmenuEl && !widgetSubmenuEl.hidden && widgetSubmenuEl.dataset.openFor===btn.dataset.add+'-dock'){
+      closeWidgetSubmenu();
+      return;
+    }
+    openWidgetSubmenu(btn,(familyKind)=>{ addWidgetCardOfKind(familyKind); });
+    if(widgetSubmenuEl) widgetSubmenuEl.dataset.openFor=btn.dataset.add+'-dock';
+    return;
+  }
   handleAddTool(btn.dataset.add);
 });
 document.getElementById('mobileDrawer').addEventListener('click',(e)=>{
   const btn=e.target.closest('.drawer-btn[data-add]');
   if(!btn) return;
+  if(btn.dataset.add==='youtube'){
+    e.stopPropagation();
+    openWidgetSubmenu(btn,(familyKind)=>{ closeDrawer(); addWidgetCardOfKind(familyKind); });
+    return;
+  }
   closeDrawer();
   handleAddTool(btn.dataset.add);
 });
@@ -8650,7 +9354,158 @@ async function importBundle(payload){
 const templateBtn=document.getElementById('templateBtn');
 if(templateBtn) templateBtn.addEventListener('click',showTemplatePickerModal);
 
+/* ============================================================
+   BUILT-IN TEMPLATES — the template picker (above) only ever showed templates the user had
+   explicitly saved themselves; this seeds one ready-made one in alongside them ("Vorgefertigte
+   Templates im Templatebuilder"), the same way a user-saved template works (a real board flagged
+   isTemplate:true), just created automatically instead of via "Aktuelles Board als Vorlage
+   speichern". builtinTemplateKey is the marker that stops it from being re-seeded every time the
+   picker opens — checked, not the name, so a user renaming it doesn't cause a duplicate.
+   ============================================================ */
+const BUILTIN_TEMPLATE_KEYS=['shotlist'];
+async function ensureBuiltinTemplates(){
+  try{
+    const existing=await DB.allTemplates();
+    const have=new Set(existing.map(b=>b.builtinTemplateKey).filter(Boolean));
+    if(!have.has('shotlist')) await seedShotlistTemplate();
+  }catch(e){}
+}
+// "Shotlist" — redesigned to Tom's own spec (a hand-drawn structure + explicit instructions), not the
+// earlier B-Roll-tracker layout: a root board holding just the shot table plus two sub-boards reached
+// via boardlink cards — "Shotlist Visuals" (left empty on purpose, a blank board ready for reference
+// images) and "Context Board" (four Columns, one per shot, each with a heading and a short scene-notes
+// skeleton in its own text field — the same Column text field added earlier this round). No third
+// "Scene Build" sub-board — explicitly dropped per "Scenebuild soll weg".
+async function seedShotlistTemplate(){
+  const now=Date.now();
+  const rootId=uid();
+  const visualsId=uid();
+  const contextId=uid();
+  const mkBoard=(id,name,color,parentBoardId)=>({
+    id, name, color, parentBoardId, parentCardId:null, createdAt:now, updatedAt:now,
+    view:{x:0,y:0,zoom:1}, gridEnabled:true, snapEnabled:true,
+  });
+  // Only the ROOT gets isTemplate/builtinTemplateKey — DB.allTemplates() (what both
+  // ensureBuiltinTemplates' own re-seed check and the template picker's tile grid read from) filters
+  // on that flag, so marking the two sub-boards the same way would make them show up as their own
+  // separate top-level tiles instead of staying reachable only by navigating into "Shotlist" itself.
+  const rootBoard={...mkBoard(rootId,t('template_shotlist_name'),'#5A9FD6',null), isTemplate:true, builtinTemplateKey:'shotlist'};
+  const visualsBoard=mkBoard(visualsId,t('template_shotlist_visuals_name'),'#FF6B57',rootId);
+  const contextBoard=mkBoard(contextId,t('template_shotlist_context_name'),'#DE8A4F',rootId);
+  await DB.putBoard(rootBoard);
+  await DB.putBoard(visualsBoard);
+  await DB.putBoard(contextBoard);
+
+  const mk=(boardId,over)=>({ id:uid(), boardId, color:'none', createdAt:now, updatedAt:now, ...over });
+  const mkRow=()=>({id:uid(), h:30});
+
+  // Root board: just the shot table + the two boardlink cards, matching the reference structure
+  // exactly — no cover/guide notes this time.
+  const cols=[
+    {id:uid(), w:150, label:t('template_shotlist_col_shot')},
+    {id:uid(), w:140, label:t('template_shotlist_col_equipment')},
+    {id:uid(), w:110, label:t('template_shotlist_col_lens')},
+    {id:uid(), w:110, label:t('template_shotlist_col_shotsize')},
+    {id:uid(), w:110, label:t('template_shotlist_col_movement')},
+    {id:uid(), w:130, label:t('template_shotlist_col_cameraangle')},
+    {id:uid(), w:240, label:t('template_shotlist_col_actiondesc')},
+  ];
+  const rows=[mkRow(),mkRow(),mkRow(),mkRow(),mkRow()];
+  const tableCard=mk(rootId,{type:'table', x:40,y:40, w:990,h:260, z:1,
+    data:{title:t('template_shotlist_name'), cols, rows, cells:{}, rowColors:{}, colColors:{}, ampelMode:false, showProgress:false}});
+  const visualsLink=mk(rootId,{type:'boardlink', x:1070,y:40, w:200,h:140, z:1,
+    data:{boardId:visualsId, title:visualsBoard.name}});
+  const contextLink=mk(rootId,{type:'boardlink', x:1070,y:200, w:200,h:140, z:1,
+    data:{boardId:contextId, title:contextBoard.name}});
+  await DB.putCards([tableCard, visualsLink, contextLink]);
+
+  // "Shotlist Visuals": deliberately left completely empty ("soll einfach nix drin sein") — a blank
+  // board the sub-board link opens into, ready for reference images/frames to be dropped in.
+
+  // "Context Board": rebuilt after Tom's second reference screenshot (Milanote's own "Pre-production
+  // plan" example) — 4 Columns ("About the film" / "Inspiration" / "Story" / "Filming"), each holding a
+  // few nested cards (Note/Image/Checklist/boardlink), all wrapped at columnsPerRow:4 — the exact same
+  // "so eine Column Struktur" the earlier Shot-columns already were, just carrying the new content
+  // instead. Genericized rather than a verbatim copy of Milanote's own demo (no "Melinda Harrow"/"K.
+  // Productions"/address/premise) — blank labeled fields stand in for the reference's specific content,
+  // same principle already used for the Notion Shotlist template earlier in the project. Notua has no
+  // generic file-attachment card type yet, so the reference's mp3/zip/mp4 file-preview cards are
+  // represented as Note placeholders here — a disclosed simplification, and the direct motivation for
+  // the separate file-import feature Tom asked for in the same message.
+  const subBoards=[
+    {key:'ideas', name:t('template_ctx_subboard_ideas')},
+    {key:'moodboard', name:t('template_ctx_subboard_moodboard')},
+    {key:'storyboard', name:t('template_ctx_subboard_storyboard')},
+    {key:'callsheet', name:t('template_ctx_subboard_callsheet')},
+  ].reduce((acc,s)=>{ acc[s.key]=mkBoard(uid(),s.name,'#8C95A0',contextId); return acc; },{});
+  await DB.putBoard(subBoards.ideas);
+  await DB.putBoard(subBoards.moodboard);
+  await DB.putBoard(subBoards.storyboard);
+  await DB.putBoard(subBoards.callsheet);
+
+  // Shared grid math (layoutColumnsGrid) — the same function the live "columns per row" inspector
+  // control uses to reflow columns — so the template's own spacing can never drift out of sync with
+  // what a manual "+" on a live board produces (this is also the fix for "die Abstände sind zwischendurch
+  // größer zwischendurch kleiner": the old seed code hand-rolled its own stride instead of sharing the
+  // one true gap constant).
+  const COL_GAP=24, colSize={w:300,h:700};
+  const colPositions=layoutColumnsGrid([colSize,colSize,colSize,colSize], 40, 40, 4, COL_GAP);
+  const meshId=columnMeshId(contextId);
+  const ctxCols=['about','inspiration','story','filming'].map((key,i)=>mk(contextId,{
+    type:'column', x:colPositions[i].x, y:colPositions[i].y, w:colSize.w, h:colSize.h, z:-1, opacity:60,
+    clusterId:meshId, columnsPerRow:4,
+    data:{title:t('template_ctx_col_'+key), text:''},
+  }));
+  const [aboutCol,inspirationCol,storyCol,filmingCol]=ctxCols;
+
+  // Content is nested only visually (Column is a lane, not a real DOM container — see the codebase's
+  // own notes on this) — each item below is an independent sibling card, manually positioned inside its
+  // column's bounds with a higher z so it renders above the column's own (deliberately very back) layer.
+  const HEADER_H=70, CONTENT_W=260, CONTENT_X_PAD=20, GAP=16;
+  const stackIn=(col,items)=>{
+    let y=col.y+HEADER_H;
+    const cards=items.map(item=>{
+      const c=mk(contextId,{type:item.type, x:col.x+CONTENT_X_PAD, y, w:CONTENT_W, h:item.h, z:1, data:item.data});
+      y+=item.h+GAP;
+      return c;
+    });
+    return cards;
+  };
+
+  const aboutCards=stackIn(aboutCol,[
+    {type:'note', h:150, data:{text:t('template_ctx_note_film_info')}},
+    {type:'image', h:170, data:{imageId:null, caption:'', lockAspect:true}},
+  ]);
+
+  const inspirationCards=stackIn(inspirationCol,[
+    {type:'boardlink', h:140, data:{boardId:subBoards.ideas.id, title:subBoards.ideas.name}},
+    {type:'boardlink', h:140, data:{boardId:subBoards.moodboard.id, title:subBoards.moodboard.name}},
+    {type:'note', h:120, data:{text:t('template_ctx_note_soundtrack')}},
+  ]);
+
+  const storyCards=stackIn(storyCol,[
+    {type:'boardlink', h:140, data:{boardId:subBoards.storyboard.id, title:subBoards.storyboard.name}},
+    {type:'note', h:120, data:{text:t('template_ctx_note_script')}},
+    {type:'note', h:120, data:{text:t('template_ctx_note_reference_clip')}},
+  ]);
+
+  const filmingCards=stackIn(filmingCol,[
+    {type:'note', h:170, data:{text:t('template_ctx_note_shootday')}},
+    {type:'boardlink', h:140, data:{boardId:subBoards.callsheet.id, title:subBoards.callsheet.name}},
+    {type:'checklist', h:260, data:{title:t('template_ctx_checklist_title'), showProgress:false, items:[
+      {id:uid(), text:t('template_ctx_checklist_item1'), done:false},
+      {id:uid(), text:t('template_ctx_checklist_item2'), done:false},
+      {id:uid(), text:t('template_ctx_checklist_item3'), done:false},
+      {id:uid(), text:t('template_ctx_checklist_item4'), done:false},
+      {id:uid(), text:t('template_ctx_checklist_item5'), done:false},
+    ]}},
+  ]);
+
+  await DB.putCards([...ctxCols, ...aboutCards, ...inspirationCards, ...storyCards, ...filmingCards]);
+}
+
 async function showTemplatePickerModal(){
+  await ensureBuiltinTemplates();
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   scrim.innerHTML=`<div class="modal modal-wide template-modal">
     <h4>${t('template_picker_title')}</h4>
