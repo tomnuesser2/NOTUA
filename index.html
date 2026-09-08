@@ -997,6 +997,12 @@ try{
      the iframe itself always just fills the wrapper (inset:0, 100%/100%), so it re-clips every frame. */
   .card-youtube.embedded .yt-frame-wrap{position:absolute; inset:0; border-radius:14px; box-shadow:0 10px 26px -10px var(--shadow-lg);}
   .yt-frame-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:none;}
+  /* Pinterest's board widget isn't a fixed-ratio player like a video/track embed — it's a plain white
+     scrollable grid of pin thumbnails that keeps growing as more pins load, so it gets its own variant
+     of the frame: scrolls internally instead of clipping, and stays white (Pinterest's own widget
+     chrome) regardless of the app's light/dark theme, same as the real thing looks anywhere else. */
+  .yt-frame-wrap.pin-frame{background:#fff; overflow-y:auto; overflow-x:hidden;}
+  .yt-frame-wrap.pin-frame a[data-pin-do]{display:block; width:100%;}
   .yt-input-wrap{flex:1; display:flex; align-items:center; padding:0 12px 12px; gap:8px;}
   .yt-input-wrap input{
     flex:1; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-family:inherit; font-size:0.82rem; outline:none; background:var(--surface); color:var(--ink);
@@ -1882,6 +1888,39 @@ function extractSpotifyEmbed(url){
   if(m) return {type:m[1], id:m[2]};
   return null;
 }
+// A Pinterest *board* URL only (not a single pin, not a profile root, not a pin.it short link) —
+// exactly two path segments after the host: /username/board-slug/. Short pin.it links resolve via a
+// server-side redirect we have no way to follow from here, so those are rejected outright rather than
+// silently failing later; the placeholder text tells people to paste the real, expanded board URL.
+function extractPinterestBoard(url){
+  if(!url) return null;
+  url=url.trim();
+  if(/pin\.it\//i.test(url)) return null;
+  const m=url.match(/^https?:\/\/(?:[a-z]{2,3}\.)?pinterest\.[a-z.]{2,10}\/([^\/\s?#]+)\/([^\/\s?#]+)\/?(?:[?#].*)?$/i);
+  if(!m) return null;
+  const user=m[1], board=m[2];
+  if(!user || !board || /^pin$/i.test(user)) return null; // e.g. pinterest.com/pin/12345/ is a single pin
+  return `https://www.pinterest.com/${encodeURIComponent(user)}/${encodeURIComponent(board)}/`;
+}
+// Pinterest's official board widget needs their own pinit.js loaded once, globally — it converts
+// every <a data-pin-do="embedBoard"> anchor it finds into the real scrollable pin grid. Loaded
+// on-demand (only once a Pinterest widget card is actually embedded) rather than upfront, same as
+// the app never eagerly reaches out to YouTube/Spotify either. PinUtils.build() is Pinterest's own
+// documented hook for re-scanning the page for anchors added after the script already loaded — every
+// card re-render replaces that card's DOM, so a previously-embedded board's anchor needs re-converting
+// too, not just a brand-new one.
+let pinitLoadPromise=null;
+function loadPinIt(){
+  if(window.PinUtils) return Promise.resolve();
+  if(pinitLoadPromise) return pinitLoadPromise;
+  pinitLoadPromise=new Promise((resolve)=>{
+    const s=document.createElement('script');
+    s.src='https://assets.pinterest.com/js/pinit.js'; s.async=true;
+    s.onload=()=>resolve(); s.onerror=()=>resolve();
+    document.head.appendChild(s);
+  });
+  return pinitLoadPromise;
+}
 const TAG_COLORS=['none','yellow','pink','blue','green','purple','grey','orange'];
 // Deliberately no 0% step — that would just be "invisible", not a genuinely useful transparency level.
 const OPACITY_STEPS=[100,80,60,40,20];
@@ -1946,10 +1985,11 @@ const I18N={
   add_note_label:{de:'Notiz',en:'Note'},
   add_image_title:{de:'Bild / Screenshot hinzufügen',en:'Add image / screenshot'},
   add_image_label:{de:'Bild',en:'Image'},
-  add_youtube_title:{de:'Widget einbetten (YouTube/Spotify)',en:'Embed widget (YouTube/Spotify)'},
+  add_youtube_title:{de:'Widget einbetten (YouTube/Spotify/Pinterest)',en:'Embed widget (YouTube/Spotify/Pinterest)'},
   add_youtube_label:{de:'Widgets',en:'Widgets'},
   widget_change_title:{de:'Anderes Widget einbetten',en:'Embed a different widget'},
   placeholder_spotify_link:{de:'Spotify-Link einfügen',en:'Paste a Spotify link'},
+  placeholder_pinterest_link:{de:'Pinterest-Board-Link einfügen (z. B. pinterest.com/name/board/)',en:'Paste a Pinterest board link (e.g. pinterest.com/name/board/)'},
   add_column_title:{de:'Spalte / Bereich hinzufügen',en:'Add column / area'},
   add_column_label:{de:'Spalte',en:'Column'},
   column_add_left_title:{de:'Spalte links hinzufügen',en:'Add column to the left'},
@@ -1997,6 +2037,9 @@ const I18N={
   crumb_home:{de:'Start',en:'Home'},
   search_title:{de:'Suchen',en:'Search'},
   board_color_title:{de:'Board-Farbe wählen',en:'Choose board color'},
+  new_board_setup_title:{de:'Neues Board',en:'New board'},
+  new_board_name_placeholder:{de:'Name des Boards',en:'Board name'},
+  new_board_setup_confirm:{de:'Board anlegen',en:'Create board'},
   search_placeholder:{de:'Suchen…',en:'Search…'},
   search_prev_title:{de:'Vorheriges Ergebnis',en:'Previous result'},
   search_next_title:{de:'Nächstes Ergebnis',en:'Next result'},
@@ -3787,7 +3830,12 @@ async function createBoardFlow(){
     createdAt:Date.now(), updatedAt:Date.now(), view:{x:0,y:0,zoom:1}, gridEnabled:true, snapEnabled:true};
   await DB.putBoard(b);
   await refreshHome();
-  openBoard(b.id,true);
+  await openBoard(b.id,true);
+  // "beim ersten Erstellen eines Boards soll man im Board ein Popup bekommen, welches Farbe und
+  // Name des Boards auswählen ... lässt" — shown right inside the freshly-opened board (not on the
+  // home screen), every time a new top-level board is created via the "+ neues Board" tile. Leaves
+  // the auto-generated name/color in place untouched if dismissed, so closing it is always safe.
+  promptNewBoardSetup(b);
 }
 const BOARD_COLOR_PRESETS=['#FF6B57','#5A9FD6','#6BAB6E','#E3A83B','#9E80C1','#DE8A4F','#4EBFB0'];
 function pickAccentColor(){
@@ -3842,6 +3890,60 @@ function showBoardColorPopover(clientX,clientY,board,onChange){
   let left=Math.max(6,Math.min(clientX-w/2, window.innerWidth-w-6));
   let top=clientY+10; if(top+h>window.innerHeight-6) top=clientY-h-10;
   bar.style.left=left+'px'; bar.style.top=top+'px';
+}
+// One-time (per board) setup popup shown right after a new top-level board is created and opened —
+// lets the name and color be picked immediately, in place, instead of only via the crumb-rename and
+// the small #boardColorBtn dot afterwards (which still both keep working exactly as before). Reuses
+// the same modal-scrim/.modal shell as every other confirm/prompt dialog in the app, and the same
+// .swatches + buildCustomSwatchButton color-picker already used in the inspector — so nothing about
+// its look is new UI language, just a new place it's shown. Dismissing it (Abbrechen, backdrop click,
+// Escape-equivalent) is always a safe no-op: the board keeps the auto-generated name/color it already
+// had, exactly as if this popup didn't exist.
+function promptNewBoardSetup(board){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('new_board_setup_title')}</h4>
+    <input type="text" id="newBoardNameInput" class="template-name-input" value="${escapeHtml(board.name)}" placeholder="${t('new_board_name_placeholder')}"/>
+    <div class="insp-row" style="margin-top:12px;"><div class="insp-label">${t('insp_color_label')}</div><div class="swatches" id="newBoardSwatches"></div></div>
+    <div class="modal-actions">
+      <button data-a="cancel">${t('modal_cancel')}</button>
+      <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('new_board_setup_confirm')}</button>
+    </div></div>`;
+  const swatchRow=scrim.querySelector('#newBoardSwatches');
+  let chosenColor=board.color;
+  function renderSwatches(){
+    swatchRow.innerHTML='';
+    const presetHexes=BOARD_COLOR_PRESETS.map(h=>h.toLowerCase());
+    BOARD_COLOR_PRESETS.forEach(hex=>{
+      const sw=document.createElement('span');
+      sw.className='swatch'+(hex.toLowerCase()===chosenColor.toLowerCase()?' active':'');
+      sw.dataset.color=hex; sw.style.background=hex; sw.title=hex;
+      sw.addEventListener('click',()=>{ chosenColor=hex; renderSwatches(); });
+      swatchRow.appendChild(sw);
+    });
+    const customHex=presetHexes.includes(chosenColor.toLowerCase())?null:chosenColor;
+    swatchRow.appendChild(buildCustomSwatchButton(customHex, (hex)=>{ chosenColor=hex; renderSwatches(); }));
+  }
+  renderSwatches();
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
+  async function commit(){
+    const name=scrim.querySelector('#newBoardNameInput').value.trim() || t('untitled_board');
+    scrim.remove();
+    board.name=name; board.color=chosenColor; board.updatedAt=Date.now();
+    await DB.putBoard(board);
+    // Only touch the currently-visible board chrome if this is still the board being looked at —
+    // the popup's own async DB write shouldn't stomp on a UI the user has since navigated away from.
+    if(state.currentBoardId===board.id){
+      await renderCrumbs(board);
+      syncBoardColorDot(board);
+    }
+  }
+  scrim.querySelector('[data-a="ok"]').addEventListener('click',commit);
+  document.body.appendChild(scrim);
+  const nameInput=scrim.querySelector('#newBoardNameInput');
+  nameInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); commit(); } });
+  nameInput.focus(); nameInput.select();
 }
 document.addEventListener('pointerdown',(e)=>{
   if(!boardColorPopoverEl || !boardColorPopoverEl.classList.contains('show')) return;
@@ -4599,8 +4701,18 @@ window.addEventListener('pointerup',(e)=>{
 });
 
 /* ---- touch: one finger on empty canvas pans, two fingers pinch-zoom ---- */
+// A single finger held still (no pan movement) for ~420ms on empty canvas ARMS a second gesture,
+// mirroring what a mouse gets for free from hover/click/drag/dblclick — touch never had an equivalent
+// for either "double-click empty canvas to open the add-element menu" or "drag to marquee-select", so
+// both were simply unreachable on a phone before this. A quick swipe (movement crosses the 10px
+// threshold before the timer fires) cancels the timer and pans exactly as before — nothing changes for
+// the common "just move around the board" gesture. Once armed: releasing without any further movement
+// opens the create menu at that point (touch's "double-click"); dragging instead drives the same
+// marquee-select box/logic the mouse path above uses, instead of panning.
 const activeTouches=new Map();
 let touchPanState=null, pinchLastDist=null;
+let touchLongPressTimer=null, touchLongPressArmed=false, touchMarqueeState=null;
+function clearTouchLongPress(){ clearTimeout(touchLongPressTimer); touchLongPressTimer=null; touchLongPressArmed=false; }
 viewport.addEventListener('pointerdown',(e)=>{
   if(e.pointerType!=='touch') return;
   if(e.target.closest('.card') || e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
@@ -4608,8 +4720,26 @@ viewport.addEventListener('pointerdown',(e)=>{
   try{ viewport.setPointerCapture(e.pointerId); }catch(err){}
   if(activeTouches.size===1){
     touchPanState={sx:e.clientX, sy:e.clientY, ox:state.view.x, oy:state.view.y};
+    clearTouchLongPress();
+    const pid=e.pointerId, sx=e.clientX, sy=e.clientY;
+    touchLongPressTimer=setTimeout(()=>{
+      // Only still valid if this exact touch is still the sole finger down and hasn't wandered off
+      // empty canvas in the meantime (a second finger joining for a pinch cancels this via the
+      // activeTouches.size>=2 branch below, which also clears the timer).
+      if(!activeTouches.has(pid) || activeTouches.size!==1) return;
+      touchLongPressArmed=true;
+      // A quick buzz is the only feedback available here — there's no specific element on empty
+      // canvas to flash the way a long-pressed card/tile gets .long-press-flash — so this is what
+      // tells a touch user the hold actually registered, before they decide to drag or just release.
+      if(navigator.vibrate){ try{ navigator.vibrate(12); }catch(err){} }
+      touchPanState=null; // no visible pan happened yet — movement past the threshold would already have cancelled this timer
+      touchMarqueeState={sx, sy, additive:false};
+      if(!isMultiSelectKey(e)) clearSelection();
+    },420);
   }else if(activeTouches.size>=2){
     touchPanState=null;
+    clearTouchLongPress();
+    touchMarqueeState=null; marqueeEl.hidden=true;
     const pts=[...activeTouches.values()];
     pinchLastDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
   }
@@ -4623,7 +4753,21 @@ viewport.addEventListener('pointermove',(e)=>{
     const midX=(pts[0].x+pts[1].x)/2, midY=(pts[0].y+pts[1].y)/2;
     if(pinchLastDist) zoomAt(midX, midY, dist/pinchLastDist);
     pinchLastDist=dist;
+  }else if(touchMarqueeState){
+    const x1=Math.min(touchMarqueeState.sx,e.clientX), x2=Math.max(touchMarqueeState.sx,e.clientX);
+    const y1=Math.min(touchMarqueeState.sy,e.clientY), y2=Math.max(touchMarqueeState.sy,e.clientY);
+    const r=viewport.getBoundingClientRect();
+    marqueeEl.style.left=(x1-r.left)+'px'; marqueeEl.style.top=(y1-r.top)+'px';
+    marqueeEl.style.width=(x2-x1)+'px'; marqueeEl.style.height=(y2-y1)+'px';
+    marqueeEl.hidden=false;
+    const c1=screenToCanvas(x1,y1), c2=screenToCanvas(x2,y2);
+    state.selection.clear();
+    state.cards.forEach(c=>{
+      if(c.x<c2.x && c.x+c.w>c1.x && c.y<c2.y && c.y+c.h>c1.y) state.selection.add(c.id);
+    });
+    syncSelectedCardClasses();
   }else if(touchPanState){
+    if(touchLongPressTimer && Math.hypot(e.clientX-touchPanState.sx, e.clientY-touchPanState.sy)>10) clearTouchLongPress();
     state.view.x=touchPanState.ox+(e.clientX-touchPanState.sx);
     state.view.y=touchPanState.oy+(e.clientY-touchPanState.sy);
     applyView();
@@ -4633,7 +4777,19 @@ function endTouchPointer(e){
   if(e.pointerType!=='touch') return;
   activeTouches.delete(e.pointerId);
   if(activeTouches.size<2) pinchLastDist=null;
-  if(activeTouches.size===0){ touchPanState=null; persistView(); }
+  if(activeTouches.size===0){
+    if(touchMarqueeState){
+      // Long-press fired but the box never actually grew past its starting point (marqueeEl still
+      // hidden) — that's touch's stand-in for a plain double-click: open the add-element menu right
+      // where the finger was held, instead of leaving the gesture as a no-op.
+      if(marqueeEl.hidden) openCreateMenu(touchMarqueeState.sx, touchMarqueeState.sy);
+      else updateInspector();
+      touchMarqueeState=null; marqueeEl.hidden=true;
+      marqueeEl.style.width='0px'; marqueeEl.style.height='0px';
+    }
+    clearTouchLongPress();
+    touchPanState=null; persistView();
+  }
   else if(activeTouches.size===1){
     // one finger lifted mid-pinch — resume single-finger panning from where the remaining finger is
     const remaining=[...activeTouches.values()][0];
@@ -4645,7 +4801,10 @@ viewport.addEventListener('pointerup',endTouchPointer);
 // incoming call, the OS taking pointer capture away) without ever sending a pointerup/pointercancel,
 // activeTouches/touchPanState/pinchLastDist could otherwise stay stuck "mid-gesture" forever and
 // make the board feel frozen — reset on any of these interruption signals.
-function resetTouchState(){ activeTouches.clear(); touchPanState=null; pinchLastDist=null; }
+function resetTouchState(){
+  activeTouches.clear(); touchPanState=null; pinchLastDist=null;
+  clearTouchLongPress(); touchMarqueeState=null; marqueeEl.hidden=true;
+}
 viewport.addEventListener('lostpointercapture',(e)=>{ if(e.pointerType==='touch') endTouchPointer(e); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ resetTouchState(); flushActiveEditable(); } });
 window.addEventListener('blur', resetTouchState);
@@ -4793,7 +4952,9 @@ function updateInspector(){
   }
   if(cards.length===1 && cards[0].type==='youtube'){
     const dc=cards[0];
-    const embedded = dc.data.kind==='spotify' ? !!dc.data.spotifyId : !!dc.data.videoId;
+    const embedded = dc.data.kind==='spotify' ? !!dc.data.spotifyId
+      : dc.data.kind==='pinterest' ? !!dc.data.pinterestUrl
+      : !!dc.data.videoId;
     if(embedded){
       html+=`<div class="insp-row"><button id="widgetChangeBtn" class="insp-action-btn">${iconSwap()}${t('widget_change_title')}</button></div>`;
     }
@@ -5901,34 +6062,49 @@ function typeChipIconBig(){return `<svg width="22" height="22" viewBox="0 0 24 2
 // used by the inspector's "embed a different widget" personalization button (moved there, off the card
 // itself, same decluttering as the checklist/table toggles).
 function resetWidgetEmbed(card){
-  card.data.videoId=null; card.data.spotifyId=null; card.data.spotifyType=null; card.data.url='';
+  card.data.videoId=null; card.data.spotifyId=null; card.data.spotifyType=null; card.data.pinterestUrl=null; card.data.url='';
   DB.putCard(card); renderAllCards(); applySelectionClasses();
 }
 function buildWidgetCard(card){
   const el=baseCardShell(card,'card-youtube');
   if(!card.data.kind) card.data.kind='youtube';
-  const embedded = card.data.kind==='youtube' ? !!card.data.videoId : !!card.data.spotifyId;
+  const embedded = card.data.kind==='spotify' ? !!card.data.spotifyId
+    : card.data.kind==='pinterest' ? !!card.data.pinterestUrl
+    : !!card.data.videoId;
   el.classList.toggle('embedded',embedded);
   if(embedded){
     const isYt=card.data.kind==='youtube';
-    const src=isYt
-      ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(card.data.videoId)}`
-      : `https://open.spotify.com/embed/${encodeURIComponent(card.data.spotifyType)}/${encodeURIComponent(card.data.spotifyId)}`;
-    const label=isYt?'YouTube':'Spotify';
+    const isPin=card.data.kind==='pinterest';
+    const label=isPin?'Pinterest':(isYt?'YouTube':'Spotify');
+    let frameHtml;
+    if(isPin){
+      frameHtml=`<div class="yt-frame-wrap pin-frame"><a data-pin-do="embedBoard" href="${escapeHtml(card.data.pinterestUrl)}"></a></div>`;
+    }else{
+      const src=isYt
+        ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(card.data.videoId)}`
+        : `https://open.spotify.com/embed/${encodeURIComponent(card.data.spotifyType)}/${encodeURIComponent(card.data.spotifyId)}`;
+      frameHtml=`<div class="yt-frame-wrap"><iframe src="${src}" title="${label} Widget" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    }
     el.innerHTML=`
       <div class="card-head"><div class="type-chip">${typeChipIcon('youtube')}</div><span class="card-title-field" style="pointer-events:none;">${label}</span></div>
-      <div class="yt-frame-wrap"><iframe src="${src}" title="${label} Widget" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+      ${frameHtml}
     `;
+    if(isPin){
+      loadPinIt().then(()=>{ if(window.PinUtils && PinUtils.build) PinUtils.build(); });
+    }
   }else{
     const isYt=card.data.kind==='youtube';
+    const isPin=card.data.kind==='pinterest';
+    const placeholder=isPin?t('placeholder_pinterest_link'):(isYt?t('placeholder_youtube_link'):t('placeholder_spotify_link'));
     el.innerHTML=`
       <div class="card-head"><div class="type-chip">${typeChipIcon('youtube')}</div></div>
       <div class="widget-tabs">
         <button type="button" class="widget-tab${isYt?' active':''}" data-kind="youtube">YouTube</button>
-        <button type="button" class="widget-tab${isYt?'':' active'}" data-kind="spotify">Spotify</button>
+        <button type="button" class="widget-tab${card.data.kind==='spotify'?' active':''}" data-kind="spotify">Spotify</button>
+        <button type="button" class="widget-tab${isPin?' active':''}" data-kind="pinterest">Pinterest</button>
       </div>
       <div class="yt-input-wrap">
-        <input placeholder="${isYt?t('placeholder_youtube_link'):t('placeholder_spotify_link')}" spellcheck="false"/>
+        <input placeholder="${placeholder}" spellcheck="false"/>
         <button class="yt-go">${t('yt_embed_button')}</button>
       </div>
     `;
@@ -5946,6 +6122,9 @@ function buildWidgetCard(card){
       if(card.data.kind==='spotify'){
         const sp=extractSpotifyEmbed(input.value);
         if(sp){ card.data.spotifyType=sp.type; card.data.spotifyId=sp.id; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
+      }else if(card.data.kind==='pinterest'){
+        const board=extractPinterestBoard(input.value);
+        if(board){ card.data.pinterestUrl=board; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
       }else{
         const vid=extractYouTubeId(input.value);
         if(vid){ card.data.videoId=vid; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
@@ -6640,12 +6819,19 @@ function attachResize(handle,el,card){
     if(!rs) return;
     const dx=(e.clientX-rs.sx)/state.view.zoom;
     const dy=(e.clientY-rs.sy)/state.view.zoom;
-    if(card.type==='youtube'){
+    if(card.type==='youtube' && card.data.kind!=='pinterest'){
       // Width leads (matches the drag direction most people reach for on a wide media box);
       // height always follows it via the fixed ratio, so the frame can't drift out of format.
       const ratio=WIDGET_ASPECT[card.data.kind]||WIDGET_ASPECT.youtube;
       card.w=snap(clamp(rs.w+dx,180,2000));
       card.h=clamp(Math.round(card.w/ratio),120,2000);
+    }else if(card.type==='youtube' && card.data.kind==='pinterest'){
+      // Pinterest's board widget isn't a fixed-ratio player — it's a scrollable list of pin
+      // thumbnails, so unlike YouTube/Spotify it resizes freely on both axes (same floors as a
+      // plain note card) and any extra height just means more of the board is visible before
+      // the internal scrollbar kicks in.
+      card.w=snap(clamp(rs.w+dx,180,2000));
+      card.h=snap(clamp(rs.h+dy,120,2000));
     }else if(card.type==='table'){
       // The corner handle no longer stretches a fixed-size grid inside a bigger box (which is what
       // left blank space growing the card): it changes the table's own zoom level instead, so every
@@ -7147,8 +7333,19 @@ const homeCalendarBtn=document.getElementById('homeCalendarBtn');
 const boardColorBtn=document.getElementById('boardColorBtn');
 const boardColorDot=document.getElementById('boardColorDot');
 function syncBoardColorDot(board){ if(boardColorDot) boardColorDot.style.background=(board&&board.color)||'var(--accent)'; }
-boardColorBtn.addEventListener('click',(e)=>{
-  const board=boardById(state.currentBoardId);
+boardColorBtn.addEventListener('click',async (e)=>{
+  // boardById() reads from the in-memory state.boards cache, which is only ever (re)populated
+  // wholesale by refreshHome() — so right after creating a board and landing straight inside it
+  // (skipping the home screen), any gap or staleness in that cache silently no-ops this whole
+  // handler and the popover never opens, with zero visible feedback ("es öffnet sich gar kein
+  // Popup"). Falling back to a direct, always-fresh DB read whenever the cache lookup comes up
+  // empty — and healing the cache with what it finds — means a stale/incomplete state.boards can
+  // no longer break the button, on the first board or any later one, whatever exactly causes it.
+  let board=boardById(state.currentBoardId);
+  if(!board && state.currentBoardId){
+    board=await DB.getBoard(state.currentBoardId);
+    if(board) state.boards.push(board);
+  }
   if(!board) return;
   const r=boardColorBtn.getBoundingClientRect();
   showBoardColorPopover(r.left+r.width/2, r.bottom, board, ()=>syncBoardColorDot(board));
