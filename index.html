@@ -755,20 +755,32 @@ try{
   .cal-day.active .cal-day-dots span{background:var(--accent-ink); opacity:1;}
   .cal-day-list{border-top:1px solid var(--border); padding-top:8px; overflow-y:auto; min-height:0;}
   .cal-day-list-head{font-size:0.7rem; font-weight:700; color:var(--faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px;}
-  .cal-day-item{
-    display:flex; align-items:center; gap:8px; width:100%; padding:6px 6px; border:none; background:none;
+  /* A day-list row is now two nested buttons rather than one: .cal-item-jump (the original
+     dot/time/label/board row — clicking it still jumps to the card, exactly as before) plus a small
+     separate .cal-item-gcal-btn for "add this to Google Calendar" — kept as its OWN button, not part
+     of the jump target, so the two actions ("show me this card" vs. "export it") can never be
+     confused for each other or accidentally trigger together. */
+  .cal-day-item{display:flex; align-items:center; gap:2px; width:100%; border-radius:6px;}
+  .cal-day-item:hover{background:var(--surface-2);}
+  .cal-item-jump{
+    flex:1; min-width:0; display:flex; align-items:center; gap:8px; padding:6px 6px; border:none; background:none;
     border-radius:6px; cursor:pointer; text-align:left; font:inherit; color:var(--ink);
   }
-  .cal-day-item:hover{background:var(--surface-2);}
-  .cal-day-item .cal-item-dot{width:8px; height:8px; border-radius:50%; flex:none;}
-  .cal-day-item .cal-item-time{font-size:0.7rem; color:var(--faint); flex:none; width:36px;}
-  .cal-day-item .cal-item-label{flex:1; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cal-item-dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .cal-item-time{font-size:0.7rem; color:var(--faint); flex:none; width:36px;}
+  .cal-item-label{flex:1; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   /* Which board an entry belongs to — only meaningful now that the calendar aggregates across every
      board instead of just the currently open one. */
-  .cal-day-item .cal-item-board{
+  .cal-item-board{
     flex:none; max-width:88px; font-size:0.66rem; color:var(--faint); background:var(--surface-2);
     border-radius:10px; padding:2px 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
+  .cal-item-gcal-btn{
+    flex:none; width:24px; height:24px; margin-right:4px; border:none; border-radius:6px; background:none;
+    color:var(--faint); display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background .14s ease, color .14s ease;
+  }
+  .cal-item-gcal-btn:hover{background:var(--accent-soft); color:var(--accent);}
   .cal-day-empty{font-size:0.78rem; color:var(--faint); padding:6px;}
   /* small calendar toggle button in the inspector header — see .card-date-popover below for the
      actual date/time picker it opens */
@@ -796,6 +808,42 @@ try{
   .cdp-time-sep{color:var(--faint); font-weight:600;}
   .card-date-popover .cdp-clear{width:22px; height:22px; border:none; background:none; color:var(--faint); border-radius:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
   .card-date-popover .cdp-clear:hover{background:var(--danger-soft); color:var(--danger);}
+  .card-date-popover .cdp-gcal{width:22px; height:22px; border:none; background:none; color:var(--faint); border-radius:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;}
+  .card-date-popover .cdp-gcal:hover:not(:disabled){background:var(--accent-soft); color:var(--accent);}
+  .card-date-popover .cdp-gcal:disabled{opacity:.35; cursor:not-allowed;}
+
+  /* ---------- GOOGLE-KALENDER-EXPORT modal (see showGcalEventModal) ---------- */
+  .gcal-modal{width:380px; display:flex; flex-direction:column; gap:12px;}
+  .gcal-type-row{display:flex; gap:6px;}
+  .gcal-type-btn{
+    flex:1; padding:8px 6px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--muted); font:inherit; font-size:0.8rem; font-weight:600; cursor:pointer;
+    transition:background .14s ease, color .14s ease, border-color .14s ease;
+  }
+  .gcal-type-btn.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .gcal-type-hint{font-size:0.76rem; color:var(--muted); line-height:1.4; margin:-4px 0 0;}
+  .gcal-field-input, .gcal-modal textarea{
+    border:1px solid var(--border); border-radius:8px; padding:9px 10px; font:inherit; font-size:0.86rem;
+    background:var(--surface); color:var(--ink); outline:none; width:100%; box-sizing:border-box; font-family:inherit;
+  }
+  .gcal-field-input:focus, .gcal-modal textarea:focus{border-color:var(--accent);}
+  .gcal-modal textarea{resize:vertical; min-height:56px;}
+  .gcal-allday-row{display:flex; align-items:center; gap:8px; font-size:0.84rem; color:var(--ink); cursor:pointer; user-select:none;}
+  .gcal-allday-row input[type="checkbox"]{width:16px; height:16px; accent-color:var(--accent); cursor:pointer;}
+  .gcal-datetime-row{display:flex; align-items:center; gap:6px;}
+  .gcal-datetime-row input[type="date"]{flex:1.3; min-width:0;}
+  .gcal-datetime-row input[type="time"]{flex:1; min-width:0;}
+  .gcal-time-sep{font-size:0.78rem; color:var(--faint); flex:none;}
+  .gcal-reminder-label{font-size:0.78rem; font-weight:600; color:var(--muted); margin-top:2px;}
+  .gcal-reminder-chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .gcal-reminder-chip{
+    padding:6px 10px; border-radius:20px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--muted); font:inherit; font-size:0.74rem; cursor:pointer;
+    transition:background .14s ease, color .14s ease, border-color .14s ease;
+  }
+  .gcal-reminder-chip.active{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+  .gcal-reminder-hint{font-size:0.72rem; color:var(--faint); margin:0;}
+  .gcal-modal .modal-actions button.primary{background:var(--accent); border-color:var(--accent);}
 
   .empty-board-hint{
     position:absolute; left:50%; top:42%; transform:translate(-50%,-50%); text-align:center;
@@ -1577,6 +1625,42 @@ try{
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .toast{color:var(--ink); background:var(--surface); border:1px solid var(--border);} }
   .toast button{background:none; border:none; color:var(--accent); font:inherit; font-weight:600; cursor:pointer; padding:4px 6px;}
 
+  /* ---------- BUSY BAR ----------
+     A slim, always-at-the-bottom progress indicator for background work that the UI itself no
+     longer waits on (board delete/restore, import, sync — see showBusy/hideBusy). Reference-counted
+     so several overlapping operations share one bar instead of flickering it open/closed; shows an
+     indeterminate sliding fill while busy, then briefly snaps to 100% ("done" pulse) as a clear
+     completion signal before fading out. Purely a progress *signal* — it never blocks input. */
+  .busy-bar{
+    position:absolute; left:0; right:0; bottom:0; height:3px; z-index:60;
+    background:transparent; overflow:hidden; opacity:0; pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .busy-bar.show{opacity:1;}
+  .busy-bar-fill{
+    position:absolute; top:0; bottom:0; left:0; width:40%; border-radius:0 3px 3px 0;
+    background:var(--accent);
+    animation:busyBarSlide 1.1s ease-in-out infinite;
+  }
+  .busy-bar.done .busy-bar-fill{
+    width:100%; left:0; animation:none; transition:width .2s ease;
+  }
+  @keyframes busyBarSlide{
+    0%{left:-40%; width:40%;}
+    55%{left:100%; width:45%;}
+    100%{left:100%; width:45%;}
+  }
+  .busy-bar-label{
+    position:absolute; left:14px; bottom:9px; font-size:0.72rem; color:var(--muted);
+    background:var(--surface); border:1px solid var(--border); padding:3px 9px; border-radius:999px;
+    box-shadow:0 6px 16px -6px var(--shadow-lg); opacity:0; transform:translateY(4px);
+    transition:opacity .2s ease, transform .2s ease; pointer-events:none; white-space:nowrap;
+  }
+  .busy-bar-label.show{opacity:1; transform:translateY(0);}
+  @media (prefers-reduced-motion: reduce){
+    .busy-bar-fill{animation:none; left:0; width:100%; opacity:.55;}
+  }
+
   /* ---------- MODAL ---------- */
   .modal-scrim{
     position:absolute; inset:0; background:var(--scrim); z-index:50; display:flex; align-items:center; justify-content:center;
@@ -1723,6 +1807,11 @@ try{
 </style>
 
 <div id="app">
+  <!-- Bottom "busy bar" — a slim, non-blocking progress signal for background work the UI no longer
+       waits on (board delete/restore, import, sync). Lives at the #app level (not inside
+       homeView/boardView) so it survives screen switches; see showBusy/hideBusy/withBusy. -->
+  <div class="busy-bar" id="busyBar"><div class="busy-bar-fill"></div></div>
+  <div class="busy-bar-label" id="busyBarLabel"></div>
 
   <!-- ============ LANDING VIEW ============ -->
   <div id="landingView">
@@ -1791,10 +1880,9 @@ try{
           </button>
           <div class="tools-dropdown" id="toolsDropdown">
             <button class="icon-btn import-btn" id="toolsBtn" title="Werkzeuge">
-              <!-- "sieht merkwürdig aus mach daraus bitte einen Hammer" — was an odd little pipe-wrench
-                   squiggle before; now a plain claw-hammer silhouette (diagonal handle + notched head),
-                   matching the plain stroke-outline look every other icon in this toolbar already uses. -->
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13.2 10.8 L5.3 18.7 L6.8 20.2 L14.7 12.3 M11.7 9.3 L15.2 5.8 C15.9 5.1 17.3 4.6 18.4 5.1 L20.5 3 L21.4 3.9 L19.3 6 C19.8 7.1 19.3 8.5 18.6 9.2 L15.1 12.7 Z"/></svg>
+              <!-- Schlichtes Zahnrad statt Hammer — passt besser zu "Werkzeuge/Einstellungen" und zum
+                   plainen Stroke-Outline-Look der übrigen Toolbar-Icons. -->
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 6.6l1.9 1.9M17.5 15.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 17.4l1.9-1.9M17.5 8.5l1.9-1.9"/></svg>
             </button>
             <div class="tools-menu" id="toolsMenu" hidden>
               <button type="button" id="toolsTemplatesItem"></button>
@@ -2331,6 +2419,35 @@ const I18N={
   insp_date_label:{de:'Datum',en:'Date'},
   date_clear_title:{de:'Datum entfernen',en:'Remove date'},
   date_badge_title:{de:'Im Kalender öffnen',en:'Open in calendar'},
+  gcal_export_title:{de:'In Google Kalender übernehmen',en:'Add to Google Calendar'},
+  gcal_modal_title:{de:'In Google Kalender übernehmen',en:'Add to Google Calendar'},
+  gcal_type_event:{de:'Termin',en:'Event'},
+  gcal_type_task:{de:'Aufgabe',en:'Task'},
+  gcal_type_birthday:{de:'Geburtstag',en:'Birthday'},
+  gcal_type_task_hint:{de:'Wird als Kalender-Eintrag angelegt, nicht als eigener Google-Tasks-Eintrag.',en:'Added as a calendar entry, not as a separate Google Tasks item.'},
+  gcal_type_birthday_hint:{de:'Wird als ganztägiger Eintrag angelegt, der sich jedes Jahr wiederholt.',en:'Added as an all-day entry that repeats every year.'},
+  gcal_title_placeholder:{de:'Titel',en:'Title'},
+  gcal_allday_label:{de:'Ganztägig',en:'All day'},
+  gcal_time_to_label:{de:'bis',en:'to'},
+  gcal_location_placeholder:{de:'Ort (optional)',en:'Location (optional)'},
+  gcal_description_placeholder:{de:'Beschreibung (optional)',en:'Description (optional)'},
+  gcal_reminder_label:{de:'Erinnerung',en:'Reminder'},
+  gcal_reminder_none_hint:{de:'Keine ausgewählt – es gelten deine Standard-Erinnerungen aus Google Kalender.',en:'None selected – your Google Calendar default reminders apply.'},
+  gcal_reminder_attime:{de:'Zur Startzeit',en:'At start time'},
+  gcal_reminder_10m:{de:'10 Min. vorher',en:'10 min before'},
+  gcal_reminder_30m:{de:'30 Min. vorher',en:'30 min before'},
+  gcal_reminder_1h:{de:'1 Std. vorher',en:'1 hour before'},
+  gcal_reminder_1d:{de:'1 Tag vorher',en:'1 day before'},
+  gcal_reminder_1w:{de:'1 Woche vorher',en:'1 week before'},
+  gcal_submit_btn:{de:'In Google Kalender übernehmen',en:'Add to Google Calendar'},
+  gcal_saving_btn:{de:'Wird übernommen …',en:'Adding …'},
+  toast_gcal_success:{de:'In Google Kalender übernommen.',en:'Added to Google Calendar.'},
+  toast_gcal_signin_failed:{de:'Anmeldung bei Google ist fehlgeschlagen oder wurde abgebrochen.',en:'Google sign-in failed or was cancelled.'},
+  toast_gcal_insert_failed:{de:'Eintrag konnte nicht in Google Kalender übernommen werden.',en:'Could not add the entry to Google Calendar.'},
+  toast_gcal_no_client_id:{de:'Google Kalender ist in dieser Version von NOTUA noch nicht eingerichtet (fehlende Client-ID).',en:'Google Calendar isn\'t set up in this copy of NOTUA yet (missing client ID).'},
+  toast_gcal_unsupported:{de:'Google-Anmeldung konnte nicht geladen werden. Prüfe deine Internetverbindung.',en:'Google sign-in could not be loaded. Check your internet connection.'},
+  toast_gcal_title_missing:{de:'Bitte gib einen Titel ein.',en:'Please enter a title.'},
+  toast_gcal_date_missing:{de:'Bitte gib ein Datum an.',en:'Please enter a date.'},
   insp_open_calendar:{de:'Im Kalender anzeigen →',en:'Show in calendar →'},
   tile_export_title:{de:'Board exportieren',en:'Export board'},
   tile_delete_title:{de:'Board löschen',en:'Delete board'},
@@ -2360,6 +2477,14 @@ const I18N={
   delete_forever_action:{de:'Endgültig löschen',en:'Delete forever'},
   toast_board_trashed:{de:'Board in den Papierkorb verschoben – bleibt dort, bis du es endgültig löschst',en:'Board moved to the trash – stays there until you delete it for good'},
   toast_board_restored:{de:'Board wiederhergestellt',en:'Board restored'},
+  toast_board_trash_failed:{de:'„{name}“ konnte nicht in den Papierkorb verschoben werden – bitte erneut versuchen',en:'"{name}" couldn\'t be moved to the trash – please try again'},
+  toast_board_restore_failed:{de:'„{name}“ konnte nicht wiederhergestellt werden – bitte erneut versuchen',en:'"{name}" couldn\'t be restored – please try again'},
+  toast_board_delete_forever_failed:{de:'„{name}“ konnte nicht endgültig gelöscht werden – bitte erneut versuchen',en:'"{name}" couldn\'t be permanently deleted – please try again'},
+  busy_trashing_board:{de:'Board wird in den Papierkorb verschoben …',en:'Moving board to trash …'},
+  busy_restoring_board:{de:'Board wird wiederhergestellt …',en:'Restoring board …'},
+  busy_deleting_board_forever:{de:'Board wird endgültig gelöscht …',en:'Permanently deleting board …'},
+  busy_importing:{de:'Import läuft …',en:'Importing …'},
+  busy_syncing:{de:'Synchronisierung läuft …',en:'Syncing …'},
   recently_restored_badge:{de:'Kürzlich wiederhergestellt',en:'Recently restored'},
   insp_multi_count:{de:'{n} Elemente ausgewählt',en:'{n} items selected'},
   insp_color_label:{de:'Farbe',en:'Color'},
@@ -3767,10 +3892,23 @@ async function mergedBoardsFrom(methodName){
   }
   if(!state.boardSources) state.boardSources=new Map();
   for(const [id,v] of map){ state.boardSources.set(id,{sources:v.sources, bestSrc:v.bestSrc}); }
-  return [...map.values()].map(v=>v.board);
+  return applyBoardOverrides([...map.values()].map(v=>v.board));
 }
 async function mergedAllBoards(){ return mergedBoardsFrom('allBoards'); }
 async function mergedAllTrashedBoards(){ return mergedBoardsFrom('allTrashedBoards'); }
+// Overlays any pending local edit (see state.boardOverrides) on top of freshly-fetched board data —
+// so e.g. a just-renamed board shows its new name everywhere immediately, even before the backend
+// write behind that rename has actually landed on a slow FS/Drive source. Mutates the board objects
+// in place (fine either way: they're fresh per-fetch objects here, not shared references elsewhere).
+function applyBoardOverrides(list){
+  if(state.boardOverrides && state.boardOverrides.size){
+    for(const b of list){
+      const ov=state.boardOverrides.get(b.id);
+      if(ov) Object.assign(b,ov);
+    }
+  }
+  return list;
+}
 
 const imgUrlCache=new Map();
 async function getImageUrl(imageId){
@@ -3806,6 +3944,9 @@ const state={
   lastPointer:{x:400,y:300}, // last known canvas-space pointer (for paste placement)
   recentlyRestored:new Set(), // board ids restored from the Papierkorb this session — badge clears on next app start
   homeSelection:new Set(),   // board ids currently marked in the home/overview grid (click/long-press to (de)select, multi-select for bulk-trash and the Tools "Board exportieren" action) — normal board-grid + project-panel tiles only, never the Papierkorb view
+  optimisticHidden:new Set(), // board ids whose tile was already removed from the Home grid (a trashBoard() in flight) while the real backend write still runs in the background — refreshHome() also filters these out so the tile can't flicker back before the write actually lands; cleared once that write finishes (success or failure) and a final refresh re-syncs with the true backend state
+  optimisticTrashHidden:new Set(), // same idea, but for the Papierkorb grid — set while a restoreBoardFromTrash()/permanentlyDeleteBoard() is in flight, so the tile leaves the Papierkorb instantly instead of waiting on the (possibly slow, real-network) backend write; see refreshTrash()
+  boardOverrides:new Map(), // board id -> {field:value} overlay applied on top of whatever the next merge/fetch returns (see mergedBoardsFrom) — lets a local edit (e.g. renaming a board via the crumb) show correctly everywhere right away, even somewhere the app hasn't re-fetched from a slow FS/Drive backend yet; cleared once that field's own background write has actually landed
 };
 const GRID_SIZE=18;
 
@@ -4206,9 +4347,27 @@ async function refreshHome(){
         : t('drive_reconnect_banner_body');
     }
   }
-  const all=await mergedAllBoards();
-  state.boards=all;
-  const roots=all.filter(b=>!b.parentBoardId).sort((a,b)=>b.updatedAt-a.updatedAt);
+  // Render immediately from whatever's already cached in state.boards (applying any pending local
+  // edit overlay — see state.boardOverrides) instead of waiting on a fresh fetch first. A connected
+  // FS/Drive source turns every Home visit into a real network round-trip; without this, something
+  // that already happened locally (a rename, a delete) wouldn't SHOW anywhere until that round-trip
+  // finished, which is exactly what read as "jede Änderung dauert ultra lange". A plain idb-only
+  // setup has nothing slow to hide behind, so it skips straight to the one fast render below.
+  const hasRemoteSource=!!(fsState.root || driveState.root);
+  if(hasRemoteSource && state.boards.length) await paintHomeGrid(applyBoardOverrides(state.boards));
+  const doMerge=async ()=>{
+    const all=await mergedAllBoards();
+    state.boards=all;
+    await paintHomeGrid(all);
+  };
+  if(hasRemoteSource) await withBusy(t('busy_syncing'), doMerge);
+  else await doMerge();
+}
+async function paintHomeGrid(all){
+  // Boards mid-flight in an optimistic delete (see trashBoard) are excluded here too — otherwise
+  // this merge (which still sees the old backend state until the background write lands) would
+  // make the tile flicker right back after it was already removed from the UI.
+  const roots=all.filter(b=>!b.parentBoardId && !state.optimisticHidden.has(b.id)).sort((a,b)=>b.updatedAt-a.updatedAt);
   boardGrid.innerHTML='';
 
   // Self-heal project state: drop references to boards that no longer exist, and auto-dissolve
@@ -4523,36 +4682,106 @@ async function findNestedBoardIds(boardId){
   }
   return ids;
 }
+// Serializes the background trash/restore/permanent-delete write for a given board id: since all
+// three of those now return to the caller (and update the UI) long before their real backend write
+// has landed, two of them fired in quick succession on the SAME board (delete, then hit undo before
+// the delete has actually finished) could otherwise race each other against the backend. Chaining
+// onto the previous op's promise — regardless of whether it resolved or rejected — keeps them
+// running in the order the user triggered them.
+const boardOpChains=new Map(); // boardId -> promise chain
+function chainBoardOp(boardId,fn){
+  const prev=boardOpChains.get(boardId) || Promise.resolve();
+  const settled=prev.then(()=>{},()=>{});
+  const next=settled.then(fn);
+  boardOpChains.set(boardId, next.then(()=>{},()=>{}));
+  return next;
+}
 async function trashBoard(boardId){
-  await withBoardBackend(boardId, async ()=>{
-    const board=await DB.getBoard(boardId); if(!board) return;
-    const ids=await findNestedBoardIds(boardId);
-    for(const id of ids) await DB.setTrashed(id,true);
-  });
-  await refreshHome();
+  const name=(boardById(boardId)||{}).name || '';
+  // Optimistic: the tile disappears from Home immediately; the (possibly slow, real-network)
+  // backend write happens afterwards, in the background — see state.optimisticHidden and the
+  // .busy-bar CSS block. This is what actually fixes the reported input lag: "im UI schonmal
+  // entfernt werden und im Hintergrund dann laden", not just a progress bar on top of the old wait.
+  state.optimisticHidden.add(boardId);
+  if(state.screen==='home') await refreshHome();
   showToast(t('toast_board_trashed'), async ()=>{ await restoreBoardFromTrash(boardId); });
+  chainBoardOp(boardId, ()=>withBusy(t('busy_trashing_board'), async ()=>{
+    try{
+      await withBoardBackend(boardId, async ()=>{
+        const board=await DB.getBoard(boardId); if(!board) return;
+        const ids=await findNestedBoardIds(boardId);
+        for(const id of ids) await DB.setTrashed(id,true);
+      });
+    }catch(e){
+      console.error('trashBoard: background write failed',e);
+      state.optimisticHidden.delete(boardId);
+      if(state.screen==='home') await refreshHome();
+      showToast(t('toast_board_trash_failed',{name}));
+      return;
+    }
+    state.optimisticHidden.delete(boardId);
+    if(state.screen==='home') await refreshHome();
+    if(!trashView.hidden) await refreshTrash();
+  }));
 }
 async function restoreBoardFromTrash(boardId){
-  const ids=await withBoardBackend(boardId, async ()=>{
-    const ids=await findNestedBoardIds(boardId);
-    for(const id of ids) await DB.setTrashed(id,false);
-    return ids;
-  });
-  // Cleared on the next full app start (it's a plain in-memory Set, nothing persisted) — exactly
-  // as long as the user asked the "recently restored" hint should last.
-  ids.forEach(id=>state.recentlyRestored.add(id));
+  const name=(boardById(boardId)||{}).name || '';
+  // Same idea as trashBoard: the tile leaves the Papierkorb immediately, the backend write (and the
+  // Home refresh that will actually show the restored board again) follows in the background.
+  state.optimisticTrashHidden.add(boardId);
   if(!trashView.hidden) await refreshTrash();
-  await refreshHome();
   showToast(t('toast_board_restored'));
+  chainBoardOp(boardId, ()=>withBusy(t('busy_restoring_board'), async ()=>{
+    let ids;
+    try{
+      ids=await withBoardBackend(boardId, async ()=>{
+        const ids=await findNestedBoardIds(boardId);
+        for(const id of ids) await DB.setTrashed(id,false);
+        return ids;
+      });
+    }catch(e){
+      console.error('restoreBoardFromTrash: background write failed',e);
+      state.optimisticTrashHidden.delete(boardId);
+      if(!trashView.hidden) await refreshTrash();
+      showToast(t('toast_board_restore_failed',{name}));
+      return;
+    }
+    // Cleared on the next full app start (it's a plain in-memory Set, nothing persisted) — exactly
+    // as long as the user asked the "recently restored" hint should last.
+    ids.forEach(id=>state.recentlyRestored.add(id));
+    state.optimisticTrashHidden.delete(boardId);
+    if(!trashView.hidden) await refreshTrash();
+    await refreshHome();
+  }));
 }
 async function permanentlyDeleteBoard(boardId){
-  const bundle=await withBoardBackend(boardId, ()=>collectBoardBundle(boardId));
-  await withBoardBackend(boardId, ()=>deleteBundle(bundle));
-  await refreshTrash();
+  const name=(boardById(boardId)||{}).name || '';
+  // Same optimistic pattern again — collecting+deleting every card/connector/image in the bundle is
+  // likely the slowest of the three paths (one write per item) when the board lives on FS/Drive, so
+  // this is exactly where the old "wait for the whole thing, then update the UI" pattern hurt most.
+  state.optimisticTrashHidden.add(boardId);
+  if(!trashView.hidden) await refreshTrash();
+  chainBoardOp(boardId, ()=>withBusy(t('busy_deleting_board_forever'), async ()=>{
+    try{
+      const bundle=await withBoardBackend(boardId, ()=>collectBoardBundle(boardId));
+      await withBoardBackend(boardId, ()=>deleteBundle(bundle));
+    }catch(e){
+      console.error('permanentlyDeleteBoard: background delete failed',e);
+      state.optimisticTrashHidden.delete(boardId);
+      if(!trashView.hidden) await refreshTrash();
+      showToast(t('toast_board_delete_forever_failed',{name}));
+      return;
+    }
+    state.optimisticTrashHidden.delete(boardId);
+    if(!trashView.hidden) await refreshTrash();
+  }));
 }
 async function refreshTrash(){
   const all=await mergedAllTrashedBoards();
-  const roots=all.filter(b=>!b.parentBoardId).sort((a,b)=>(b.trashedAt||b.updatedAt)-(a.trashedAt||a.updatedAt));
+  // See trashBoard/restoreBoardFromTrash/permanentlyDeleteBoard: boards mid-flight on an optimistic
+  // restore or permanent-delete are hidden here so they can't flicker back before that background
+  // write actually lands.
+  const roots=all.filter(b=>!b.parentBoardId && !state.optimisticTrashHidden.has(b.id)).sort((a,b)=>(b.trashedAt||b.updatedAt)-(a.trashedAt||a.updatedAt));
   trashGrid.innerHTML='';
   emptyTrash.hidden=roots.length>0;
   if(emptyTrashAllBtn) emptyTrashAllBtn.hidden=roots.length===0;
@@ -5463,6 +5692,16 @@ async function openBoard(id, skipCrumbAnim){
   syncDynamicUI();
   gridLayer.classList.toggle('hidden-grid',!state.gridEnabled);
 
+  // "beim klicken ins Board soll der sichtbare Bereich immer da starten wo auch Notizen sind und
+  // nicht im leeren" — a saved pan/zoom can drift to showing nothing (cards moved/added since it was
+  // last saved, or no view was ever saved at all), landing you on an empty canvas. If that's the
+  // case here, fall back to centering on the earliest card instead, exactly like the "An Inhalt
+  // anpassen" (fitToContent) button does — a genuinely on-target saved view is still respected.
+  if(state.cards.length && !viewShowsAnyCard(state.view,state.cards)){
+    const firstCard=[...state.cards].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))[0];
+    state.view={x:viewport.clientWidth/2-(firstCard.x+firstCard.w/2), y:viewport.clientHeight/2-(firstCard.y+firstCard.h/2), zoom:1};
+  }
+
   await renderCrumbs(board);
   syncBoardColorDot(board);
   applyView();
@@ -5493,13 +5732,29 @@ async function renderCrumbs(board){
       const cur=document.createElement('span');
       cur.className='current'; cur.textContent=b.name; cur.spellcheck=false;
       cur.addEventListener('dblclick',()=>{cur.contentEditable='true'; cur.focus(); document.execCommand('selectAll',false,null);});
-      cur.addEventListener('blur',async ()=>{
+      cur.addEventListener('blur',()=>{
         cur.contentEditable='false';
         const name=cur.textContent.trim()||t('untitled_board');
         cur.textContent=name;
+        if(name===b.name) return; // no actual change — skip the write entirely
         b.name=name; b.updatedAt=Date.now();
-        await DB.putBoard(b);
-        refreshBoardLinkCardsFor(b.id);
+        // Local edit overlay (see state.boardOverrides / applyBoardOverrides): the new name is
+        // correct everywhere right away — e.g. the Home tile, once you navigate back — even before
+        // the write below has actually reached a connected FS/Drive backend. Without this, renaming
+        // a board while synced read as "jede Änderung dauert ultra lange": the input itself was
+        // never slow, but nothing else reflected the rename until that write finished.
+        state.boardOverrides.set(b.id,{name:b.name, updatedAt:b.updatedAt});
+        chainBoardOp(b.id, ()=>withBusy(t('busy_syncing'), async ()=>{
+          try{
+            await withBoardBackend(b.id, ()=>DB.putBoard(b));
+            state.boardOverrides.delete(b.id);
+          }catch(e){
+            console.error('board rename: background write failed',e);
+            // Leave the overlay in place — the name the user set keeps showing everywhere even
+            // though the write failed; it'll simply retry to look the same on the next save.
+          }
+          refreshBoardLinkCardsFor(b.id);
+        }));
       });
       cur.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault(); cur.blur();}});
       crumbsEl.appendChild(cur);
@@ -5631,6 +5886,17 @@ attachZoomHold(document.getElementById('zoomIn'),1,zoomInAtCenter);
 attachZoomHold(document.getElementById('zoomOut'),-1,zoomOutAtCenter);
 attachZoomHold(document.getElementById('drawerZoomIn'),1,zoomInAtCenter);
 attachZoomHold(document.getElementById('drawerZoomOut'),-1,zoomOutAtCenter);
+// Does the given pan/zoom actually put at least one card inside the visible viewport rectangle?
+// Used right after opening a board (see openBoard) to catch a saved view that's drifted to showing
+// empty canvas — inverse of the transform applyView() sets (canvas point -> screen point is
+// *zoom + view.x/y, so this maps the visible screen rect back into canvas space).
+function viewShowsAnyCard(view,cards){
+  const vw=viewport.clientWidth, vh=viewport.clientHeight;
+  if(!vw || !vh) return true; // can't measure yet — don't second-guess the saved view
+  const left=-view.x/view.zoom, top=-view.y/view.zoom;
+  const right=left+vw/view.zoom, bottom=top+vh/view.zoom;
+  return cards.some(c=>c.x<right && c.x+c.w>left && c.y<bottom && c.y+c.h>top);
+}
 document.getElementById('fitBtn').addEventListener('click',fitToContent);
 document.getElementById('drawerFitBtn').addEventListener('click',fitToContent);
 function fitToContent(){
@@ -6594,6 +6860,56 @@ window.addEventListener('keydown',(e)=>{
 });
 
 /* ============================================================
+   BUSY BAR — reference-counted "background work in progress" signal (see the .busy-bar CSS block
+   and its markup at the top of #app). Several async operations can overlap (e.g. a delete still
+   finishing in the background while a sync kicks off), so a plain show/hide boolean would let the
+   first one to finish hide the bar out from under the others — a counter fixes that. showBusy()
+   returns nothing; always pair every showBusy() with exactly one hideBusy(), ideally via withBusy()
+   or a try/finally, so the count can't drift.
+   ============================================================ */
+let busyCount=0;
+let busyDoneTimer=null;
+let busyLabelTimer=null;
+function showBusy(label){
+  busyCount++;
+  clearTimeout(busyDoneTimer);
+  const bar=document.getElementById('busyBar');
+  if(bar){ bar.classList.remove('done'); bar.classList.add('show'); }
+  setBusyLabel(label);
+}
+function hideBusy(){
+  busyCount=Math.max(0,busyCount-1);
+  if(busyCount>0) return; // other operations are still running — keep the bar up for them
+  const bar=document.getElementById('busyBar');
+  if(!bar) return;
+  // Brief "done" pulse (bar snaps to 100%) so a very fast operation still reads as a clear
+  // completion signal instead of just blinking away — then fade the whole bar out.
+  bar.classList.add('done');
+  clearTimeout(busyDoneTimer);
+  busyDoneTimer=setTimeout(()=>{ bar.classList.remove('show','done'); },450);
+  setBusyLabel(null);
+}
+function setBusyLabel(label){
+  const el=document.getElementById('busyBarLabel');
+  if(!el) return;
+  clearTimeout(busyLabelTimer);
+  if(label){
+    el.textContent=label;
+    el.classList.add('show');
+  }else{
+    el.classList.remove('show');
+    busyLabelTimer=setTimeout(()=>{ if(!el.classList.contains('show')) el.textContent=''; },250);
+  }
+}
+// Convenience wrapper: runs fn() with the busy bar shown for its duration, always clearing it again
+// (success or failure) — the usual way to use this instead of manual showBusy/hideBusy pairs.
+async function withBusy(label,fn){
+  showBusy(label);
+  try{ return await fn(); }
+  finally{ hideBusy(); }
+}
+
+/* ============================================================
    TOAST
    ============================================================ */
 let toastTimer=null;
@@ -6662,6 +6978,9 @@ function iconChevronUp(){return `<svg width="14" height="14" viewBox="0 0 24 24"
 function iconChevronLeft(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>`;}
 function iconChevronRight(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>`;}
 function iconCalendarSmall(){return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>`;}
+// Calendar + plus — "add this to Google Calendar" affordance, used on the calendar panel's per-day
+// items and on the card-date-popover, next to the plain calendar icon used everywhere else.
+function iconGcal(){return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M12 13v5M9.5 15.5h5" stroke-width="2.1"/></svg>`;}
 function iconPlus(){return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M12 5v14M5 12h14"/></svg>`;}
 function iconLink(){return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 15l6-6M9 9h6v6"/></svg>`;}
 function iconExport(){return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>`;}
@@ -9233,13 +9552,16 @@ function renderCalendarGrid(){
   listItems.innerHTML='';
   dayItems.forEach(entry=>{
     const c=entry.card;
-    const item=document.createElement('button'); item.type='button'; item.className='cal-day-item';
+    const item=document.createElement('div'); item.className='cal-day-item';
     const dotColor=c.color&&c.color!=='none'?`rgb(var(--tag-${c.color}))`:'var(--faint)';
-    item.innerHTML=`<span class="cal-item-dot" style="background:${dotColor}"></span><span class="cal-item-time">${c.time||''}</span><span class="cal-item-label"></span><span class="cal-item-board"></span>`;
+    item.innerHTML=`<button type="button" class="cal-item-jump"><span class="cal-item-dot" style="background:${dotColor}"></span><span class="cal-item-time">${c.time||''}</span><span class="cal-item-label"></span><span class="cal-item-board"></span></button><button type="button" class="cal-item-gcal-btn" title="${t('gcal_export_title')}">${iconGcal()}</button>`;
     item.querySelector('.cal-item-label').textContent=cardPreviewLabel(c);
     // Board-scoped context, since a day's items can now come from several different boards at once.
     item.querySelector('.cal-item-board').textContent=entry.boardName||'';
-    item.addEventListener('click',()=>{ closeCalendarPanel(); jumpToCardAcrossBoards(entry.boardId, c.id); });
+    item.querySelector('.cal-item-jump').addEventListener('click',()=>{ closeCalendarPanel(); jumpToCardAcrossBoards(entry.boardId, c.id); });
+    // A separate button, deliberately not part of the jump target above — "add to Google Calendar"
+    // and "show me this card" are two different intents and must never trigger off the same click.
+    item.querySelector('.cal-item-gcal-btn').addEventListener('click',(e)=>{ e.stopPropagation(); showGcalEventModal(c); });
     listItems.appendChild(item);
   });
 }
@@ -9335,7 +9657,7 @@ function ensureCardDatePopover(){
   // native control at all. Two ordinary <select> dropdowns render identically and predictably on
   // every platform and can only ever show "00".."23" / "00".."59", so the 24h format is guaranteed
   // rather than hoping the OS is configured a certain way.
-  el.innerHTML=`<input type="date" class="cdp-date"><span class="cdp-time-group"><select class="cdp-hour"><option value="">--</option></select><span class="cdp-time-sep">:</span><select class="cdp-min"><option value="">--</option></select></span><button type="button" class="cdp-clear" title="${t('date_clear_title')}">${iconCross()}</button>`;
+  el.innerHTML=`<input type="date" class="cdp-date"><span class="cdp-time-group"><select class="cdp-hour"><option value="">--</option></select><span class="cdp-time-sep">:</span><select class="cdp-min"><option value="">--</option></select></span><button type="button" class="cdp-gcal" title="${t('gcal_export_title')}">${iconGcal()}</button><button type="button" class="cdp-clear" title="${t('date_clear_title')}">${iconCross()}</button>`;
   document.body.appendChild(el);
   cardDatePopoverEl=el;
   const dateInput=el.querySelector('.cdp-date');
@@ -9343,6 +9665,7 @@ function ensureCardDatePopover(){
   const minSelect=el.querySelector('.cdp-min');
   for(let h=0;h<24;h++){ const o=document.createElement('option'); o.value=o.textContent=String(h).padStart(2,'0'); hourSelect.appendChild(o); }
   for(let m=0;m<60;m++){ const o=document.createElement('option'); o.value=o.textContent=String(m).padStart(2,'0'); minSelect.appendChild(o); }
+  const gcalBtn=el.querySelector('.cdp-gcal');
   const clearBtn=el.querySelector('.cdp-clear');
   el.addEventListener('pointerdown',e=>e.stopPropagation());
   const persist=async()=>{
@@ -9351,6 +9674,7 @@ function ensureCardDatePopover(){
     card.date=dateInput.value||null;
     card.time=(card.date && hourSelect.value && minSelect.value) ? (hourSelect.value+':'+minSelect.value) : null;
     hourSelect.disabled=minSelect.disabled=!card.date;
+    gcalBtn.disabled=!card.date;
     await DB.putCard(card);
     renderAllCards();
     applySelectionClasses();
@@ -9361,6 +9685,17 @@ function ensureCardDatePopover(){
   dateInput.addEventListener('change',persist);
   hourSelect.addEventListener('change',persist);
   minSelect.addEventListener('change',persist);
+  // Opens the full Google-Kalender export dialog for whichever card the popover is currently on —
+  // only reachable once a date is actually set (disabled otherwise, see persist() and
+  // showCardDatePopover() above). Hides this small popover first: it sits above the modal-scrim
+  // (z-index 80 vs. 50), so left open it would visually float on top of the modal it just opened.
+  gcalBtn.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    if(!cardDateTarget || !cardDateTarget.date) return;
+    const card=cardDateTarget;
+    hideCardDatePopover();
+    showGcalEventModal(card);
+  });
   clearBtn.addEventListener('click',async()=>{
     dateInput.value=''; hourSelect.value=''; minSelect.value='';
     await persist();
@@ -9390,6 +9725,7 @@ function showCardDatePopover(card){
   pop.querySelector('.cdp-hour').value=h||'';
   pop.querySelector('.cdp-min').value=m||'';
   pop.querySelector('.cdp-hour').disabled=pop.querySelector('.cdp-min').disabled=!card.date;
+  pop.querySelector('.cdp-gcal').disabled=!card.date;
   pop.classList.add('show');
   positionCardDatePopover(card);
 }
@@ -9405,6 +9741,215 @@ document.addEventListener('pointerdown',(e)=>{
 window.addEventListener('keydown',(e)=>{
   if(e.key==='Escape' && cardDatePopoverEl && cardDatePopoverEl.classList.contains('show')) hideCardDatePopover();
 });
+
+/* ============================================================
+   GOOGLE-KALENDER-EXPORT — "In Google Kalender übernehmen"
+   A separate, on-demand OAuth flow from Google Drive sync above: its own token client, its own
+   narrower scope (calendar.events — only ever create events, never read someone's whole calendar),
+   its own in-memory-only access token. Deliberately NOT wired into the Drive connect/reconnect
+   banners or persisted anywhere — this isn't a standing background sync (that was explicitly
+   declined for NOTUA, see the SYNC section further up) — it's an explicit one-click "take this dated
+   card and create a real Google Calendar entry from it", same "immer die gerade offene Version
+   übernehmen, kein automatischer Hintergrundabgleich" spirit Sync itself already has. Every click
+   creates a brand-new Calendar event; nothing about a previous export is remembered on the card, so
+   there's no "already synced" state to keep consistent — asking again just makes another entry.
+   Requires the Google Calendar API to be enabled (and the calendar.events scope allowed) on the same
+   Google Cloud project GOOGLE_CLIENT_ID above belongs to — the same one-time setup Drive sync's own
+   scope already needed; see the setup guide.
+   ============================================================ */
+const GOOGLE_CALENDAR_SCOPES='https://www.googleapis.com/auth/calendar.events';
+const GCAL_SUPPORTED=DRIVE_SUPPORTED; // same OAuth client id, gated the same way
+const GCAL_EVENTS_API='https://www.googleapis.com/calendar/v3/calendars/primary/events';
+const gcalState={ tokenClient:null, accessToken:null, tokenExpiresAt:0, authPromise:null };
+function gcalBuildTokenClient(){
+  if(gcalState.tokenClient || !GCAL_SUPPORTED) return gcalState.tokenClient;
+  if(!(window.google && google.accounts && google.accounts.oauth2)) return null;
+  gcalState.tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID, scope:GOOGLE_CALENDAR_SCOPES, callback:()=>{},
+  });
+  return gcalState.tokenClient;
+}
+function gcalRequestToken(opts){
+  const client=gcalBuildTokenClient();
+  if(!client) return Promise.reject(new Error('gis-not-loaded'));
+  return new Promise((resolve,reject)=>{
+    client.callback=(resp)=>{
+      if(resp && resp.access_token){
+        gcalState.accessToken=resp.access_token;
+        gcalState.tokenExpiresAt=Date.now()+((resp.expires_in||3300)*1000);
+        resolve(resp.access_token);
+      }else{
+        reject(resp && resp.error ? new Error(resp.error) : new Error('no-token'));
+      }
+    };
+    client.error_callback=(err)=>{ reject(err||new Error('gis-error')); };
+    try{ client.requestAccessToken(opts||{}); }catch(e){ reject(e); }
+  });
+}
+// interactive=false attempts a silent refresh (fine for a token still cached from earlier in this
+// session); interactive=true — the normal path here, since this is an occasional explicit action
+// rather than an always-on connection — shows Google's own sign-in/consent UI when needed.
+async function ensureGcalAccessToken(interactive){
+  if(gcalState.accessToken && Date.now()<gcalState.tokenExpiresAt-60000) return gcalState.accessToken;
+  if(gcalState.authPromise) return gcalState.authPromise;
+  const opts=interactive ? {} : {prompt:'none'};
+  gcalState.authPromise=gcalRequestToken(opts).finally(()=>{ gcalState.authPromise=null; });
+  return gcalState.authPromise;
+}
+async function gcalInsertEvent(eventBody){
+  const token=await ensureGcalAccessToken(true);
+  const res=await fetch(GCAL_EVENTS_API,{
+    method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer '+token},
+    body:JSON.stringify(eventBody),
+  });
+  if(!res.ok) throw new Error('gcal-insert-failed-'+res.status);
+  return res.json();
+}
+// Google's all-day events use an EXCLUSIVE end date (a single-day event's end.date is the day AFTER
+// its start.date) — this walks a plain 'YYYY-MM-DD' key forward/back by real calendar days (via a
+// Date object, so month/year rollovers are handled for free), reusing the same dateKey()/pad2()
+// helpers the calendar panel above already builds its own date keys with.
+function addDaysToDateKey(dateStr,n){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()+n);
+  return dateKey(dt.getFullYear(),dt.getMonth(),dt.getDate());
+}
+const GCAL_REMINDER_PRESETS=[
+  {min:0, key:'gcal_reminder_attime'},
+  {min:10, key:'gcal_reminder_10m'},
+  {min:30, key:'gcal_reminder_30m'},
+  {min:60, key:'gcal_reminder_1h'},
+  {min:1440, key:'gcal_reminder_1d'},
+  {min:10080, key:'gcal_reminder_1w'},
+];
+// The one settings dialog every "In Google Kalender übernehmen" button (calendar panel day-list,
+// card-date-popover) opens — deliberately covers the same ground a plain Google Calendar event
+// editor does (Termin/Aufgabe/Geburtstag, ganztägig, Ort, Beschreibung, mehrere Erinnerungen …), just
+// laid out compact and clean rather than as NOTUA's own miniature of Google's whole UI. "Aufgabe" and
+// "Geburtstag" aren't separate Calendar API resource types (Google Tasks is a genuinely different API
+// or contacts-backed birthdays); Aufgabe is a plain entry with its own explanatory hint, and Geburtstag
+// is a plain all-day entry with a yearly RRULE — both are disclosed to the user right in the dialog
+// (gcal_type_task_hint / gcal_type_birthday_hint) rather than silently pretending to be something
+// they're not.
+function showGcalEventModal(card){
+  if(!GCAL_SUPPORTED){ showToast(t('toast_gcal_no_client_id')); return; }
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  const hasTime=!!card.time;
+  const initialDate=card.date||todayKey();
+  const initialStart=card.time||'09:00';
+  const [sh,sm]=initialStart.split(':').map(Number);
+  const endDt=new Date(2000,0,1,sh||9,sm||0); endDt.setMinutes(endDt.getMinutes()+60);
+  const initialEnd=String(endDt.getHours()).padStart(2,'0')+':'+String(endDt.getMinutes()).padStart(2,'0');
+  const initialDesc=card.type==='note' ? (card.data.text||'') : '';
+  scrim.innerHTML=`<div class="modal modal-wide gcal-modal">
+    <h4>${t('gcal_modal_title')}</h4>
+    <div class="gcal-type-row">
+      <button type="button" class="gcal-type-btn active" data-type="event">${t('gcal_type_event')}</button>
+      <button type="button" class="gcal-type-btn" data-type="task">${t('gcal_type_task')}</button>
+      <button type="button" class="gcal-type-btn" data-type="birthday">${t('gcal_type_birthday')}</button>
+    </div>
+    <p class="gcal-type-hint" hidden></p>
+    <input type="text" class="gcal-field-input gcal-title" placeholder="${t('gcal_title_placeholder')}" value="${escapeHtml(cardPreviewLabel(card))}"/>
+    <label class="gcal-allday-row"><input type="checkbox" class="gcal-allday"${hasTime?'':' checked'}/> ${t('gcal_allday_label')}</label>
+    <div class="gcal-datetime-row">
+      <input type="date" class="gcal-field-input gcal-date" value="${initialDate}"/>
+      <input type="time" class="gcal-field-input gcal-time-start" value="${initialStart}"/>
+      <span class="gcal-time-sep">${t('gcal_time_to_label')}</span>
+      <input type="time" class="gcal-field-input gcal-time-end" value="${initialEnd}"/>
+    </div>
+    <input type="text" class="gcal-field-input gcal-location" placeholder="${t('gcal_location_placeholder')}"/>
+    <textarea class="gcal-desc" placeholder="${t('gcal_description_placeholder')}">${escapeHtml(initialDesc)}</textarea>
+    <div class="gcal-reminder-label">${t('gcal_reminder_label')}</div>
+    <div class="gcal-reminder-chips">${GCAL_REMINDER_PRESETS.map(p=>`<button type="button" class="gcal-reminder-chip" data-min="${p.min}">${t(p.key)}</button>`).join('')}</div>
+    <p class="gcal-reminder-hint">${t('gcal_reminder_none_hint')}</p>
+    <div class="modal-actions">
+      <button data-a="cancel">${t('modal_cancel')}</button>
+      <button data-a="ok" class="primary">${t('gcal_submit_btn')}</button>
+    </div>
+  </div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  document.body.appendChild(scrim);
+
+  const typeBtns=[...scrim.querySelectorAll('.gcal-type-btn')];
+  const hintEl=scrim.querySelector('.gcal-type-hint');
+  const alldayCb=scrim.querySelector('.gcal-allday');
+  const startInput=scrim.querySelector('.gcal-time-start');
+  const endInput=scrim.querySelector('.gcal-time-end');
+  const timeSep=scrim.querySelector('.gcal-time-sep');
+  let curType='event';
+  function syncTimeVisibility(){
+    const hide=alldayCb.checked;
+    startInput.hidden=hide; endInput.hidden=hide; timeSep.hidden=hide;
+  }
+  function syncTypeUI(){
+    typeBtns.forEach(b=>b.classList.toggle('active',b.dataset.type===curType));
+    if(curType==='birthday'){
+      // A birthday only makes sense as an all-day, yearly-repeating entry — forced on rather than
+      // left as a suggestion, so the created event can't end up half-configured.
+      alldayCb.checked=true; alldayCb.disabled=true;
+      hintEl.hidden=false; hintEl.textContent=t('gcal_type_birthday_hint');
+    }else if(curType==='task'){
+      alldayCb.disabled=false;
+      hintEl.hidden=false; hintEl.textContent=t('gcal_type_task_hint');
+    }else{
+      alldayCb.disabled=false;
+      hintEl.hidden=true;
+    }
+    syncTimeVisibility();
+  }
+  typeBtns.forEach(btn=>btn.addEventListener('click',()=>{ curType=btn.dataset.type; syncTypeUI(); }));
+  alldayCb.addEventListener('change',syncTimeVisibility);
+  syncTypeUI();
+
+  // Reminders are a plain multi-select of common presets (tap to toggle, any number at once — Google
+  // Calendar itself allows several overrides per event) rather than a free-form "add reminder" list,
+  // which is what actually answers "wann UND wie oft will man erinnert werden" without a builder UI.
+  const reminderChips=[...scrim.querySelectorAll('.gcal-reminder-chip')];
+  reminderChips.forEach(chip=>chip.addEventListener('click',()=>chip.classList.toggle('active')));
+
+  scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
+  const okBtn=scrim.querySelector('[data-a="ok"]');
+  const dateInput=scrim.querySelector('.gcal-date');
+  okBtn.addEventListener('click',async ()=>{
+    const title=scrim.querySelector('.gcal-title').value.trim();
+    if(!title){ showToast(t('toast_gcal_title_missing')); return; }
+    const dateVal=dateInput.value;
+    if(!dateVal){ showToast(t('toast_gcal_date_missing')); return; }
+    const allDay=alldayCb.checked;
+    const location=scrim.querySelector('.gcal-location').value.trim();
+    const description=scrim.querySelector('.gcal-desc').value.trim();
+    const reminderMins=reminderChips.filter(c=>c.classList.contains('active')).map(c=>parseInt(c.dataset.min,10));
+    const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const body={ summary:title };
+    if(location) body.location=location;
+    if(description) body.description=description;
+    if(allDay){
+      body.start={date:dateVal};
+      body.end={date:addDaysToDateKey(dateVal,1)};
+    }else{
+      const sVal=startInput.value||'09:00', eVal=endInput.value||'10:00';
+      body.start={dateTime:`${dateVal}T${sVal}:00`, timeZone:tz};
+      body.end={dateTime:`${dateVal}T${eVal}:00`, timeZone:tz};
+    }
+    if(curType==='birthday') body.recurrence=['RRULE:FREQ=YEARLY'];
+    // No reminder picked at all keeps Google's own account-level defaults (useDefault:true) — only
+    // switches to an explicit override list once at least one preset was actually tapped.
+    body.reminders = reminderMins.length
+      ? {useDefault:false, overrides:reminderMins.map(min=>({method:'popup',minutes:min}))}
+      : {useDefault:true};
+    okBtn.disabled=true; okBtn.textContent=t('gcal_saving_btn');
+    try{
+      await gcalInsertEvent(body);
+      scrim.remove();
+      showToast(t('toast_gcal_success'));
+    }catch(e){
+      okBtn.disabled=false; okBtn.textContent=t('gcal_submit_btn');
+      const msg=(e && e.message)||'';
+      if(msg==='gis-not-loaded' || msg==='gis-error' || msg==='no-token') showToast(t('toast_gcal_signin_failed'));
+      else showToast(t('toast_gcal_insert_failed'));
+    }
+  });
+}
 
 /* ============================================================
    ADD ELEMENTS (dock)
