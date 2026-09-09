@@ -422,7 +422,13 @@ try{
   .tagline{color:var(--muted); font-size:0.92rem; margin:2px 0 0;}
   .board-count{color:var(--faint); font-size:0.8rem;}
   .home-header-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
-  .folder-toolbar{display:flex; align-items:center; gap:8px;}
+  /* flex-wrap here (added after a report that the Werkzeuge/gear button was getting pushed clean off
+     the right edge of the screen on narrow phones, invisible and unreachable): "Ordner wählen" +
+     "Google Drive"/email + the calendar and gear icon buttons used to sit in one unbreakable row —
+     on a phone that row is wider than the screen, and since body{overflow:hidden} just clips instead
+     of scrolling, whatever didn't fit (the gear button) was silently cut off rather than wrapping
+     down. Letting it wrap costs nothing on desktop, where there's always room for one line anyway. */
+  .folder-toolbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
   .folder-btn{
     display:flex; align-items:center; gap:7px; padding:7px 13px; border-radius:20px; border:1px solid var(--border);
     background:var(--surface); color:var(--muted); font-size:0.78rem; cursor:pointer; font-family:inherit; max-width:220px;
@@ -440,10 +446,15 @@ try{
     display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer;
   }
   .icon-btn.import-btn:hover{border-color:var(--border-strong); color:var(--ink);}
-  /* ---------- TOOLS BOTTOM SHEET ----------
-     Replaces the old small dropdown under the Werkzeuge (gear) button: Vorlagen/Import/Export/Sync
-     — and now Papierkorb too — each get their own selectable card in a sheet that slides up from the
-     bottom edge as an overlay over the board overview. See #toolsSheet / openToolsSheet/closeToolsSheet. */
+  /* ---------- TOOLS SHEET / DROPDOWN ----------
+     One set of markup (#toolsSheet), two looks: on a phone-width screen it's the bottom sheet that
+     slides up from the edge as an overlay ("wie ... hochsliden ... als kleine Menükarten"), same as
+     before; from 641px up ("auf PC ein kleines Dropdown wie vorher auch") the @media block below turns
+     the exact same element into a small anchored dropdown right under the Werkzeuge button instead —
+     see positionToolsSheetForDesktop() in the JS, which is what actually places it there (this file's
+     CSS alone can't know where the button is). Vorlagen/Import/Export/Sync/Papierkorb are the same
+     five cards either way, just laid out as big square tiles on mobile vs. a slim icon+label list on
+     desktop. See #toolsSheet / openToolsSheet/closeToolsSheet. */
   .tools-sheet-backdrop{
     position:absolute; inset:0; background:var(--scrim); z-index:55;
     opacity:0; pointer-events:none; transition:opacity .2s ease;
@@ -474,6 +485,30 @@ try{
     background:var(--surface); color:var(--accent);
   }
   .tools-sheet-card-danger .tools-sheet-card-icon{color:var(--danger);}
+  @media (min-width:641px){
+    /* Desktop/PC: a small anchored dropdown under the gear button instead of a full-width sheet
+       sliding up from the bottom of the whole screen — positioned by JS (positionToolsSheetForDesktop,
+       called from openToolsSheet), since plain CSS has no way to know where the button sits. */
+    .tools-sheet-backdrop{background:transparent;} /* still catches the outside click that closes it — just no dark dimming on a screen this size */
+    .tools-sheet{
+      position:fixed; left:auto; bottom:auto; top:60px; right:16px; width:220px;
+      border-radius:12px; border:1px solid var(--border); box-shadow:0 14px 34px -12px var(--shadow-lg);
+      padding:6px; max-height:none; overflow:visible;
+      transform:translateY(-6px) scale(.98); transform-origin:top right; opacity:0; pointer-events:none;
+      transition:transform .16s cubic-bezier(.3,1.3,.6,1), opacity .16s ease;
+    }
+    .tools-sheet.show{transform:translateY(0) scale(1); opacity:1; pointer-events:auto;}
+    .tools-sheet-handle{display:none;}
+    .tools-sheet-grid{display:flex; flex-direction:column; gap:1px;}
+    .tools-sheet-card{
+      flex-direction:row; align-items:center; justify-content:flex-start; text-align:left; gap:10px;
+      padding:8px 9px; border-radius:8px; border:none; background:none;
+    }
+    .tools-sheet-card:hover{background:var(--surface-2);}
+    .tools-sheet-card:active{transform:none;}
+    .tools-sheet-card-icon{width:26px; height:26px; border-radius:7px; background:none; flex:none;}
+    .tools-sheet-card-label{font-size:0.84rem;}
+  }
   .home-main{max-width:1180px; margin:0 auto; padding:8px 44px 80px;}
   .board-grid{
     display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
@@ -610,7 +645,12 @@ try{
      on a phone. Gating behind (hover: hover) — true only for pointing devices that can meaningfully
      hover — keeps the nice lift-on-hover for desktop while touch scrolling stays perfectly still. */
   @media (hover:hover) and (pointer:fine){
-    .board-tile:hover{box-shadow:0 12px 26px -8px var(--shadow); transform:translateY(-2px); border-color:var(--border-strong);}
+    /* :not(.tile-selected) — otherwise this (same specificity as .tile-selected's own box-shadow,
+       and later in the stylesheet) wins on hover and the accent ring just vanishes, which read as
+       "looks like it's not marked anymore". A marked tile keeps its ring while hovered too, just
+       with the same lift as any other tile — see the rule right below. */
+    .board-tile:hover:not(.tile-selected){box-shadow:0 12px 26px -8px var(--shadow); transform:translateY(-2px); border-color:var(--border-strong);}
+    .board-tile.tile-selected:hover{box-shadow:0 0 0 2.5px var(--accent), 0 12px 26px -8px var(--shadow); transform:translateY(-2px);}
     .project-tile:hover{box-shadow:0 12px 26px -8px var(--shadow); transform:translateY(-2px); border-color:var(--accent);}
   }
   .project-tile h3{
@@ -1700,6 +1740,15 @@ try{
   .modal-actions button.primary{background:var(--danger); border-color:var(--danger); color:#fff;}
   .modal-actions button:hover{filter:brightness(0.97);}
   .modal.modal-wide{width:380px; max-height:80vh; overflow-y:auto;}
+  .sync-conflict-options{display:flex; flex-direction:column; gap:8px;}
+  .sync-conflict-opt{
+    display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left;
+    padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--ink); font:inherit; cursor:pointer; width:100%;
+  }
+  .sync-conflict-opt:hover{border-color:var(--accent); background:var(--surface);}
+  .sync-conflict-opt-label{font-size:0.88rem; font-weight:600;}
+  .sync-conflict-opt-date{font-size:0.76rem; color:var(--muted);}
   .modal .impressum-block{font-size:0.86rem; line-height:1.6; color:var(--ink);}
   .modal .impressum-block h5{margin:14px 0 4px; font-size:0.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--faint);}
   .modal .impressum-block h5:first-child{margin-top:0;}
@@ -1821,6 +1870,10 @@ try{
     .insp-close{width:36px; height:36px; border-radius:9px;}
     .insp-close svg{width:17px; height:17px;}
     .home-header, .home-main{padding-left:20px; padding-right:20px;}
+    /* A long connected-Drive email address could still be the one thing wide enough to force its own
+       overflow even after the wrap above — capping it tighter than the desktop 220px keeps it (and
+       everything after it, once wrapped) comfortably inside a phone screen's width. */
+    .folder-btn{max-width:150px;}
   }
 </style>
 
@@ -1937,9 +1990,19 @@ try{
                own top-bar icon moved into that sheet too, as one more card among Vorlagen/Import/
                Export/Sync. -->
           <button class="icon-btn import-btn" id="toolsBtn" title="Werkzeuge">
-            <!-- Schlichtes Zahnrad statt Hammer — passt besser zu "Werkzeuge/Einstellungen" und zum
-                 plainen Stroke-Outline-Look der übrigen Toolbar-Icons. -->
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 6.6l1.9 1.9M17.5 15.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 17.4l1.9-1.9M17.5 8.5l1.9-1.9"/></svg>
+            <!-- Echtes Zahnrad (Ring + Nabenloch + 6 abgerundete Zähne ringsherum) statt des vorherigen
+                 Sonne/Asterisk-Symbols — liest sich eindeutig als "Einstellungen", bleibt aber im selben
+                 dünnen Stroke-Outline-Look wie die übrigen Toolbar-Icons (fill:none, runde Ecken). -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+              <circle cx="12" cy="12" r="5.6"/>
+              <circle cx="12" cy="12" r="2.2"/>
+              <rect x="10.6" y="1.6" width="2.8" height="5" rx="1.3"/>
+              <rect x="10.6" y="1.6" width="2.8" height="5" rx="1.3" transform="rotate(60 12 12)"/>
+              <rect x="10.6" y="1.6" width="2.8" height="5" rx="1.3" transform="rotate(120 12 12)"/>
+              <rect x="10.6" y="1.6" width="2.8" height="5" rx="1.3" transform="rotate(180 12 12)"/>
+              <rect x="10.6" y="1.6" width="2.8" height="5" rx="1.3" transform="rotate(240 12 12)"/>
+              <rect x="10.6" y="1.6" width="2.8" height="5" rx="1.3" transform="rotate(300 12 12)"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -2532,6 +2595,18 @@ const I18N={
   busy_deleting_board_forever:{de:'Löscht endgültig …',en:'Deleting for good …'},
   busy_importing:{de:'Importiert …',en:'Importing …'},
   busy_syncing:{de:'Synchronisiert …',en:'Syncing …'},
+  busy_pulling:{de:'Holt Änderungen …',en:'Fetching changes …'},
+  sync_conflict_title:{de:'Unterschiedliche Versionen',en:'Different versions'},
+  sync_conflict_body:{de:'„{name}“ wurde auf einem anderen Gerät geändert, während du hier ebenfalls Änderungen gemacht hast ({target}). Welche Version soll gelten?',en:'"{name}" was changed on another device while you also changed it here ({target}). Which version should win?'},
+  sync_conflict_local_label:{de:'Diese Version (hier)',en:'This version (here)'},
+  sync_conflict_remote_label:{de:'Andere Version ({target})',en:'Other version ({target})'},
+  sync_conflict_keep_local:{de:'Diese Version behalten',en:'Keep this version'},
+  sync_conflict_use_remote:{de:'Andere Version übernehmen',en:'Use other version'},
+  sync_conflict_updated_at:{de:'Zuletzt geändert: {date}',en:'Last changed: {date}'},
+  toast_sync_conflict:{de:'„{name}“: unterschiedliche Versionen gefunden – bitte auswählen',en:'"{name}": different versions found – please choose'},
+  toast_sync_conflict_resolved:{de:'Konflikt gelöst',en:'Conflict resolved'},
+  sync_target_fs:{de:'lokaler Ordner',en:'local folder'},
+  sync_target_drive:{de:'Google Drive',en:'Google Drive'},
   recently_restored_badge:{de:'Kürzlich wiederhergestellt',en:'Recently restored'},
   insp_multi_count:{de:'{n} Elemente ausgewählt',en:'{n} items selected'},
   insp_color_label:{de:'Farbe',en:'Color'},
@@ -2835,6 +2910,19 @@ function loadProjects(){
 function saveProjects(){
   try{ localStorage.setItem('notua-projects', JSON.stringify(state.projects)); }catch(e){}
 }
+// Sync engine's conflict baseline: "<boardId>|<target>" -> the remote updatedAt we last knew that
+// target to have (our own last push landing, or the last thing we pulled from it). Persisted so a
+// page reload doesn't make every connected board look like a fresh conflict.
+function loadSyncKnownRemote(){
+  try{
+    const saved=localStorage.getItem('notua-sync-known-remote');
+    if(saved){ const obj=JSON.parse(saved); if(obj&&typeof obj==='object') return new Map(Object.entries(obj)); }
+  }catch(e){}
+  return new Map();
+}
+function saveSyncKnownRemote(){
+  try{ localStorage.setItem('notua-sync-known-remote', JSON.stringify(Object.fromEntries(state.syncKnownRemote))); }catch(e){}
+}
 function setLang(lang){
   state.lang=lang;
   try{ localStorage.setItem('notua-lang',lang); }catch(e){}
@@ -3022,8 +3110,10 @@ const FS_SUPPORTED = typeof window.showDirectoryPicker === 'function';
 
 const fsState={
   root:null, rootName:'', pendingHandle:null,
-  trashDir:null,         // FileSystemDirectoryHandle for the "_Papierkorb" subfolder (lazily created)
-  dirs:new Map(),        // boardId -> FileSystemDirectoryHandle
+  boardsRoot:null,        // FileSystemDirectoryHandle for the "notua-boards" subfolder (lazily created) — see BOARD FOLDER NESTING below
+  trashDir:null,         // FileSystemDirectoryHandle for the "_Papierkorb" subfolder (lazily created), now nested under boardsRoot
+  dirs:new Map(),        // boardId -> FileSystemDirectoryHandle (the board's OWN folder, wherever it's currently nested)
+  parentDirs:new Map(),  // boardId -> FileSystemDirectoryHandle of whatever directly CONTAINS that board's folder right now (its parent board's folder, boardsRoot, or trashDir) — needed to rename/move/delete a board's folder from where it actually lives, once that's not always fsState.root anymore
   cache:new Map(),       // boardId -> {meta,cards,connectors}
   cardOwner:new Map(),   // cardId -> boardId
   connOwner:new Map(),   // connectorId -> boardId
@@ -3032,17 +3122,91 @@ const fsState={
   writers:new Map(),     // boardId -> debounced writer fn
   renameLocks:new Map(), // boardId -> Promise chain, serializes fsRenameBoardDir calls per board
 };
-// The Papierkorb's own folder, sitting right next to every board folder in the connected root —
-// named so it's recognizable if the user ever looks at the folder directly on disk, and prefixed
-// with "_" so it sorts away from real boards. allBoards()/allTrashedBoards() below never need to
-// look inside board.json to know what's trashed for folder-backed boards — a board is trashed
-// simply because its folder physically lives in here instead of directly under root.
+/* ---------- BOARD FOLDER NESTING ----------
+   "alle Boards in einen Ordner im Zielordner ablegen namens notua-boards, Sub-Boards nur noch im
+   Ordner vom Ober-Board" — every board folder now lives under a single "notua-boards" subfolder of
+   the connected folder instead of directly in it, and a sub-board's folder is a REAL subfolder
+   physically nested inside its parent board's own folder (mirroring board.parentBoardId), not a flat
+   sibling like every other board folder used to be. This falls out mostly for free once every place
+   that used to always parent a board's folder under fsState.root instead asks "what's this board's
+   actual container?" — fsState.parentDirs — with fsGetBoardsRootDir() as the fallback for a
+   top-level board (no parentBoardId) and fsState.dirs.get(parentBoardId) for a sub-board. One real
+   win from the nesting itself: trashing/restoring/renaming a board's folder already carries along
+   whatever's physically inside it — sub-board folders included — with no extra code needed for that
+   part; see fsCopyDirRecursive/fsWalkBoardChildren below for the parts that DO need to change (a
+   plain images/-subfolder-only copy would silently leave nested sub-boards behind when their parent's
+   folder moves, and a flat one-level directory scan would miss every sub-board entirely). Existing
+   users who already have the old flat layout on disk get moved over automatically the first time
+   their folder reconnects after this update — see fsMigrateFlatToNested(). */
+function fsGetBoardsRootDir(){
+  if(!fsState.root) return Promise.resolve(null);
+  if(fsState.boardsRoot) return Promise.resolve(fsState.boardsRoot);
+  return fsState.root.getDirectoryHandle('notua-boards',{create:true})
+    .then(h=>{ fsState.boardsRoot=h; return h; })
+    .catch(()=>null);
+}
+// The Papierkorb's own folder, now nested under notua-boards/ rather than sitting directly in the
+// connected root — named so it's recognizable if the user ever looks at the folder directly on disk,
+// and prefixed with "_" so it sorts away from real boards. allBoards()/allTrashedBoards() below never
+// need to look inside board.json to know what's trashed for folder-backed boards — a board is trashed
+// simply because its folder physically lives in here instead of under notua-boards/ itself.
 async function fsGetTrashDir(){
   if(!fsState.root) return null;
   if(fsState.trashDir) return fsState.trashDir;
-  try{ fsState.trashDir=await fsState.root.getDirectoryHandle('_Papierkorb',{create:true}); }catch(e){ return null; }
+  const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return null;
+  try{ fsState.trashDir=await boardsRoot.getDirectoryHandle('_Papierkorb',{create:true}); }catch(e){ return null; }
   return fsState.trashDir;
 }
+// Recursively copies every file and subdirectory from srcDir into destDir. Used wherever a board's
+// folder needs to physically move (rename, trash, restore) — now that a board's folder can have real
+// sub-board folders nested inside it (not just its own images/ subfolder), a move has to carry the
+// WHOLE tree along, not just the top-level files, or nested sub-boards would be silently left behind
+// (and then destroyed, since the caller removes the old folder recursively right after copying it).
+async function fsCopyDirRecursive(srcDir,destDir){
+  for await (const [name,handle] of srcDir.entries()){
+    if(handle.kind==='file'){
+      const file=await handle.getFile();
+      const w=await (await destDir.getFileHandle(name,{create:true})).createWritable();
+      await w.write(await file.arrayBuffer());
+      await w.close();
+    }else if(handle.kind==='directory'){
+      const newSub=await destDir.getDirectoryHandle(name,{create:true});
+      await fsCopyDirRecursive(handle,newSub);
+    }
+  }
+}
+// Walks dirHandle's own children looking for board folders (identified by each containing its own
+// board.json — the images/ subfolder and anything else without one is skipped) and, for every one
+// found, records/refreshes fsState.dirs/parentDirs (and populates the cache the first time a board is
+// seen), then recurses into it for whatever sub-boards are nested inside IT. Two jobs share this:
+// enumerating a whole tree (allBoards/allTemplates/allTrashedBoards — pass an array as `collect`) and,
+// after a board's folder physically moves elsewhere (rename/trash/restore), repairing the dirs/
+// parentDirs handles of whatever sub-boards were nested inside it — those still point at the
+// now-deleted old location otherwise, and the very next write through them would fail (pass null as
+// `collect` for this case; see fsRefreshNestedHandles).
+async function fsWalkBoardChildren(dirHandle,collect,seenIds){
+  for await (const [name,handle] of dirHandle.entries()){
+    if(handle.kind!=='directory' || name==='images') continue;
+    const data=await fsGetFileJSON(handle,'board.json',null);
+    if(!data || !data.meta || !data.meta.id) continue;
+    const id=data.meta.id;
+    if(seenIds.has(id)) continue; seenIds.add(id);
+    fsState.dirs.set(id,handle);
+    fsState.parentDirs.set(id,dirHandle);
+    if(!fsState.cache.has(id)){
+      fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
+      (data.cards||[]).forEach(c=>{
+        fsState.cardOwner.set(c.id,id);
+        { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,id); }
+      });
+      (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
+      if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
+    }
+    if(collect) collect.push({...fsState.cache.get(id).meta});
+    await fsWalkBoardChildren(handle,collect,seenIds); // recurse for this board's own nested sub-boards
+  }
+}
+async function fsRefreshNestedHandles(dirHandle){ await fsWalkBoardChildren(dirHandle,null,new Set()); }
 
 function slugify(name){
   const diacritics=new RegExp('['+String.fromCharCode(0x0300)+'-'+String.fromCharCode(0x036f)+']','g');
@@ -3127,136 +3291,84 @@ function fsRenameBoardDir(boardId,newName){
 }
 async function fsRenameBoardDirNow(boardId,newName){
   const oldDir=fsState.dirs.get(boardId);
-  if(!oldDir || !fsState.root) return;
+  const parentDir=fsState.parentDirs.get(boardId);
+  if(!oldDir || !parentDir) return;
   const newFolderName=folderNameFor(boardId,newName);
   if(newFolderName===oldDir.name) return;
-  let oldImages=null;
-  try{ oldImages=await oldDir.getDirectoryHandle('images'); }catch(e){ oldImages=null; }
   try{
-    const newDir=await fsState.root.getDirectoryHandle(newFolderName,{create:true});
-    if(oldImages){
-      const newImages=await newDir.getDirectoryHandle('images',{create:true});
-      for await (const [name,handle] of oldImages.entries()){
-        if(handle.kind!=='file') continue;
-        const file=await handle.getFile();
-        const w=await (await newImages.getFileHandle(name,{create:true})).createWritable();
-        await w.write(await file.arrayBuffer());
-        await w.close();
-      }
-    }
+    const newDir=await parentDir.getDirectoryHandle(newFolderName,{create:true});
+    // Copies the WHOLE tree (images/ subfolder AND any nested sub-board folders), not just images —
+    // see fsCopyDirRecursive's own comment for why a partial copy here would be a real data-loss bug
+    // now that a board's folder can have real sub-board folders nested inside it.
+    await fsCopyDirRecursive(oldDir,newDir);
     fsState.dirs.set(boardId,newDir);
-    await fsState.root.removeEntry(oldDir.name,{recursive:true});
+    // Whatever sub-boards were nested inside oldDir now have fresh copies under newDir, but their
+    // cached fsState.dirs/parentDirs handles still point at oldDir's (about-to-be-deleted) tree —
+    // re-walking newDir repairs every one of them in one pass, however deep the nesting goes.
+    await fsRefreshNestedHandles(newDir);
+    await parentDir.removeEntry(oldDir.name,{recursive:true});
   }catch(e){ /* rename failed partway through — keep the old folder mapping, nothing lost */ }
 }
 
 const FS_DB={
   async allBoards(){
     if(!fsState.root) return [];
+    const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return [];
     const out=[];
-    for await (const handle of fsState.root.values()){
-      if(handle.kind!=='directory') continue;
-      const data=await fsGetFileJSON(handle,'board.json',null);
-      if(!data || !data.meta || !data.meta.id) continue;
-      const id=data.meta.id;
-      fsState.dirs.set(id,handle);
-      if(!fsState.cache.has(id)){
-        fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
-        (data.cards||[]).forEach(c=>{
-          fsState.cardOwner.set(c.id,id);
-          { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,id); }
-        });
-        (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
-        if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
-      }
-      out.push({...fsState.cache.get(id).meta});
-    }
+    await fsWalkBoardChildren(boardsRoot,out,new Set());
     // Saved templates live as ordinary board folders right alongside real boards (simplest option —
     // no separate physical subfolder to maintain, unlike the trash's real move-to-_Papierkorb dance
     // above), so they're kept out of the normal overview purely by this flag, mirroring how IDB mode
-    // does it too.
+    // does it too. (_Papierkorb itself is never picked up here at all: it has no board.json of its
+    // own, so fsWalkBoardChildren's board.json check already skips it — see that function.)
     return out.filter(b=>!b.isTemplate);
   },
   // Same enumeration as allBoards() above, just keeping the isTemplate:true boards instead of
   // filtering them out — the template picker's own listing.
   async allTemplates(){
     if(!fsState.root) return [];
+    const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return [];
     const out=[];
-    for await (const handle of fsState.root.values()){
-      if(handle.kind!=='directory') continue;
-      const data=await fsGetFileJSON(handle,'board.json',null);
-      if(!data || !data.meta || !data.meta.id) continue;
-      const id=data.meta.id;
-      fsState.dirs.set(id,handle);
-      if(!fsState.cache.has(id)){
-        fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
-        (data.cards||[]).forEach(c=>{
-          fsState.cardOwner.set(c.id,id);
-          { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,id); }
-        });
-        (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
-        if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
-      }
-      out.push({...fsState.cache.get(id).meta});
-    }
+    await fsWalkBoardChildren(boardsRoot,out,new Set());
     return out.filter(b=>b.isTemplate);
   },
-  // Mirrors allBoards() above exactly, just scoped to the trash subfolder instead of root — every
-  // board sitting in there IS the Papierkorb's contents, nothing to filter by flag.
+  // Mirrors allBoards() above exactly, just scoped to the trash subfolder instead of the boards root —
+  // every board sitting in there IS the Papierkorb's contents, nothing to filter by flag.
   async allTrashedBoards(){
     if(!fsState.root) return [];
     const trashDir=await fsGetTrashDir();
     if(!trashDir) return [];
     const out=[];
-    for await (const handle of trashDir.values()){
-      if(handle.kind!=='directory') continue;
-      const data=await fsGetFileJSON(handle,'board.json',null);
-      if(!data || !data.meta || !data.meta.id) continue;
-      const id=data.meta.id;
-      fsState.dirs.set(id,handle);
-      if(!fsState.cache.has(id)){
-        fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
-        (data.cards||[]).forEach(c=>{
-          fsState.cardOwner.set(c.id,id);
-          { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,id); }
-        });
-        (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
-        if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
-      }
-      out.push({...fsState.cache.get(id).meta});
-    }
+    await fsWalkBoardChildren(trashDir,out,new Set());
     return out;
   },
-  // Trashing/restoring a folder-backed board physically relocates its whole folder between root and
-  // _Papierkorb — same manual "create new dir, copy every image across, delete the old dir" dance
-  // fsRenameBoardDirNow above already uses for renames (the File System Access API has no cross-
-  // directory move of its own to rely on here). board.json itself doesn't need copying: it's
-  // regenerated fresh in the new location from the already-cached in-memory data by
-  // fsWriteBoardSoon() at the end, same as a rename does.
+  // Trashing/restoring a folder-backed board physically relocates its whole folder between notua-boards/
+  // and notua-boards/_Papierkorb — same manual "create new dir, copy the tree across, delete the old
+  // dir" dance fsRenameBoardDirNow above already uses for renames (the File System Access API has no
+  // cross-directory move of its own to rely on here). board.json itself doesn't need copying as part
+  // of that: it's regenerated fresh in the new location from the already-cached in-memory data by
+  // fsWriteBoardSoon() at the end, same as a rename does. Restoring always drops a board back at the
+  // top level of notua-boards/ rather than trying to re-nest it under its original parent — simplest,
+  // and matches how this already worked (flatly) before nesting existed at all.
   async setTrashed(id,trashed){
     const entry=await fsEnsureBoardLoaded(id); if(!entry) return;
     entry.meta.trashed=trashed; entry.meta.trashedAt=trashed?Date.now():null;
     const oldDir=fsState.dirs.get(id);
-    if(oldDir && fsState.root){
+    const oldParent=fsState.parentDirs.get(id);
+    if(oldDir && oldParent){
       try{
         const trashDir=await fsGetTrashDir();
-        const destParent=trashed ? trashDir : fsState.root;
+        const boardsRoot=await fsGetBoardsRootDir();
+        const destParent=trashed ? trashDir : boardsRoot;
         if(destParent){
-          let oldImages=null;
-          try{ oldImages=await oldDir.getDirectoryHandle('images'); }catch(e){ oldImages=null; }
           const newDir=await destParent.getDirectoryHandle(oldDir.name,{create:true});
-          if(oldImages){
-            const newImages=await newDir.getDirectoryHandle('images',{create:true});
-            for await (const [name,handle] of oldImages.entries()){
-              if(handle.kind!=='file') continue;
-              const file=await handle.getFile();
-              const w=await (await newImages.getFileHandle(name,{create:true})).createWritable();
-              await w.write(await file.arrayBuffer());
-              await w.close();
-            }
-          }
+          // Whole-tree copy, not just images/ — a trashed/restored board carries any nested sub-boards
+          // along with it automatically this way (see fsCopyDirRecursive's comment).
+          await fsCopyDirRecursive(oldDir,newDir);
           fsState.dirs.set(id,newDir);
-          const removeFrom=trashed ? fsState.root : trashDir;
-          await removeFrom.removeEntry(oldDir.name,{recursive:true});
+          fsState.parentDirs.set(id,destParent);
+          await fsRefreshNestedHandles(newDir); // repair any nested sub-boards' now-stale handles
+          await oldParent.removeEntry(oldDir.name,{recursive:true});
         }
       }catch(e){ /* physical move failed partway (e.g. permissions) — the trashed flag written
                     below still keeps board.json itself correct, just without the folder move */ }
@@ -3272,9 +3384,17 @@ const FS_DB={
     if(!fsState.root) return;
     let dir=fsState.dirs.get(b.id);
     if(!dir){
+      // A sub-board's folder nests inside its parent's OWN folder; a top-level board (no
+      // parentBoardId) goes directly under notua-boards/. If the parent isn't known here yet (e.g.
+      // this board got pushed to a target before its parent ever was), falling back to the boards
+      // root still creates the board somewhere findable rather than failing outright — a later push
+      // of the parent can't retroactively re-nest it, but nothing is lost either.
+      const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return;
+      const container=(b.parentBoardId && fsState.dirs.get(b.parentBoardId)) || boardsRoot;
       const folderName=folderNameFor(b.id,b.name);
-      dir=await fsState.root.getDirectoryHandle(folderName,{create:true});
+      dir=await container.getDirectoryHandle(folderName,{create:true});
       fsState.dirs.set(b.id,dir);
+      fsState.parentDirs.set(b.id,container);
       fsState.cache.set(b.id,{meta:{...b}, cards:[], connectors:[]});
     }else{
       const entry=await fsEnsureBoardLoaded(b.id);
@@ -3291,8 +3411,9 @@ const FS_DB={
   },
   async deleteBoard(id){
     const dir=fsState.dirs.get(id);
-    if(dir){ try{ await fsState.root.removeEntry(dir.name,{recursive:true}); }catch(e){} }
-    fsState.dirs.delete(id); fsState.cache.delete(id); fsState.writers.delete(id);
+    const parent=fsState.parentDirs.get(id);
+    if(dir && parent){ try{ await parent.removeEntry(dir.name,{recursive:true}); }catch(e){} }
+    fsState.dirs.delete(id); fsState.cache.delete(id); fsState.writers.delete(id); fsState.parentDirs.delete(id);
   },
 
   async cardsForBoard(boardId){ const e=await fsEnsureBoardLoaded(boardId); return e ? e.cards.slice() : []; },
@@ -3377,6 +3498,84 @@ const FS_DB={
   },
 };
 
+// One-time migration for a folder that was already connected before board-folder nesting existed:
+// every board folder used to sit directly in the connected root (flat), trash included. If
+// notua-boards/ doesn't exist yet, this moves every board folder found directly under root into it —
+// nested under its logical parent (per meta.parentBoardId) however deep that goes, exactly matching
+// where putBoard() would create it fresh today — and moves the old root-level _Papierkorb the same
+// way into notua-boards/_Papierkorb. Called from activateFolder() on every connect; a no-op (one
+// cheap existence check) once notua-boards/ already exists, so it's safe to call every time.
+async function fsMigrateFlatToNested(){
+  if(!fsState.root) return;
+  try{ await fsState.root.getDirectoryHandle('notua-boards'); return; }catch(e){} // already migrated (or a brand-new empty folder) — nothing flat to move
+  const flatBoards=[]; // {handle,meta}
+  let oldTrashHandle=null;
+  try{
+    for await (const [name,handle] of fsState.root.entries()){
+      if(handle.kind!=='directory') continue;
+      if(name==='_Papierkorb'){ oldTrashHandle=handle; continue; }
+      const data=await fsGetFileJSON(handle,'board.json',null);
+      if(data && data.meta && data.meta.id) flatBoards.push({handle,meta:data.meta});
+    }
+  }catch(e){ return; } // couldn't even read the root — leave everything exactly as it was, try again next connect
+  const trashedFlatBoards=[];
+  if(oldTrashHandle){
+    try{
+      for await (const [name,handle] of oldTrashHandle.entries()){
+        if(handle.kind!=='directory') continue;
+        const data=await fsGetFileJSON(handle,'board.json',null);
+        if(data && data.meta && data.meta.id) trashedFlatBoards.push({handle,meta:data.meta});
+      }
+    }catch(e){ oldTrashHandle=null; } // couldn't read the old trash folder — skip migrating it this round rather than fail the whole migration
+  }
+  const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return;
+  try{
+    if(flatBoards.length) await fsMigrateBoardGroupToNested(flatBoards,boardsRoot);
+    if(trashedFlatBoards.length){
+      const newTrash=await boardsRoot.getDirectoryHandle('_Papierkorb',{create:true});
+      await fsMigrateBoardGroupToNested(trashedFlatBoards,newTrash);
+    }
+  }catch(e){
+    // Something failed mid-copy — do NOT delete any old originals below; leave the (possibly partial)
+    // copies under notua-boards/ in place too. Worst case is a harmless duplicate on the next connect
+    // attempt (this function bails out early once notua-boards/ exists — so re-running it by hand
+    // would need notua-boards/ removed first); nothing on disk is ever destroyed by this catch.
+    return;
+  }
+  // Every board folder now has a confirmed copy under notua-boards/ — safe to remove the old flat
+  // originals (and the old root-level _Papierkorb) now.
+  for(const {handle} of flatBoards){ try{ await fsState.root.removeEntry(handle.name,{recursive:true}); }catch(e){} }
+  if(oldTrashHandle){ try{ await fsState.root.removeEntry('_Papierkorb',{recursive:true}); }catch(e){} }
+  // Every fsState.dirs/parentDirs/cache entry populated during the scan above still points at the OLD
+  // (now-deleted) flat locations — clear everything so the very next enumeration (allBoards() etc,
+  // called right after this from activateFolder) does a clean walk of the new nested layout instead.
+  fsState.dirs.clear(); fsState.parentDirs.clear(); fsState.cache.clear();
+  fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
+}
+// Nests a flat list of {handle,meta} board folders (today all direct siblings under fromRoot — root
+// itself, or the old root-level _Papierkorb) under destRoot, mirroring their logical
+// meta.parentBoardId relationships: a top-level board (or a sub-board whose parent isn't in this same
+// list — genuinely orphaned, or its parent got deleted at some point) lands directly under destRoot;
+// everyone else lands inside their own parent's freshly-created copy, however deep that goes.
+async function fsMigrateBoardGroupToNested(list,destRoot){
+  const byId=new Map(list.map(x=>[x.meta.id,x]));
+  const placed=new Map(); // boardId -> its new DirectoryHandle (memoized so a parent with several children is only copied once)
+  const placing=new Set(); // cycle guard — real data should never have a parentBoardId cycle, but never loop forever if it somehow does
+  async function place(item){
+    if(placed.has(item.meta.id)) return placed.get(item.meta.id);
+    if(placing.has(item.meta.id)) return destRoot;
+    placing.add(item.meta.id);
+    const parentItem=item.meta.parentBoardId ? byId.get(item.meta.parentBoardId) : null;
+    const container=parentItem ? await place(parentItem) : destRoot;
+    const folderName=folderNameFor(item.meta.id,item.meta.name);
+    const newDir=await container.getDirectoryHandle(folderName,{create:true});
+    await fsCopyDirRecursive(item.handle,newDir);
+    placed.set(item.meta.id,newDir);
+    return newDir;
+  }
+  for(const item of list) await place(item);
+}
+
 /* ============================================================
    GOOGLE DRIVE DATA LAYER (Google Identity Services + Drive REST API v3)
    ============================================================
@@ -3412,8 +3611,10 @@ const driveState={
   tokenExpiresAt:0,       // ms epoch
   email:'', name:'',
   root:null,               // Drive folder id of the "NOTUA" root folder
-  trashDir:null,           // Drive folder id of the "_Papierkorb" subfolder (lazily created)
-  dirs:new Map(),          // boardId -> board folder id
+  boardsRoot:null,         // Drive folder id of the "notua-boards" subfolder (lazily created) — see BOARD FOLDER NESTING in the FS_DB section above, mirrored here
+  trashDir:null,           // Drive folder id of the "_Papierkorb" subfolder (lazily created), now nested under boardsRoot
+  dirs:new Map(),          // boardId -> board folder id (the board's OWN folder, wherever it's currently nested)
+  parentDirs:new Map(),    // boardId -> folder id of whatever directly CONTAINS that board's folder right now (its parent board's folder, boardsRoot, or trashDir) — driveMoveFile needs the CURRENT parent to move from, which isn't always driveState.root anymore
   boardFileId:new Map(),   // boardId -> board.json file id
   imagesDirId:new Map(),   // boardId -> images subfolder id
   cache:new Map(),         // boardId -> {meta,cards,connectors}
@@ -3609,10 +3810,20 @@ async function driveGetRoot(){
   driveState.root=id;
   return id;
 }
+// See BOARD FOLDER NESTING in the FS_DB section above — mirrored here: every board folder now lives
+// under a single "notua-boards" subfolder of the NOTUA root instead of directly in it, and a
+// sub-board's folder is a real subfolder nested inside its parent board's own folder.
+async function driveGetBoardsRootDir(){
+  if(driveState.boardsRoot) return driveState.boardsRoot;
+  const root=await driveGetRoot(); if(!root) return null;
+  const id=await driveFindOrCreateFolder(root,'notua-boards');
+  driveState.boardsRoot=id;
+  return id;
+}
 async function driveGetTrashDir(){
   if(driveState.trashDir) return driveState.trashDir;
-  const root=await driveGetRoot(); if(!root) return null;
-  const id=await driveFindOrCreateFolder(root,'_Papierkorb');
+  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return null;
+  const id=await driveFindOrCreateFolder(boardsRoot,'_Papierkorb');
   driveState.trashDir=id;
   return id;
 }
@@ -3650,20 +3861,29 @@ async function driveEnsureImagesDir(boardId){
   driveState.imagesDirId.set(boardId,id);
   return id;
 }
-// Same job as FS_DB's allBoards()/allTemplates()/allTrashedBoards(): walk every board-folder inside
-// a given parent (the NOTUA root, or its _Papierkorb subfolder) and return each board's meta —
-// caching everything it reads along the way exactly like FS_DB does.
-async function driveEnumerateBoards(parentId){
-  const out=[];
+// Same job as FS_DB's fsWalkBoardChildren(): recursively walk every board folder nested inside a
+// given parent (the notua-boards root, or its _Papierkorb subfolder) — a folder counts as a board the
+// same way FS_DB decides it (it has its own board.json inside it; the images/ subfolder never does,
+// so it's skipped automatically) — and return each board's meta, recursing into every board found for
+// whatever sub-boards are nested inside IT in turn.
+// Unlike FS_DB, nothing here ever needs a post-move "repair" pass: Drive addresses every folder by a
+// permanent id, and moving a folder (driveMoveFile's addParents/removeParents) only ever changes THAT
+// folder's own parent — every folder nested inside it keeps the exact same id and the exact same
+// (still-valid) parent pointer to it, whether that folder itself just moved across Drive or not. FS_DB
+// needs the repair only because the File System Access API has no true move — a "move" there means
+// create-new-copy-then-delete-old, which really does invalidate every handle underneath.
+async function driveWalkBoards(parentId,collect,seenIds){
   const children=await driveListFolderChildren(parentId);
   for(const child of children){
-    if(child.mimeType!=='application/vnd.google-apps.folder' || child.name==='_Papierkorb') continue;
+    if(child.mimeType!=='application/vnd.google-apps.folder' || child.name==='images') continue;
     const boardFile=await driveFindChild(child.id,'board.json',false);
     if(!boardFile) continue;
     const data=await driveGetJSON(boardFile.id,null);
     if(!data || !data.meta || !data.meta.id) continue;
     const id=data.meta.id;
+    if(seenIds.has(id)) continue; seenIds.add(id);
     driveState.dirs.set(id,child.id);
+    driveState.parentDirs.set(id,parentId);
     driveState.boardFileId.set(id,boardFile.id);
     if(!driveState.cache.has(id)){
       driveState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
@@ -3673,37 +3893,46 @@ async function driveEnumerateBoards(parentId){
       });
       (data.connectors||[]).forEach(cn=>driveState.connOwner.set(cn.id,id));
     }
-    out.push({...driveState.cache.get(id).meta});
+    if(collect) collect.push({...driveState.cache.get(id).meta});
+    await driveWalkBoards(child.id,collect,seenIds); // recurse for this board's own nested sub-boards
   }
-  return out;
 }
+async function driveEnumerateBoards(parentId){ const out=[]; await driveWalkBoards(parentId,out,new Set()); return out; }
 
 const DRIVE_DB={
   async allBoards(){
     if(!driveState.root) return [];
-    return (await driveEnumerateBoards(driveState.root)).filter(b=>!b.isTemplate);
+    const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return [];
+    return (await driveEnumerateBoards(boardsRoot)).filter(b=>!b.isTemplate);
   },
   async allTemplates(){
     if(!driveState.root) return [];
-    return (await driveEnumerateBoards(driveState.root)).filter(b=>b.isTemplate);
+    const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return [];
+    return (await driveEnumerateBoards(boardsRoot)).filter(b=>b.isTemplate);
   },
   async allTrashedBoards(){
     if(!driveState.root) return [];
     const trashDir=await driveGetTrashDir(); if(!trashDir) return [];
     return driveEnumerateBoards(trashDir);
   },
-  // Mirrors FS_DB.setTrashed: physically relocates the board's whole folder between the NOTUA root
-  // and its _Papierkorb subfolder — Drive's addParents/removeParents move, rather than FS_DB's
-  // manual copy-then-delete dance (Drive addresses everything by file id, so a real move exists).
+  // Mirrors FS_DB.setTrashed: physically relocates the board's whole folder between notua-boards/ and
+  // notua-boards/_Papierkorb — Drive's addParents/removeParents move (real move, not FS_DB's manual
+  // copy-then-delete dance, since Drive addresses everything by file id). Restoring always drops a
+  // board back at the top level of notua-boards/ rather than trying to re-nest it under its original
+  // parent — simplest, and matches how this already worked (flatly) before nesting existed at all.
   async setTrashed(id,trashed){
     const entry=await driveEnsureBoardLoaded(id); if(!entry) return;
     entry.meta.trashed=trashed; entry.meta.trashedAt=trashed?Date.now():null;
     const folderId=driveState.dirs.get(id);
-    if(folderId && driveState.root){
+    const fromParent=driveState.parentDirs.get(id);
+    if(folderId && fromParent){
       try{
         const trashDir=await driveGetTrashDir();
-        if(trashDir){
-          await driveMoveFile(folderId, trashed?driveState.root:trashDir, trashed?trashDir:driveState.root);
+        const boardsRoot=await driveGetBoardsRootDir();
+        const toParent=trashed?trashDir:boardsRoot;
+        if(toParent){
+          await driveMoveFile(folderId, fromParent, toParent);
+          driveState.parentDirs.set(id,toParent);
         }
       }catch(e){ /* physical move failed (e.g. offline) — the trashed flag written below still keeps
                     board.json itself correct, just without the folder actually having moved yet */ }
@@ -3715,8 +3944,15 @@ const DRIVE_DB={
     if(!driveState.root) return;
     let folderId=driveState.dirs.get(b.id);
     if(!folderId){
-      folderId=await driveFindOrCreateFolder(driveState.root, folderNameFor(b.id,b.name));
+      // A sub-board's folder nests inside its parent's OWN folder; a top-level board (no
+      // parentBoardId) goes directly under notua-boards/. If the parent isn't known here yet, falling
+      // back to the boards root still creates the board somewhere findable rather than failing — see
+      // the identical fallback (and its reasoning) in FS_DB.putBoard above.
+      const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
+      const container=(b.parentBoardId && driveState.dirs.get(b.parentBoardId)) || boardsRoot;
+      folderId=await driveFindOrCreateFolder(container, folderNameFor(b.id,b.name));
       driveState.dirs.set(b.id,folderId);
+      driveState.parentDirs.set(b.id,container);
       driveState.cache.set(b.id,{meta:{...b}, cards:[], connectors:[]});
     }else{
       const entry=await driveEnsureBoardLoaded(b.id);
@@ -3731,7 +3967,7 @@ const DRIVE_DB={
     const folderId=driveState.dirs.get(id);
     if(folderId) await driveDeleteFile(folderId);
     driveState.dirs.delete(id); driveState.cache.delete(id); driveState.writers.delete(id);
-    driveState.boardFileId.delete(id); driveState.imagesDirId.delete(id);
+    driveState.boardFileId.delete(id); driveState.imagesDirId.delete(id); driveState.parentDirs.delete(id);
   },
 
   async cardsForBoard(boardId){ const e=await driveEnsureBoardLoaded(boardId); return e ? e.cards.slice() : []; },
@@ -3784,6 +4020,12 @@ const DRIVE_DB={
     const bid=boardIdOverride || driveState.imageOwner.get(id) || state.currentBoardId;
     if(!driveState.dirs.get(bid)) return;
     try{
+      // "Bilder die in der Drive gespeichert werden sollen eine höchstmenge die sinnvoll ist an kb
+      // haben, runterskaliert wenn sie zu groß sind" — only for Drive (FS_DB/IDB keep the original,
+      // full-resolution blob; see downscaleImageForDrive's own comment for why only Drive and only
+      // here). ext is computed AFTER this so a png that got re-encoded as jpeg is saved with the
+      // right extension, not a stale/wrong one.
+      blob=await downscaleImageForDrive(blob);
       const imagesDir=await driveEnsureImagesDir(bid); if(!imagesDir) return;
       const ext=extForBlob(blob);
       let fileId=driveState.imageFileId.get(id);
@@ -3821,6 +4063,132 @@ const DRIVE_DB={
     driveState.imageFileId.delete(id); driveState.imageOwner.delete(id);
   },
 };
+
+/* ---------- IMAGE DOWNSCALING FOR DRIVE ----------
+   "Bilder die in der Drive gespeichert werden am besten eine höchstmenge die sinnvoll ist an kb haben,
+   runterskaliert wenn sie zu groß sind" — a phone photo dropped onto a board can easily be 4-8MB;
+   nobody needs that at full resolution just to see it as a small reference image on a board, and it
+   eats into Drive's free storage fast. Deliberately scoped to Drive only (not FS_DB, not IndexedDB):
+   a connected LOCAL folder has no real storage-budget concern the way a Drive quota does, and
+   IndexedDB is the app's own working copy — shrinking either of those would just be lossy for no
+   reason. This only ever runs right before a Drive upload (DRIVE_DB.putImage above), so the
+   full-resolution original is exactly what's still shown on the board and stored everywhere else. */
+const IMAGE_DRIVE_MAX_DIM=1600;              // px, longest side — Tom's call: board images are viewed as cards/zoomed references, not full-res photo prints, and a lower cap keeps the average file noticeably smaller than the byte cap below, not right up against it
+const IMAGE_DRIVE_MAX_BYTES=1*1024*1024;      // ~1MB — below this, an image is left completely untouched. Budgeted so ~200 images (Tom's own sanity check) land around ~200MB, i.e. comfortably inside a ~1GB Drive budget with room to spare rather than filling it up fast
+async function downscaleImageForDrive(blob){
+  if(!blob || !blob.type || !blob.type.startsWith('image/')) return blob; // not a raster image (e.g. a "Datei einfügen" PDF/doc) — nothing to downscale
+  if(blob.type==='image/svg+xml' || blob.type==='image/gif') return blob; // vector (resizing via canvas would rasterize it) / possibly animated (canvas would flatten it to one frame) — leave both exactly as uploaded
+  if(blob.size<=IMAGE_DRIVE_MAX_BYTES) return blob; // already small enough
+  try{
+    const bitmap=await createImageBitmap(blob);
+    let{width,height}=bitmap;
+    const longest=Math.max(width,height);
+    if(longest>IMAGE_DRIVE_MAX_DIM){
+      const scale=IMAGE_DRIVE_MAX_DIM/longest;
+      width=Math.round(width*scale); height=Math.round(height*scale);
+    }
+    const canvas=document.createElement('canvas');
+    canvas.width=width; canvas.height=height;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(bitmap,0,0,width,height);
+    if(bitmap.close) bitmap.close();
+    // PNG stays PNG (so an image relying on transparency doesn't silently get a flattened background)
+    // — the resize alone already shrinks it plenty. Anything else becomes a quality-0.8 JPEG, by far
+    // the most effective single lever for a photo.
+    const outType=blob.type==='image/png' ? 'image/png' : 'image/jpeg';
+    const quality=outType==='image/jpeg' ? 0.8 : undefined;
+    let out=await new Promise(res=>canvas.toBlob(res,outType,quality));
+    if(!out) return blob; // canvas encoding failed for some reason — never lose the image over this, ship the original instead
+    // Still over budget (a very large/busy photo even after the resize above) — a couple of
+    // progressively-lower-quality JPEG passes, each only kept if it actually helped, so a very
+    // detailed photo still reliably lands under the (now tighter) byte cap instead of sneaking
+    // through close to it.
+    if(out.size>IMAGE_DRIVE_MAX_BYTES && outType==='image/jpeg'){
+      for(const q of [0.6,0.4]){
+        const attempt=await new Promise(res=>canvas.toBlob(res,'image/jpeg',q));
+        if(attempt && attempt.size<out.size) out=attempt;
+        if(out.size<=IMAGE_DRIVE_MAX_BYTES) break;
+      }
+    }
+    return out.size<blob.size ? out : blob; // only ever use the downscaled version if it actually came out smaller
+  }catch(e){ return blob; }
+}
+
+// One-time migration for a Drive account that was already connected before board-folder nesting
+// existed: every board folder used to sit directly in the NOTUA root (flat), trash included. Mirrors
+// fsMigrateFlatToNested()'s logic exactly, just using real Drive moves (driveMoveFile) instead of
+// FS_DB's copy-then-delete dance — Drive addresses everything by id, so nothing here ever re-uploads
+// any file content, it only relinks folders to new parents. Called from activateDrive() on every
+// connect; a no-op (one cheap existence check) once notua-boards/ already exists.
+async function driveMigrateFlatToNested(){
+  if(!driveState.root) return;
+  const existing=await driveFindChild(driveState.root,'notua-boards',true);
+  if(existing){ driveState.boardsRoot=existing.id; return; } // already migrated (or a brand-new empty NOTUA folder) — nothing flat to move
+  const children=await driveListFolderChildren(driveState.root);
+  const flatBoards=[]; // {folderId,meta}
+  let oldTrashId=null;
+  for(const child of children){
+    if(child.mimeType!=='application/vnd.google-apps.folder') continue;
+    if(child.name==='_Papierkorb'){ oldTrashId=child.id; continue; }
+    const boardFile=await driveFindChild(child.id,'board.json',false);
+    if(!boardFile) continue;
+    const data=await driveGetJSON(boardFile.id,null);
+    if(data && data.meta && data.meta.id) flatBoards.push({folderId:child.id,meta:data.meta});
+  }
+  const trashedFlatBoards=[];
+  if(oldTrashId){
+    const trashChildren=await driveListFolderChildren(oldTrashId);
+    for(const child of trashChildren){
+      if(child.mimeType!=='application/vnd.google-apps.folder') continue;
+      const boardFile=await driveFindChild(child.id,'board.json',false);
+      if(!boardFile) continue;
+      const data=await driveGetJSON(boardFile.id,null);
+      if(data && data.meta && data.meta.id) trashedFlatBoards.push({folderId:child.id,meta:data.meta});
+    }
+  }
+  if(!flatBoards.length && !trashedFlatBoards.length){
+    await driveGetBoardsRootDir(); // still create notua-boards/ so future writes land in the right place
+    return;
+  }
+  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
+  try{
+    if(flatBoards.length) await driveMigrateGroupToNested(flatBoards,driveState.root,boardsRoot);
+    if(trashedFlatBoards.length && oldTrashId){
+      const newTrash=await driveFindOrCreateFolder(boardsRoot,'_Papierkorb');
+      await driveMigrateGroupToNested(trashedFlatBoards,oldTrashId,newTrash);
+    }
+  }catch(e){ return; } // a move failed partway — nothing was ever deleted here (moves only relink, they don't copy-then-remove), so just retry the whole scan next connect
+  // The old root-level _Papierkorb folder itself (not its former contents, which just got relinked
+  // into notua-boards/_Papierkorb above) is now an empty leftover — tidy it away.
+  if(oldTrashId){ try{ await driveDeleteFile(oldTrashId); }catch(e){} }
+  // Everything scanned above still has driveState.dirs/parentDirs/cache pointing at the pre-migration
+  // parent ids for some entries — clear it all so the very next enumeration (allBoards() etc, called
+  // right after this from activateDrive) does a clean walk of the new nested layout instead.
+  driveState.dirs.clear(); driveState.parentDirs.clear(); driveState.cache.clear();
+  driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear();
+  driveState.boardFileId.clear(); driveState.imagesDirId.clear(); driveState.imageFileId.clear();
+}
+// Reparents a flat list of {folderId,meta} board folders (today all direct children of fromParent) to
+// nest under destRoot, mirroring their logical meta.parentBoardId relationships — real Drive moves, so
+// no content is ever copied or re-uploaded, just relinked. Mirrors fsMigrateBoardGroupToNested()
+// exactly; see that function's comment for the placement logic (top-level or orphaned -> destRoot,
+// otherwise nested inside the parent's own — possibly just-moved — folder, however deep that goes).
+async function driveMigrateGroupToNested(list,fromParent,destRoot){
+  const byId=new Map(list.map(x=>[x.meta.id,x]));
+  const placed=new Set(); // boardIds already (re)parented — memoized so a parent with several children only moves once
+  const placing=new Set(); // cycle guard
+  async function place(item){
+    if(placed.has(item.meta.id)) return item.folderId;
+    if(placing.has(item.meta.id)) return item.folderId;
+    placing.add(item.meta.id);
+    const parentItem=item.meta.parentBoardId ? byId.get(item.meta.parentBoardId) : null;
+    const container=parentItem ? await place(parentItem) : destRoot;
+    if(container!==fromParent) await driveMoveFile(item.folderId,fromParent,container);
+    placed.add(item.meta.id);
+    return item.folderId;
+  }
+  for(const item of list) await place(item);
+}
 
 /* ============================================================
    MULTI-QUELLEN-SPEICHER — mehrere Speicherorte gleichzeitig, manueller Sync
@@ -3883,22 +4251,46 @@ async function withBoardBackend(boardId,fn){
   try{ return await fn(); }
   finally{ state.storageMode=prev; }
 }
-function activeBackend(){ return backendFor(state.storageMode); }
+// SYNC ENGINE pivot: every DB.* call — which is to say, every read/write anywhere in this app —
+// used to go to whichever backend state.storageMode pointed at. Now it always goes to IndexedDB.
+// IndexedDB is the only thing the UI ever touches directly; getting that in and out of a connected
+// folder/Google Drive in the background is the sync engine's job (see the "SYNC ENGINE" section
+// below), not something every one of the hundreds of call sites in this file needs to know about.
+// state.storageMode / backendFor() / withBoardBackend() still exist and are still set (the "welcher
+// Speicher"/connect UI, migration helpers, and the sync engine itself all still use FS_DB/DRIVE_DB
+// directly) — activeBackend() itself just no longer looks at any of that.
+function activeBackend(){ return IDB_DB; }
+// Marks a board as having a local change that hasn't been pushed to every connected sync target yet,
+// and schedules a background sync run. Called from the DB dispatcher below after every successful
+// mutating write, so the whole rest of the app gets this "for free" just by calling DB.putCard etc.
+function markBoardDirty(boardId){
+  if(!boardId) return;
+  state.dirtyBoards.set(boardId, Date.now());
+  scheduleSyncSoon();
+}
 const DB={
   allBoards:(...a)=>activeBackend().allBoards(...a),
   allTrashedBoards:(...a)=>activeBackend().allTrashedBoards(...a),
   allTemplates:(...a)=>activeBackend().allTemplates(...a),
-  setTrashed:(...a)=>activeBackend().setTrashed(...a),
+  setTrashed:async(id,...rest)=>{ const r=await activeBackend().setTrashed(id,...rest); markBoardDirty(id); return r; },
   getBoard:(...a)=>activeBackend().getBoard(...a),
-  putBoard:(...a)=>activeBackend().putBoard(...a),
-  deleteBoard:(...a)=>activeBackend().deleteBoard(...a),
+  putBoard:async(b,...rest)=>{ const r=await activeBackend().putBoard(b,...rest); markBoardDirty(b&&b.id); return r; },
+  deleteBoard:async(id,...rest)=>{ const r=await activeBackend().deleteBoard(id,...rest); markBoardDirty(id); return r; },
   cardsForBoard:(...a)=>activeBackend().cardsForBoard(...a),
-  putCard:(...a)=>activeBackend().putCard(...a),
-  putCards:(...a)=>activeBackend().putCards(...a),
-  deleteCard:(...a)=>activeBackend().deleteCard(...a),
+  putCard:async(c,...rest)=>{ const r=await activeBackend().putCard(c,...rest); markBoardDirty(c&&c.boardId); return r; },
+  putCards:async(list,...rest)=>{ const r=await activeBackend().putCards(list,...rest); (list||[]).forEach(c=>markBoardDirty(c&&c.boardId)); return r; },
+  // IndexedDB has no single-record getter for a card/connector by id (only cardsForBoard/
+  // connectorsForBoard), so a bare id here can't be traced back to its board cheaply. Every real
+  // call site deletes a card/connector that belongs to whatever board is currently open, so falling
+  // back to state.currentBoardId covers the vast majority of cases; the few bulk multi-board cases
+  // (restoreBundle/deleteBundle) mark their boards dirty explicitly themselves.
+  deleteCard:async(id,...rest)=>{ const r=await activeBackend().deleteCard(id,...rest); markBoardDirty(state.currentBoardId); return r; },
   connectorsForBoard:(...a)=>activeBackend().connectorsForBoard(...a),
-  putConnector:(...a)=>activeBackend().putConnector(...a),
-  deleteConnector:(...a)=>activeBackend().deleteConnector(...a),
+  putConnector:async(c,...rest)=>{ const r=await activeBackend().putConnector(c,...rest); markBoardDirty(c&&c.boardId); return r; },
+  deleteConnector:async(id,...rest)=>{ const r=await activeBackend().deleteConnector(id,...rest); markBoardDirty(state.currentBoardId); return r; },
+  // putImage/deleteImage deliberately don't mark anything dirty here: every real call site pairs an
+  // image write with a putCard for the card that owns it, and that putCard already marks the right
+  // board dirty — the image record itself has no boardId to mark with.
   putImage:(...a)=>activeBackend().putImage(...a),
   getImage:(...a)=>activeBackend().getImage(...a),
   deleteImage:(...a)=>activeBackend().deleteImage(...a),
@@ -3957,6 +4349,296 @@ function applyBoardOverrides(list){
   return list;
 }
 
+/* ============================================================
+   SYNC ENGINE — automatic, silent background sync between IndexedDB (the only thing the UI itself
+   ever reads or writes — see activeBackend() above) and whichever of a connected local folder /
+   Google Drive are currently connected.
+
+   The whole flow in one paragraph: every DB.* write already lands in IndexedDB instantly (nothing
+   in the UI ever waits on a network write anymore); the DB dispatcher also calls markBoardDirty()
+   for whatever board that write touched, which drops the boardId into state.dirtyBoards and
+   schedules a debounced runSyncEngine() a little while later. That run pushes every dirty board's
+   full current IndexedDB content out to every connected target (pushDirtyBoards), then asks every
+   connected target what IT has that's newer than what we last knew about (pullRemoteChanges) and
+   mirrors that down into IndexedDB. Both directions go through checkRemoteConflict() first: if a
+   target's copy of a board moved past what we last knew it to be AND we've got an unsynced local
+   change sitting right there too, that's a genuine conflict — it gets queued (state.pendingConflicts)
+   and surfaced to the user instead of either side silently winning (see showSyncConflictModal).
+
+   Nothing connected ("Nutzer 1" working purely locally) means syncTargets() is empty, so every run
+   is an instant no-op — this engine has nothing to do until something IS connected, at which point
+   it starts quietly keeping that target current without the user ever pressing "Sync" again (the
+   Werkzeuge > "Alle synchronisieren" button still exists for a manual full re-check on demand, and
+   still uses the older direct syncBoardToTargets() path — the two don't conflict, they just both end
+   up calling the same pushBundleToBackend()/collectBoardBundle() primitives).
+   ============================================================ */
+function syncTargets(){
+  const targets=[];
+  if(fsState.root) targets.push('fs');
+  if(driveState.root) targets.push('drive');
+  return targets;
+}
+function syncTargetLabel(target){ return t(target==='drive' ? 'sync_target_drive' : 'sync_target_fs'); }
+let syncEngineRunning=false;
+let syncEngineTimer=null;
+// Debounced kickoff: called after every local write (via markBoardDirty) and by runSyncEngine's own
+// steady-cadence reschedule at the end of every pass. A burst of edits (typing a title, dragging
+// several cards around) collapses into one sync pass a little after things go quiet, instead of
+// hammering the target on every single keystroke.
+function scheduleSyncSoon(delay){
+  if(syncEngineTimer) clearTimeout(syncEngineTimer);
+  syncEngineTimer=setTimeout(()=>{ syncEngineTimer=null; runSyncEngine(); }, delay==null?1500:delay);
+}
+async function runSyncEngine(){
+  if(syncEngineRunning) return; // a run is already in flight — whatever asked for this one is either
+                                  // already covered by it (still sitting in state.dirtyBoards) or will
+                                  // be picked up by the steady reschedule right below; never lost.
+  const targets=syncTargets();
+  if(!targets.length){ scheduleSyncSoon(30000); return; } // nothing connected — just keep idling
+  if(typeof navigator!=='undefined' && navigator.onLine===false){ scheduleSyncSoon(15000); return; }
+  syncEngineRunning=true;
+  try{
+    await pushDirtyBoards(targets);
+    await pullRemoteChanges(targets);
+  }catch(e){ /* a failed pass changes nothing — everything it would have done stays queued (dirtyBoards
+                keeps its entries unless a push actually succeeded) and simply retries next cadence */ }
+  finally{
+    syncEngineRunning=false;
+    scheduleSyncSoon(30000); // steady background cadence, independent of the change-triggered runs
+  }
+}
+// Compares a target's CURRENT copy of a board against the last remote state we knew it to have
+// (state.syncKnownRemote, keyed "boardId|target"). Returns null when it's safe to push/pull (the
+// target hasn't moved behind our back, or genuinely has nothing yet), or the target's board record
+// when it HAS moved independently — a real conflict the user needs to weigh in on.
+async function checkRemoteConflict(boardId,target,backend){
+  let remoteBoard=null;
+  try{ remoteBoard=await backend.getBoard(boardId); }catch(e){ return null; }
+  if(!remoteBoard) return null; // nothing there yet on that target — plain first push/pull, no conflict possible
+  const key=boardId+'|'+target;
+  const known=state.syncKnownRemote.get(key);
+  if(known!=null && (remoteBoard.updatedAt||0)===known) return null; // exactly what we last synced — untouched since
+  const local=await IDB_DB.getBoard(boardId);
+  if(local && (remoteBoard.updatedAt||0)===(local.updatedAt||0)) return null; // already identical — nothing to ask about
+  return remoteBoard;
+}
+// Pushes every board in state.dirtyBoards out to every connected target. Per target, every board
+// actually involved (a board with nested sub-boards pulls its whole family along — see
+// collectBoardBundle) is checked for a conflict FIRST; if any of them conflicts, that whole push to
+// that target is deferred (queued for the user) rather than risking overwriting a change we don't
+// know about, while the other target (if any) still proceeds normally.
+async function pushDirtyBoards(targets){
+  const ids=[...state.dirtyBoards.keys()];
+  if(!ids.length) return;
+  await withBusy(t('busy_syncing'), async ()=>{
+    for(const boardId of ids){
+      const board=await IDB_DB.getBoard(boardId);
+      if(!board){ state.dirtyBoards.delete(boardId); continue; } // deleted locally in the meantime — nothing to push
+      const bundle=await collectBoardBundle(boardId); // reads via DB.* → IndexedDB, our one source of truth
+      let anyDeferred=false;
+      for(const target of targets){
+        const backend=backendFor(target);
+        const conflicts=[];
+        for(const b of bundle.boards){
+          const remoteBoard=await checkRemoteConflict(b.id,target,backend);
+          if(remoteBoard) conflicts.push({board:b,remoteBoard});
+        }
+        if(conflicts.length){
+          conflicts.forEach(({board,remoteBoard})=>queueSyncConflict(board.id,target,board,remoteBoard));
+          anyDeferred=true;
+          continue;
+        }
+        try{
+          await pushBundleToBackend(bundle,backend);
+          for(const b of bundle.boards){
+            const fresh=await backend.getBoard(b.id).catch(()=>null);
+            state.syncKnownRemote.set(b.id+'|'+target, (fresh&&fresh.updatedAt)||b.updatedAt||Date.now());
+          }
+        }catch(e){ anyDeferred=true; } // network hiccup etc — leave dirty, retry next pass
+      }
+      if(!anyDeferred) state.dirtyBoards.delete(boardId);
+    }
+    saveSyncKnownRemote();
+  });
+}
+// The pull direction: asks every connected target what it has, and mirrors anything newer than what
+// IndexedDB already has straight into IndexedDB — WITHOUT going through the DB dispatcher (so this
+// never itself marks anything dirty / triggers another push; it would just be echoing the target's
+// own data straight back at it). A board IndexedDB doesn't have at all yet (first time this device
+// sees it) mirrors in fully too, sub-boards included.
+async function pullRemoteChanges(targets){
+  const toMirror=[]; // {id,target,backend}
+  for(const target of targets){
+    const backend=backendFor(target);
+    let remoteBoards=[];
+    try{ remoteBoards=[...(await backend.allBoards()), ...(await backend.allTrashedBoards())]; }catch(e){ continue; }
+    for(const rb of remoteBoards){
+      if(state.dirtyBoards.has(rb.id)) continue; // we have our own unpushed local change — pushDirtyBoards handles this board, not us
+      const local=await IDB_DB.getBoard(rb.id);
+      if(local && (local.updatedAt||0)>=(rb.updatedAt||0)) continue; // local is already current or newer
+      const conflict=await checkRemoteConflict(rb.id,target,backend);
+      if(conflict && local){ queueSyncConflict(rb.id,target,local,conflict); continue; }
+      toMirror.push({id:rb.id,target,backend});
+    }
+  }
+  if(!toMirror.length) return;
+  await withBusy(t('busy_pulling'), async ()=>{
+    for(const {id,target,backend} of toMirror){
+      try{
+        await mirrorSingleBoardFrom(id,backend);
+        const fresh=await backend.getBoard(id).catch(()=>null);
+        if(fresh) state.syncKnownRemote.set(id+'|'+target, fresh.updatedAt||Date.now());
+      }catch(e){ /* skip — retried next pass */ }
+    }
+    saveSyncKnownRemote();
+    if(state.screen==='home') refreshHome();
+    else if(state.screen==='trash') refreshTrash();
+  });
+}
+// Copies ONE board's current board/cards/connectors/images from a specific backend straight into
+// IndexedDB. Deliberately non-recursive — pullRemoteChanges already visits every board a target has
+// (sub-boards included, since allBoards()/allTrashedBoards() list every board flat, not just roots),
+// so each sub-board gets its own turn through here rather than needing to be walked as a tree.
+async function mirrorSingleBoardFrom(id,backend){
+  const board=await backend.getBoard(id); if(!board) return;
+  await IDB_DB.putBoard(board);
+  const cards=await backend.cardsForBoard(id);
+  if(cards.length) await IDB_DB.putCards(cards);
+  const conns=await backend.connectorsForBoard(id);
+  for(const cn of conns) await IDB_DB.putConnector(cn);
+  for(const c of cards){
+    const bref=cardBlobRef(c);
+    if(!bref) continue;
+    try{ const img=await backend.getImage(bref); if(img&&img.blob) await IDB_DB.putImage(img.id,img.blob); }catch(e){}
+  }
+}
+// Recursive counterpart to collectBoardBundle(), reading from an explicit backend instead of via
+// DB.* (which always means IndexedDB now — see activeBackend()). Used when a board that's never been
+// opened on this device yet needs its FULL content (itself and every nested sub-board reachable
+// through a boardlink card) pulled in at once — see ensureBoardMirroredAndFresh().
+async function collectBoardBundleFrom(boardId,backend){
+  const bundle={kind:'board', boards:[], cards:[], connectors:[], images:[]};
+  const queue=[boardId]; const seen=new Set();
+  while(queue.length){
+    const bid=queue.shift();
+    if(seen.has(bid)) continue; seen.add(bid);
+    const board=await backend.getBoard(bid); if(!board) continue;
+    bundle.boards.push(board);
+    const cards=await backend.cardsForBoard(bid);
+    bundle.cards.push(...cards);
+    const conns=await backend.connectorsForBoard(bid);
+    bundle.connectors.push(...conns);
+    for(const c of cards){
+      const bref=cardBlobRef(c);
+      if(bref){ const img=await backend.getImage(bref); if(img) bundle.images.push({id:img.id,blob:img.blob,boardId:bid}); }
+      if(c.type==='boardlink' && c.data.boardId) queue.push(c.data.boardId);
+    }
+  }
+  return bundle;
+}
+// Called from openBoard() right before a board is shown. If the board (or any sub-board reachable
+// from it) only lives on a connected target so far and hasn't been mirrored into IndexedDB yet, or a
+// target's copy is strictly newer than what IndexedDB has with no local conflict, this pulls it in
+// first — so opening a board someone else just edited on another device shows THAT content, not a
+// stale or missing local copy. Never blocks opening a board that's already fine locally: the common
+// case (board already in IndexedDB and current) does one cheap getBoard-per-target check and returns.
+async function ensureBoardMirroredAndFresh(boardId){
+  const targets=syncTargets();
+  if(!targets.length) return; // nothing connected — IndexedDB is the only copy there is
+  const local=await IDB_DB.getBoard(boardId);
+  for(const target of targets){
+    const backend=backendFor(target);
+    let remoteBoard=null;
+    try{ remoteBoard=await backend.getBoard(boardId); }catch(e){ continue; }
+    if(!remoteBoard) continue;
+    if(local && (local.updatedAt||0)>=(remoteBoard.updatedAt||0)) continue; // local already current or newer
+    const conflict=await checkRemoteConflict(boardId,target,backend);
+    if(conflict && local && state.dirtyBoards.has(boardId)){ queueSyncConflict(boardId,target,local,conflict); continue; }
+    await withBusy(t('busy_pulling'), async ()=>{
+      const bundle=await collectBoardBundleFrom(boardId,backend);
+      for(const b of bundle.boards) await IDB_DB.putBoard(b);
+      for(const img of bundle.images){ if(img.blob) await IDB_DB.putImage(img.id,img.blob); }
+      for(const c of bundle.cards) await IDB_DB.putCard(c);
+      for(const cn of bundle.connectors) await IDB_DB.putConnector(cn);
+      for(const b of bundle.boards){
+        const fresh=await backend.getBoard(b.id).catch(()=>null);
+        if(fresh) state.syncKnownRemote.set(b.id+'|'+target, fresh.updatedAt||Date.now());
+      }
+      saveSyncKnownRemote();
+    });
+  }
+}
+// Queues one board's conflict for the user to resolve (state.pendingConflicts — one entry per board;
+// a later conflict on the same board before the user gets to it just replaces the earlier snapshot,
+// which is fine since the modal always reads whatever's newest when it's actually shown) and opens
+// the resolution modal if it isn't already up.
+function queueSyncConflict(boardId,target,local,remote){
+  const wasEmpty=state.pendingConflicts.size===0;
+  state.pendingConflicts.set(boardId,{target,local,remote});
+  if(!state.syncConflictModalOpen) showToast(t('toast_sync_conflict',{name:local.name||t('untitled_board')}));
+  if(wasEmpty || !state.syncConflictModalOpen) showSyncConflictModal();
+}
+// Modal-scrim dialog (same shell as every other confirm/prompt in the app — see bindScrimDismiss)
+// showing one pending conflict at a time and letting the user pick a side, per the user's own explicit
+// choice for how this should behave ("Nutzer fragen" — never silently pick a winner). Resolving one
+// immediately shows the next queued conflict, if any.
+function showSyncConflictModal(){
+  if(state.syncConflictModalOpen || !state.pendingConflicts.size) return;
+  const [boardId,{target,local,remote}]=[...state.pendingConflicts.entries()][0];
+  state.syncConflictModalOpen=true;
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  const targetLabel=syncTargetLabel(target);
+  scrim.innerHTML=`<div class="modal">
+    <h4>${escapeHtml(t('sync_conflict_title'))}</h4>
+    <p>${escapeHtml(t('sync_conflict_body',{name:local.name||t('untitled_board'),target:targetLabel}))}</p>
+    <div class="sync-conflict-options">
+      <button class="sync-conflict-opt" data-a="local">
+        <span class="sync-conflict-opt-label">${escapeHtml(t('sync_conflict_local_label'))}</span>
+        <span class="sync-conflict-opt-date">${escapeHtml(t('sync_conflict_updated_at',{date:fmtDate(local.updatedAt)}))}</span>
+      </button>
+      <button class="sync-conflict-opt" data-a="remote">
+        <span class="sync-conflict-opt-label">${escapeHtml(t('sync_conflict_remote_label',{target:targetLabel}))}</span>
+        <span class="sync-conflict-opt-date">${escapeHtml(t('sync_conflict_updated_at',{date:fmtDate(remote.updatedAt)}))}</span>
+      </button>
+    </div>
+    <div class="modal-actions"><button data-a="later">${escapeHtml(t('modal_cancel'))}</button></div></div>`;
+  function closeAndMaybeNext(){
+    scrim.remove();
+    state.syncConflictModalOpen=false;
+    if(state.pendingConflicts.size) showSyncConflictModal();
+  }
+  bindScrimDismiss(scrim,closeAndMaybeNext);
+  scrim.querySelector('[data-a="later"]').addEventListener('click',closeAndMaybeNext);
+  scrim.querySelector('[data-a="local"]').addEventListener('click',()=>resolveSyncConflict(boardId,target,'local',closeAndMaybeNext));
+  scrim.querySelector('[data-a="remote"]').addEventListener('click',()=>resolveSyncConflict(boardId,target,'remote',closeAndMaybeNext));
+  document.body.appendChild(scrim);
+}
+// Applies the user's choice: "local" force-pushes our IndexedDB copy over the target (marking it
+// dirty again so the normal pushDirtyBoards path does the actual write on the next pass); "remote"
+// pulls the target's copy down over IndexedDB instead (mirrorSingleBoardFrom). Either way the
+// conflict is cleared and state.syncKnownRemote is updated so the same pair doesn't immediately
+// re-flag as a conflict again.
+async function resolveSyncConflict(boardId,target,choice,done){
+  state.pendingConflicts.delete(boardId);
+  const backend=backendFor(target);
+  try{
+    if(choice==='local'){
+      state.dirtyBoards.set(boardId,Date.now());
+      scheduleSyncSoon(200);
+    }else{
+      await mirrorSingleBoardFrom(boardId,backend);
+      const fresh=await backend.getBoard(boardId).catch(()=>null);
+      if(fresh) state.syncKnownRemote.set(boardId+'|'+target, fresh.updatedAt||Date.now());
+      saveSyncKnownRemote();
+      state.dirtyBoards.delete(boardId);
+      if(state.currentBoardId===boardId) await openBoard(boardId,true);
+      if(state.screen==='home') refreshHome();
+    }
+    showToast(t('toast_sync_conflict_resolved'));
+  }catch(e){}
+  done();
+}
+
 const imgUrlCache=new Map();
 async function getImageUrl(imageId){
   if(imgUrlCache.has(imageId)) return imgUrlCache.get(imageId);
@@ -3995,6 +4677,14 @@ const state={
   optimisticHidden:new Set(), // board ids whose tile was already removed from the Home grid (a trashBoard() in flight) while the real backend write still runs in the background — refreshHome() also filters these out so the tile can't flicker back before the write actually lands; cleared once that write finishes (success or failure) and a final refresh re-syncs with the true backend state
   optimisticTrashHidden:new Set(), // same idea, but for the Papierkorb grid — set while a restoreBoardFromTrash()/permanentlyDeleteBoard() is in flight, so the tile leaves the Papierkorb instantly instead of waiting on the (possibly slow, real-network) backend write; see refreshTrash()
   boardOverrides:new Map(), // board id -> {field:value} overlay applied on top of whatever the next merge/fetch returns (see mergedBoardsFrom) — lets a local edit (e.g. renaming a board via the crumb) show correctly everywhere right away, even somewhere the app hasn't re-fetched from a slow FS/Drive backend yet; cleared once that field's own background write has actually landed
+
+  // ---- SYNC ENGINE (see the "SYNC ENGINE" JS section) — IndexedDB is the only thing the UI ever
+  // reads or writes (see activeBackend()); getting that in and out of a connected folder/Drive is
+  // this engine's job, entirely in the background.
+  dirtyBoards:new Map(), // board id -> Date.now() it was last locally changed and not yet pushed out to every connected target. Populated automatically by the DB dispatcher on every write; drained by pushDirtyBoards().
+  syncKnownRemote:loadSyncKnownRemote(), // "<boardId>|<target>" -> the remote updatedAt we last knew that target to have for this board (our own last push, or the last thing we pulled) — the baseline a push/pull compares the CURRENT remote state against to tell "remote moved because of us" from "remote moved because of someone else" (see checkRemoteConflict). Persisted (localStorage) so a reload doesn't look like every board conflicted.
+  pendingConflicts:new Map(), // board id -> {target, local, remote} — boards where OUR unsynced local change and a change from elsewhere both happened since the last known-good sync point; surfaced via showSyncConflictModal() instead of silently picking a winner
+  syncConflictModalOpen:false, // true while the conflict-resolution modal is on screen — prevents queueSyncConflict() from stacking a second one on top while one's already up
 };
 const GRID_SIZE=18;
 
@@ -5151,7 +5841,12 @@ async function createBoardFlow(){
   await IDB_DB.putBoard(b);
   if(!state.boardSources) state.boardSources=new Map();
   state.boardSources.set(b.id,{sources:new Set(['idb']),bestSrc:'idb'});
-  await refreshHome();
+  // Open the new board right away instead of awaiting refreshHome() first — the board itself is
+  // already safely in IndexedDB and doesn't need a fresh Home merge (a real Drive/FS network fetch,
+  // when one of those is connected) to finish before it can be opened. Waiting on that here is
+  // exactly what made "neues Board erstellen" feel "ultra lang" when synced. Home still re-syncs
+  // itself in the background, so its grid is correct again by the time you navigate back to it.
+  refreshHome();
   await openBoard(b.id,true);
   // "beim ersten Erstellen eines Boards soll man im Board ein Popup bekommen, welches Farbe und
   // Name des Boards auswählen ... lässt" — shown right inside the freshly-opened board (not on the
@@ -5749,6 +6444,11 @@ async function openBoard(id, skipCrumbAnim){
     state.boardSources.set(id,{sources:new Set(resolved.all),bestSrc:resolved.best});
   }
   if(!(await ensureStorageReady())) return goHome();
+  // Pull in anything a connected target has that IndexedDB doesn't (or has newer than IndexedDB's
+  // copy) BEFORE reading — see the SYNC ENGINE section. DB.* below always reads IndexedDB now, so
+  // without this a board freshly edited on another device, or opened here for the very first time,
+  // would show stale or empty until the next background sync pass happened to catch up.
+  await ensureBoardMirroredAndFresh(id);
   const board=await DB.getBoard(id);
   if(!board) return goHome();
   state.currentBoardId=id;
@@ -10467,10 +11167,15 @@ function updateFolderStatusUI(){
 async function activateFolder(handle,opts){
   opts=opts||{};
   fsState.root=handle; fsState.rootName=handle.name;
+  fsState.boardsRoot=null; fsState.trashDir=null; fsState.parentDirs.clear();
   fsState.dirs.clear(); fsState.cache.clear();
   fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
   fsState.pendingHandle=null;
   await saveHandleRef(handle);
+  // Move any pre-existing flat board-folder layout into the new notua-boards/ nested layout before
+  // anything below reads from this folder — see fsMigrateFlatToNested's own comment. A no-op (one
+  // cheap existence check) for a folder that's already on the new layout, or a brand-new empty one.
+  await fsMigrateFlatToNested();
   // A local folder and Google Drive can now be connected at the same time (see MULTI-QUELLEN-SPEICHER
   // above) — connecting one no longer disconnects the other the way it used to.
   if(opts.offerMigration){
@@ -10487,6 +11192,9 @@ async function activateFolder(handle,opts){
     }catch(e){}
   }
   updateFolderStatusUI();
+  // Newly (re)connected — let the sync engine pull in / push out to it right away instead of
+  // waiting for its next ~30s cadence (see the SYNC ENGINE section).
+  scheduleSyncSoon(1000);
 }
 
 async function connectFolder(){
@@ -10582,7 +11290,8 @@ async function confirmPendingFolder(){
 async function disconnectFolder(){
   state.storageMode='idb';
   fsState.root=null; fsState.rootName='';
-  fsState.dirs.clear(); fsState.cache.clear();
+  fsState.boardsRoot=null; fsState.trashDir=null;
+  fsState.dirs.clear(); fsState.parentDirs.clear(); fsState.cache.clear();
   fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
   await clearHandleRef();
   updateFolderStatusUI();
@@ -10603,20 +11312,22 @@ function folderStatusModal(){
   scrim.querySelector('[data-a="change"]').addEventListener('click',async ()=>{ scrim.remove(); await connectFolder(); });
   document.body.appendChild(scrim);
 }
+// Only walks from "root" boards — a board with no parentBoardId, or whose parentBoardId isn't
+// anywhere in this same list (an orphaned sub-board, e.g. its parent is trashed and so excluded from
+// allBoards()) — because collectBoardBundle() already recursively pulls in every nested sub-board
+// reachable from each one, in correct parent-before-child order (its own BFS always visits a board
+// before it visits that board's own children). Walking from every board in idbBoards indiscriminately,
+// instead of just the roots, would double-push nested sub-boards and — worse — risk creating one
+// BEFORE its parent's own folder exists on the target yet, since FS_DB/DRIVE_DB's putBoard() only
+// knows how to nest a sub-board inside a parent folder it can already find.
+function migrationRootBoards(idbBoards){
+  const idSet=new Set(idbBoards.map(b=>b.id));
+  return idbBoards.filter(b=>!b.parentBoardId || !idSet.has(b.parentBoardId));
+}
 async function migrateIdbToFs(idbBoards){
-  for(const b of idbBoards){ await FS_DB.putBoard(b); }
-  for(const b of idbBoards){
-    const cards=await IDB_DB.cardsForBoard(b.id);
-    for(const c of cards){
-      const bref=cardBlobRef(c);
-      if(bref){
-        const img=await IDB_DB.getImage(bref);
-        if(img) await FS_DB.putImage(bref, img.blob, b.id);
-      }
-      await FS_DB.putCard(c);
-    }
-    const conns=await IDB_DB.connectorsForBoard(b.id);
-    for(const cn of conns) await FS_DB.putConnector(cn);
+  for(const b of migrationRootBoards(idbBoards)){
+    const bundle=await collectBoardBundle(b.id); // reads via DB.* → IndexedDB, regardless of state.storageMode
+    await pushBundleToBackend(bundle, FS_DB);
   }
 }
 
@@ -10652,10 +11363,15 @@ async function fetchDriveUserInfo(){
 async function activateDrive(rootId,opts){
   opts=opts||{};
   driveState.root=rootId;
+  driveState.boardsRoot=null; driveState.trashDir=null; driveState.parentDirs.clear();
   driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
   driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
   driveState.pendingReconnect=false;
   await saveDriveRef({rootId, email:driveState.email, name:driveState.name});
+  // Move any pre-existing flat board-folder layout into the new notua-boards/ nested layout before
+  // anything below reads from this Drive account — see driveMigrateFlatToNested's own comment. A
+  // no-op (one cheap existence check) once it's already on the new layout, or a brand-new NOTUA folder.
+  await driveMigrateFlatToNested();
   // A local folder and Google Drive can now be connected at the same time (see MULTI-QUELLEN-SPEICHER
   // above) — connecting one no longer disconnects the other the way it used to.
   if(opts.offerMigration){
@@ -10672,6 +11388,9 @@ async function activateDrive(rootId,opts){
     }catch(e){}
   }
   updateDriveStatusUI();
+  // Newly (re)connected — let the sync engine pull in / push out to it right away instead of
+  // waiting for its next ~30s cadence (see the SYNC ENGINE section).
+  scheduleSyncSoon(1000);
 }
 async function connectDrive(){
   if(!DRIVE_SUPPORTED){ showToast(t('toast_drive_no_client_id')); return; }
@@ -10735,8 +11454,8 @@ async function confirmPendingDrive(){
 async function disconnectDrive(){
   state.storageMode='idb';
   driveState.accessToken=null; driveState.tokenExpiresAt=0;
-  driveState.root=null; driveState.trashDir=null; driveState.email=''; driveState.name=''; driveState.pendingReconnect=false;
-  driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
+  driveState.root=null; driveState.boardsRoot=null; driveState.trashDir=null; driveState.email=''; driveState.name=''; driveState.pendingReconnect=false;
+  driveState.dirs.clear(); driveState.parentDirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
   driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
   await clearDriveRef();
   updateDriveStatusUI();
@@ -10758,13 +11477,10 @@ function driveStatusModal(){
   document.body.appendChild(scrim);
 }
 async function migrateIdbToDrive(idbBoards){
-  const prev=state.storageMode; state.storageMode='idb';
-  try{
-    for(const b of idbBoards){
-      const bundle=await collectBoardBundle(b.id);
-      await pushBundleToBackend(bundle, DRIVE_DB);
-    }
-  }finally{ state.storageMode=prev; }
+  for(const b of migrationRootBoards(idbBoards)){
+    const bundle=await collectBoardBundle(b.id); // reads via DB.* → IndexedDB, regardless of state.storageMode
+    await pushBundleToBackend(bundle, DRIVE_DB);
+  }
 }
 // driveState.root/pendingReconnect describe the Drive CONNECTION itself, independent of which board
 // (if any) is currently open in a different backend — so this no longer gates on state.storageMode
@@ -11206,13 +11922,25 @@ importInput.addEventListener('change',async ()=>{
 const toolsBtn=document.getElementById('toolsBtn');
 const toolsSheet=document.getElementById('toolsSheet');
 const toolsSheetBackdrop=document.getElementById('toolsSheetBackdrop');
+// "auf PC ein kleines Dropdown wie vorher auch" — from 641px up, #toolsSheet is styled by the
+// @media(min-width:641px) block (see the CSS) as a small fixed-position dropdown instead of a
+// full-width bottom sheet; this is the part CSS alone can't do, since it needs to know where the
+// button actually is. Below 641px this is a no-op (inline top/right cleared, letting the mobile
+// CSS's own left:0/right:0/bottom:0 take over again).
+function isDesktopToolsLayout(){ return window.matchMedia('(min-width:641px)').matches; }
+function positionToolsSheetForDesktop(){
+  if(!isDesktopToolsLayout()){ toolsSheet.style.top=''; toolsSheet.style.right=''; return; }
+  const r=toolsBtn.getBoundingClientRect();
+  toolsSheet.style.top=(r.bottom+8)+'px';
+  toolsSheet.style.right=Math.max(8, window.innerWidth-r.right)+'px';
+}
 function closeToolsSheet(){
   if(!toolsSheet || toolsSheet.hidden) return;
   toolsSheet.classList.remove('show');
   toolsSheetBackdrop.classList.remove('show');
-  // Wait for the slide-down transition to actually finish before hiding — hiding immediately would
-  // just snap it away instead of sliding, the exact "flackert merkwürdig" feel this whole sheet
-  // exists to avoid.
+  // Wait for the slide-down/fade transition to actually finish before hiding — hiding immediately
+  // would just snap it away instead of animating, the exact "flackert merkwürdig" feel this whole
+  // sheet exists to avoid.
   setTimeout(()=>{ if(!toolsSheet.classList.contains('show')){ toolsSheet.hidden=true; toolsSheetBackdrop.hidden=true; } },260);
 }
 function openToolsSheet(){
@@ -11220,8 +11948,9 @@ function openToolsSheet(){
   if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
   const syncAllItem=document.getElementById('toolsSyncAllItem');
   if(syncAllItem) syncAllItem.disabled = !(fsState.root || driveState.root);
+  positionToolsSheetForDesktop();
   toolsSheet.hidden=false; toolsSheetBackdrop.hidden=false;
-  // Force layout before adding .show so the transform transition actually plays from translateY(100%).
+  // Force layout before adding .show so the transform transition actually plays from its start state.
   void toolsSheet.offsetHeight;
   toolsSheet.classList.add('show');
   toolsSheetBackdrop.classList.add('show');
@@ -11796,7 +12525,20 @@ if(window.visualViewport){
   // fresh load (it's the only view not [hidden] in the markup) — seed history with what's really
   // on screen, not the state field's unrelated initial value.
   try{ history.replaceState({screen:'landing'},''); }catch(e){}
-  window.addEventListener('resize',()=>{ if(state.screen==='board') applyView(); });
+  window.addEventListener('resize',()=>{
+    if(state.screen==='board') applyView();
+    // A resize can cross the 641px desktop/mobile threshold (or just move the button) while the
+    // Werkzeuge dropdown/sheet is open — closing it rather than leaving it stuck at a stale position
+    // is simplest and matches how every other transient popover in the app behaves on resize.
+    if(toolsSheet && !toolsSheet.hidden) closeToolsSheet();
+  });
+  // SYNC ENGINE: start the steady background loop (see the SYNC ENGINE section above) — a first
+  // pass shortly after boot picks up anything that changed on a connected target while the app was
+  // closed, then it keeps itself going on its own ~30s cadence plus whenever a local edit marks a
+  // board dirty. Also re-kick it the moment the browser comes back online, since a run that started
+  // offline backs off for a while rather than spinning.
+  scheduleSyncSoon(2000);
+  window.addEventListener('online',()=>scheduleSyncSoon(500));
 })();
 
 })();
