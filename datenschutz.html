@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Datenschutzerklärung – NOTUA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index,follow">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script>
+// Same idea as index.html's own early boot script: apply a previously chosen light/dark preference
+// before first paint, so this page matches whatever the app itself was last set to instead of
+// flashing the system default for a moment.
+try{
+  var __t=localStorage.getItem('notua-theme');
+  if(__t==='light'||__t==='dark') document.documentElement.setAttribute('data-theme',__t);
+}catch(e){}
+</script>
+<style>
+:root{
+  --canvas:#E7EAEE; --surface:#FFFFFF; --surface-2:#F0F2F5; --ink:#1B2027; --muted:#5C6570;
+  --faint:#8A9099; --border:#D7DBE1; --border-strong:#C3C9D0; --accent:#FF6B57; --accent-ink:#FFFFFF;
+  --accent-soft:#FFE3DD; --shadow:rgba(24,28,35,0.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --canvas:#14171C; --surface:#1E222A; --surface-2:#191C22; --ink:#ECEEF2; --muted:#9AA3AF;
+    --faint:#6B7480; --border:#2C3038; --border-strong:#383D46; --accent:#FF7A66; --accent-ink:#1B0E0B;
+    --accent-soft:rgba(255,122,102,0.18); --shadow:rgba(0,0,0,0.45);
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#14171C; --surface:#1E222A; --surface-2:#191C22; --ink:#ECEEF2; --muted:#9AA3AF;
+  --faint:#6B7480; --border:#2C3038; --border-strong:#383D46; --accent:#FF7A66; --accent-ink:#1B0E0B;
+  --accent-soft:rgba(255,122,102,0.18); --shadow:rgba(0,0,0,0.45);
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0; padding:0;}
+body{
+  background:var(--canvas); color:var(--ink); font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;}
+header{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:18px 24px; border-bottom:1px solid var(--border); background:var(--surface);
+  position:sticky; top:0; z-index:5;
+}
+.wordmark{display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink);}
+.wordmark .dot{width:9px; height:9px; border-radius:50%; background:var(--accent);}
+.wordmark span{font-weight:700; font-size:0.92rem; letter-spacing:0.06em;}
+.lang-switch{display:flex; gap:2px; border:1px solid var(--border-strong); border-radius:8px; padding:2px; background:var(--surface-2);}
+.lang-switch button{
+  font:inherit; font-size:0.74rem; font-weight:600; letter-spacing:0.02em; padding:5px 10px; border-radius:6px;
+  border:none; background:none; color:var(--muted); cursor:pointer;
+}
+.lang-switch button.active{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px var(--shadow);}
+main{max-width:640px; margin:0 auto; padding:44px 24px 40px;}
+h1{font-size:1.6rem; font-weight:700; letter-spacing:-0.01em; margin:0 0 6px;}
+.updated{font-family:'IBM Plex Mono',monospace; font-size:0.76rem; color:var(--faint); margin:0 0 34px;}
+h2{font-size:0.76rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--faint); font-weight:600; margin:28px 0 8px;}
+h2:first-of-type{margin-top:0;}
+p{margin:0 0 4px; color:var(--ink); font-size:0.95rem;}
+a{color:var(--accent);}
+footer{max-width:640px; margin:0 auto; padding:8px 24px 60px;}
+.back{
+  display:inline-flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none; font-size:0.86rem;
+  border-top:1px solid var(--border); padding-top:22px; width:100%;
+}
+.back:hover{color:var(--ink);}
+[data-lang-block="en"]{display:none;}
+:root[data-lang="en"] [data-lang-block="de"]{display:none;}
+:root[data-lang="en"] [data-lang-block="en"]{display:block;}
+</style>
+</head>
+<body>
+<header>
+  <a class="wordmark" href="index.html"><span class="dot"></span><span>NOTUA</span></a>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button type="button" data-lang="de" class="active">DE</button>
+    <button type="button" data-lang="en">EN</button>
+  </div>
+</header>
+<main>
+  <div data-lang-block="de">
+    <h1>Datenschutzerklärung</h1>
+    <p class="updated mono">Stand: 09.09.2026 · NOTUA v1.0.44</p>
+
+    <h2>Verantwortlicher</h2>
+    <p>Tom Nüßer, Breedlandweg 27, 24944 Flensburg, Deutschland.<br>E-Mail: <a href="mailto:nuessertom@gmail.com">nuessertom@gmail.com</a>.</p>
+
+    <h2>Grundsatz: Deine Boards bleiben bei dir</h2>
+    <p>NOTUA hat keinen eigenen Server und keine eigene Datenbank. Deine Boards, Notizen und Bilder werden standardmäßig ausschließlich lokal in deinem Browser gespeichert (IndexedDB) oder – wenn du das selbst so einrichtest – in einem Ordner auf deinem Gerät, den du über „Ordner wählen" auswählst. Ich als Betreiber habe zu keinem Zeitpunkt Zugriff auf diese Inhalte.</p>
+
+    <h2>Google-Anmeldung und Google-Drive-Synchronisierung (optional)</h2>
+    <p>Wenn du dich freiwillig über den Button „Google Drive" mit deinem Google-Konto anmeldest, erhält NOTUA über Google einen Zugriffs-Token, der ausschließlich Lese-/Schreibzugriff auf einen von NOTUA selbst angelegten Ordner „NOTUA" in deinem eigenen Google Drive erlaubt (technischer Bereich „drive.file") – nicht auf den Rest deines Drive. Deine Boards liegen dann in diesem Ordner in deinem eigenen Google-Konto, nicht auf einem Server von mir. Für die Anmeldung selbst gilt zusätzlich die Datenschutzerklärung von Google.</p>
+
+    <h2>Hosting</h2>
+    <p>Diese Seite wird über GitHub Pages ausgeliefert. Dabei fallen technisch bedingt Server-Logs (u. a. IP-Adresse, Zeitpunkt, abgerufene Datei) bei GitHub (Microsoft) an – dafür gilt die Datenschutzerklärung von GitHub. Ich selbst werte diese Logs nicht aus.</p>
+
+    <h2>Feedback-Formular</h2>
+    <p>Wenn du das Feedback-Formular in der App nutzt, werden deine Eingaben über den Dienst EmailJS an meine E-Mail-Adresse weitergeleitet, damit ich dir antworten kann. Ohne Absenden des Formulars werden keine Daten übertragen.</p>
+
+    <h2>Spenden</h2>
+    <p>Der „Spenden"-Link führt zu PayPal. Dort gilt die Datenschutzerklärung von PayPal; ich erhalte von PayPal nur die Information, dass und in welcher Höhe gespendet wurde, keine weiteren Daten.</p>
+
+    <h2>Kein Tracking</h2>
+    <p>NOTUA verwendet keine Analyse- oder Tracking-Cookies und keine Werbung. Lokal gespeichert werden nur technisch notwendige Dinge wie deine Boards selbst sowie Einstellungen wie Sprache und Farbmodus.</p>
+
+    <h2>Deine Rechte</h2>
+    <p>Da deine eigentlichen Board-Inhalte gar nicht erst bei mir landen, betreffen Auskunfts-, Berichtigungs- und Löschrechte in der Praxis vor allem die oben genannten Ausnahmen (z. B. eine an mich gesendete Feedback-Nachricht). Für Anfragen dazu wende dich einfach per E-Mail an mich.</p>
+
+    <h2>Hinweis</h2>
+    <p style="color:var(--faint); font-size:0.84rem;">Diese Erklärung beschreibt nach bestem Wissen, wie NOTUA mit Daten umgeht. Sie ersetzt keine individuelle Rechtsberatung.</p>
+  </div>
+
+  <div data-lang-block="en">
+    <h1>Privacy Policy</h1>
+    <p class="updated mono">Last updated: 2026-09-09 · NOTUA v1.0.44</p>
+
+    <h2>Data controller</h2>
+    <p>Tom Nüßer, Breedlandweg 27, 24944 Flensburg, Germany.<br>Email: <a href="mailto:nuessertom@gmail.com">nuessertom@gmail.com</a>.</p>
+
+    <h2>Principle: your boards stay with you</h2>
+    <p>NOTUA has no server and no database of its own. Your boards, notes and images are stored, by default, purely locally in your browser (IndexedDB) or – if you set it up yourself – in a folder on your device that you pick via "Choose folder". As the operator, I never have access to this content.</p>
+
+    <h2>Google sign-in and Google Drive sync (optional)</h2>
+    <p>If you voluntarily sign in with your Google account via the "Google Drive" button, NOTUA receives an access token from Google that only allows read/write access to a "NOTUA" folder that NOTUA itself creates in your own Google Drive (the "drive.file" scope) – not the rest of your Drive. Your boards then live in that folder in your own Google account, not on a server of mine. Google's own privacy policy additionally applies to the sign-in itself.</p>
+
+    <h2>Hosting</h2>
+    <p>This page is served via GitHub Pages. This technically produces server logs (e.g. IP address, timestamp, requested file) at GitHub (Microsoft) – GitHub's own privacy policy applies to that. I do not evaluate these logs myself.</p>
+
+    <h2>Feedback form</h2>
+    <p>If you use the feedback form inside the app, your input is forwarded to my email address via the EmailJS service so I can reply to you. No data is transmitted unless you submit the form.</p>
+
+    <h2>Donations</h2>
+    <p>The "Donate" link leads to PayPal. PayPal's own privacy policy applies there; from PayPal I only receive the information that a donation was made and its amount, no further data.</p>
+
+    <h2>No tracking</h2>
+    <p>NOTUA uses no analytics or tracking cookies and no advertising. Only technically necessary things are stored locally, such as your boards themselves and settings like language and color mode.</p>
+
+    <h2>Your rights</h2>
+    <p>Since your actual board content never reaches me in the first place, rights to access, correction and deletion mainly concern the exceptions listed above in practice (e.g. a feedback message sent to me). For requests about that, just contact me by email.</p>
+
+    <h2>Note</h2>
+    <p style="color:var(--faint); font-size:0.84rem;">This policy describes to the best of my knowledge how NOTUA handles data. It does not replace individual legal advice.</p>
+  </div>
+</main>
+<footer>
+  <a class="back" href="index.html">← <span data-lang-block="de" style="display:inline;">Zurück zu NOTUA</span><span data-lang-block="en" style="display:inline;">Back to NOTUA</span></a>
+</footer>
+<script>
+(function(){
+  var buttons=document.querySelectorAll('.lang-switch button');
+  function setLang(lang){
+    document.documentElement.setAttribute('data-lang',lang);
+    buttons.forEach(function(b){ b.classList.toggle('active', b.dataset.lang===lang); });
+    // The back-link's two inline spans aren't covered by the [data-lang] attribute-selector CSS
+    // above (that only toggles the two big content blocks) — flip them by hand so the footer link
+    // follows the same language as the page body instead of staying stuck in German.
+    document.querySelectorAll('footer [data-lang-block]').forEach(function(el){
+      el.style.display = (el.getAttribute('data-lang-block')===lang) ? 'inline' : 'none';
+    });
+    try{ localStorage.setItem('notua-legal-lang',lang); }catch(e){}
+  }
+  buttons.forEach(function(b){ b.addEventListener('click',function(){ setLang(b.dataset.lang); }); });
+  var saved=null;
+  try{ saved=localStorage.getItem('notua-legal-lang'); }catch(e){}
+  setLang(saved==='en' ? 'en' : 'de');
+})();
+</script>
+</body>
+</html>

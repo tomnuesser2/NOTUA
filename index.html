@@ -24,6 +24,12 @@
      key is meant to be public (EmailJS's own client-side model), the account's Private Key is
      deliberately NOT shipped here. -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
+<!-- Google Identity Services: powers the "Mit Google verbinden" (Google-Drive-Sync) button further
+     down. Loaded with async/defer so it never blocks first paint; the app itself only touches
+     window.google.accounts.oauth2 once the person actually clicks that button, and everything
+     fails soft (see DRIVE_SUPPORTED) if this script doesn't load at all (e.g. no network, or the
+     page is running somewhere this host is blocked — see the code comment above GOOGLE_CLIENT_ID). -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 // Applied synchronously here, before the stylesheet below and long before the main app script (which
 // only runs once the whole document — every card, every drawer row — has parsed), so an explicit
@@ -1708,6 +1714,10 @@ try{
       <button class="linklike" id="impressumBtn">Impressum</button>
       <span class="sep">·</span>
       <button class="linklike" id="aboutBtn">Über NOTUA</button>
+      <span class="sep">·</span>
+      <a class="linklike" id="datenschutzBtn" href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>
+      <span class="sep">·</span>
+      <a class="linklike" id="nutzungsbedingungenBtn" href="nutzungsbedingungen.html" target="_blank" rel="noopener">Nutzungsbedingungen</a>
     </div>
   </div>
 
@@ -1729,6 +1739,10 @@ try{
           <button class="folder-btn" id="folderBtn" title="Speicherordner verbinden">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
             <span id="folderLabel">Ordner wählen</span>
+          </button>
+          <button class="folder-btn" id="driveBtn" title="Mit Google Drive synchronisieren">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 1.2-7.8 5.5 5.5 0 0 0-10.6-1.7A4.2 4.2 0 0 0 7 18z"/><path d="M9.5 12.5 12 9l2.5 3.5M12 9v6"/></svg>
+            <span id="driveLabel">Google Drive</span>
           </button>
           <!-- Board-independent calendar (see the CALENDAR section in the script) is reachable from
                here too, not just from inside a board — same panel, same button behavior as the one in
@@ -1763,6 +1777,14 @@ try{
           <span id="folderReconnectBody"></span>
         </div>
         <button id="folderReconnectBtn" class="primary">Ordner erneut verbinden</button>
+      </div>
+      <div id="driveReconnectBanner" class="folder-reconnect-banner" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 1.2-7.8 5.5 5.5 0 0 0-10.6-1.7A4.2 4.2 0 0 0 7 18z"/><path d="M9.5 12.5 12 9l2.5 3.5M12 9v6"/></svg>
+        <div class="folder-reconnect-text">
+          <strong id="driveReconnectTitle">Google-Verbindung bestätigen</strong>
+          <span id="driveReconnectBody"></span>
+        </div>
+        <button id="driveReconnectBtn" class="primary">Erneut mit Google verbinden</button>
       </div>
       <div id="boardGrid" class="board-grid"></div>
       <div id="emptyHome" class="empty-home" hidden>
@@ -2184,6 +2206,8 @@ const I18N={
   donate_label:{de:'Spenden',en:'Donate'},
   impressum_label:{de:'Impressum',en:'Imprint'},
   about_label:{de:'Über NOTUA',en:'About'},
+  datenschutz_label:{de:'Datenschutz',en:'Privacy'},
+  nutzungsbedingungen_label:{de:'Nutzungsbedingungen',en:'Terms of use'},
   feedback_btn_label:{de:'Feedback',en:'Feedback'},
   feedback_title:{de:'Feedback geben',en:'Give feedback'},
   feedback_intro:{de:'Was gefällt dir, was fehlt, was ist kaputt? Schreib es mir – ich lese jede Nachricht.',en:'What do you like, what’s missing, what’s broken? Write to me – I read every message.'},
@@ -2413,6 +2437,29 @@ const I18N={
   folder_reconnect_banner_title:{de:'Ordner-Zugriff bestätigen',en:'Confirm folder access'},
   folder_reconnect_banner_body:{de:'Deine Boards liegen in einem verbundenen Ordner, aber der Zugriff darauf muss erneut bestätigt werden (das passiert z. B. nach jedem Neustart des Browsers). Bis dahin werden hier absichtlich keine Boards angezeigt – so kannst du nicht aus Versehen an einer alten, nicht verbundenen Kopie weiterschreiben.',en:'Your boards live in a connected folder, but access to it needs to be re-confirmed (this happens after every browser restart, for example). Until then, no boards are shown here on purpose — so you can\'t accidentally keep editing an old, disconnected copy.'},
   folder_reconnect_banner_btn:{de:'Ordner erneut verbinden',en:'Reconnect folder'},
+  drive_unavailable_label:{de:'Google Drive nicht verfügbar',en:'Google Drive unavailable'},
+  drive_unavailable_title:{de:'Google-Anmeldung konnte nicht geladen werden (keine Internetverbindung oder blockiert).',en:'Google sign-in could not be loaded (no internet connection, or it is blocked).'},
+  drive_connect_label:{de:'Google Drive',en:'Google Drive'},
+  drive_connect_title:{de:'Boards mit deinem Google Drive synchronisieren',en:'Sync your boards with your Google Drive'},
+  drive_connecting_label:{de:'Verbinde …',en:'Connecting…'},
+  drive_connected_title:{de:'Verbunden als {name} – klicken für Optionen',en:'Connected as {name} – click for options'},
+  drive_pending_label:{de:'Google erneut verbinden',en:'Reconnect Google'},
+  drive_pending_title:{de:'Anmeldung bei Google ist abgelaufen – erneut verbinden',en:'Google sign-in has expired – reconnect'},
+  drive_reconnect_banner_title:{de:'Google-Verbindung bestätigen',en:'Confirm Google connection'},
+  drive_reconnect_banner_body:{de:'Deine Boards werden mit Google Drive synchronisiert, aber die Anmeldung ist abgelaufen (das passiert z. B. nach jedem Neustart des Browsers). Bis dahin werden hier absichtlich keine Boards angezeigt – so kannst du nicht aus Versehen an einer alten, nicht synchronisierten Kopie weiterschreiben.',en:'Your boards are synced with Google Drive, but the sign-in has expired (this happens after every browser restart, for example). Until then, no boards are shown here on purpose — so you can\'t accidentally keep editing an old, unsynced copy.'},
+  drive_reconnect_banner_btn:{de:'Erneut mit Google verbinden',en:'Reconnect with Google'},
+  toast_drive_unsupported:{de:'Google-Anmeldung konnte nicht geladen werden. Prüfe deine Internetverbindung.',en:'Google sign-in could not be loaded. Check your internet connection.'},
+  toast_drive_reconnect_needed:{de:'Bitte verbinde dich erneut mit Google (Button oben), um Boards zu erstellen oder zu öffnen.',en:'Please reconnect with Google (button up top) to create or open boards.'},
+  toast_drive_signin_failed:{de:'Anmeldung bei Google ist fehlgeschlagen oder wurde abgebrochen.',en:'Google sign-in failed or was cancelled.'},
+  toast_drive_no_client_id:{de:'Google Drive ist in dieser Version von NOTUA noch nicht eingerichtet (fehlende Client-ID).',en:'Google Drive isn\'t set up in this copy of NOTUA yet (missing client ID).'},
+  toast_drive_disconnected:{de:'Google Drive getrennt – deine Boards bleiben dort gespeichert, lokal siehst du sie erst nach dem nächsten Verbinden wieder.',en:'Google Drive disconnected – your boards stay saved there; locally you\'ll see them again once you reconnect.'},
+  confirm_migrate_drive_title:{de:'Vorhandene Boards zu Google Drive hochladen?',en:'Upload existing boards to Google Drive?'},
+  confirm_migrate_drive_body:{de:'Es gibt Boards, die bisher nur lokal gespeichert waren. Sollen sie in deinen Google-Drive-Ordner „NOTUA“ hochgeladen werden?',en:'Some boards were only stored locally so far. Should they be uploaded to your "NOTUA" folder on Google Drive?'},
+  drive_modal_title:{de:'Google Drive',en:'Google Drive'},
+  drive_modal_body:{de:'Verbunden als „{name}“. Deine Boards liegen im Ordner „NOTUA“ in deinem Google Drive – ein Board pro Unterordner, genau wie beim lokalen Speicherordner. Du kannst sie dort in Drive selbst ansehen oder z. B. mit einem anderen Gerät teilen.',en:'Connected as "{name}". Your boards live in the "NOTUA" folder in your Google Drive – one board per subfolder, just like the local storage folder. You can view them there in Drive itself, or share them with another device.'},
+  drive_disconnect_action:{de:'Trennen',en:'Disconnect'},
+  drive_switch_account_action:{de:'Konto wechseln',en:'Switch account'},
+  drive_syncing_label:{de:'Wird synchronisiert …',en:'Syncing…'},
   empty_trash_all_title:{de:'Papierkorb leeren',en:'Empty trash'},
   confirm_empty_trash_title:{de:'Papierkorb leeren?',en:'Empty trash?'},
   confirm_empty_trash_body:{de:'Alle {n} Boards im Papierkorb werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',en:'All {n} boards in the trash will be permanently deleted. This can\'t be undone.'},
@@ -2519,6 +2566,10 @@ const I18N={
   about_body_1:{de:'NOTUA ist eine kostenlose, moderne Notiz- und Board-App für deine Videoprojekte – keine Abos, keine Bezahlschranke, kein Kleingedrucktes.',en:'NOTUA is a free, modern note & board app for your video projects – no subscriptions, no paywall, no fine print.'},
   about_body_2:{de:'Alles läuft lokal bei dir. Kein Account nötig, nichts hängt an fremden Servern – deine Boards bleiben deine, egal ob online oder offline.',en:'Everything runs locally on your machine. No account required, nothing depends on someone else\'s server – your boards stay yours, online or off.'},
   about_body_3:{de:'Komplett von mir allein programmiert, in meiner Freizeit. Wenn dir was fehlt oder kaputtgeht, sag Bescheid – ich freu mich über Feedback und Bug-Reports.',en:'Built entirely by me, solo, in my spare time. If something\'s missing or broken, let me know – I\'m always glad to get feedback and bug reports.'},
+  // Datenschutz/Nutzungsbedingungen body text itself lives only in datenschutz.html /
+  // nutzungsbedingungen.html now (real standalone pages, not app screens) — datenschutz_label /
+  // nutzungsbedingungen_label just above are the only pieces still needed here, for the two
+  // landing-footer links' text.
   storage_notice_title:{de:'Speicher dauerhaft sichern',en:'Keep your storage permanent'},
   storage_notice_body_1:{de:'Du nutzt Safari bzw. iOS – solche Browser löschen automatisch lokal gespeicherte App-Daten (also auch deine Boards), wenn die Seite länger als etwa 7 Tage nicht geöffnet wurde.',en:'You\'re using Safari or iOS – these browsers automatically delete locally stored app data (including your boards) if the page hasn\'t been opened for around 7 days.'},
   storage_notice_body_2:{de:'Das lässt sich einfach umgehen: Füge NOTUA zu deinem Home-Bildschirm hinzu. Als installierte App gilt dieses 7-Tage-Limit nicht mehr, deine Boards bleiben dauerhaft gespeichert.',en:'This is easy to avoid: add NOTUA to your home screen. As an installed app, the 7-day limit no longer applies and your boards stay stored permanently.'},
@@ -2579,6 +2630,8 @@ function applyI18n(){
     ['#downloadBtnLabel','text',t('download_label')],
     ['#impressumBtn','text',t('impressum_label')],
     ['#aboutBtn','text',t('about_label')],
+    ['#datenschutzBtn','text',t('datenschutz_label')],
+    ['#nutzungsbedingungenBtn','text',t('nutzungsbedingungen_label')],
     ['#toolsBtn','title',t('tools_btn_title')],
     ['#toolsTemplatesItem','text',t('tools_templates_item')],
     ['#toolsImportItem','text',t('tools_import_item')],
@@ -2636,6 +2689,9 @@ function applyI18n(){
     ['#folderReconnectTitle','text',t('folder_reconnect_banner_title')],
     ['#folderReconnectBody','text',t('folder_reconnect_banner_body')],
     ['#folderReconnectBtn','text',t('folder_reconnect_banner_btn')],
+    ['#driveReconnectTitle','text',t('drive_reconnect_banner_title')],
+    ['#driveReconnectBody','text',t('drive_reconnect_banner_body')],
+    ['#driveReconnectBtn','text',t('drive_reconnect_banner_btn')],
   ];
   const drawerLabels=document.querySelectorAll('.mobile-drawer .drawer-label');
   const labelKeys=['section_add','section_tool','section_view'];
@@ -2647,6 +2703,7 @@ function applyI18n(){
     else el.setAttribute(prop,val);
   });
   updateFolderStatusUI();
+  if(typeof updateDriveStatusUI==='function') updateDriveStatusUI();
   if(state.screen==='board') renderCrumbs(boardById(state.currentBoardId));
 }
 
@@ -3074,7 +3131,426 @@ const FS_DB={
   },
 };
 
-function activeBackend(){ return state.storageMode==='fs' ? FS_DB : IDB_DB; }
+/* ============================================================
+   GOOGLE DRIVE DATA LAYER (Google Identity Services + Drive REST API v3)
+   ============================================================
+   Mirrors FS_DB above as closely as possible: one subfolder per board inside a single "NOTUA" root
+   folder in the signed-in person's own Google Drive, each board folder holding a board.json file
+   (same {meta,cards,connectors} shape FS_DB writes) plus an "images" subfolder with one file per
+   image, named "<imageId><ext>" — identical layout, just addressed by Drive file IDs instead of
+   FileSystemHandle objects, since that's what the Drive REST API deals in.
+
+   Scope used is the narrow "drive.file" scope (this app can only ever see files/folders it created
+   itself — nothing else in the person's Drive), which is what keeps Google's app-verification
+   review realistic for a solo developer. See the separate setup guide for the full walkthrough.
+
+   IMPORTANT: this only works on the real deployed site (or the Android app) — never on a
+   claude.ai Artifact preview link. That preview runs in a sandboxed origin whose Content-Security-
+   Policy blocks every script/network host except a short CDN allowlist, and accounts.google.com /
+   googleapis.com are not on it — both the sign-in popup and every Drive API call are silently
+   blocked there. Nothing to fix in the code for that; it's a property of where the page is hosted. */
+
+// Fill this in with the OAuth 2.0 "Web application" Client ID from your own Google Cloud project
+// (full step-by-step instructions in the separate setup guide) — until it's filled in, Drive sync
+// stays fully disabled everywhere (DRIVE_SUPPORTED below) and the Google-Drive button never shows
+// at all, instead of showing up broken.
+const GOOGLE_CLIENT_ID = '928872575646-h8244hvb98n1l39tabgskhtjsak6aovh.apps.googleusercontent.com';
+const GOOGLE_DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+const DRIVE_SUPPORTED = !!GOOGLE_CLIENT_ID;
+const DRIVE_API='https://www.googleapis.com/drive/v3/files';
+const DRIVE_UPLOAD_API='https://www.googleapis.com/upload/drive/v3/files';
+
+const driveState={
+  tokenClient:null,       // google.accounts.oauth2 token client, built lazily on first use
+  accessToken:null,       // current bearer token — memory-only, NEVER persisted to disk
+  tokenExpiresAt:0,       // ms epoch
+  email:'', name:'',
+  root:null,               // Drive folder id of the "NOTUA" root folder
+  trashDir:null,           // Drive folder id of the "_Papierkorb" subfolder (lazily created)
+  dirs:new Map(),          // boardId -> board folder id
+  boardFileId:new Map(),   // boardId -> board.json file id
+  imagesDirId:new Map(),   // boardId -> images subfolder id
+  cache:new Map(),         // boardId -> {meta,cards,connectors}
+  cardOwner:new Map(),
+  connOwner:new Map(),
+  imageOwner:new Map(),    // imageId -> boardId
+  imageFileId:new Map(),   // imageId -> Drive file id
+  writers:new Map(),       // boardId -> debounced writer fn
+  pendingReconnect:false,  // true once we know Drive sync was active last session but the silent
+                            // token refresh on boot hasn't (yet) re-acquired an access token
+  authPromise:null,        // in-flight ensureAccessToken() promise, so concurrent calls share one
+                            // popup/refresh instead of stacking several on top of each other
+};
+
+function driveBuildTokenClient(){
+  if(driveState.tokenClient || !DRIVE_SUPPORTED) return driveState.tokenClient;
+  if(!(window.google && google.accounts && google.accounts.oauth2)) return null;
+  driveState.tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID,
+    scope:GOOGLE_DRIVE_SCOPES,
+    callback:()=>{}, // replaced per-call inside driveRequestToken() below
+  });
+  return driveState.tokenClient;
+}
+// Google's token client only ever hands back its result through the callback given to
+// initTokenClient/requestAccessToken, not as a normal return value — this wraps one request in a
+// Promise so the rest of the app can just `await` a token like any other async call.
+function driveRequestToken(opts){
+  const client=driveBuildTokenClient();
+  if(!client) return Promise.reject(new Error('gis-not-loaded'));
+  return new Promise((resolve,reject)=>{
+    client.callback=(resp)=>{
+      if(resp && resp.access_token){
+        driveState.accessToken=resp.access_token;
+        driveState.tokenExpiresAt=Date.now()+((resp.expires_in||3300)*1000);
+        resolve(resp.access_token);
+      }else{
+        reject(resp && resp.error ? new Error(resp.error) : new Error('no-token'));
+      }
+    };
+    client.error_callback=(err)=>{ reject(err||new Error('gis-error')); };
+    try{ client.requestAccessToken(opts||{}); }catch(e){ reject(e); }
+  });
+}
+// interactive=false attempts a silent refresh (no popup; fails quietly if the browser session with
+// Google has expired or was revoked — the caller then falls back to asking for a real sign-in).
+// interactive=true shows Google's own account chooser/consent UI when needed.
+async function ensureAccessToken(interactive){
+  if(driveState.accessToken && Date.now()<driveState.tokenExpiresAt-60000) return driveState.accessToken;
+  if(driveState.authPromise) return driveState.authPromise;
+  const opts=interactive ? {} : {prompt:'none'};
+  driveState.authPromise=driveRequestToken(opts).finally(()=>{ driveState.authPromise=null; });
+  return driveState.authPromise;
+}
+async function driveFetch(url,opts){
+  opts=opts||{};
+  const token=await ensureAccessToken(false).catch(()=>driveState.accessToken);
+  if(!token) throw new Error('drive-not-signed-in');
+  let res=await fetch(url,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+token})}));
+  if(res.status===401){
+    // Token got rejected mid-flight (expired right on the edge, or revoked) — one silent-refresh
+    // retry, then give up and let the caller's own catch surface the "please reconnect" banner
+    // instead of looping forever.
+    driveState.accessToken=null;
+    const fresh=await ensureAccessToken(false).catch(()=>null);
+    if(fresh) res=await fetch(url,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+fresh})}));
+  }
+  return res;
+}
+
+async function driveFindChild(parentId,name,isFolder){
+  const mimeQ=isFolder ? " and mimeType='application/vnd.google-apps.folder'" : " and mimeType!='application/vnd.google-apps.folder'";
+  const q=encodeURIComponent(`'${parentId}' in parents and name='${name.replace(/'/g,"\\'")}' and trashed=false${mimeQ}`);
+  try{
+    const res=await driveFetch(`${DRIVE_API}?q=${q}&fields=files(id,name)&pageSize=1&spaces=drive`);
+    if(!res.ok) return null;
+    const data=await res.json();
+    return (data.files && data.files[0]) || null;
+  }catch(e){ return null; }
+}
+async function driveCreateFolder(parentId,name){
+  const res=await driveFetch(DRIVE_API+'?fields=id,name',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name, mimeType:'application/vnd.google-apps.folder', parents:[parentId]}),
+  });
+  if(!res.ok) throw new Error('drive-create-folder-failed');
+  return res.json();
+}
+async function driveFindOrCreateFolder(parentId,name){
+  const existing=await driveFindChild(parentId,name,true);
+  if(existing) return existing.id;
+  const created=await driveCreateFolder(parentId,name);
+  return created.id;
+}
+async function driveListFolderChildren(folderId){
+  const out=[]; let pageToken='';
+  do{
+    const q=encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+    let res;
+    try{ res=await driveFetch(`${DRIVE_API}?q=${q}&fields=nextPageToken,files(id,name,mimeType)&pageSize=200&spaces=drive${pageToken?'&pageToken='+pageToken:''}`); }
+    catch(e){ break; }
+    if(!res.ok) break;
+    const data=await res.json();
+    (data.files||[]).forEach(f=>out.push(f));
+    pageToken=data.nextPageToken||'';
+  }while(pageToken);
+  return out;
+}
+async function driveGetJSON(fileId,fallback){
+  try{
+    const res=await driveFetch(`${DRIVE_API}/${fileId}?alt=media`);
+    if(!res.ok) return fallback;
+    const text=await res.text();
+    return text ? JSON.parse(text) : fallback;
+  }catch(e){ return fallback; }
+}
+async function driveGetBlob(fileId){
+  try{
+    const res=await driveFetch(`${DRIVE_API}/${fileId}?alt=media`);
+    if(!res.ok) return null;
+    return await res.blob();
+  }catch(e){ return null; }
+}
+async function driveMultipartCreate(parentId,name,mimeType,blob){
+  const boundary='notua-'+Math.random().toString(36).slice(2);
+  const metadata=JSON.stringify({name, parents:[parentId]});
+  const head=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
+  const tail=`\r\n--${boundary}--`;
+  const body=new Blob([head,blob,tail]);
+  const res=await driveFetch(`${DRIVE_UPLOAD_API}?uploadType=multipart&fields=id`,{
+    method:'POST', headers:{'Content-Type':`multipart/related; boundary=${boundary}`}, body,
+  });
+  if(!res.ok) throw new Error('drive-upload-failed');
+  const data=await res.json();
+  return data.id;
+}
+async function driveUpdateBlob(fileId,blob,mimeType){
+  const res=await driveFetch(`${DRIVE_UPLOAD_API}/${fileId}?uploadType=media`,{
+    method:'PATCH', headers:{'Content-Type':mimeType||'application/octet-stream'}, body:blob,
+  });
+  return res.ok;
+}
+async function driveWriteJSON(fileId,parentId,name,data){
+  const body=JSON.stringify(data);
+  if(fileId){
+    const ok=await driveUpdateBlob(fileId,new Blob([body],{type:'application/json'}),'application/json');
+    if(ok) return fileId;
+  }
+  // No existing file id (first save for this board, or the update above failed e.g. the file got
+  // deleted out from under us) — create it fresh via a multipart upload (metadata + content in one).
+  return driveMultipartCreate(parentId,name,'application/json',new Blob([body],{type:'application/json'}));
+}
+async function driveDeleteFile(fileId){
+  try{ await driveFetch(`${DRIVE_API}/${fileId}`,{method:'DELETE'}); }catch(e){}
+}
+async function driveMoveFile(fileId,fromParent,toParent){
+  try{ await driveFetch(`${DRIVE_API}/${fileId}?addParents=${toParent}&removeParents=${fromParent}&fields=id`,{method:'PATCH'}); }catch(e){}
+}
+
+async function driveGetRoot(){
+  if(driveState.root) return driveState.root;
+  const id=await driveFindOrCreateFolder('root','NOTUA');
+  driveState.root=id;
+  return id;
+}
+async function driveGetTrashDir(){
+  if(driveState.trashDir) return driveState.trashDir;
+  const root=await driveGetRoot(); if(!root) return null;
+  const id=await driveFindOrCreateFolder(root,'_Papierkorb');
+  driveState.trashDir=id;
+  return id;
+}
+async function driveEnsureBoardLoaded(boardId){
+  if(driveState.cache.has(boardId)) return driveState.cache.get(boardId);
+  const fileId=driveState.boardFileId.get(boardId);
+  if(!fileId) return null;
+  const data=await driveGetJSON(fileId,{meta:null,cards:[],connectors:[]});
+  data.cards=data.cards||[]; data.connectors=data.connectors||[];
+  driveState.cache.set(boardId,data);
+  data.cards.forEach(c=>{
+    driveState.cardOwner.set(c.id,boardId);
+    if(c.type==='image' && c.data && c.data.imageId) driveState.imageOwner.set(c.data.imageId,boardId);
+  });
+  data.connectors.forEach(cn=>driveState.connOwner.set(cn.id,boardId));
+  return data;
+}
+function driveWriteBoardSoon(boardId){
+  if(!driveState.writers.has(boardId)){
+    driveState.writers.set(boardId, debounce(async ()=>{
+      const parentId=driveState.dirs.get(boardId), data=driveState.cache.get(boardId);
+      if(!parentId||!data) return;
+      try{
+        const fileId=await driveWriteJSON(driveState.boardFileId.get(boardId), parentId, 'board.json', data);
+        driveState.boardFileId.set(boardId,fileId);
+      }catch(e){}
+    },300));
+  }
+  driveState.writers.get(boardId)();
+}
+async function driveEnsureImagesDir(boardId){
+  if(driveState.imagesDirId.has(boardId)) return driveState.imagesDirId.get(boardId);
+  const parentId=driveState.dirs.get(boardId); if(!parentId) return null;
+  const id=await driveFindOrCreateFolder(parentId,'images');
+  driveState.imagesDirId.set(boardId,id);
+  return id;
+}
+// Same job as FS_DB's allBoards()/allTemplates()/allTrashedBoards(): walk every board-folder inside
+// a given parent (the NOTUA root, or its _Papierkorb subfolder) and return each board's meta —
+// caching everything it reads along the way exactly like FS_DB does.
+async function driveEnumerateBoards(parentId){
+  const out=[];
+  const children=await driveListFolderChildren(parentId);
+  for(const child of children){
+    if(child.mimeType!=='application/vnd.google-apps.folder' || child.name==='_Papierkorb') continue;
+    const boardFile=await driveFindChild(child.id,'board.json',false);
+    if(!boardFile) continue;
+    const data=await driveGetJSON(boardFile.id,null);
+    if(!data || !data.meta || !data.meta.id) continue;
+    const id=data.meta.id;
+    driveState.dirs.set(id,child.id);
+    driveState.boardFileId.set(id,boardFile.id);
+    if(!driveState.cache.has(id)){
+      driveState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
+      (data.cards||[]).forEach(c=>{
+        driveState.cardOwner.set(c.id,id);
+        if(c.type==='image' && c.data && c.data.imageId) driveState.imageOwner.set(c.data.imageId,id);
+      });
+      (data.connectors||[]).forEach(cn=>driveState.connOwner.set(cn.id,id));
+    }
+    out.push({...driveState.cache.get(id).meta});
+  }
+  return out;
+}
+
+const DRIVE_DB={
+  async allBoards(){
+    if(!driveState.root) return [];
+    return (await driveEnumerateBoards(driveState.root)).filter(b=>!b.isTemplate);
+  },
+  async allTemplates(){
+    if(!driveState.root) return [];
+    return (await driveEnumerateBoards(driveState.root)).filter(b=>b.isTemplate);
+  },
+  async allTrashedBoards(){
+    if(!driveState.root) return [];
+    const trashDir=await driveGetTrashDir(); if(!trashDir) return [];
+    return driveEnumerateBoards(trashDir);
+  },
+  // Mirrors FS_DB.setTrashed: physically relocates the board's whole folder between the NOTUA root
+  // and its _Papierkorb subfolder — Drive's addParents/removeParents move, rather than FS_DB's
+  // manual copy-then-delete dance (Drive addresses everything by file id, so a real move exists).
+  async setTrashed(id,trashed){
+    const entry=await driveEnsureBoardLoaded(id); if(!entry) return;
+    entry.meta.trashed=trashed; entry.meta.trashedAt=trashed?Date.now():null;
+    const folderId=driveState.dirs.get(id);
+    if(folderId && driveState.root){
+      try{
+        const trashDir=await driveGetTrashDir();
+        if(trashDir){
+          await driveMoveFile(folderId, trashed?driveState.root:trashDir, trashed?trashDir:driveState.root);
+        }
+      }catch(e){ /* physical move failed (e.g. offline) — the trashed flag written below still keeps
+                    board.json itself correct, just without the folder actually having moved yet */ }
+    }
+    driveWriteBoardSoon(id);
+  },
+  async getBoard(id){ const e=await driveEnsureBoardLoaded(id); return e ? {...e.meta} : null; },
+  async putBoard(b){
+    if(!driveState.root) return;
+    let folderId=driveState.dirs.get(b.id);
+    if(!folderId){
+      folderId=await driveFindOrCreateFolder(driveState.root, folderNameFor(b.id,b.name));
+      driveState.dirs.set(b.id,folderId);
+      driveState.cache.set(b.id,{meta:{...b}, cards:[], connectors:[]});
+    }else{
+      const entry=await driveEnsureBoardLoaded(b.id);
+      entry.meta={...entry.meta, ...b};
+      // Unlike FS_DB, the on-disk folder name is never kept in sync with a board rename — Drive
+      // addresses everything by file id, never by path, so the folder's name was only ever a
+      // human-readable label at creation time, not something anything else depends on.
+    }
+    driveWriteBoardSoon(b.id);
+  },
+  async deleteBoard(id){
+    const folderId=driveState.dirs.get(id);
+    if(folderId) await driveDeleteFile(folderId);
+    driveState.dirs.delete(id); driveState.cache.delete(id); driveState.writers.delete(id);
+    driveState.boardFileId.delete(id); driveState.imagesDirId.delete(id);
+  },
+
+  async cardsForBoard(boardId){ const e=await driveEnsureBoardLoaded(boardId); return e ? e.cards.slice() : []; },
+  async putCard(c){
+    const e=await driveEnsureBoardLoaded(c.boardId); if(!e) return;
+    const i=e.cards.findIndex(x=>x.id===c.id);
+    if(i>=0) e.cards[i]=c; else e.cards.push(c);
+    driveState.cardOwner.set(c.id,c.boardId);
+    if(c.type==='image' && c.data && c.data.imageId) driveState.imageOwner.set(c.data.imageId,c.boardId);
+    driveWriteBoardSoon(c.boardId);
+  },
+  async putCards(list){
+    const byBoard=new Map();
+    list.forEach(c=>{ if(!byBoard.has(c.boardId)) byBoard.set(c.boardId,[]); byBoard.get(c.boardId).push(c); });
+    for(const [bid,cs] of byBoard){
+      const e=await driveEnsureBoardLoaded(bid); if(!e) continue;
+      cs.forEach(c=>{
+        const i=e.cards.findIndex(x=>x.id===c.id);
+        if(i>=0) e.cards[i]=c; else e.cards.push(c);
+        driveState.cardOwner.set(c.id,bid);
+      });
+      driveWriteBoardSoon(bid);
+    }
+  },
+  async deleteCard(id){
+    const bid=driveState.cardOwner.get(id); if(!bid) return;
+    const e=driveState.cache.get(bid); if(!e) return;
+    e.cards=e.cards.filter(c=>c.id!==id);
+    driveState.cardOwner.delete(id);
+    driveWriteBoardSoon(bid);
+  },
+
+  async connectorsForBoard(boardId){ const e=await driveEnsureBoardLoaded(boardId); return e ? e.connectors.slice() : []; },
+  async putConnector(c){
+    const e=await driveEnsureBoardLoaded(c.boardId); if(!e) return;
+    const i=e.connectors.findIndex(x=>x.id===c.id);
+    if(i>=0) e.connectors[i]=c; else e.connectors.push(c);
+    driveState.connOwner.set(c.id,c.boardId);
+    driveWriteBoardSoon(c.boardId);
+  },
+  async deleteConnector(id){
+    const bid=driveState.connOwner.get(id); if(!bid) return;
+    const e=driveState.cache.get(bid); if(!e) return;
+    e.connectors=e.connectors.filter(c=>c.id!==id);
+    driveState.connOwner.delete(id);
+    driveWriteBoardSoon(bid);
+  },
+
+  async putImage(id,blob,boardIdOverride){
+    const bid=boardIdOverride || driveState.imageOwner.get(id) || state.currentBoardId;
+    if(!driveState.dirs.get(bid)) return;
+    try{
+      const imagesDir=await driveEnsureImagesDir(bid); if(!imagesDir) return;
+      const ext=extForBlob(blob);
+      let fileId=driveState.imageFileId.get(id);
+      if(!fileId){
+        const existing=await driveFindChild(imagesDir,id+ext,false);
+        if(existing) fileId=existing.id;
+      }
+      if(fileId) await driveUpdateBlob(fileId,blob,blob.type||'application/octet-stream');
+      else fileId=await driveMultipartCreate(imagesDir, id+ext, blob.type||'application/octet-stream', blob);
+      driveState.imageFileId.set(id,fileId);
+      driveState.imageOwner.set(id,bid);
+    }catch(e){}
+  },
+  async getImage(id){
+    let fileId=driveState.imageFileId.get(id);
+    if(!fileId){
+      const bid=driveState.imageOwner.get(id) || state.currentBoardId;
+      const imagesDir=await driveEnsureImagesDir(bid); if(!imagesDir) return null;
+      // Image filenames carry an unknown extension (see extForBlob) — same "search by prefix" trick
+      // FS_DB's findImageExt uses, just via a Drive `name contains` query instead of directory keys().
+      try{
+        const q=encodeURIComponent(`'${imagesDir}' in parents and name contains '${id}' and trashed=false`);
+        const res=await driveFetch(`${DRIVE_API}?q=${q}&fields=files(id,name)&pageSize=1`);
+        if(res.ok){ const data=await res.json(); if(data.files && data.files[0]) fileId=data.files[0].id; }
+      }catch(e){}
+      if(!fileId) return null;
+      driveState.imageFileId.set(id,fileId);
+    }
+    const blob=await driveGetBlob(fileId);
+    return blob ? {id, blob} : null;
+  },
+  async deleteImage(id){
+    const fileId=driveState.imageFileId.get(id);
+    if(fileId) await driveDeleteFile(fileId);
+    driveState.imageFileId.delete(id); driveState.imageOwner.delete(id);
+  },
+};
+
+function activeBackend(){
+  if(state.storageMode==='fs') return FS_DB;
+  if(state.storageMode==='drive') return DRIVE_DB;
+  return IDB_DB;
+}
 const DB={
   allBoards:(...a)=>activeBackend().allBoards(...a),
   allTrashedBoards:(...a)=>activeBackend().allTrashedBoards(...a),
@@ -3111,7 +3587,7 @@ async function getImageUrl(imageId){
 const state={
   screen:'home',            // 'home' | 'board'
   lang:loadLang(),          // 'de' | 'en'
-  storageMode:'idb',         // 'idb' | 'fs'
+  storageMode:'idb',         // 'idb' | 'fs' | 'drive'
   boards:[],                 // all boards (cache)
   currentBoardId:null,
   cards:[],                  // cards of current board
@@ -3477,6 +3953,14 @@ if(folderReconnectBtn){
     await refreshHome();
   });
 }
+const driveReconnectBanner=document.getElementById('driveReconnectBanner');
+const driveReconnectBtn=document.getElementById('driveReconnectBtn');
+if(driveReconnectBtn){
+  driveReconnectBtn.addEventListener('click',async ()=>{
+    await confirmPendingDrive();
+    await refreshHome();
+  });
+}
 if(emptyTrashAllBtn){
   emptyTrashAllBtn.addEventListener('click',async ()=>{
     const all=await DB.allTrashedBoards();
@@ -3509,6 +3993,22 @@ async function refreshHome(){
       document.getElementById('folderReconnectBody').textContent=nameGuess
         ? t('folder_reconnect_banner_body')+' ("'+nameGuess+'")'
         : t('folder_reconnect_banner_body');
+      boardGrid.innerHTML='';
+      emptyHome.hidden=true;
+      boardCountLabel.textContent='';
+      if(driveReconnectBanner) driveReconnectBanner.hidden=true;
+      return;
+    }
+  }
+  // Same idea, for Drive: signed in last session but the silent token refresh on boot hasn't (yet)
+  // re-acquired an access token — see tryReconnectDrive() / driveStorageBlocked() further down.
+  if(driveReconnectBanner){
+    const dBlocked=driveStorageBlocked();
+    driveReconnectBanner.hidden=!dBlocked;
+    if(dBlocked){
+      document.getElementById('driveReconnectBody').textContent=driveState.email
+        ? t('drive_reconnect_banner_body')+' ("'+driveState.email+'")'
+        : t('drive_reconnect_banner_body');
       boardGrid.innerHTML='';
       emptyHome.hidden=true;
       boardCountLabel.textContent='';
@@ -4548,6 +5048,13 @@ function showAbout(){
   document.body.appendChild(scrim);
 }
 document.getElementById('aboutBtn').addEventListener('click',showAbout);
+
+// Datenschutz/Nutzungsbedingungen deliberately are NOT in-app modals (unlike Impressum/Über) — they
+// live at their own real, crawlable URLs (datenschutz.html / nutzungsbedingungen.html, linked
+// straight from the landing-footer buttons above, open in a new tab) so they have a stable, JS-
+// independent address. That's what German law expects for this kind of page ("unmittelbar
+// erreichbar"), and it's also exactly what Google's OAuth verification asks for when it wants a
+// privacy-policy URL (see the Drive setup guide) — a button that only opens a JS modal isn't one.
 
 /* ============================================================
    DOWNLOAD — platform picker for the packaged desktop app (Electron/Nativefier build of this
@@ -8971,6 +9478,8 @@ window.addEventListener('paste',async (e)=>{
    ============================================================ */
 const folderBtn=document.getElementById('folderBtn');
 const folderLabel=document.getElementById('folderLabel');
+const driveBtn=document.getElementById('driveBtn');
+const driveLabel=document.getElementById('driveLabel');
 
 function updateFolderStatusUI(){
   if(!folderBtn) return;
@@ -9003,6 +9512,16 @@ async function activateFolder(handle,opts){
   fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
   state.storageMode='fs';
   await saveHandleRef(handle);
+  // Switching the active backend to a local folder means Google Drive (if it was connected) is no
+  // longer the active one — mirrors what disconnectDrive() itself does, so the app never ends up
+  // with two stale "last connected" pointers racing each other on the next boot (see
+  // tryReconnectFolder / tryReconnectDrive further down: only one of them may claim storageMode).
+  if(driveState.root || await loadDriveRef()){
+    driveState.root=null; driveState.trashDir=null; driveState.email=''; driveState.name=''; driveState.pendingReconnect=false;
+    driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
+    driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
+    await clearDriveRef();
+  }
   if(opts.offerMigration){
     try{
       const existing=await IDB_DB.allBoards();
@@ -9063,9 +9582,19 @@ async function tryReconnectFolder(){
 // of staying silent.
 function fsStorageBlocked(){ return state.storageMode==='fs' && !fsState.root; }
 async function ensureStorageReady(){
-  if(!fsStorageBlocked()) return true;
-  if(fsState.pendingHandle) await confirmPendingFolder();
-  if(fsStorageBlocked()){ showToast(t('toast_folder_reconnect_needed')); return false; }
+  if(fsStorageBlocked()){
+    if(fsState.pendingHandle) await confirmPendingFolder();
+    if(fsStorageBlocked()){ showToast(t('toast_folder_reconnect_needed')); return false; }
+    return true;
+  }
+  // Same guard, for Drive: storageMode is 'drive' but the silent token refresh on boot hasn't (yet)
+  // re-acquired an access token — see driveStorageBlocked()/confirmPendingDrive() in the Google
+  // Drive section below.
+  if(driveStorageBlocked()){
+    await confirmPendingDrive();
+    if(driveStorageBlocked()){ showToast(t('toast_drive_reconnect_needed')); return false; }
+    return true;
+  }
   return true;
 }
 async function confirmPendingFolder(){
@@ -9144,6 +9673,174 @@ folderBtn.addEventListener('click',async ()=>{
   else if(fsState.pendingHandle){ await confirmPendingFolder(); }
   else{ await connectFolder(); }
 });
+
+/* ============================================================
+   GOOGLE DRIVE SYNC (sign-in + UI wiring)
+   The data layer itself (DRIVE_DB, driveState, all the driveXxx() REST helpers) lives up in the
+   GOOGLE DRIVE DATA LAYER section next to FS_DB — this part only handles signing in/out and the
+   driveBtn / reconnect-banner UI, mirroring the SPEICHERORDNER section above property-for-property.
+   ============================================================ */
+async function saveDriveRef(info){
+  try{ const t=await tx('handles','readwrite'); t.objectStore('handles').put(info,'driveAccount'); return new Promise(r=>t.oncomplete=r); }catch(e){}
+}
+async function loadDriveRef(){
+  try{ const t=await tx('handles','readonly'); return await reqp(t.objectStore('handles').get('driveAccount')); }catch(e){ return null; }
+}
+async function clearDriveRef(){
+  try{ const t=await tx('handles','readwrite'); t.objectStore('handles').delete('driveAccount'); return new Promise(r=>t.oncomplete=r); }catch(e){}
+}
+async function fetchDriveUserInfo(){
+  try{
+    const res=await driveFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+    if(!res.ok) return;
+    const info=await res.json();
+    driveState.email=info.email||''; driveState.name=info.name||info.email||'';
+  }catch(e){}
+}
+async function activateDrive(rootId,opts){
+  opts=opts||{};
+  driveState.root=rootId;
+  driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
+  driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
+  state.storageMode='drive';
+  await saveDriveRef({rootId, email:driveState.email, name:driveState.name});
+  // Switching the active backend to Google Drive means a connected local folder (if any) is no
+  // longer the active one — mirrors disconnectFolder()'s own cleanup; see the matching comment on
+  // activateFolder() above for why keeping these two mutually exclusive matters.
+  if(fsState.root || await loadHandleRef()){
+    fsState.root=null; fsState.rootName=''; fsState.pendingHandle=null;
+    fsState.dirs.clear(); fsState.cache.clear(); fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
+    await clearHandleRef();
+  }
+  if(opts.offerMigration){
+    try{
+      const existing=await IDB_DB.allBoards();
+      const scanned=await DRIVE_DB.allBoards();
+      if(existing.length && scanned.length===0){
+        confirmModal(t('confirm_migrate_drive_title'),t('confirm_migrate_drive_body'),t('migrate_action'),async ()=>{
+          await migrateIdbToDrive(existing);
+          updateDriveStatusUI();
+          refreshHome();
+        });
+      }
+    }catch(e){}
+  }
+  updateDriveStatusUI();
+}
+async function connectDrive(){
+  if(!DRIVE_SUPPORTED){ showToast(t('toast_drive_no_client_id')); return; }
+  if(!(window.google && google.accounts && google.accounts.oauth2)){ showToast(t('toast_drive_unsupported')); return; }
+  if(driveLabel) driveLabel.textContent=t('drive_connecting_label');
+  try{
+    await ensureAccessToken(true);
+    await fetchDriveUserInfo();
+    const rootId=await driveGetRoot();
+    await activateDrive(rootId,{offerMigration:true});
+    refreshHome();
+  }catch(e){
+    showToast(t('toast_drive_signin_failed'));
+    updateDriveStatusUI();
+  }
+}
+// Runs once at boot (see init() at the bottom of the file). If Drive sync was active last session
+// (a driveAccount ref is on disk), this puts storageMode back to 'drive' and tries a SILENT token
+// refresh first (no popup) — that succeeds as long as the browser still has a live Google session,
+// which is the common case. If it fails (session expired, revoked, or GIS hasn't finished loading
+// yet), driveState.pendingReconnect stays true and the reconnect banner/red driveBtn ask for one
+// interactive click, exactly like tryReconnectFolder()'s pending-handle case above.
+async function tryReconnectDrive(){
+  if(!DRIVE_SUPPORTED) return;
+  let ref=null;
+  try{ ref=await loadDriveRef(); }catch(e){}
+  if(!ref || !ref.rootId) return;
+  state.storageMode='drive';
+  driveState.root=ref.rootId; driveState.email=ref.email||''; driveState.name=ref.name||'';
+  driveState.pendingReconnect=true;
+  updateDriveStatusUI();
+  if(!(window.google && google.accounts && google.accounts.oauth2)) return;
+  try{
+    await ensureAccessToken(false);
+    await fetchDriveUserInfo();
+    driveState.pendingReconnect=false;
+    await activateDrive(ref.rootId,{offerMigration:false});
+  }catch(e){ /* silent refresh failed — stays pending until the person clicks through once */ }
+}
+function driveStorageBlocked(){ return state.storageMode==='drive' && driveState.pendingReconnect; }
+async function confirmPendingDrive(){
+  if(!driveState.pendingReconnect) return;
+  try{
+    await ensureAccessToken(true);
+    await fetchDriveUserInfo();
+    driveState.pendingReconnect=false;
+    await activateDrive(driveState.root,{offerMigration:false});
+    refreshHome();
+  }catch(e){ showToast(t('toast_drive_signin_failed')); }
+}
+async function disconnectDrive(){
+  state.storageMode='idb';
+  driveState.accessToken=null; driveState.tokenExpiresAt=0;
+  driveState.root=null; driveState.trashDir=null; driveState.email=''; driveState.name=''; driveState.pendingReconnect=false;
+  driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
+  driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
+  await clearDriveRef();
+  updateDriveStatusUI();
+  showToast(t('toast_drive_disconnected'));
+  refreshHome();
+}
+function driveStatusModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('drive_modal_title')}</h4>
+    <p>${t('drive_modal_body',{name:escapeHtml(driveState.name||driveState.email||'')})}</p>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button data-a="disconnect">${t('drive_disconnect_action')}</button>
+      <button data-a="switch" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('drive_switch_account_action')}</button>
+    </div></div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="disconnect"]').addEventListener('click',async ()=>{ scrim.remove(); await disconnectDrive(); });
+  scrim.querySelector('[data-a="switch"]').addEventListener('click',async ()=>{ scrim.remove(); await connectDrive(); });
+  document.body.appendChild(scrim);
+}
+async function migrateIdbToDrive(idbBoards){
+  for(const b of idbBoards){ await DRIVE_DB.putBoard(b); }
+  for(const b of idbBoards){
+    const cards=await IDB_DB.cardsForBoard(b.id);
+    for(const c of cards){
+      if(c.type==='image' && c.data && c.data.imageId){
+        const img=await IDB_DB.getImage(c.data.imageId);
+        if(img) await DRIVE_DB.putImage(c.data.imageId, img.blob, b.id);
+      }
+      await DRIVE_DB.putCard(c);
+    }
+    const conns=await IDB_DB.connectorsForBoard(b.id);
+    for(const cn of conns) await DRIVE_DB.putConnector(cn);
+  }
+}
+function updateDriveStatusUI(){
+  if(!driveBtn) return;
+  if(!DRIVE_SUPPORTED){ driveBtn.hidden=true; return; }
+  driveBtn.hidden=false;
+  driveBtn.classList.remove('connected','pending');
+  if(state.storageMode==='drive' && driveState.root && !driveState.pendingReconnect){
+    driveBtn.classList.add('connected');
+    if(driveLabel) driveLabel.textContent=driveState.name||driveState.email||t('drive_connect_label');
+    driveBtn.title=t('drive_connected_title',{name:driveState.name||driveState.email||''});
+  }else if(driveState.pendingReconnect){
+    driveBtn.classList.add('pending');
+    if(driveLabel) driveLabel.textContent=t('drive_pending_label');
+    driveBtn.title=t('drive_pending_title');
+  }else{
+    if(driveLabel) driveLabel.textContent=t('drive_connect_label');
+    driveBtn.title=t('drive_connect_title');
+  }
+}
+if(driveBtn){
+  driveBtn.addEventListener('click',async ()=>{
+    if(state.storageMode==='drive' && driveState.root && !driveState.pendingReconnect){ driveStatusModal(); }
+    else if(driveState.pendingReconnect){ await confirmPendingDrive(); }
+    else{ await connectDrive(); }
+  });
+}
 
 /* ============================================================
    BOARD IMPORT / EXPORT
@@ -9985,6 +10682,11 @@ if(window.visualViewport){
   syncLangUI();
   document.addEventListener('contextmenu',(e)=>{ if(e.target.closest('#app')) e.preventDefault(); });
   await tryReconnectFolder();
+  // Only one of the two "reconnect to where I left off" flows can ever claim storageMode — a local
+  // folder and Google Drive are mutually exclusive active backends (see the comments on
+  // activateFolder()/activateDrive() above) — so skip the Drive attempt entirely if a folder
+  // reconnect already claimed it.
+  if(state.storageMode!=='fs') await tryReconnectDrive();
   await refreshHome();
   // state.screen's own default is 'home', but the landing view is what's actually visible on a
   // fresh load (it's the only view not [hidden] in the markup) — seed history with what's really

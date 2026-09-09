@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Nutzungsbedingungen – NOTUA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index,follow">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script>
+try{
+  var __t=localStorage.getItem('notua-theme');
+  if(__t==='light'||__t==='dark') document.documentElement.setAttribute('data-theme',__t);
+}catch(e){}
+</script>
+<style>
+:root{
+  --canvas:#E7EAEE; --surface:#FFFFFF; --surface-2:#F0F2F5; --ink:#1B2027; --muted:#5C6570;
+  --faint:#8A9099; --border:#D7DBE1; --border-strong:#C3C9D0; --accent:#FF6B57; --accent-ink:#FFFFFF;
+  --accent-soft:#FFE3DD; --shadow:rgba(24,28,35,0.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --canvas:#14171C; --surface:#1E222A; --surface-2:#191C22; --ink:#ECEEF2; --muted:#9AA3AF;
+    --faint:#6B7480; --border:#2C3038; --border-strong:#383D46; --accent:#FF7A66; --accent-ink:#1B0E0B;
+    --accent-soft:rgba(255,122,102,0.18); --shadow:rgba(0,0,0,0.45);
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#14171C; --surface:#1E222A; --surface-2:#191C22; --ink:#ECEEF2; --muted:#9AA3AF;
+  --faint:#6B7480; --border:#2C3038; --border-strong:#383D46; --accent:#FF7A66; --accent-ink:#1B0E0B;
+  --accent-soft:rgba(255,122,102,0.18); --shadow:rgba(0,0,0,0.45);
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0; padding:0;}
+body{
+  background:var(--canvas); color:var(--ink); font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;}
+header{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:18px 24px; border-bottom:1px solid var(--border); background:var(--surface);
+  position:sticky; top:0; z-index:5;
+}
+.wordmark{display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink);}
+.wordmark .dot{width:9px; height:9px; border-radius:50%; background:var(--accent);}
+.wordmark span{font-weight:700; font-size:0.92rem; letter-spacing:0.06em;}
+.lang-switch{display:flex; gap:2px; border:1px solid var(--border-strong); border-radius:8px; padding:2px; background:var(--surface-2);}
+.lang-switch button{
+  font:inherit; font-size:0.74rem; font-weight:600; letter-spacing:0.02em; padding:5px 10px; border-radius:6px;
+  border:none; background:none; color:var(--muted); cursor:pointer;
+}
+.lang-switch button.active{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px var(--shadow);}
+main{max-width:640px; margin:0 auto; padding:44px 24px 40px;}
+h1{font-size:1.6rem; font-weight:700; letter-spacing:-0.01em; margin:0 0 6px;}
+.updated{font-family:'IBM Plex Mono',monospace; font-size:0.76rem; color:var(--faint); margin:0 0 34px;}
+h2{font-size:0.76rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--faint); font-weight:600; margin:28px 0 8px;}
+h2:first-of-type{margin-top:0;}
+p{margin:0 0 4px; color:var(--ink); font-size:0.95rem;}
+a{color:var(--accent);}
+footer{max-width:640px; margin:0 auto; padding:8px 24px 60px;}
+.back{
+  display:inline-flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none; font-size:0.86rem;
+  border-top:1px solid var(--border); padding-top:22px; width:100%;
+}
+.back:hover{color:var(--ink);}
+[data-lang-block="en"]{display:none;}
+:root[data-lang="en"] [data-lang-block="de"]{display:none;}
+:root[data-lang="en"] [data-lang-block="en"]{display:block;}
+</style>
+</head>
+<body>
+<header>
+  <a class="wordmark" href="index.html"><span class="dot"></span><span>NOTUA</span></a>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button type="button" data-lang="de" class="active">DE</button>
+    <button type="button" data-lang="en">EN</button>
+  </div>
+</header>
+<main>
+  <div data-lang-block="de">
+    <h1>Nutzungsbedingungen</h1>
+    <p class="updated mono">Stand: 09.09.2026 · NOTUA v1.0.44</p>
+
+    <h2>Geltungsbereich</h2>
+    <p>Diese Nutzungsbedingungen gelten für die Nutzung von NOTUA (notua.site) sowie der zugehörigen Desktop- und Android-App. Mit der Nutzung erklärst du dich mit diesen Bedingungen einverstanden.</p>
+
+    <h2>Kostenlose Nutzung</h2>
+    <p>NOTUA ist kostenlos nutzbar, ohne Abo und ohne versteckte Kosten. Es besteht kein Anspruch auf eine bestimmte Verfügbarkeit, Weiterentwicklung oder den dauerhaften Fortbestand des Angebots.</p>
+
+    <h2>Deine Inhalte, deine Verantwortung</h2>
+    <p>Deine Boards liegen lokal in deinem Browser, in einem selbst gewählten Ordner oder – wenn aktiviert – in deinem eigenen Google Drive. Du bist selbst dafür verantwortlich, regelmäßig Sicherungen deiner Inhalte anzulegen (z. B. über die Export-Funktion). Für Datenverlust, etwa durch Browser-Datenlöschung, defekte Geräte oder eigene Fehlbedienung, wird keine Haftung übernommen.</p>
+
+    <h2>Haftungsausschluss</h2>
+    <p>NOTUA wird kostenlos „wie gesehen" (as is) zur Verfügung gestellt, ohne Gewährleistung für Fehlerfreiheit, ständige Verfügbarkeit oder Eignung für einen bestimmten Zweck. Die Haftung für leichte Fahrlässigkeit ist im gesetzlich zulässigen Rahmen ausgeschlossen; unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit sowie für Schäden aus der Verletzung von Leben, Körper oder Gesundheit.</p>
+
+    <h2>Erlaubte Nutzung</h2>
+    <p>Du darfst NOTUA für eigene, auch kommerzielle Videoprojekte nutzen. Nicht erlaubt ist es, über NOTUA rechtswidrige Inhalte zu speichern oder zu verbreiten, oder gezielt zu versuchen, die App, ihre Infrastruktur oder andere Nutzer zu stören oder zu schädigen.</p>
+
+    <h2>Geistiges Eigentum</h2>
+    <p>Der Code und das Design von NOTUA gehören mir. Alle Inhalte, die du selbst in deine Boards einfügst (Texte, Bilder, Notizen), bleiben uneingeschränkt dein Eigentum.</p>
+
+    <h2>Änderungen</h2>
+    <p>Ich kann NOTUA und diese Nutzungsbedingungen weiterentwickeln und ändern. Über wesentliche Änderungen informiere ich, soweit zumutbar, an dieser Stelle.</p>
+
+    <h2>Anwendbares Recht</h2>
+    <p>Es gilt deutsches Recht.</p>
+
+    <h2>Hinweis</h2>
+    <p style="color:var(--faint); font-size:0.84rem;">Diese Nutzungsbedingungen wurden nach bestem Wissen für eine kostenlose Freizeit-App erstellt. Sie ersetzen keine individuelle Rechtsberatung.</p>
+  </div>
+
+  <div data-lang-block="en">
+    <h1>Terms of Use</h1>
+    <p class="updated mono">Last updated: 2026-09-09 · NOTUA v1.0.44</p>
+
+    <h2>Scope</h2>
+    <p>These terms of use apply to the use of NOTUA (notua.site) and its accompanying desktop and Android app. By using it, you agree to these terms.</p>
+
+    <h2>Free to use</h2>
+    <p>NOTUA is free to use, with no subscription and no hidden costs. There is no entitlement to any particular availability, further development, or continued existence of the service.</p>
+
+    <h2>Your content, your responsibility</h2>
+    <p>Your boards live locally in your browser, in a folder you chose yourself, or – if enabled – in your own Google Drive. You are responsible for making regular backups of your content yourself (e.g. via the export feature). No liability is assumed for data loss, for example through browser data being cleared, device failure, or your own mistakes.</p>
+
+    <h2>Disclaimer of liability</h2>
+    <p>NOTUA is provided free of charge "as is", without warranty of being error-free, continuously available, or fit for any particular purpose. Liability for ordinary negligence is excluded to the extent permitted by law; liability for intent and gross negligence, and for harm to life, body or health, remains unaffected.</p>
+
+    <h2>Permitted use</h2>
+    <p>You may use NOTUA for your own projects, including commercial video projects. It is not permitted to store or distribute unlawful content through NOTUA, or to deliberately attempt to disrupt or damage the app, its infrastructure, or other users.</p>
+
+    <h2>Intellectual property</h2>
+    <p>The code and design of NOTUA belong to me. All content you place in your own boards (text, images, notes) remains entirely your property.</p>
+
+    <h2>Changes</h2>
+    <p>I may further develop and change NOTUA and these terms of use. I will inform you of material changes here, to the extent reasonable.</p>
+
+    <h2>Applicable law</h2>
+    <p>German law applies.</p>
+
+    <h2>Note</h2>
+    <p style="color:var(--faint); font-size:0.84rem;">These terms of use were prepared to the best of my knowledge for a free hobby app. They do not replace individual legal advice.</p>
+  </div>
+</main>
+<footer>
+  <a class="back" href="index.html">← <span data-lang-block="de" style="display:inline;">Zurück zu NOTUA</span><span data-lang-block="en" style="display:inline;">Back to NOTUA</span></a>
+</footer>
+<script>
+(function(){
+  var buttons=document.querySelectorAll('.lang-switch button');
+  function setLang(lang){
+    document.documentElement.setAttribute('data-lang',lang);
+    buttons.forEach(function(b){ b.classList.toggle('active', b.dataset.lang===lang); });
+    document.querySelectorAll('footer [data-lang-block]').forEach(function(el){
+      el.style.display = (el.getAttribute('data-lang-block')===lang) ? 'inline' : 'none';
+    });
+    try{ localStorage.setItem('notua-legal-lang',lang); }catch(e){}
+  }
+  buttons.forEach(function(b){ b.addEventListener('click',function(){ setLang(b.dataset.lang); }); });
+  var saved=null;
+  try{ saved=localStorage.getItem('notua-legal-lang'); }catch(e){}
+  setLang(saved==='en' ? 'en' : 'de');
+})();
+</script>
+</body>
+</html>
