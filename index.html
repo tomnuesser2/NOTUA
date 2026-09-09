@@ -431,6 +431,10 @@ try{
   .folder-btn:hover{border-color:var(--border-strong); color:var(--ink);}
   .folder-btn.connected{color:var(--accent); border-color:var(--accent-soft); background:var(--accent-soft);}
   .folder-btn.pending{color:var(--danger); border-color:var(--danger-soft); background:var(--danger-soft);}
+  /* Offline-but-fine — signed in, just no network right now; deliberately calmer than .pending
+     (nothing needs a click, it resolves itself) so a dashed border reads as "temporary" rather than
+     the solid danger-colored fill that means "this needs your attention". */
+  .folder-btn.offline{color:var(--muted); border-color:var(--border-strong); border-style:dashed; background:var(--surface-2);}
   .icon-btn.import-btn{
     width:34px; height:34px; border-radius:20px; border:1px solid var(--border); background:var(--surface);
     display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer;
@@ -530,6 +534,7 @@ try{
   .tile-actions button:active{transform:scale(.88);}
   .tile-actions .del-btn:hover{background:var(--danger-soft); color:var(--danger);}
   .tile-actions .export-btn:hover{background:var(--accent-soft); color:var(--accent);}
+  .tile-actions .sync-btn:hover{background:var(--accent-soft); color:var(--accent);}
   /* Home-screen board-tile SELECTION (distinct from .tile-marked above, the touch-only merge-into-
      project mark): a click on a tile now selects it instead of opening it right away — this is what
      makes .tile-actions' icons reachable without the fiddly hover targeting, and lets several tiles be
@@ -1065,9 +1070,6 @@ try{
      black above, so nothing but Spotify's own surface is ever visible even for a stray sub-pixel
      rounding gap or the instant before the iframe finishes loading. */
   .yt-frame-wrap.spotify-frame{background:transparent;}
-  /* Cosmos/Eyecandy: a plain page in an iframe, not a themed widget — white background (matches
-     what a loading/blank web page looks like) rather than YouTube's video-letterboxing black. */
-  .yt-frame-wrap.creative-frame{background:#fff;}
   .yt-input-wrap{flex:1; display:flex; align-items:center; padding:0 12px 12px; gap:8px;}
   .yt-input-wrap input{
     flex:1; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-family:inherit; font-size:0.82rem; outline:none; background:var(--surface); color:var(--ink);
@@ -1076,12 +1078,8 @@ try{
   .yt-go{
     border:none; background:var(--accent); color:var(--accent-ink); border-radius:6px; padding:8px 12px; font-size:0.8rem; font-weight:600; cursor:pointer; flex:none;
   }
-  .widget-tabs{display:flex; gap:4px; padding:6px 12px 0;}
-  .widget-tab{flex:1; padding:6px 4px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); font:inherit; font-size:0.76rem; font-weight:600; cursor:pointer;}
-  .widget-tab.active{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
-  .widget-tab:hover:not(.active){border-color:var(--border-strong); color:var(--ink);}
   /* The dock/drawer/create-menu "Widgets" button no longer adds a card directly — it opens this small
-     submenu (YouTube / Spotify / Creative) first. One shared, body-appended element positioned via JS
+     submenu (YouTube / Spotify / Pinterest) first. One shared, body-appended element positioned via JS
      next to whichever trigger opened it (see openWidgetSubmenu), by default ABOVE the trigger — the
      dock sits at the very bottom of the screen, so opening downward would run straight off-viewport. */
   .widget-submenu{
@@ -1178,6 +1176,26 @@ try{
   .table-tint-popover button.active{border-color:var(--ink);}
   .table-tint-popover button:hover{transform:scale(1.12);}
 
+  /* SYNC popover — "Board XY befindet sich in ... wohin willst du es synchronisieren?" — a small
+     titled panel (unlike the bare swatch-row popovers above) offering each connected storage
+     location plus "Alle" as one-click sync targets. See openSyncPopover / syncBoardToTargets. */
+  .sync-popover{
+    position:fixed; z-index:80; width:240px; padding:12px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--border); box-shadow:0 10px 28px rgba(0,0,0,.24);
+    opacity:0; pointer-events:none; transform:translateY(4px) scale(.96); transition:opacity .12s ease, transform .12s ease;
+  }
+  .sync-popover.show{opacity:1; pointer-events:auto; transform:translateY(0) scale(1);}
+  .sync-popover-title{font-size:0.88rem; font-weight:600; color:var(--ink); text-wrap:balance;}
+  .sync-popover-sub{margin-top:3px; font-size:0.74rem; color:var(--muted); line-height:1.35;}
+  .sync-popover-actions{display:flex; flex-direction:column; gap:5px; margin-top:10px;}
+  .sync-popover-actions button{
+    width:100%; text-align:left; padding:7px 10px; border-radius:7px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.78rem; cursor:pointer;
+    transition:background .12s ease, border-color .12s ease;
+  }
+  .sync-popover-actions button:hover{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+  .sync-popover-actions button.sync-popover-all{font-weight:600; border-style:dashed;}
+
   /* board icon/mask picker — "eine kleine Liste an Icons... alle Buchstaben als Icons... eigene
      Bilder als Maske" — one flat, scrollable grid of preset icons + A-Z letters + an upload option,
      opened from the subboard card's own inspector (see wireBoardlinkInspectorRow / openBoardIconPopover). */
@@ -1206,6 +1224,27 @@ try{
   .bl-meta{font-size:0.7rem; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:6px;}
   .bl-count{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .bl-open{display:flex; align-items:center; gap:3px; flex:none;}
+
+  /* ---------- FILE CARD ("Datei einfügen": txt/Word/PDF) ---------- */
+  /* Deliberately no resize handle (see buildCardEl) — a document tile isn't something you'd stretch
+     to fit content the way a note or table is; the icon+name summary reads the same at any size, so
+     one fixed compact footprint (matching colorpicker/boardlink's treatment) is all it needs. */
+  .card-file{background:var(--surface); cursor:pointer;}
+  .file-body{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:10px 12px; text-align:center; min-height:0;}
+  .file-icon{color:var(--accent); flex:none;}
+  .file-name{font-size:0.78rem; font-weight:600; color:var(--ink); width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .file-ext-badge{font-size:0.62rem; font-weight:700; letter-spacing:.04em; color:var(--muted); background:var(--surface-2); border-radius:5px; padding:2px 6px;}
+
+  /* file viewer popup — a document needs real reading room, so this modal grows well past the shared
+     .modal-wide sizing every other confirm/settings dialog in the app uses. */
+  .modal.modal-wide.file-viewer-modal{width:min(78vw,900px); height:min(84vh,760px); max-height:84vh;}
+  .file-viewer-title{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .file-viewer-body{flex:1; min-height:0; display:flex; border-radius:8px; overflow:hidden; background:var(--surface-2);}
+  .file-viewer-frame{flex:1; width:100%; height:100%; border:none; background:#fff;}
+  .file-viewer-text{flex:1; margin:0; padding:16px 18px; overflow:auto; white-space:pre-wrap; word-break:break-word; font-family:var(--mono, monospace); font-size:0.82rem; line-height:1.6; color:var(--ink);}
+  .file-viewer-docx{flex:1; overflow:auto; padding:20px 26px; background:#fff; color:#111; line-height:1.6;}
+  .file-viewer-docx p{margin:0 0 .8em;}
+  .file-viewer-status{flex:1; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; color:var(--muted); font-size:0.86rem;}
 
   /* ---------- COLORPICKER CARD ---------- */
   /* A board tool rather than content — pick a color (native OS picker, which is its own "Farbrad" on
@@ -1761,6 +1800,7 @@ try{
               <button type="button" id="toolsTemplatesItem"></button>
               <button type="button" id="toolsImportItem"></button>
               <button type="button" id="toolsExportItem"></button>
+              <button type="button" id="toolsSyncAllItem"></button>
             </div>
           </div>
           <button class="icon-btn import-btn" id="trashBtn" title="Papierkorb">
@@ -1851,6 +1891,9 @@ try{
       <button class="icon-btn" id="templateBtn" title="Vorlagen">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
       </button>
+      <button class="icon-btn sync-btn" id="boardSyncBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3M4 20v-5h5"/></svg>
+      </button>
       <button class="icon-btn" id="homeBtn" title="Zur Übersicht">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9h12v-9"/></svg>
       </button>
@@ -1909,6 +1952,10 @@ try{
       <button class="dock-btn" data-add="image" title="Bild / Screenshot hinzufügen">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5.5-5.5L13 15l3-3 4 4.5"/></svg>
         <span>Bild</span>
+      </button>
+      <button class="dock-btn" data-add="file" title="Datei einfügen (txt, Word, PDF)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.5h8l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V5A1.5 1.5 0 0 1 5.5 3.5z"/><path d="M14 3.5V8h4"/><path d="M8 12.5h8M8 16h5"/></svg>
+        <span>Datei</span>
       </button>
       <button class="dock-btn" data-add="youtube" title="YouTube-Video einbetten">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M10.5 9.5l5 2.5-5 2.5z" fill="currentColor" stroke="none"/></svg>
@@ -1994,6 +2041,10 @@ try{
         <button class="drawer-btn" data-add="image">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5.5-5.5L13 15l3-3 4 4.5"/></svg>
           <span>Bild</span>
+        </button>
+        <button class="drawer-btn" data-add="file">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.5h8l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V5A1.5 1.5 0 0 1 5.5 3.5z"/><path d="M14 3.5V8h4"/><path d="M8 12.5h8M8 16h5"/></svg>
+          <span>Datei</span>
         </button>
         <button class="drawer-btn" data-add="youtube">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M10.5 9.5l5 2.5-5 2.5z" fill="currentColor" stroke="none"/></svg>
@@ -2146,23 +2197,6 @@ function loadPinIt(){
   });
   return pinitLoadPromise;
 }
-// Cosmos (cosmos.so) and Eyecandy (eyecannndy.com) neither one offers an official embed widget the
-// way Pinterest does — these are plain, direct iframes of whatever page URL was pasted (a profile, a
-// specific item, a technique page, the whole site), so unlike Pinterest there's no board-shape to
-// validate beyond "it's actually a link to that site". If a given page refuses to render inside the
-// iframe, that's the site's own embedding policy (a security header we have no way to see or route
-// around from here) — not something fixable from this side; pasting a different page on the same
-// site is the only recourse.
-function extractCosmosUrl(url){
-  if(!url) return null;
-  url=url.trim();
-  return /^https?:\/\/(?:www\.)?cosmos\.so\//i.test(url) ? url : null;
-}
-function extractEyecandyUrl(url){
-  if(!url) return null;
-  url=url.trim();
-  return /^https?:\/\/(?:www\.)?eyecannndy\.com\//i.test(url) ? url : null;
-}
 const TAG_COLORS=['none','yellow','pink','blue','green','purple','grey','orange'];
 // Deliberately no 0% step — that would just be "invisible", not a genuinely useful transparency level.
 const OPACITY_STEPS=[100,80,60,40,20];
@@ -2229,14 +2263,13 @@ const I18N={
   add_note_label:{de:'Notiz',en:'Note'},
   add_image_title:{de:'Bild / Screenshot hinzufügen',en:'Add image / screenshot'},
   add_image_label:{de:'Bild',en:'Image'},
-  add_youtube_title:{de:'Widget hinzufügen (YouTube, Spotify, Creative)',en:'Add widget (YouTube, Spotify, Creative)'},
+  add_file_title:{de:'Datei einfügen (txt, Word, PDF)',en:'Insert file (txt, Word, PDF)'},
+  add_file_label:{de:'Datei',en:'File'},
+  add_youtube_title:{de:'Widget hinzufügen (YouTube, Spotify, Pinterest)',en:'Add widget (YouTube, Spotify, Pinterest)'},
   add_youtube_label:{de:'Widgets',en:'Widgets'},
   widget_change_title:{de:'Anderes Widget einbetten',en:'Embed a different widget'},
-  widget_family_creative_label:{de:'Creative',en:'Creative'},
   placeholder_spotify_link:{de:'Spotify-Link einfügen',en:'Paste a Spotify link'},
   placeholder_pinterest_link:{de:'Pinterest-Board-Link einfügen (z. B. pinterest.com/name/board/)',en:'Paste a Pinterest board link (e.g. pinterest.com/name/board/)'},
-  placeholder_cosmos_link:{de:'Cosmos-Link einfügen (cosmos.so/…)',en:'Paste a Cosmos link (cosmos.so/…)'},
-  placeholder_eyecandy_link:{de:'Eyecandy-Link einfügen (eyecannndy.com/…)',en:'Paste an Eyecandy link (eyecannndy.com/…)'},
   add_column_title:{de:'Spalte / Bereich hinzufügen',en:'Add column / area'},
   add_column_label:{de:'Spalte',en:'Column'},
   column_add_left_title:{de:'Spalte links hinzufügen',en:'Add column to the left'},
@@ -2398,6 +2431,16 @@ const I18N={
   add_colorpicker_label:{de:'Farbe',en:'Color'},
   type_colorpicker:{de:'Colorpicker',en:'Color picker'},
   colorpicker_title:{de:'Colorpicker',en:'Color picker'},
+  type_file:{de:'Datei',en:'File'},
+  file_untitled:{de:'Unbenannte Datei',en:'Untitled file'},
+  file_open_title:{de:'Datei öffnen',en:'Open file'},
+  file_viewer_close_title:{de:'Schließen',en:'Close'},
+  file_download_btn:{de:'Herunterladen',en:'Download'},
+  file_loading:{de:'Wird geladen …',en:'Loading …'},
+  file_not_found:{de:'Datei konnte nicht geladen werden.',en:'Couldn\'t load the file.'},
+  file_preview_unavailable_doc:{de:'Für alte .doc-Dateien gibt es keine Vorschau — bitte herunterladen und in Word öffnen.',en:'No preview for old .doc files — please download and open in Word.'},
+  file_preview_unavailable_other:{de:'Für diesen Dateityp gibt es keine Vorschau — bitte herunterladen.',en:'No preview for this file type — please download.'},
+  toast_file_import_failed:{de:'Datei konnte nicht eingefügt werden',en:'Couldn\'t insert the file'},
   colorpicker_native_title:{de:'Farbe wählen',en:'Choose a color'},
   colorpicker_eyedrop_title:{de:'Pipette – Farbe vom Bildschirm aufnehmen',en:'Eyedropper – pick a color from the screen'},
   colorpicker_eyedrop_unsupported:{de:'Von deinem Browser nicht unterstützt (z. B. Chrome/Edge nutzen)',en:'Not supported by your browser (try Chrome/Edge)'},
@@ -2445,6 +2488,9 @@ const I18N={
   drive_connected_title:{de:'Verbunden als {name} – klicken für Optionen',en:'Connected as {name} – click for options'},
   drive_pending_label:{de:'Google erneut verbinden',en:'Reconnect Google'},
   drive_pending_title:{de:'Anmeldung bei Google ist abgelaufen – erneut verbinden',en:'Google sign-in has expired – reconnect'},
+  drive_offline_label:{de:'Offline – lokal gespeichert',en:'Offline – saved locally'},
+  drive_offline_title:{de:'Kein Internet gerade – deine Änderungen werden lokal gespeichert und automatisch mit Drive abgeglichen, sobald du wieder online bist.',en:'No internet right now – your changes are being saved locally and will sync to Drive automatically once you\'re back online.'},
+  toast_drive_offline_working:{de:'Kein Internet gerade – du kannst einfach weiterarbeiten. Deine Änderungen werden lokal gespeichert und automatisch mit Google Drive abgeglichen, sobald du wieder online bist.',en:'No internet right now – just keep working. Your changes are being saved locally and will sync to Google Drive automatically once you\'re back online.'},
   drive_reconnect_banner_title:{de:'Google-Verbindung bestätigen',en:'Confirm Google connection'},
   drive_reconnect_banner_body:{de:'Deine Boards werden mit Google Drive synchronisiert, aber die Anmeldung ist abgelaufen (das passiert z. B. nach jedem Neustart des Browsers). Bis dahin werden hier absichtlich keine Boards angezeigt – so kannst du nicht aus Versehen an einer alten, nicht synchronisierten Kopie weiterschreiben.',en:'Your boards are synced with Google Drive, but the sign-in has expired (this happens after every browser restart, for example). Until then, no boards are shown here on purpose — so you can\'t accidentally keep editing an old, unsynced copy.'},
   drive_reconnect_banner_btn:{de:'Erneut mit Google verbinden',en:'Reconnect with Google'},
@@ -2472,6 +2518,18 @@ const I18N={
   tools_templates_item:{de:'Vorlagen',en:'Templates'},
   tools_import_item:{de:'Board importieren',en:'Import board'},
   tools_export_item:{de:'Board exportieren',en:'Export board'},
+  tools_sync_all_item:{de:'Alle synchronisieren',en:'Sync all'},
+  sync_btn_title:{de:'Synchronisieren',en:'Sync'},
+  sync_popover_title:{de:'"{name}" synchronisieren',en:'Sync "{name}"'},
+  sync_popover_sub:{de:'Befindet sich gerade in: {sources}. Wohin synchronisieren?',en:'Currently in: {sources}. Where do you want to sync it to?'},
+  sync_target_all:{de:'Alle',en:'All'},
+  sync_source_folder:{de:'Ordner',en:'Folder'},
+  sync_source_drive:{de:'Google Drive',en:'Google Drive'},
+  sync_source_local:{de:'Lokaler Cache',en:'Local cache'},
+  toast_sync_success:{de:'"{name}" wurde nach {target} synchronisiert',en:'"{name}" was synced to {target}'},
+  toast_sync_no_targets:{de:'Kein Ordner und kein Google Drive verbunden – verbinde zuerst einen Speicherort',en:'No folder and no Google Drive connected – connect a storage location first'},
+  toast_sync_all_success:{de:'{n} Board(s) synchronisiert',en:'{n} board(s) synced'},
+  toast_sync_all_nothing:{de:'Bereits alles synchron',en:'Everything is already in sync'},
   toast_export_select_one:{de:'Bitte genau ein Board auswählen',en:'Please select exactly one board'},
   tile_go_to_board_btn:{de:'Zum Board',en:'Go to board'},
   home_bulk_selected_count:{de:'{n} ausgewählt',en:'{n} selected'},
@@ -2636,6 +2694,7 @@ function applyI18n(){
     ['#toolsTemplatesItem','text',t('tools_templates_item')],
     ['#toolsImportItem','text',t('tools_import_item')],
     ['#toolsExportItem','text',t('tools_export_item')],
+    ['#toolsSyncAllItem','text',t('tools_sync_all_item')],
     ['#menuBtn','title',t('menu_title')],
     ['#homeBtn','title',t('home_title')],
     ['#boardColorBtn','title',t('board_color_title')],
@@ -2649,6 +2708,7 @@ function applyI18n(){
     ['#drawerCloseBtn','title',t('close_title')],
     ['.dock-btn[data-add="note"]','title',t('add_note_title')],['.dock-btn[data-add="note"] span','text',t('add_note_label')],
     ['.dock-btn[data-add="image"]','title',t('add_image_title')],['.dock-btn[data-add="image"] span','text',t('add_image_label')],
+    ['.dock-btn[data-add="file"]','title',t('add_file_title')],['.dock-btn[data-add="file"] span','text',t('add_file_label')],
     ['.dock-btn[data-add="youtube"]','title',t('add_youtube_title')],['.dock-btn[data-add="youtube"] span','text',t('add_youtube_label')],
     ['.dock-btn[data-add="column"]','title',t('add_column_title')],['.dock-btn[data-add="column"] span','text',t('add_column_label')],
     ['.dock-btn[data-add="checklist"]','title',t('add_checklist_title')],['.dock-btn[data-add="checklist"] span','text',t('add_checklist_label_dock')],
@@ -2667,6 +2727,7 @@ function applyI18n(){
     ['.mobile-drawer .drawer-head span','text',t('drawer_title')],
     ['.drawer-btn[data-add="note"] span','text',t('add_note_label')],
     ['.drawer-btn[data-add="image"] span','text',t('add_image_label')],
+    ['.drawer-btn[data-add="file"] span','text',t('add_file_label')],
     ['.drawer-btn[data-add="youtube"] span','text',t('add_youtube_label')],
     ['.drawer-btn[data-add="column"] span','text',t('add_column_label')],
     ['.drawer-btn[data-add="checklist"] span','text',t('add_checklist_label_drawer')],
@@ -2819,13 +2880,26 @@ function slugify(name){
 }
 function folderNameFor(id,name){ return slugify(name)+'-'+id.slice(0,6); }
 function extForBlob(blob){
-  const map={'image/png':'.png','image/jpeg':'.jpg','image/gif':'.gif','image/webp':'.webp','image/svg+xml':'.svg','image/bmp':'.bmp'};
+  const map={'image/png':'.png','image/jpeg':'.jpg','image/gif':'.gif','image/webp':'.webp','image/svg+xml':'.svg','image/bmp':'.bmp',
+    'application/pdf':'.pdf','text/plain':'.txt','application/msword':'.doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'.docx'};
   return (blob && map[blob.type]) || '.png';
 }
 async function findImageExt(imagesDir,id){
   for await (const name of imagesDir.keys()){
     if(name.startsWith(id+'.')) return name.slice(id.length);
   }
+  return null;
+}
+// A card's associated blob id, if it has one — an image card's imageId or a "Datei einfügen" file
+// card's fileId. Both live in the exact same blob store (DB.putImage/getImage/deleteImage — it's a
+// generic id->Blob store regardless of what kind of file it holds), so file cards ride along on all
+// the same owner-tracking / board-bundling / export / migration machinery images already had, instead
+// of needing a whole parallel copy of it.
+function cardBlobRef(c){
+  if(!c || !c.data) return null;
+  if(c.type==='image' && c.data.imageId) return c.data.imageId;
+  if(c.type==='file' && c.data.fileId) return c.data.fileId;
   return null;
 }
 async function fsGetFileJSON(dirHandle,filename,fallback){
@@ -2851,7 +2925,7 @@ async function fsEnsureBoardLoaded(boardId){
   fsState.cache.set(boardId,data);
   data.cards.forEach(c=>{
     fsState.cardOwner.set(c.id,boardId);
-    if(c.type==='image' && c.data && c.data.imageId) fsState.imageOwner.set(c.data.imageId,boardId);
+    { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,boardId); }
   });
   data.connectors.forEach(cn=>fsState.connOwner.set(cn.id,boardId));
   return data;
@@ -2917,7 +2991,7 @@ const FS_DB={
         fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
         (data.cards||[]).forEach(c=>{
           fsState.cardOwner.set(c.id,id);
-          if(c.type==='image' && c.data && c.data.imageId) fsState.imageOwner.set(c.data.imageId,id);
+          { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,id); }
         });
         (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
         if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
@@ -2945,7 +3019,7 @@ const FS_DB={
         fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
         (data.cards||[]).forEach(c=>{
           fsState.cardOwner.set(c.id,id);
-          if(c.type==='image' && c.data && c.data.imageId) fsState.imageOwner.set(c.data.imageId,id);
+          { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,id); }
         });
         (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
         if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
@@ -2971,7 +3045,7 @@ const FS_DB={
         fsState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
         (data.cards||[]).forEach(c=>{
           fsState.cardOwner.set(c.id,id);
-          if(c.type==='image' && c.data && c.data.imageId) fsState.imageOwner.set(c.data.imageId,id);
+          { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,id); }
         });
         (data.connectors||[]).forEach(cn=>fsState.connOwner.set(cn.id,id));
         if(data.meta.logoImageId) fsState.imageOwner.set(data.meta.logoImageId,id);
@@ -3055,7 +3129,7 @@ const FS_DB={
     const i=e.cards.findIndex(x=>x.id===c.id);
     if(i>=0) e.cards[i]=c; else e.cards.push(c);
     fsState.cardOwner.set(c.id,c.boardId);
-    if(c.type==='image' && c.data && c.data.imageId) fsState.imageOwner.set(c.data.imageId,c.boardId);
+    { const bref=cardBlobRef(c); if(bref) fsState.imageOwner.set(bref,c.boardId); }
     fsWriteBoardSoon(c.boardId);
   },
   async putCards(list){
@@ -3177,7 +3251,16 @@ const driveState={
   imageFileId:new Map(),   // imageId -> Drive file id
   writers:new Map(),       // boardId -> debounced writer fn
   pendingReconnect:false,  // true once we know Drive sync was active last session but the silent
-                            // token refresh on boot hasn't (yet) re-acquired an access token
+                            // token refresh on boot hasn't (yet) re-acquired an access token — this
+                            // means a real Google sign-in is needed (session expired/revoked), and
+                            // shows the harder "please reconnect" banner further down.
+  offline:false,           // true whenever the most recent Drive API call failed to even reach the
+                            // network (see driveFetch below, the single chokepoint every Drive call
+                            // goes through) — distinct from pendingReconnect: this is "just no
+                            // internet right now", not "your sign-in needs refreshing", so it never
+                            // shows that banner. Purely informational (driveBtn's "offline" pill) —
+                            // no background retry/reconcile is tied to it; see SYNC further down for
+                            // how a person actually pushes/pulls Drive's content now.
   authPromise:null,        // in-flight ensureAccessToken() promise, so concurrent calls share one
                             // popup/refresh instead of stacking several on top of each other
 };
@@ -3222,11 +3305,31 @@ async function ensureAccessToken(interactive){
   driveState.authPromise=driveRequestToken(opts).finally(()=>{ driveState.authPromise=null; });
   return driveState.authPromise;
 }
+// The single chokepoint every Drive REST call goes through — which makes it the one place that can
+// reliably know "did that just fail because we're offline" without every one of the 20-odd drive*()
+// helper functions above having to track it individually. driveState.offline (read by the driveBtn
+// status pill) is set here rather than by catching/interpreting exceptions from deep inside DRIVE_DB's
+// own defensive try/catches (most of which already swallow errors and return an empty/fallback value,
+// by design, same as FS_DB).
 async function driveFetch(url,opts){
   opts=opts||{};
-  const token=await ensureAccessToken(false).catch(()=>driveState.accessToken);
-  if(!token) throw new Error('drive-not-signed-in');
-  let res=await fetch(url,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+token})}));
+  let token;
+  try{ token=await ensureAccessToken(false); }
+  catch(e){ token=driveState.accessToken; }
+  if(!token){
+    driveState.offline=true;
+    throw new Error('drive-not-signed-in');
+  }
+  let res;
+  try{
+    res=await fetch(url,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+token})}));
+  }catch(e){
+    // fetch() itself only throws for a genuine network-level failure (no connection, DNS, CORS) —
+    // never for an HTTP error status, which resolves normally with res.ok===false. That's exactly
+    // the "we're offline" signal the rest of the app needs.
+    driveState.offline=true;
+    throw e;
+  }
   if(res.status===401){
     // Token got rejected mid-flight (expired right on the edge, or revoked) — one silent-refresh
     // retry, then give up and let the caller's own catch surface the "please reconnect" banner
@@ -3235,6 +3338,7 @@ async function driveFetch(url,opts){
     const fresh=await ensureAccessToken(false).catch(()=>null);
     if(fresh) res=await fetch(url,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+fresh})}));
   }
+  driveState.offline=false;
   return res;
 }
 
@@ -3349,7 +3453,7 @@ async function driveEnsureBoardLoaded(boardId){
   driveState.cache.set(boardId,data);
   data.cards.forEach(c=>{
     driveState.cardOwner.set(c.id,boardId);
-    if(c.type==='image' && c.data && c.data.imageId) driveState.imageOwner.set(c.data.imageId,boardId);
+    { const bref=cardBlobRef(c); if(bref) driveState.imageOwner.set(bref,boardId); }
   });
   data.connectors.forEach(cn=>driveState.connOwner.set(cn.id,boardId));
   return data;
@@ -3393,7 +3497,7 @@ async function driveEnumerateBoards(parentId){
       driveState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
       (data.cards||[]).forEach(c=>{
         driveState.cardOwner.set(c.id,id);
-        if(c.type==='image' && c.data && c.data.imageId) driveState.imageOwner.set(c.data.imageId,id);
+        { const bref=cardBlobRef(c); if(bref) driveState.imageOwner.set(bref,id); }
       });
       (data.connectors||[]).forEach(cn=>driveState.connOwner.set(cn.id,id));
     }
@@ -3464,7 +3568,7 @@ const DRIVE_DB={
     const i=e.cards.findIndex(x=>x.id===c.id);
     if(i>=0) e.cards[i]=c; else e.cards.push(c);
     driveState.cardOwner.set(c.id,c.boardId);
-    if(c.type==='image' && c.data && c.data.imageId) driveState.imageOwner.set(c.data.imageId,c.boardId);
+    { const bref=cardBlobRef(c); if(bref) driveState.imageOwner.set(bref,c.boardId); }
     driveWriteBoardSoon(c.boardId);
   },
   async putCards(list){
@@ -3546,11 +3650,68 @@ const DRIVE_DB={
   },
 };
 
-function activeBackend(){
-  if(state.storageMode==='fs') return FS_DB;
-  if(state.storageMode==='drive') return DRIVE_DB;
+/* ============================================================
+   MULTI-QUELLEN-SPEICHER — mehrere Speicherorte gleichzeitig, manueller Sync
+   ============================================================
+   Replaces the old single-active-backend model (idb XOR fs XOR drive, auto-reconciled/polled) with
+   one where the browser cache (idb, always available), a local folder (fs) and Google Drive (drive)
+   can all be connected at the same time. Each board still lives in exactly one backend's storage at
+   a time — there is no continuous background sync — but the Home screen shows boards merged across
+   every connected source (see mergedAllBoards()/mergedAllTrashedBoards() near refreshHome/refreshTrash),
+   and an explicit "Sync" action (see SYNC (manueller Multi-Quellen-Abgleich) below) copies a board's
+   current state to whichever other connected source(s) the user picks, on demand — "1-2 Klicks",
+   never silently in the background.
+
+   state.storageMode still names which single backend DB.* (below) currently routes to — but it's no
+   longer a persistent global choice tied to which source is "connected". Instead it's set fresh each
+   time a specific board becomes relevant (see resolveBoardSources()/openBoard() and withBoardBackend()
+   further down), so the huge amount of existing app code that already calls DB.putCard/DB.getImage/etc
+   keeps working completely unchanged — it just now always operates on whichever backend the board
+   in question actually lives in, instead of a single fixed mode.
+   ============================================================ */
+function backendFor(src){
+  if(src==='fs') return FS_DB;
+  if(src==='drive') return DRIVE_DB;
   return IDB_DB;
 }
+// Which backends currently hold a given board, and which one should be treated as "the" copy to open
+// (the most recently updated one) — checks every backend that's actually reachable right now (idb is
+// always checked; fs/drive only if connected) in parallel. Returns null if no connected source has
+// this board at all (deleted, or belongs to a source that was since disconnected).
+async function resolveBoardSources(boardId){
+  const checks=[['idb',IDB_DB]];
+  if(fsState.root) checks.push(['fs',FS_DB]);
+  if(driveState.root) checks.push(['drive',DRIVE_DB]);
+  const results=await Promise.all(checks.map(async ([src,backend])=>{
+    try{ const b=await backend.getBoard(boardId); return b ? {src,updatedAt:b.updatedAt||0} : null; }
+    catch(e){ return null; }
+  }));
+  const found=results.filter(Boolean);
+  if(!found.length) return null;
+  found.sort((a,b)=>b.updatedAt-a.updatedAt);
+  return {best:found[0].src, all:found.map(f=>f.src)};
+}
+// Runs fn with DB.* pointed at whichever backend boardId actually lives in (per the last home/trash
+// merge, falling back to a fresh resolveBoardSources() lookup if that board hasn't been seen yet),
+// then restores whatever DB.* was routed to before. Used by every home-screen/Papierkorb action that
+// touches ONE specific board without that board being "open" (state.currentBoardId) — renaming a
+// tile, deleting, restoring, exporting, syncing, setting a logo, etc.
+async function withBoardBackend(boardId,fn){
+  let info=state.boardSources && state.boardSources.get(boardId);
+  if(!info){
+    const resolved=await resolveBoardSources(boardId);
+    if(resolved){
+      info={sources:new Set(resolved.all),bestSrc:resolved.best};
+      if(!state.boardSources) state.boardSources=new Map();
+      state.boardSources.set(boardId,info);
+    }
+  }
+  const prev=state.storageMode;
+  state.storageMode=info?info.bestSrc:prev;
+  try{ return await fn(); }
+  finally{ state.storageMode=prev; }
+}
+function activeBackend(){ return backendFor(state.storageMode); }
 const DB={
   allBoards:(...a)=>activeBackend().allBoards(...a),
   allTrashedBoards:(...a)=>activeBackend().allTrashedBoards(...a),
@@ -3570,6 +3731,46 @@ const DB={
   getImage:(...a)=>activeBackend().getImage(...a),
   deleteImage:(...a)=>activeBackend().deleteImage(...a),
 };
+// Copies one already-collected board bundle (collectBoardBundle()'s shape: {boards,cards,connectors,
+// images}) into a specific backend, overwriting whatever's already there under the same ids — the
+// same order collectBoardBundle/instantiateBundle/migrateIdbToFs/migrateIdbToDrive already use
+// (boards first so each backend can create its own folder/directory, then images, then cards, then
+// connectors).
+async function pushBundleToBackend(bundle,backend){
+  for(const b of bundle.boards) await backend.putBoard(b);
+  for(const img of bundle.images){ if(img.blob) await backend.putImage(img.id,img.blob,img.boardId); }
+  for(const c of bundle.cards) await backend.putCard(c);
+  for(const cn of bundle.connectors) await backend.putConnector(cn);
+}
+// Merges board lists across every connected source (idb always, fs/drive when connected) into one
+// deduped list by id — a board living in more than one source appears once, showing whichever copy
+// has the newest updatedAt, while state.boardSources remembers EVERY source that currently has it
+// (for the Sync popover's "befindet sich in: ...") and which one is "best" (for withBoardBackend()/
+// openBoard()). methodName is 'allBoards' or 'allTrashedBoards' — same merge either way.
+async function mergedBoardsFrom(methodName){
+  const checks=[['idb',IDB_DB]];
+  if(fsState.root) checks.push(['fs',FS_DB]);
+  if(driveState.root) checks.push(['drive',DRIVE_DB]);
+  const lists=await Promise.all(checks.map(async ([src,backend])=>{
+    try{ return {src, boards:await backend[methodName]()}; }catch(e){ return {src, boards:[]}; }
+  }));
+  const map=new Map(); // id -> {board, sources:Set, bestSrc}
+  for(const {src,boards} of lists){
+    for(const b of boards){
+      const cur=map.get(b.id);
+      if(!cur){ map.set(b.id,{board:b, sources:new Set([src]), bestSrc:src}); }
+      else{
+        cur.sources.add(src);
+        if((b.updatedAt||0) > (cur.board.updatedAt||0)){ cur.board=b; cur.bestSrc=src; }
+      }
+    }
+  }
+  if(!state.boardSources) state.boardSources=new Map();
+  for(const [id,v] of map){ state.boardSources.set(id,{sources:v.sources, bestSrc:v.bestSrc}); }
+  return [...map.values()].map(v=>v.board);
+}
+async function mergedAllBoards(){ return mergedBoardsFrom('allBoards'); }
+async function mergedAllTrashedBoards(){ return mergedBoardsFrom('allTrashedBoards'); }
 
 const imgUrlCache=new Map();
 async function getImageUrl(imageId){
@@ -3981,41 +4182,31 @@ if(emptyTrashAllBtn){
 }
 
 async function refreshHome(){
-  // A connected folder that's still waiting on its access re-confirmation (see tryReconnectFolder)
-  // must NOT silently show whatever's sitting in the browser-cache backend instead — that's exactly
-  // how someone ends up editing a stale, disconnected copy without noticing. Show a clear, blocking
-  // banner instead and skip straight past the (now correctly empty) board grid.
+  // A connected folder/Drive account that needs its access re-confirmed (see tryReconnectFolder/
+  // tryReconnectDrive) no longer blanks the whole board grid — boards from every OTHER connected
+  // source (idb always, plus whichever of fs/drive is still fine) keep showing normally; this banner
+  // is purely informational now, since the multi-source home merges across sources instead of one at
+  // a time. See MULTI-QUELLEN-SPEICHER above.
   if(folderReconnectBanner){
-    const blocked=fsStorageBlocked();
+    const blocked=!!fsState.pendingHandle;
     folderReconnectBanner.hidden=!blocked;
     if(blocked){
       const nameGuess=fsState.pendingHandle && fsState.pendingHandle.name;
       document.getElementById('folderReconnectBody').textContent=nameGuess
         ? t('folder_reconnect_banner_body')+' ("'+nameGuess+'")'
         : t('folder_reconnect_banner_body');
-      boardGrid.innerHTML='';
-      emptyHome.hidden=true;
-      boardCountLabel.textContent='';
-      if(driveReconnectBanner) driveReconnectBanner.hidden=true;
-      return;
     }
   }
-  // Same idea, for Drive: signed in last session but the silent token refresh on boot hasn't (yet)
-  // re-acquired an access token — see tryReconnectDrive() / driveStorageBlocked() further down.
   if(driveReconnectBanner){
-    const dBlocked=driveStorageBlocked();
+    const dBlocked=!!driveState.pendingReconnect;
     driveReconnectBanner.hidden=!dBlocked;
     if(dBlocked){
       document.getElementById('driveReconnectBody').textContent=driveState.email
         ? t('drive_reconnect_banner_body')+' ("'+driveState.email+'")'
         : t('drive_reconnect_banner_body');
-      boardGrid.innerHTML='';
-      emptyHome.hidden=true;
-      boardCountLabel.textContent='';
-      return;
     }
   }
-  const all=await DB.allBoards();
+  const all=await mergedAllBoards();
   state.boards=all;
   const roots=all.filter(b=>!b.parentBoardId).sort((a,b)=>b.updatedAt-a.updatedAt);
   boardGrid.innerHTML='';
@@ -4129,6 +4320,7 @@ async function buildBoardTile(b,opts){
       <button class="export-btn" title="${t('tile_export_title')}">${iconExport()}</button>
       <button class="del-btn" title="${t('tile_delete_forever_title')}">${iconTrash()}</button>
       ` : `
+      <button class="sync-btn" title="${t('sync_btn_title')}">${iconSwap()}</button>
       <button class="del-btn" title="${t('tile_delete_title')}">${iconTrash()}</button>
       `}
     </div>
@@ -4154,7 +4346,7 @@ async function buildBoardTile(b,opts){
   const badgeEl=tile.querySelector('.board-badge');
   paintBoardBadgeElement(badgeEl, opts.trash ? {...b, color:'var(--trash-accent)'} : b);
   if(b.logoImageId){
-    getImageUrl(b.logoImageId).then(url=>{ if(url) tile.querySelector('.tile-logo').src=url; });
+    withBoardBackend(b.id, ()=>getImageUrl(b.logoImageId)).then(url=>{ if(url) tile.querySelector('.tile-logo').src=url; });
   }
 
   // ---- Papierkorb tiles: a much smaller, self-contained set of behaviors ----
@@ -4203,8 +4395,10 @@ async function buildBoardTile(b,opts){
     e.stopPropagation();
     const oldId=b.logoImageId;
     b.logoImageId=null; b.updatedAt=Date.now();
-    await DB.putBoard(b);
-    if(oldId) DB.deleteImage(oldId);
+    await withBoardBackend(b.id, async ()=>{
+      await DB.putBoard(b);
+      if(oldId) DB.deleteImage(oldId);
+    });
     logoWrap.hidden=true;
   });
   // A single click now SELECTS the tile (see toggleHomeSelect) instead of opening it right away —
@@ -4278,9 +4472,16 @@ async function buildBoardTile(b,opts){
     const name=h3.textContent.trim()||t('untitled_board');
     h3.textContent=name;
     b.name=name; b.updatedAt=Date.now();
-    await DB.putBoard(b);
+    await withBoardBackend(b.id, ()=>DB.putBoard(b));
   });
   h3.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault(); h3.blur();}});
+  const syncBtn=tile.querySelector('.sync-btn');
+  if(syncBtn){
+    syncBtn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      openSyncPopover(e.clientX, e.clientY, b.id, b.name);
+    });
+  }
   tile.querySelector('.del-btn').addEventListener('click',(e)=>{
     e.stopPropagation();
     confirmModal(t('confirm_delete_board_title'),t('confirm_delete_board_body',{name:b.name}),t('delete_action'),async ()=>{
@@ -4323,15 +4524,20 @@ async function findNestedBoardIds(boardId){
   return ids;
 }
 async function trashBoard(boardId){
-  const board=await DB.getBoard(boardId); if(!board) return;
-  const ids=await findNestedBoardIds(boardId);
-  for(const id of ids) await DB.setTrashed(id,true);
+  await withBoardBackend(boardId, async ()=>{
+    const board=await DB.getBoard(boardId); if(!board) return;
+    const ids=await findNestedBoardIds(boardId);
+    for(const id of ids) await DB.setTrashed(id,true);
+  });
   await refreshHome();
   showToast(t('toast_board_trashed'), async ()=>{ await restoreBoardFromTrash(boardId); });
 }
 async function restoreBoardFromTrash(boardId){
-  const ids=await findNestedBoardIds(boardId);
-  for(const id of ids) await DB.setTrashed(id,false);
+  const ids=await withBoardBackend(boardId, async ()=>{
+    const ids=await findNestedBoardIds(boardId);
+    for(const id of ids) await DB.setTrashed(id,false);
+    return ids;
+  });
   // Cleared on the next full app start (it's a plain in-memory Set, nothing persisted) — exactly
   // as long as the user asked the "recently restored" hint should last.
   ids.forEach(id=>state.recentlyRestored.add(id));
@@ -4340,12 +4546,12 @@ async function restoreBoardFromTrash(boardId){
   showToast(t('toast_board_restored'));
 }
 async function permanentlyDeleteBoard(boardId){
-  const bundle=await collectBoardBundle(boardId);
-  await deleteBundle(bundle);
+  const bundle=await withBoardBackend(boardId, ()=>collectBoardBundle(boardId));
+  await withBoardBackend(boardId, ()=>deleteBundle(bundle));
   await refreshTrash();
 }
 async function refreshTrash(){
-  const all=await DB.allTrashedBoards();
+  const all=await mergedAllTrashedBoards();
   const roots=all.filter(b=>!b.parentBoardId).sort((a,b)=>(b.trashedAt||b.updatedAt)-(a.trashedAt||a.updatedAt));
   trashGrid.innerHTML='';
   emptyTrash.hidden=roots.length>0;
@@ -4620,15 +4826,21 @@ async function buildProjectPanel(p){
 }
 
 async function countBoardElements(boardId){
-  const cards=await DB.cardsForBoard(boardId);
-  return cards.length;
+  return withBoardBackend(boardId, async ()=>{
+    const cards=await DB.cardsForBoard(boardId);
+    return cards.length;
+  });
 }
 
 async function createBoardFlow(){
-  if(!(await ensureStorageReady())) return;
+  // New boards always start in the browser cache (idb) — the one storage location that's always
+  // available with no permission/connection needed — and can be pushed out to a connected folder
+  // and/or Google Drive afterward with one click via Sync (see SYNC further down).
   const b={id:uid(), name:t('untitled_board'), color:pickAccentColor(), parentBoardId:null, parentCardId:null,
     createdAt:Date.now(), updatedAt:Date.now(), view:{x:0,y:0,zoom:1}, gridEnabled:true, snapEnabled:true};
-  await DB.putBoard(b);
+  await IDB_DB.putBoard(b);
+  if(!state.boardSources) state.boardSources=new Map();
+  state.boardSources.set(b.id,{sources:new Set(['idb']),bestSrc:'idb'});
   await refreshHome();
   await openBoard(b.id,true);
   // "beim ersten Erstellen eines Boards soll man im Board ein Popup bekommen, welches Farbe und
@@ -4671,7 +4883,9 @@ function applyBoardColor(hex){
   if(!boardColorTarget) return;
   const {board,onChange}=boardColorTarget;
   board.color=hex; board.updatedAt=Date.now();
-  DB.putBoard(board);
+  // Works whether this board is the one currently open (DB.* already points at its backend) or a
+  // home-screen tile's own color stripe, clicked without opening the board at all.
+  withBoardBackend(board.id, ()=>DB.putBoard(board));
   if(onChange) onChange(hex);
   hideBoardColorPopover();
 }
@@ -5215,6 +5429,15 @@ const clusterBadgesLayer=document.getElementById('clusterBadges');
 const emptyBoardHint=document.getElementById('emptyBoardHint');
 
 async function openBoard(id, skipCrumbAnim){
+  // Which backend this specific board actually lives in (idb / a connected folder / connected Drive)
+  // — picks the most recently updated copy if it exists in more than one, and points DB.* at it for
+  // as long as this board stays open. See the MULTI-QUELLEN-SPEICHER section above.
+  const resolved=await resolveBoardSources(id);
+  if(resolved){
+    state.storageMode=resolved.best;
+    if(!state.boardSources) state.boardSources=new Map();
+    state.boardSources.set(id,{sources:new Set(resolved.all),bestSrc:resolved.best});
+  }
   if(!(await ensureStorageReady())) return goHome();
   const board=await DB.getBoard(id);
   if(!board) return goHome();
@@ -5233,7 +5456,7 @@ async function openBoard(id, skipCrumbAnim){
   hideCardDatePopover();
   state.cards=await DB.cardsForBoard(id);
   state.connectors=await DB.connectorsForBoard(id);
-  if(!state.boards.length) state.boards=await DB.allBoards();
+  if(!state.boards.length) state.boards=await mergedAllBoards();
 
   homeView.hidden=true; boardView.hidden=false; state.screen='board';
   syncGridSnapUI();
@@ -6246,7 +6469,7 @@ async function deleteConnectorWithUndo(connId){
   });
 }
 function typeLabel(type){
-  const key={note:'type_note',image:'type_image',youtube:'type_youtube',column:'type_column',checklist:'type_checklist',table:'type_table',boardlink:'type_boardlink',colorpicker:'type_colorpicker'}[type];
+  const key={note:'type_note',image:'type_image',file:'type_file',youtube:'type_youtube',column:'type_column',checklist:'type_checklist',table:'type_table',boardlink:'type_boardlink',colorpicker:'type_colorpicker'}[type];
   return key ? t(key) : type;
 }
 function colorLabel(c){
@@ -6312,8 +6535,9 @@ async function collectBoardBundle(boardId){
     const conns=await DB.connectorsForBoard(bid);
     bundle.connectors.push(...conns);
     for(const c of cards){
-      if(c.type==='image' && c.data.imageId){
-        const img=await DB.getImage(c.data.imageId);
+      const bref=cardBlobRef(c);
+      if(bref){
+        const img=await DB.getImage(bref);
         if(img) bundle.images.push({id:img.id, blob:img.blob, boardId:bid});
       }
       if(c.type==='boardlink' && c.data.boardId) queue.push(c.data.boardId);
@@ -6651,6 +6875,7 @@ function buildCardEl(card){
   else if(card.type==='youtube') el=buildWidgetCard(card);
   else if(card.type==='boardlink') el=buildBoardlinkCard(card);
   else if(card.type==='colorpicker') el=buildColorpickerCard(card);
+  else if(card.type==='file') el=buildFileCard(card);
   else { el=baseCardShell(card,'card-note'); }
   attachDragAndSelect(el,card);
   // No more per-card cluster styling here — the whole cluster now gets one shared silhouette outline
@@ -6685,6 +6910,7 @@ function typeChipIcon(type){
     checklist:'<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M6.8 9.2l1.3 1.3 2.3-2.3"/><path d="M12.5 9h5"/><path d="M6.8 15.2l1.3 1.3 2.3-2.3"/><path d="M12.5 15h5"/>',
     table:'<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9.3h17M3.5 14.7h17M9.2 4v16M15 4v16"/>',
     image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5.5-5.5L13 15l3-3 4 4.5"/>',
+    file:'<path d="M6 3.5h8l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V5A1.5 1.5 0 0 1 5.5 3.5z"/><path d="M14 3.5V8h4"/><path d="M8 12.5h8M8 16h5"/>',
     youtube:'<rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M10.5 9.5l5 2.5-5 2.5z" fill="currentColor" stroke="none"/>',
     boardlink:'<path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/>',
     colorpicker:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.2" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="16.2" r="1.3" fill="currentColor" stroke="none"/><circle cx="7.8" cy="12" r="1.3" fill="currentColor" stroke="none"/>'
@@ -7208,31 +7434,142 @@ function buildImageCard(card){
 }
 function typeChipIconBig(){return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5.5-5.5L13 15l3-3 4 4.5"/></svg>`;}
 
+/* ============================================================
+   "DATEI EINFÜGEN" — a small card that holds one imported txt/Word/PDF file, opened via a popup
+   viewer (see showFileViewerModal below) rather than embedded inline on the canvas the way an image
+   is — a page of text or a PDF doesn't have a natural "just sits on the board" size the way a photo
+   does. The blob itself lives in the exact same store as image blobs (see cardBlobRef/DB.putImage) —
+   it's a generic id->Blob store either way — so a file card rides along for free on every place that
+   already knows how to move/export/migrate an image's underlying blob with its board.
+   ============================================================ */
+function fileExtFromName(name){
+  const m=/\.([a-z0-9]+)$/i.exec(name||'');
+  return m ? m[1].toLowerCase() : '';
+}
+// What kind of preview a file gets, from its stored MIME type first (the most reliable signal — set
+// from File.type at import time) and its filename extension as a fallback for older saved cards or a
+// browser that didn't report a MIME type for this file.
+function fileKindOf(card){
+  const ext=fileExtFromName(card.data.fileName);
+  const mime=card.data.mimeType||'';
+  if(mime==='application/pdf'||ext==='pdf') return 'pdf';
+  if(mime==='text/plain'||ext==='txt') return 'txt';
+  if(mime==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'||ext==='docx') return 'docx';
+  if(mime==='application/msword'||ext==='doc') return 'doc';
+  return 'other';
+}
+function fileKindIconBig(){return `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3.5h8l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V5A1.5 1.5 0 0 1 5.5 3.5z"/><path d="M14 3.5V8h4"/><path d="M8 12.5h8M8 16h5"/></svg>`;}
+function buildFileCard(card){
+  const el=baseCardShell(card,'card-file');
+  const name=card.data.fileName || t('file_untitled');
+  const ext=fileExtFromName(name);
+  el.innerHTML=`
+    <div class="file-body">
+      <div class="file-icon">${fileKindIconBig()}</div>
+      <div class="file-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+      ${ext?`<div class="file-ext-badge">${escapeHtml(ext.toUpperCase())}</div>`:''}
+    </div>
+  `;
+  return el;
+}
+// Word (.docx) has no native browser preview the way a PDF does (iframes render PDFs natively in
+// every major browser) — mammoth.js converts the .docx XML straight to HTML client-side, loaded
+// on-demand only once a .docx viewer is actually opened, same lazy-load pattern as Pinterest's
+// pinit.js above. Legacy .doc (the old binary format, pre-2007) isn't something mammoth — or any
+// realistic client-side library — can parse, so that one gets an honest "download and open in Word"
+// message instead of pretending to preview it.
+let mammothLoadPromise=null;
+function loadMammoth(){
+  if(window.mammoth) return Promise.resolve();
+  if(mammothLoadPromise) return mammothLoadPromise;
+  mammothLoadPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js'; s.async=true;
+    s.onload=()=>resolve(); s.onerror=()=>{ mammothLoadPromise=null; reject(new Error('mammoth load failed')); };
+    document.head.appendChild(s);
+  });
+  return mammothLoadPromise;
+}
+async function showFileViewerModal(card){
+  const name=card.data.fileName || t('file_untitled');
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal modal-wide file-viewer-modal">
+    <h4 class="file-viewer-title" title="${escapeHtml(name)}">${escapeHtml(name)}</h4>
+    <div class="file-viewer-body"><p class="file-viewer-status">${t('file_loading')}</p></div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button type="button" data-a="download" disabled>${t('file_download_btn')}</button>
+      <button type="button" data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('file_viewer_close_title')}</button>
+    </div></div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
+  document.body.appendChild(scrim);
+  const bodyEl=scrim.querySelector('.file-viewer-body');
+  const downloadBtn=scrim.querySelector('[data-a="download"]');
+
+  const rec = card.data.fileId ? await DB.getImage(card.data.fileId) : null;
+  if(!scrim.isConnected) return; // closed while the blob was loading
+  if(!rec){ bodyEl.innerHTML=`<p class="file-viewer-status">${t('file_not_found')}</p>`; return; }
+  const blob=rec.blob;
+  const url=URL.createObjectURL(blob);
+  downloadBtn.disabled=false;
+  downloadBtn.addEventListener('click',()=>{
+    const a=document.createElement('a'); a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  const kind=fileKindOf(card);
+  if(kind==='pdf'){
+    // Every major browser renders a PDF natively inside an <iframe> — no library needed, and it comes
+    // with the browser's own zoom/page-navigation/search chrome for free.
+    bodyEl.innerHTML=`<iframe class="file-viewer-frame" src="${url}" title="${escapeHtml(name)}"></iframe>`;
+  }else if(kind==='txt'){
+    try{
+      const text=await blob.text();
+      if(!scrim.isConnected) return;
+      bodyEl.innerHTML=`<pre class="file-viewer-text"></pre>`;
+      bodyEl.querySelector('.file-viewer-text').textContent=text;
+    }catch(e){ bodyEl.innerHTML=`<p class="file-viewer-status">${t('file_not_found')}</p>`; }
+  }else if(kind==='docx'){
+    bodyEl.innerHTML=`<p class="file-viewer-status">${t('file_loading')}</p>`;
+    try{
+      await loadMammoth();
+      const arrayBuffer=await blob.arrayBuffer();
+      const result=await window.mammoth.convertToHtml({arrayBuffer});
+      if(!scrim.isConnected) return;
+      bodyEl.innerHTML=`<div class="file-viewer-docx"></div>`;
+      // Mammoth's own output is plain semantic HTML (headings/paragraphs/lists/bold/italic) generated
+      // from the .docx's own content, not user-typed markup — safe to drop in directly, same trust
+      // level as any other library-generated render in this app (e.g. the Pinterest widget's own DOM).
+      bodyEl.querySelector('.file-viewer-docx').innerHTML=result.value;
+    }catch(e){
+      bodyEl.innerHTML=`<p class="file-viewer-status">${t('file_preview_unavailable_other')}</p>`;
+    }
+  }else{
+    bodyEl.innerHTML=`<p class="file-viewer-status">${kind==='doc'?t('file_preview_unavailable_doc'):t('file_preview_unavailable_other')}</p>`;
+  }
+}
+
 // "Widgets" card (internal type stays 'youtube' for backward compatibility with existing saved
 // boards) — a small tab switch chooses whether the link field expects a YouTube or a Spotify link;
 // data.kind records which, defaulting to 'youtube' for cards saved before Spotify support existed.
 // Clears whatever is currently embedded so the card falls back to the tab-selection/link-input state —
 // used by the inspector's "embed a different widget" personalization button (moved there, off the card
 // itself, same decluttering as the checklist/table toggles).
-// Five kinds now share this one card type: YouTube and Spotify are their own standalone widgets
-// (added directly from the dock's Widgets submenu, no tab switcher on the card itself any more —
-// "YouTube und Spotify sollen standalone Dinger sein"); Pinterest/Cosmos/Eyecandy instead share a
-// single "Creative" widget with its own internal tab switch between the three, exactly like
-// YouTube/Spotify used to share one card before this. CREATIVE_KINDS is the one place that grouping
-// is defined — everything else (which tabs render, which resize behavior applies) reads from it.
-const CREATIVE_KINDS=new Set(['pinterest','cosmos','eyecandy']);
+// Three kinds share this one card type, and — since "Cosmos"/"Eyecandy" were pulled back out again
+// (their iframe embeds never actually worked reliably) — all three are standalone now: YouTube,
+// Spotify and Pinterest each get their own widget straight from the dock's Widgets submenu, no
+// in-card tab switcher any more ("YouTube und Spotify sollen standalone Dinger sein" — now Pinterest
+// too, for the same reason: one link field, one kind, no grouping to reason about).
 function resetWidgetEmbed(card){
   card.data.videoId=null; card.data.spotifyId=null; card.data.spotifyType=null;
-  card.data.pinterestUrl=null; card.data.cosmosUrl=null; card.data.eyecandyUrl=null; card.data.url='';
+  card.data.pinterestUrl=null; card.data.url='';
   DB.putCard(card); renderAllCards(); applySelectionClasses();
 }
-const WIDGET_KIND_LABEL={youtube:'YouTube', spotify:'Spotify', pinterest:'Pinterest', cosmos:'Cosmos', eyecandy:'Eyecandy'};
+const WIDGET_KIND_LABEL={youtube:'YouTube', spotify:'Spotify', pinterest:'Pinterest'};
 function isWidgetEmbedded(card){
   switch(card.data.kind){
     case 'spotify': return !!card.data.spotifyId;
     case 'pinterest': return !!card.data.pinterestUrl;
-    case 'cosmos': return !!card.data.cosmosUrl;
-    case 'eyecandy': return !!card.data.eyecandyUrl;
     default: return !!card.data.videoId;
   }
 }
@@ -7247,13 +7584,6 @@ function buildWidgetCard(card){
     let frameHtml;
     if(kind==='pinterest'){
       frameHtml=`<div class="yt-frame-wrap pin-frame"><a data-pin-do="embedBoard" href="${escapeHtml(card.data.pinterestUrl)}"></a></div>`;
-    }else if(kind==='cosmos' || kind==='eyecandy'){
-      // Plain page embeds, not an official widget script the way Pinterest's is — a raw <iframe> to
-      // whatever URL was pasted. Unlike Pinterest, this DOES track further CSS resizes live and
-      // reactively (it's just width/height:100%, no fixed size baked in at load time), so — unlike
-      // Pinterest — no extra rebuild-on-resize-end is needed for these two.
-      const url=kind==='cosmos'?card.data.cosmosUrl:card.data.eyecandyUrl;
-      frameHtml=`<div class="yt-frame-wrap creative-frame"><iframe src="${escapeHtml(url)}" title="${label} Widget" loading="lazy"></iframe></div>`;
     }else if(kind==='youtube'){
       const src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(card.data.videoId)}`;
       frameHtml=`<div class="yt-frame-wrap"><iframe src="${src}" title="${label} Widget" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
@@ -7275,34 +7605,16 @@ function buildWidgetCard(card){
       loadPinIt().then(()=>{ if(window.PinUtils && PinUtils.build) PinUtils.build(); });
     }
   }else{
-    const isCreative=CREATIVE_KINDS.has(kind);
     const placeholderKey={youtube:'placeholder_youtube_link', spotify:'placeholder_spotify_link',
-      pinterest:'placeholder_pinterest_link', cosmos:'placeholder_cosmos_link', eyecandy:'placeholder_eyecandy_link'}[kind];
-    // YouTube/Spotify are standalone now — no tab switcher on the card itself, just that one kind's
-    // input. Creative (Pinterest/Cosmos/Eyecandy) keeps the same in-card tab switch the old combined
-    // widget used to have, just scoped to those three instead of all five.
-    const tabsHtml=isCreative ? `
-      <div class="widget-tabs">
-        <button type="button" class="widget-tab${kind==='pinterest'?' active':''}" data-kind="pinterest">Pinterest</button>
-        <button type="button" class="widget-tab${kind==='cosmos'?' active':''}" data-kind="cosmos">Cosmos</button>
-        <button type="button" class="widget-tab${kind==='eyecandy'?' active':''}" data-kind="eyecandy">Eyecandy</button>
-      </div>` : '';
+      pinterest:'placeholder_pinterest_link'}[kind];
+    // Every kind is standalone now — just that one kind's link field, no in-card tab switcher.
     el.innerHTML=`
       <div class="card-head"><div class="type-chip">${typeChipIcon('youtube')}</div></div>
-      ${tabsHtml}
       <div class="yt-input-wrap">
         <input placeholder="${t(placeholderKey)}" spellcheck="false"/>
         <button class="yt-go">${t('yt_embed_button')}</button>
       </div>
     `;
-    el.querySelectorAll('.widget-tab').forEach(tabBtn=>{
-      tabBtn.addEventListener('pointerdown',e=>e.stopPropagation());
-      tabBtn.addEventListener('click',(e)=>{
-        e.stopPropagation();
-        card.data.kind=tabBtn.dataset.kind;
-        DB.putCard(card); renderAllCards(); applySelectionClasses();
-      });
-    });
     const input=el.querySelector('input'); const go=el.querySelector('.yt-go');
     input.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
     function commit(){
@@ -7320,12 +7632,6 @@ function buildWidgetCard(card){
       }else if(kind==='pinterest'){
         const board=extractPinterestBoard(input.value);
         if(board){ card.data.pinterestUrl=board; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
-      }else if(kind==='cosmos'){
-        const url=extractCosmosUrl(input.value);
-        if(url){ card.data.cosmosUrl=url; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
-      }else if(kind==='eyecandy'){
-        const url=extractEyecandyUrl(input.value);
-        if(url){ card.data.eyecandyUrl=url; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
       }else{
         const vid=extractYouTubeId(input.value);
         if(vid){ card.data.videoId=vid; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
@@ -8015,7 +8321,7 @@ function attachDragAndSelect(el,card){
   // card is the drag surface instead, like grabbing a physical photo. The caption field and the
   // resize handle already stop propagation on their own, so this doesn't fight with editing them.
   // Board-link tiles have no separate header content either, so the same applies there.
-  const wholeCardDrag = card.type==='boardlink' || card.type==='image';
+  const wholeCardDrag = card.type==='boardlink' || card.type==='image' || card.type==='file';
   const dragHandle = wholeCardDrag ? el : head;
 
   // beginDrag/moveDrag/endDrag are shared by the immediate header-drag below and by the touch
@@ -8076,6 +8382,13 @@ function attachDragAndSelect(el,card){
       const now=Date.now();
       if(now-lastCleanClickAt<400){ lastCleanClickAt=0; openBoard(card.data.boardId); }
       else{ lastCleanClickAt=now; }
+    }
+    // File cards use the same "clean click selects, second clean click opens" pattern as boardlink
+    // above — but a single tier is enough here (no editable name field on the card face to protect
+    // from an eager single-click-opens the way boardlink's rename-in-place needed): opening the
+    // viewer straight from one clean click is what "1-2 Klicks" looks like for a file card.
+    if(wasCleanClick && card.type==='file' && card.data.fileId){
+      showFileViewerModal(card);
     }
   }
 
@@ -8262,11 +8575,10 @@ function attachResize(handle,el,card){
       // SPOTIFY_COMPACT_HEIGHT above) no matter how the corner handle is dragged.
       card.w=snap(clamp(rs.w+dx,220,2000));
       card.h=SPOTIFY_COMPACT_HEIGHT;
-    }else if(card.type==='youtube' && CREATIVE_KINDS.has(card.data.kind)){
-      // Pinterest/Cosmos/Eyecandy: none of the three is a fixed-ratio player — Pinterest's board
-      // widget is a scrollable list of pin thumbnails, Cosmos/Eyecandy are plain page embeds — so all
-      // three resize freely on both axes (same floors as a plain note card) and any extra height
-      // just shows more of the board/page rather than distorting anything.
+    }else if(card.type==='youtube' && card.data.kind==='pinterest'){
+      // Not a fixed-ratio player — Pinterest's board widget is a scrollable list of pin thumbnails —
+      // so it resizes freely on both axes (same floors as a plain note card) and any extra height
+      // just shows more of the board rather than distorting anything.
       card.w=snap(clamp(rs.w+dx,180,2000));
       card.h=snap(clamp(rs.h+dy,120,2000));
     }else if(card.type==='table'){
@@ -8674,6 +8986,7 @@ function cardSearchText(c){
   if(c.type==='column') return (c.data.title||'')+' '+(c.data.text||'');
   if(c.type==='table') return (c.data.title||'')+' '+Object.values(c.data.cells||{}).map(cell=>cell&&cell.text||'').join(' ');
   if(c.type==='boardlink') return c.data.title||'';
+  if(c.type==='file') return c.data.fileName||'';
   return '';
 }
 const searchState={query:'', results:[], activeIndex:-1};
@@ -9127,6 +9440,7 @@ async function addCard(type, extra){
   // of letting the box's shape drift away from it — a switch in the Eigenschaften/inspector panel
   // lets it be turned off per-image for the old free-form (crop via object-fit:cover) behavior.
   if(type==='image'){ w=280; h=200; data={imageId:extra&&extra.imageId?extra.imageId:null, caption:'', lockAspect:true}; }
+  if(type==='file'){ w=200; h=104; data={fileId:extra&&extra.fileId?extra.fileId:null, fileName:extra&&extra.fileName?extra.fileName:'', mimeType:extra&&extra.mimeType?extra.mimeType:''}; }
   if(type==='youtube'){ w=320; h=200; data={kind:(extra&&extra.kind)||'youtube', videoId:extra&&extra.videoId?extra.videoId:null, url:extra&&extra.url?extra.url:''}; }
   if(type==='boardlink'){
     if(!(await ensureStorageReady())) return;
@@ -9195,25 +9509,27 @@ function touchBoard(){
 function handleAddTool(type,at){
   if(at) state.lastPointer=at;
   if(type==='image'){ triggerImagePicker(); return; }
+  if(type==='file'){ triggerFilePicker(); return; }
   if(type==='board'){ addCard('boardlink', at?{at}:undefined); return; }
   addCard(type, at?{at}:undefined);
 }
 
 // "Widgets" no longer adds a card directly — it opens this small submenu (YouTube / Spotify /
-// Creative) first, shared by the dock button, the mobile drawer entry, and the create-menu's own
+// Pinterest) first, shared by the dock button, the mobile drawer entry, and the create-menu's own
 // Widgets tile, all three routed through here rather than each keeping a separate copy. Labels are
 // resolved fresh on every open (not cached at module-load time) so a language switch via setLang()
 // is picked up immediately, same as every other dynamically-built menu in the app.
+// Cosmos and Eyecandy used to share this "Creative" family with Pinterest, behind an in-card tab
+// switch — pulled back out again ("nimm eyecanndy und cosmos wieder raus das funktioniert noch
+// nicht"), since their plain-iframe embeds never reliably rendered. Pinterest is standalone now,
+// same as YouTube/Spotify.
 const WIDGET_FAMILY_KINDS=[
   {familyKind:'youtube', label:'YouTube'},
   {familyKind:'spotify', label:'Spotify'},
-  {familyKind:'creative', labelKey:'widget_family_creative_label'},
+  {familyKind:'pinterest', label:'Pinterest'},
 ];
 function addWidgetCardOfKind(familyKind,at){
-  // "Creative" isn't a real embed kind on its own — it opens on Pinterest, the first of its three
-  // internal tabs (Cosmos/Eyecandy are still one click away via the tab switch on the card itself).
-  const initialKind = familyKind==='creative' ? 'pinterest' : familyKind;
-  addCard('youtube', {kind:initialKind, at});
+  addCard('youtube', {kind:familyKind, at});
 }
 let widgetSubmenuEl=null;
 function ensureWidgetSubmenu(){
@@ -9256,9 +9572,9 @@ window.addEventListener('keydown',(e)=>{
 });
 
 /* ---------- CREATE MENU (double-click on empty canvas) ---------- */
-const CREATE_MENU_TYPES=['note','image','youtube','column','checklist','table','colorpicker','board'];
+const CREATE_MENU_TYPES=['note','image','file','youtube','column','checklist','table','colorpicker','board'];
 const CREATE_MENU_LABEL_KEY={
-  note:'add_note_label', image:'add_image_label', youtube:'add_youtube_label',
+  note:'add_note_label', image:'add_image_label', file:'add_file_label', youtube:'add_youtube_label',
   column:'add_column_label', checklist:'add_checklist_label_dock', table:'add_table_label',
   colorpicker:'add_colorpicker_label', board:'add_boardlink_label_dock'
 };
@@ -9319,7 +9635,7 @@ function wireCreateMenuItem(itemEl){
       itemEl.removeEventListener('pointercancel',onUp);
       const finalAt=dragging?screenToCanvas(ev.clientX,ev.clientY):dropAt;
       if(type==='youtube' && !dragging){
-        // Widgets: a plain click (not a drag-out) opens the YouTube/Spotify/Creative submenu instead
+        // Widgets: a plain click (not a drag-out) opens the YouTube/Spotify/Pinterest submenu instead
         // of dropping a card outright — dragging it out still places a standalone YouTube widget
         // directly, same as before, so that shortcut isn't lost.
         const anchorRect=itemEl.getBoundingClientRect();
@@ -9430,10 +9746,12 @@ async function setBoardLogo(b,file){
   if(!file.type.startsWith('image/')) return;
   const oldId=b.logoImageId;
   const id=uid();
-  await DB.putImage(id,file,b.id);
-  b.logoImageId=id; b.updatedAt=Date.now();
-  await DB.putBoard(b);
-  if(oldId && oldId!==id) DB.deleteImage(oldId);
+  await withBoardBackend(b.id, async ()=>{
+    await DB.putImage(id,file,b.id);
+    b.logoImageId=id; b.updatedAt=Date.now();
+    await DB.putBoard(b);
+    if(oldId && oldId!==id) DB.deleteImage(oldId);
+  });
   refreshHome();
 }
 function imageDims(file){
@@ -9444,6 +9762,29 @@ function imageDims(file){
     img.onerror=rej;
     img.src=url;
   });
+}
+
+/* ---- "Datei einfügen": txt/Word/PDF import — mirrors the image picker just above, one file blob
+   per card, opened later via showFileViewerModal() instead of rendering inline on the board. ---- */
+const docFileInput=document.createElement('input');
+docFileInput.type='file';
+docFileInput.accept='.txt,.pdf,.doc,.docx,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+docFileInput.multiple=true; docFileInput.style.display='none';
+document.body.appendChild(docFileInput);
+function triggerFilePicker(){ docFileInput.value=''; docFileInput.click(); }
+docFileInput.addEventListener('change',async ()=>{
+  const files=[...docFileInput.files];
+  let offset=0;
+  for(const f of files){ await addDocFile(f, offsetPoint(offset)); offset++; }
+});
+async function addDocFile(file, at){
+  const id=uid();
+  try{
+    await DB.putImage(id,file);
+    await addCard('file',{fileId:id, fileName:file.name, mimeType:file.type, at:at||viewportCenterCanvas()});
+  }catch(e){
+    showToast(t('toast_file_import_failed'));
+  }
 }
 
 viewport.addEventListener('dragover',(e)=>{ e.preventDefault(); });
@@ -9491,7 +9832,7 @@ function updateFolderStatusUI(){
   if(!FS_SUPPORTED){ folderBtn.hidden=true; return; }
   folderBtn.hidden=false;
   folderBtn.classList.remove('connected','pending');
-  if(state.storageMode==='fs' && fsState.root){
+  if(fsState.root){
     folderBtn.classList.add('connected');
     folderLabel.textContent=fsState.rootName;
     folderBtn.title=t('folder_connected_title',{name:fsState.rootName});
@@ -9510,18 +9851,10 @@ async function activateFolder(handle,opts){
   fsState.root=handle; fsState.rootName=handle.name;
   fsState.dirs.clear(); fsState.cache.clear();
   fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
-  state.storageMode='fs';
+  fsState.pendingHandle=null;
   await saveHandleRef(handle);
-  // Switching the active backend to a local folder means Google Drive (if it was connected) is no
-  // longer the active one — mirrors what disconnectDrive() itself does, so the app never ends up
-  // with two stale "last connected" pointers racing each other on the next boot (see
-  // tryReconnectFolder / tryReconnectDrive further down: only one of them may claim storageMode).
-  if(driveState.root || await loadDriveRef()){
-    driveState.root=null; driveState.trashDir=null; driveState.email=''; driveState.name=''; driveState.pendingReconnect=false;
-    driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
-    driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
-    await clearDriveRef();
-  }
+  // A local folder and Google Drive can now be connected at the same time (see MULTI-QUELLEN-SPEICHER
+  // above) — connecting one no longer disconnects the other the way it used to.
   if(opts.offerMigration){
     try{
       const existing=await IDB_DB.allBoards();
@@ -9657,9 +9990,10 @@ async function migrateIdbToFs(idbBoards){
   for(const b of idbBoards){
     const cards=await IDB_DB.cardsForBoard(b.id);
     for(const c of cards){
-      if(c.type==='image' && c.data && c.data.imageId){
-        const img=await IDB_DB.getImage(c.data.imageId);
-        if(img) await FS_DB.putImage(c.data.imageId, img.blob, b.id);
+      const bref=cardBlobRef(c);
+      if(bref){
+        const img=await IDB_DB.getImage(bref);
+        if(img) await FS_DB.putImage(bref, img.blob, b.id);
       }
       await FS_DB.putCard(c);
     }
@@ -9669,7 +10003,7 @@ async function migrateIdbToFs(idbBoards){
 }
 
 folderBtn.addEventListener('click',async ()=>{
-  if(state.storageMode==='fs' && fsState.root){ folderStatusModal(); }
+  if(fsState.root){ folderStatusModal(); }
   else if(fsState.pendingHandle){ await confirmPendingFolder(); }
   else{ await connectFolder(); }
 });
@@ -9702,16 +10036,10 @@ async function activateDrive(rootId,opts){
   driveState.root=rootId;
   driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
   driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
-  state.storageMode='drive';
+  driveState.pendingReconnect=false;
   await saveDriveRef({rootId, email:driveState.email, name:driveState.name});
-  // Switching the active backend to Google Drive means a connected local folder (if any) is no
-  // longer the active one — mirrors disconnectFolder()'s own cleanup; see the matching comment on
-  // activateFolder() above for why keeping these two mutually exclusive matters.
-  if(fsState.root || await loadHandleRef()){
-    fsState.root=null; fsState.rootName=''; fsState.pendingHandle=null;
-    fsState.dirs.clear(); fsState.cache.clear(); fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
-    await clearHandleRef();
-  }
+  // A local folder and Google Drive can now be connected at the same time (see MULTI-QUELLEN-SPEICHER
+  // above) — connecting one no longer disconnects the other the way it used to.
   if(opts.offerMigration){
     try{
       const existing=await IDB_DB.allBoards();
@@ -9755,6 +10083,16 @@ async function tryReconnectDrive(){
   if(!ref || !ref.rootId) return;
   state.storageMode='drive';
   driveState.root=ref.rootId; driveState.email=ref.email||''; driveState.name=ref.name||'';
+  // No network at all right now means a silent token refresh is guaranteed to fail — and critically,
+  // that failure must NOT be read as "please reconnect" (pendingReconnect, the harder banner asking
+  // for a fresh interactive sign-in): this is just a connectivity gap, not an expired/revoked
+  // session. Drive's boards simply won't be reachable for the home-screen merge until back online;
+  // idb and a connected folder keep working normally in the meantime.
+  if(navigator.onLine===false){
+    driveState.offline=true;
+    updateDriveStatusUI();
+    return;
+  }
   driveState.pendingReconnect=true;
   updateDriveStatusUI();
   if(!(window.google && google.accounts && google.accounts.oauth2)) return;
@@ -9802,33 +10140,38 @@ function driveStatusModal(){
   document.body.appendChild(scrim);
 }
 async function migrateIdbToDrive(idbBoards){
-  for(const b of idbBoards){ await DRIVE_DB.putBoard(b); }
-  for(const b of idbBoards){
-    const cards=await IDB_DB.cardsForBoard(b.id);
-    for(const c of cards){
-      if(c.type==='image' && c.data && c.data.imageId){
-        const img=await IDB_DB.getImage(c.data.imageId);
-        if(img) await DRIVE_DB.putImage(c.data.imageId, img.blob, b.id);
-      }
-      await DRIVE_DB.putCard(c);
+  const prev=state.storageMode; state.storageMode='idb';
+  try{
+    for(const b of idbBoards){
+      const bundle=await collectBoardBundle(b.id);
+      await pushBundleToBackend(bundle, DRIVE_DB);
     }
-    const conns=await IDB_DB.connectorsForBoard(b.id);
-    for(const cn of conns) await DRIVE_DB.putConnector(cn);
-  }
+  }finally{ state.storageMode=prev; }
 }
+// driveState.root/pendingReconnect describe the Drive CONNECTION itself, independent of which board
+// (if any) is currently open in a different backend — so this no longer gates on state.storageMode
+// at all, unlike the old single-active-backend model. driveState.offline is set by driveFetch() on a
+// genuine network-level failure and is purely informational here (no auto-retry/reconcile behind it
+// any more — Sync, further down, is how a person actually pushes/pulls now).
 function updateDriveStatusUI(){
   if(!driveBtn) return;
   if(!DRIVE_SUPPORTED){ driveBtn.hidden=true; return; }
   driveBtn.hidden=false;
-  driveBtn.classList.remove('connected','pending');
-  if(state.storageMode==='drive' && driveState.root && !driveState.pendingReconnect){
-    driveBtn.classList.add('connected');
-    if(driveLabel) driveLabel.textContent=driveState.name||driveState.email||t('drive_connect_label');
-    driveBtn.title=t('drive_connected_title',{name:driveState.name||driveState.email||''});
-  }else if(driveState.pendingReconnect){
+  driveBtn.classList.remove('connected','pending','offline');
+  if(driveState.pendingReconnect){
+    // Needs an actual click-through sign-in (session expired/revoked) — takes priority over
+    // everything else since it's the one state that needs a person to do something.
     driveBtn.classList.add('pending');
     if(driveLabel) driveLabel.textContent=t('drive_pending_label');
     driveBtn.title=t('drive_pending_title');
+  }else if(driveState.root && driveState.offline){
+    driveBtn.classList.add('offline');
+    if(driveLabel) driveLabel.textContent=t('drive_offline_label');
+    driveBtn.title=t('drive_offline_title');
+  }else if(driveState.root){
+    driveBtn.classList.add('connected');
+    if(driveLabel) driveLabel.textContent=driveState.name||driveState.email||t('drive_connect_label');
+    driveBtn.title=t('drive_connected_title',{name:driveState.name||driveState.email||''});
   }else{
     if(driveLabel) driveLabel.textContent=t('drive_connect_label');
     driveBtn.title=t('drive_connect_title');
@@ -9836,8 +10179,9 @@ function updateDriveStatusUI(){
 }
 if(driveBtn){
   driveBtn.addEventListener('click',async ()=>{
-    if(state.storageMode==='drive' && driveState.root && !driveState.pendingReconnect){ driveStatusModal(); }
-    else if(driveState.pendingReconnect){ await confirmPendingDrive(); }
+    if(driveState.pendingReconnect){ await confirmPendingDrive(); }
+    else if(driveState.root && driveState.offline){ showToast(t('toast_drive_offline_working')); }
+    else if(driveState.root){ driveStatusModal(); }
     else{ await connectDrive(); }
   });
 }
@@ -10209,7 +10553,7 @@ document.getElementById('drawerExportImgBtn').addEventListener('click',()=>{
   setTimeout(()=>{ openFormatMenu(Math.max(12,window.innerWidth/2-95), window.innerHeight/2-60, exportTargetCards()); },230);
 });
 async function exportBoard(boardId){
-  const bundle=await collectBoardBundle(boardId);
+  const bundle=await withBoardBackend(boardId, ()=>collectBoardBundle(boardId));
   if(!bundle.boards.length){ showToast(t('toast_export_failed')); return; }
   const rootBoard=bundle.boards.find(b=>b.id===boardId)||bundle.boards[0];
   const images=[];
@@ -10246,6 +10590,8 @@ function closeToolsMenu(){ if(toolsMenu) toolsMenu.hidden=true; }
 function openToolsMenu(){
   const exportItem=document.getElementById('toolsExportItem');
   if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
+  const syncAllItem=document.getElementById('toolsSyncAllItem');
+  if(syncAllItem) syncAllItem.disabled = !(fsState.root || driveState.root);
   toolsMenu.hidden=false;
 }
 if(toolsBtn){
@@ -10266,6 +10612,10 @@ if(toolsBtn){
     if(state.homeSelection.size!==1){ showToast(t('toast_export_select_one')); return; }
     const [onlyId]=state.homeSelection;
     exportBoard(onlyId);
+  });
+  document.getElementById('toolsSyncAllItem').addEventListener('click',()=>{
+    closeToolsMenu();
+    syncAllBoards();
   });
   document.addEventListener('pointerdown',(e)=>{
     if(toolsMenu.hidden) return;
@@ -10316,6 +10666,7 @@ async function instantiateBundle(payload,opts){
     const nc={...c, id:remap(c.id), boardId:remap(c.boardId), data:JSON.parse(JSON.stringify(c.data||{}))};
     if(nc.type==='boardlink' && nc.data.boardId) nc.data.boardId=remap(nc.data.boardId);
     if(nc.type==='image' && nc.data.imageId) nc.data.imageId=remap(nc.data.imageId);
+    if(nc.type==='file' && nc.data.fileId) nc.data.fileId=remap(nc.data.fileId);
     if(opts.stripText) stripCardText(nc);
     return nc;
   });
@@ -10333,7 +10684,7 @@ async function instantiateBundle(payload,opts){
   for(const b of newBoards){ b.createdAt=now; b.updatedAt=now; await DB.putBoard(b); }
   for(const img of newImages){
     const blob = img.blob || await base64ToBlob(img.dataBase64,img.mime);
-    const ownerCard=newCards.find(c=>c.type==='image' && c.data.imageId===img.id);
+    const ownerCard=newCards.find(c=>cardBlobRef(c)===img.id);
     await DB.putImage(img.id, blob, ownerCard?ownerCard.boardId:rootNewId);
   }
   for(const c of newCards) await DB.putCard(c);
@@ -10352,8 +10703,123 @@ function stripCardText(c){
   else if(c.type==='image'){ c.data.caption=''; }
 }
 async function importBundle(payload){
-  await instantiateBundle(payload,{});
+  // Imported boards always land in the browser cache (idb) — always available, no permission or
+  // connection needed — same as a newly-created board (see createBoardFlow); Sync pushes it out to
+  // a connected folder/Drive afterward with one click.
+  const prev=state.storageMode; state.storageMode='idb';
+  let newRootId;
+  try{ newRootId=await instantiateBundle(payload,{}); }
+  finally{ state.storageMode=prev; }
+  if(newRootId){ if(!state.boardSources) state.boardSources=new Map(); state.boardSources.set(newRootId,{sources:new Set(['idb']),bestSrc:'idb'}); }
   showToast(t('toast_import_success'));
+  if(state.screen==='home') await refreshHome();
+}
+
+/* ============================================================
+   SYNC — manueller Multi-Quellen-Abgleich
+   Nothing syncs silently in the background any more (see MULTI-QUELLEN-SPEICHER further up) — this
+   is the one explicit action that copies a board's current state to another connected source, "1-2
+   Klicks", always overwriting the target with whatever's currently open/selected (no conflict check,
+   per "immer die gerade offene Version übernehmen").
+   ============================================================ */
+// Pushes boardId (+ every nested sub-board it links to, same reach as export) to each backend named
+// in targets ('fs' and/or 'drive' — idb is never a pickable Sync target, it's the always-on default).
+async function syncBoardToTargets(boardId,targets){
+  if(!targets || !targets.length) return false;
+  const bundle=await withBoardBackend(boardId, ()=>collectBoardBundle(boardId));
+  if(!bundle.boards.length) return false;
+  for(const target of targets) await pushBundleToBackend(bundle, backendFor(target));
+  if(!state.boardSources) state.boardSources=new Map();
+  for(const b of bundle.boards){
+    const info=state.boardSources.get(b.id) || {sources:new Set(['idb']), bestSrc:'idb'};
+    targets.forEach(tgt=>info.sources.add(tgt));
+    state.boardSources.set(b.id,info);
+  }
+  return true;
+}
+function syncSourceLabel(k){ return k==='fs' ? t('sync_source_folder') : k==='drive' ? t('sync_source_drive') : t('sync_source_local'); }
+let syncPopoverEl=null;
+function ensureSyncPopover(){
+  if(syncPopoverEl) return syncPopoverEl;
+  const bar=document.createElement('div');
+  bar.className='sync-popover';
+  document.body.appendChild(bar);
+  bar.addEventListener('pointerdown',(e)=>e.preventDefault());
+  syncPopoverEl=bar;
+  return bar;
+}
+function hideSyncPopover(){ if(syncPopoverEl) syncPopoverEl.classList.remove('show'); }
+// clientX/clientY: where to anchor the popover (or where the toast-triggering click was, when only
+// one target exists and no popover is needed at all — one click, done). boardId/boardName identify
+// the board; onDone (optional) fires after a successful sync, e.g. to refresh a tile's UI.
+async function openSyncPopover(clientX,clientY,boardId,boardName,onDone){
+  const targets=[];
+  if(fsState.root) targets.push('fs');
+  if(driveState.root) targets.push('drive');
+  if(!targets.length){ showToast(t('toast_sync_no_targets')); return; }
+  if(targets.length===1){
+    const ok=await syncBoardToTargets(boardId,targets);
+    if(ok){ showToast(t('toast_sync_success',{name:boardName,target:syncSourceLabel(targets[0])})); if(onDone) onDone(); }
+    return;
+  }
+  const info=state.boardSources && state.boardSources.get(boardId);
+  const already=info ? [...info.sources] : ['idb'];
+  const bar=ensureSyncPopover();
+  bar.innerHTML=`
+    <div class="sync-popover-title">${escapeHtml(t('sync_popover_title',{name:boardName}))}</div>
+    <div class="sync-popover-sub">${escapeHtml(t('sync_popover_sub',{sources:already.map(syncSourceLabel).join(', ')}))}</div>
+    <div class="sync-popover-actions">
+      ${targets.map(tk=>`<button type="button" data-target="${tk}">${syncSourceLabel(tk)}</button>`).join('')}
+      <button type="button" data-target="__all" class="sync-popover-all">${t('sync_target_all')}</button>
+    </div>
+  `;
+  bar.querySelectorAll('button[data-target]').forEach(btn=>{
+    btn.addEventListener('click',async ()=>{
+      const val=btn.dataset.target;
+      const picked=val==='__all' ? targets : [val];
+      hideSyncPopover();
+      const ok=await syncBoardToTargets(boardId,picked);
+      if(ok){
+        const label=val==='__all' ? t('sync_target_all') : syncSourceLabel(val);
+        showToast(t('toast_sync_success',{name:boardName,target:label}));
+        if(onDone) onDone();
+      }
+    });
+  });
+  bar.classList.add('show');
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const r=bar.getBoundingClientRect();
+  let left=clientX, top=clientY;
+  if(left+r.width>vw-8) left=Math.max(8,vw-8-r.width);
+  if(top+r.height>vh-8) top=Math.max(8,vh-8-r.height);
+  left=Math.max(8,left); top=Math.max(8,top);
+  bar.style.left=left+'px';
+  bar.style.top=top+'px';
+}
+document.addEventListener('pointerdown',(e)=>{
+  if(!syncPopoverEl || !syncPopoverEl.classList.contains('show')) return;
+  if(e.target.closest('.sync-popover') || e.target.closest('.sync-btn')) return;
+  hideSyncPopover();
+});
+window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') hideSyncPopover(); });
+// "Alle synchronisieren" (Werkzeuge-Menü) — syncs every board the Home merge currently knows about to
+// every connected source that doesn't already have it as its best/most-current copy. One click,
+// no per-board picker — matches "durch einen Knopf ... gesamt werden alle Dateien gesynced".
+async function syncAllBoards(){
+  const targets=[];
+  if(fsState.root) targets.push('fs');
+  if(driveState.root) targets.push('drive');
+  if(!targets.length){ showToast(t('toast_sync_no_targets')); return; }
+  const all=await mergedAllBoards();
+  let count=0;
+  for(const b of all){
+    const info=state.boardSources && state.boardSources.get(b.id);
+    const need=targets.filter(tk=>!(info && info.sources.has(tk)));
+    if(!need.length) continue;
+    const ok=await syncBoardToTargets(b.id,need);
+    if(ok) count++;
+  }
+  showToast(count ? t('toast_sync_all_success',{n:count}) : t('toast_sync_all_nothing'));
   if(state.screen==='home') await refreshHome();
 }
 
@@ -10370,6 +10836,15 @@ async function importBundle(payload){
    ============================================================ */
 const templateBtn=document.getElementById('templateBtn');
 if(templateBtn) templateBtn.addEventListener('click',showTemplatePickerModal);
+const boardSyncBtn=document.getElementById('boardSyncBtn');
+if(boardSyncBtn){
+  boardSyncBtn.title=t('sync_btn_title');
+  boardSyncBtn.addEventListener('click',(e)=>{
+    if(!state.currentBoardId) return;
+    const board=boardById(state.currentBoardId);
+    openSyncPopover(e.clientX, e.clientY, state.currentBoardId, board?board.name:'');
+  });
+}
 
 /* ============================================================
    BUILT-IN TEMPLATES — the template picker (above) only ever showed templates the user had
@@ -10681,12 +11156,10 @@ if(window.visualViewport){
   applyI18n();
   syncLangUI();
   document.addEventListener('contextmenu',(e)=>{ if(e.target.closest('#app')) e.preventDefault(); });
+  // A local folder and Google Drive can both be connected at once now (see MULTI-QUELLEN-SPEICHER
+  // above) — reconnect to both at boot, independently, instead of the first one claiming the app.
   await tryReconnectFolder();
-  // Only one of the two "reconnect to where I left off" flows can ever claim storageMode — a local
-  // folder and Google Drive are mutually exclusive active backends (see the comments on
-  // activateFolder()/activateDrive() above) — so skip the Drive attempt entirely if a folder
-  // reconnect already claimed it.
-  if(state.storageMode!=='fs') await tryReconnectDrive();
+  await tryReconnectDrive();
   await refreshHome();
   // state.screen's own default is 'home', but the landing view is what's actually visible on a
   // fresh load (it's the only view not [hidden] in the markup) — seed history with what's really
