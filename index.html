@@ -440,19 +440,40 @@ try{
     display:flex; align-items:center; justify-content:center; color:var(--muted); cursor:pointer;
   }
   .icon-btn.import-btn:hover{border-color:var(--border-strong); color:var(--ink);}
-  .tools-dropdown{position:relative;}
-  .tools-menu{
-    position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border);
-    border-radius:10px; box-shadow:0 14px 34px -12px var(--shadow-lg); padding:6px; min-width:190px;
-    display:flex; flex-direction:column; gap:2px; z-index:50;
+  /* ---------- TOOLS BOTTOM SHEET ----------
+     Replaces the old small dropdown under the Werkzeuge (gear) button: Vorlagen/Import/Export/Sync
+     — and now Papierkorb too — each get their own selectable card in a sheet that slides up from the
+     bottom edge as an overlay over the board overview. See #toolsSheet / openToolsSheet/closeToolsSheet. */
+  .tools-sheet-backdrop{
+    position:absolute; inset:0; background:var(--scrim); z-index:55;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
   }
-  .tools-menu[hidden]{display:none;}
-  .tools-menu button{
-    text-align:left; padding:8px 10px; border-radius:7px; border:none; background:none; color:var(--ink);
-    font:inherit; font-size:0.84rem; cursor:pointer; transition:background .12s ease;
+  .tools-sheet-backdrop.show{opacity:1; pointer-events:auto;}
+  .tools-sheet{
+    position:absolute; left:0; right:0; bottom:0; z-index:56;
+    background:var(--surface); border-top:1px solid var(--border);
+    border-radius:16px 16px 0 0; box-shadow:0 -14px 34px -12px var(--shadow-lg);
+    padding:8px 16px calc(18px + env(safe-area-inset-bottom,0px));
+    transform:translateY(100%); transition:transform .26s cubic-bezier(.32,.72,0,1);
+    max-height:70vh; overflow-y:auto;
   }
-  .tools-menu button:hover{background:var(--surface-2);}
-  .tools-menu button:disabled{opacity:.4; cursor:not-allowed; background:none;}
+  .tools-sheet.show{transform:translateY(0);}
+  .tools-sheet-handle{width:36px; height:4px; border-radius:999px; background:var(--border-strong); margin:6px auto 14px;}
+  .tools-sheet-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:10px;}
+  .tools-sheet-card{
+    display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;
+    padding:14px 8px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--ink); font:inherit; font-size:0.76rem; cursor:pointer;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .tools-sheet-card:hover{border-color:var(--border-strong);}
+  .tools-sheet-card:active{transform:scale(.96);}
+  .tools-sheet-card:disabled{opacity:.4; cursor:not-allowed;}
+  .tools-sheet-card-icon{
+    width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    background:var(--surface); color:var(--accent);
+  }
+  .tools-sheet-card-danger .tools-sheet-card-icon{color:var(--danger);}
   .home-main{max-width:1180px; margin:0 auto; padding:8px 44px 80px;}
   .board-grid{
     display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
@@ -1626,39 +1647,36 @@ try{
   .toast button{background:none; border:none; color:var(--accent); font:inherit; font-weight:600; cursor:pointer; padding:4px 6px;}
 
   /* ---------- BUSY BAR ----------
-     A slim, always-at-the-bottom progress indicator for background work that the UI itself no
-     longer waits on (board delete/restore, import, sync — see showBusy/hideBusy). Reference-counted
-     so several overlapping operations share one bar instead of flickering it open/closed; shows an
-     indeterminate sliding fill while busy, then briefly snaps to 100% ("done" pulse) as a clear
-     completion signal before fading out. Purely a progress *signal* — it never blocks input. */
+     "der ladebalken ist bisschen nervig mach lieber einen kurzen rechts außen über dem Geheimfenster
+     und immer einen kleinen infotext was gerade passiert" — a small, self-contained pill (spinner +
+     short status text) tucked in the bottom-right corner, sitting just above the invisible secret-
+     theme-menu hit target (.theme-secret-btn, 26px tall, bottom:0/right:0 — see SECRET THEME MENU)
+     so it never covers it. Reference-counted via showBusy/hideBusy so several overlapping background
+     operations (board delete/restore, import, sync) share one pill instead of flickering it open/
+     closed. Purely a progress *signal* — it never blocks input. */
   .busy-bar{
-    position:absolute; left:0; right:0; bottom:0; height:3px; z-index:60;
-    background:transparent; overflow:hidden; opacity:0; pointer-events:none;
-    transition:opacity .25s ease;
+    position:absolute; right:10px; bottom:32px; z-index:60;
+    display:flex; align-items:center; gap:7px; max-width:min(62vw,230px);
+    background:var(--surface); border:1px solid var(--border); border-radius:999px;
+    padding:6px 12px 6px 8px; box-shadow:0 8px 20px -8px var(--shadow-lg);
+    opacity:0; transform:translateY(6px) scale(.96); pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
   }
-  .busy-bar.show{opacity:1;}
-  .busy-bar-fill{
-    position:absolute; top:0; bottom:0; left:0; width:40%; border-radius:0 3px 3px 0;
-    background:var(--accent);
-    animation:busyBarSlide 1.1s ease-in-out infinite;
+  .busy-bar.show{opacity:1; transform:translateY(0) scale(1);}
+  .busy-bar-spinner{
+    flex:none; width:12px; height:12px; border-radius:50%;
+    border:2px solid var(--border); border-top-color:var(--accent);
+    animation:busySpin .7s linear infinite;
   }
-  .busy-bar.done .busy-bar-fill{
-    width:100%; left:0; animation:none; transition:width .2s ease;
+  .busy-bar.done .busy-bar-spinner{
+    animation:none; border-color:var(--accent); background:var(--accent);
   }
-  @keyframes busyBarSlide{
-    0%{left:-40%; width:40%;}
-    55%{left:100%; width:45%;}
-    100%{left:100%; width:45%;}
-  }
+  @keyframes busySpin{ to{ transform:rotate(360deg); } }
   .busy-bar-label{
-    position:absolute; left:14px; bottom:9px; font-size:0.72rem; color:var(--muted);
-    background:var(--surface); border:1px solid var(--border); padding:3px 9px; border-radius:999px;
-    box-shadow:0 6px 16px -6px var(--shadow-lg); opacity:0; transform:translateY(4px);
-    transition:opacity .2s ease, transform .2s ease; pointer-events:none; white-space:nowrap;
+    font-size:0.72rem; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .busy-bar-label.show{opacity:1; transform:translateY(0);}
   @media (prefers-reduced-motion: reduce){
-    .busy-bar-fill{animation:none; left:0; width:100%; opacity:.55;}
+    .busy-bar-spinner{animation:none;}
   }
 
   /* ---------- MODAL ---------- */
@@ -1807,11 +1825,47 @@ try{
 </style>
 
 <div id="app">
-  <!-- Bottom "busy bar" — a slim, non-blocking progress signal for background work the UI no longer
-       waits on (board delete/restore, import, sync). Lives at the #app level (not inside
-       homeView/boardView) so it survives screen switches; see showBusy/hideBusy/withBusy. -->
-  <div class="busy-bar" id="busyBar"><div class="busy-bar-fill"></div></div>
-  <div class="busy-bar-label" id="busyBarLabel"></div>
+  <!-- Bottom-right "busy bar" — a small, non-blocking progress pill (spinner + short status text)
+       for background work the UI no longer waits on (board delete/restore, import, sync). Sits just
+       above the invisible secret-theme-menu button (#themeSecretBtn, corner-docked) so it never
+       covers it. Lives at the #app level (not inside homeView/boardView) so it survives screen
+       switches; see showBusy/hideBusy/withBusy. -->
+  <div class="busy-bar" id="busyBar">
+    <span class="busy-bar-spinner"></span>
+    <span class="busy-bar-label" id="busyBarLabel"></span>
+  </div>
+
+  <!-- Werkzeuge bottom sheet — "die Import Export funktionen wie auch Papierkorb sollen dann auch
+       am unteren Rand von unten nach oben hochsliden und praktisch als kleine Menükarten auswählbar
+       sein als Overlay über der Boardübersicht". Replaces the old small dropdown under the gear icon
+       (#toolsBtn) — see the "TOOLS BOTTOM SHEET" JS section for the open/close logic and what each
+       card does. Lives at the #app level so it overlays the whole Home screen, not just the grid. -->
+  <div class="tools-sheet-backdrop" id="toolsSheetBackdrop" hidden></div>
+  <div class="tools-sheet" id="toolsSheet" hidden>
+    <div class="tools-sheet-handle"></div>
+    <div class="tools-sheet-grid" id="toolsSheetGrid">
+      <button type="button" class="tools-sheet-card" id="toolsTemplatesItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M3.5 10h17M10 10v10"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsImportItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsExportItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsSyncAllItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3M4 20v-5h5"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card tools-sheet-card-danger" id="toolsTrashItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+    </div>
+  </div>
 
   <!-- ============ LANDING VIEW ============ -->
   <div id="landingView">
@@ -1878,21 +1932,14 @@ try{
           <button class="icon-btn import-btn" id="homeCalendarBtn" title="Kalender">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
           </button>
-          <div class="tools-dropdown" id="toolsDropdown">
-            <button class="icon-btn import-btn" id="toolsBtn" title="Werkzeuge">
-              <!-- Schlichtes Zahnrad statt Hammer — passt besser zu "Werkzeuge/Einstellungen" und zum
-                   plainen Stroke-Outline-Look der übrigen Toolbar-Icons. -->
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 6.6l1.9 1.9M17.5 15.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 17.4l1.9-1.9M17.5 8.5l1.9-1.9"/></svg>
-            </button>
-            <div class="tools-menu" id="toolsMenu" hidden>
-              <button type="button" id="toolsTemplatesItem"></button>
-              <button type="button" id="toolsImportItem"></button>
-              <button type="button" id="toolsExportItem"></button>
-              <button type="button" id="toolsSyncAllItem"></button>
-            </div>
-          </div>
-          <button class="icon-btn import-btn" id="trashBtn" title="Papierkorb">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg>
+          <!-- Werkzeuge now opens the bottom tools sheet (see #toolsSheet at the #app level, and the
+               "TOOLS BOTTOM SHEET" JS section) instead of a small dropdown right here — Papierkorb's
+               own top-bar icon moved into that sheet too, as one more card among Vorlagen/Import/
+               Export/Sync. -->
+          <button class="icon-btn import-btn" id="toolsBtn" title="Werkzeuge">
+            <!-- Schlichtes Zahnrad statt Hammer — passt besser zu "Werkzeuge/Einstellungen" und zum
+                 plainen Stroke-Outline-Look der übrigen Toolbar-Icons. -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 6.6l1.9 1.9M17.5 15.5l1.9 1.9M2.5 12h2.6M18.9 12h2.6M4.6 17.4l1.9-1.9M17.5 8.5l1.9-1.9"/></svg>
           </button>
         </div>
       </div>
@@ -2480,11 +2527,11 @@ const I18N={
   toast_board_trash_failed:{de:'„{name}“ konnte nicht in den Papierkorb verschoben werden – bitte erneut versuchen',en:'"{name}" couldn\'t be moved to the trash – please try again'},
   toast_board_restore_failed:{de:'„{name}“ konnte nicht wiederhergestellt werden – bitte erneut versuchen',en:'"{name}" couldn\'t be restored – please try again'},
   toast_board_delete_forever_failed:{de:'„{name}“ konnte nicht endgültig gelöscht werden – bitte erneut versuchen',en:'"{name}" couldn\'t be permanently deleted – please try again'},
-  busy_trashing_board:{de:'Board wird in den Papierkorb verschoben …',en:'Moving board to trash …'},
-  busy_restoring_board:{de:'Board wird wiederhergestellt …',en:'Restoring board …'},
-  busy_deleting_board_forever:{de:'Board wird endgültig gelöscht …',en:'Permanently deleting board …'},
-  busy_importing:{de:'Import läuft …',en:'Importing …'},
-  busy_syncing:{de:'Synchronisierung läuft …',en:'Syncing …'},
+  busy_trashing_board:{de:'Löscht Board …',en:'Trashing board …'},
+  busy_restoring_board:{de:'Stellt wieder her …',en:'Restoring …'},
+  busy_deleting_board_forever:{de:'Löscht endgültig …',en:'Deleting for good …'},
+  busy_importing:{de:'Importiert …',en:'Importing …'},
+  busy_syncing:{de:'Synchronisiert …',en:'Syncing …'},
   recently_restored_badge:{de:'Kürzlich wiederhergestellt',en:'Recently restored'},
   insp_multi_count:{de:'{n} Elemente ausgewählt',en:'{n} items selected'},
   insp_color_label:{de:'Farbe',en:'Color'},
@@ -2816,10 +2863,11 @@ function applyI18n(){
     ['#datenschutzBtn','text',t('datenschutz_label')],
     ['#nutzungsbedingungenBtn','text',t('nutzungsbedingungen_label')],
     ['#toolsBtn','title',t('tools_btn_title')],
-    ['#toolsTemplatesItem','text',t('tools_templates_item')],
-    ['#toolsImportItem','text',t('tools_import_item')],
-    ['#toolsExportItem','text',t('tools_export_item')],
-    ['#toolsSyncAllItem','text',t('tools_sync_all_item')],
+    ['#toolsTemplatesItem .tools-sheet-card-label','text',t('tools_templates_item')],
+    ['#toolsImportItem .tools-sheet-card-label','text',t('tools_import_item')],
+    ['#toolsExportItem .tools-sheet-card-label','text',t('tools_export_item')],
+    ['#toolsSyncAllItem .tools-sheet-card-label','text',t('tools_sync_all_item')],
+    ['#toolsTrashItem .tools-sheet-card-label','text',t('trash_btn_title')],
     ['#menuBtn','title',t('menu_title')],
     ['#homeBtn','title',t('home_title')],
     ['#boardColorBtn','title',t('board_color_title')],
@@ -2864,7 +2912,6 @@ function applyI18n(){
     ['#drawerGridToggle span','text',t('grid_toggle_label')],
     ['#drawerSnapToggle span','text',t('snap_toggle_label')],
     ['#emptyHomeText','text',t('empty_home_hint')],
-    ['#trashBtn','title',t('trash_btn_title')],
     ['#trashBackBtn','title',t('trash_back_title')],
     ['#trashTitle','text',t('trash_view_title')],
     ['#trashTagline','text',t('trash_tagline')],
@@ -3943,7 +3990,8 @@ const state={
   lastDeleted:null,          // undo buffer {kind:'cards'|'board', ...}
   lastPointer:{x:400,y:300}, // last known canvas-space pointer (for paste placement)
   recentlyRestored:new Set(), // board ids restored from the Papierkorb this session — badge clears on next app start
-  homeSelection:new Set(),   // board ids currently marked in the home/overview grid (click/long-press to (de)select, multi-select for bulk-trash and the Tools "Board exportieren" action) — normal board-grid + project-panel tiles only, never the Papierkorb view
+  homeSelection:new Set(),   // board ids currently MARKED (persistent selection outline) in the home/overview grid — only a long-press adds to this (see buildBoardTile), never a plain click; multi-select for bulk-trash and the Tools "Board exportieren" action. Normal board-grid + project-panel tiles only, never the Papierkorb view
+  homePeek:null,             // board id whose "Zum Board" button a plain click revealed, WITHOUT marking it (see setHomePeek/setTileSelectedUI) — a single id, not a set: only one tile peeks at a time, and only while homeSelection is empty (any long-press selection clears it, see toggleHomeSelect)
   optimisticHidden:new Set(), // board ids whose tile was already removed from the Home grid (a trashBoard() in flight) while the real backend write still runs in the background — refreshHome() also filters these out so the tile can't flicker back before the write actually lands; cleared once that write finishes (success or failure) and a final refresh re-syncs with the true backend state
   optimisticTrashHidden:new Set(), // same idea, but for the Papierkorb grid — set while a restoreBoardFromTrash()/permanentlyDeleteBoard() is in flight, so the tile leaves the Papierkorb instantly instead of waiting on the (possibly slow, real-network) backend write; see refreshTrash()
   boardOverrides:new Map(), // board id -> {field:value} overlay applied on top of whatever the next merge/fetch returns (see mergedBoardsFrom) — lets a local edit (e.g. renaming a board via the crumb) show correctly everywhere right away, even somewhere the app hasn't re-fetched from a slow FS/Drive backend yet; cleared once that field's own background write has actually landed
@@ -4363,11 +4411,20 @@ async function refreshHome(){
   if(hasRemoteSource) await withBusy(t('busy_syncing'), doMerge);
   else await doMerge();
 }
+let lastHomePaintSig=null;
 async function paintHomeGrid(all){
   // Boards mid-flight in an optimistic delete (see trashBoard) are excluded here too — otherwise
   // this merge (which still sees the old backend state until the background write lands) would
   // make the tile flicker right back after it was already removed from the UI.
   const roots=all.filter(b=>!b.parentBoardId && !state.optimisticHidden.has(b.id)).sort((a,b)=>b.updatedAt-a.updatedAt);
+  // Skip the rebuild entirely if nothing actually changed since the last paint. refreshHome() paints
+  // TWICE when a remote source is connected (once instantly from cache, once again once the fresh
+  // merge lands — see there) — without this check, that second paint would tear down and recreate
+  // every tile's DOM node even when the merge came back identical, which is what made a selected
+  // tile's frame flicker off and back on for no visible reason.
+  const sig=roots.map(b=>b.id+':'+(b.updatedAt||0)).join('|')+'##'+state.projects.map(p=>p.id+':'+(p.collapsed?1:0)+':'+p.boardIds.join(',')).join('|');
+  if(sig===lastHomePaintSig) return;
+  lastHomePaintSig=sig;
   boardGrid.innerHTML='';
 
   // Self-heal project state: drop references to boards that no longer exist, and auto-dissolve
@@ -4412,6 +4469,9 @@ async function paintHomeGrid(all){
 function toggleHomeSelect(id){
   if(state.homeSelection.has(id)) state.homeSelection.delete(id);
   else state.homeSelection.add(id);
+  // Peek (see setHomePeek) is a "nothing is marked yet" affordance — once there's a real selection,
+  // it doesn't apply anymore (the selected tile's own goBtn condition below covers a lone selection).
+  if(state.homeSelection.size) state.homePeek=null;
   refreshHomeSelectionUI();
 }
 function clearHomeSelection(){
@@ -4419,14 +4479,29 @@ function clearHomeSelection(){
   state.homeSelection.clear();
   refreshHomeSelectionUI();
 }
-// Reflects state.homeSelection onto one already-built tile: the persistent selected outline/actions,
-// and the big centered "Zum Board" button — shown only while this tile is the SOLE selection (with
-// 2+ selected, opening one of several at once doesn't make sense; the floating bulk bar takes over).
+// A plain click on a tile, while nothing is marked yet, no longer marks it (that used to make the
+// selection frame flash on/off on every stray click — the "flackert merkwürdig" bug). It only reveals
+// that ONE tile's "Zum Board" button, tracked here instead of in state.homeSelection so it never
+// grows the persistent multi-select. Only a long-press actually marks a tile (see buildBoardTile).
+function setHomePeek(id){
+  if(state.homePeek===id) return;
+  state.homePeek=id;
+  refreshHomeSelectionUI();
+}
+function clearHomePeek(){
+  if(!state.homePeek) return;
+  state.homePeek=null;
+  refreshHomeSelectionUI();
+}
+// Reflects state.homeSelection/state.homePeek onto one already-built tile: the persistent selected
+// outline (marked tiles only — never for a mere peek), and the big centered "Zum Board" button, shown
+// for a lone marked tile OR the one currently peeked tile (with 2+ marked, opening one of several at
+// once doesn't make sense; the floating bulk bar takes over instead).
 function setTileSelectedUI(tile,id){
   const selected=state.homeSelection.has(id);
   tile.classList.toggle('tile-selected',selected);
   const goBtn=tile.querySelector('.tile-go-btn');
-  if(goBtn) goBtn.hidden=!(selected && state.homeSelection.size===1);
+  if(goBtn) goBtn.hidden=!((selected && state.homeSelection.size===1) || state.homePeek===id);
 }
 function refreshHomeSelectionUI(){
   boardGrid.querySelectorAll('.board-tile[data-board-id]').forEach(tile=>{
@@ -4452,12 +4527,14 @@ function updateHomeBulkBar(){
   });
 }
 // A tap/click anywhere that ISN'T a board tile, a project tile/panel, the bulk bar, or the Tools
-// dropdown clears the whole selection — same "stray tap resets it" convention already used for the
-// touch drag-to-merge mark (see the markedTileBoardId listener further below).
+// button/sheet clears the whole selection AND the single-tile "peek" (see setHomePeek) — same "stray
+// tap resets it" convention already used for the touch drag-to-merge mark (see the markedTileBoardId
+// listener further below). "man klickt ins nichts" — this is that click-into-nothing.
 document.addEventListener('pointerdown',(e)=>{
-  if(!state.homeSelection.size) return;
-  if(e.target.closest('.board-tile, .project-tile, .project-panel, .home-bulk-bar, #toolsDropdown')) return;
+  if(!state.homeSelection.size && !state.homePeek) return;
+  if(e.target.closest('.board-tile, .project-tile, .project-panel, .home-bulk-bar, #toolsBtn, .tools-sheet')) return;
   clearHomeSelection();
+  clearHomePeek();
 });
 
 // Builds one board tile. Used both for standalone boards in the main grid and for boards inside
@@ -4560,13 +4637,16 @@ async function buildBoardTile(b,opts){
     });
     logoWrap.hidden=true;
   });
-  // A single click now SELECTS the tile (see toggleHomeSelect) instead of opening it right away —
-  // that's what makes .tile-actions reachable without fiddly hover-targeting, and lets several tiles
-  // be marked at once for the bulk "move to Papierkorb" action. Opening a board is now a dblclick (or
-  // the big centered "Zum Board" button a lone selected tile shows, or a long-press — see below and
-  // applyHomeSelectionUI). justDragged (a completed mouse drag-reorder) and justLongPressedSelect (the
-  // long-press-to-select gesture just below) each suppress the ONE native click that follows them, the
-  // same way a completed drag always has here.
+  // A single click no longer MARKS the tile — it used to, and toggling .tile-selected on every stray
+  // click (open, then immediately click elsewhere, etc.) is exactly what read as "der Markierungs-
+  // rahmen flackert merkwürdig rum". Now a plain click only reveals this tile's "Zum Board" button
+  // (setHomePeek) — UNLESS a selection is already active (something was long-pressed earlier), in
+  // which case a plain click on another tile ADDS it to that selection instead ("wenn dann ein
+  // anderes board angeklickt wird sind beide markiert"); clicking an already-marked tile again removes
+  // just that one. Opening a board is a dblclick, the big centered "Zum Board" button, or a long-press
+  // (see below). justDragged (a completed mouse drag-reorder) and justLongPressedSelect (the long-
+  // press-to-select gesture just below) each suppress the ONE native click that follows them, the same
+  // way a completed drag always has here.
   let justDragged=false;
   let justLongPressedSelect=false;
   const tileExcluded=(e)=>e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')||e.target.closest('.tile-go-btn');
@@ -4575,7 +4655,8 @@ async function buildBoardTile(b,opts){
     if(justDragged){ justDragged=false; return; }
     if(justLongPressedSelect){ justLongPressedSelect=false; return; }
     if(e.detail>=2) return; // the second half of a dblclick — let the dblclick handler below open it
-    toggleHomeSelect(b.id);
+    if(state.homeSelection.size) toggleHomeSelect(b.id);
+    else setHomePeek(b.id);
   });
   tile.addEventListener('dblclick',(e)=>{
     if(tileExcluded(e)) return;
@@ -6869,7 +6950,6 @@ window.addEventListener('keydown',(e)=>{
    ============================================================ */
 let busyCount=0;
 let busyDoneTimer=null;
-let busyLabelTimer=null;
 function showBusy(label){
   busyCount++;
   clearTimeout(busyDoneTimer);
@@ -6879,27 +6959,20 @@ function showBusy(label){
 }
 function hideBusy(){
   busyCount=Math.max(0,busyCount-1);
-  if(busyCount>0) return; // other operations are still running — keep the bar up for them
+  if(busyCount>0) return; // other operations are still running — keep the pill up for them
   const bar=document.getElementById('busyBar');
   if(!bar) return;
-  // Brief "done" pulse (bar snaps to 100%) so a very fast operation still reads as a clear
-  // completion signal instead of just blinking away — then fade the whole bar out.
+  // Brief "done" pulse (spinner freezes into a solid dot) so a very fast operation still reads as
+  // a clear completion signal instead of just blinking away — then fade the whole pill out.
   bar.classList.add('done');
   clearTimeout(busyDoneTimer);
   busyDoneTimer=setTimeout(()=>{ bar.classList.remove('show','done'); },450);
-  setBusyLabel(null);
 }
+// Always shows the CURRENT operation's label — kept short on purpose (see the call sites' busy_*
+// i18n strings): this pill has no room, and isn't meant to have any, for more than a few words.
 function setBusyLabel(label){
   const el=document.getElementById('busyBarLabel');
-  if(!el) return;
-  clearTimeout(busyLabelTimer);
-  if(label){
-    el.textContent=label;
-    el.classList.add('show');
-  }else{
-    el.classList.remove('show');
-    busyLabelTimer=setTimeout(()=>{ if(!el.classList.contains('show')) el.textContent=''; },250);
-  }
+  if(el && label) el.textContent=label;
 }
 // Convenience wrapper: runs fn() with the busy bar shown for its duration, always clearing it again
 // (success or failure) — the usual way to use this instead of manual showBusy/hideBusy pairs.
@@ -11124,51 +11197,64 @@ importInput.addEventListener('change',async ()=>{
     await importBundle(payload);
   }catch(e){ showToast(t('toast_import_failed')); }
 });
-// ---- Werkzeuge (Tools) dropdown — home screen only. Replaces the old standalone import button and
-// per-tile hover export button: both that functionality now lives in here instead (see buildBoardTile,
-// which no longer renders a .export-btn on a normal, non-Papierkorb tile). "Board exportieren" acts on
-// whichever board is currently marked in the home selection (state.homeSelection) — disabled unless
-// exactly one is picked, same idea as the canvas inspector only offering single-card actions.
+// ---- Werkzeuge (Tools) bottom sheet — home screen only. Replaces the old small dropdown under the
+// gear button and the old standalone top-bar Papierkorb icon: Vorlagen/Import/Export/Sync/Papierkorb
+// are now one bottom sheet that slides up from the bottom edge as an overlay over the board overview
+// (see the .tools-sheet CSS block above). "Board exportieren" still acts on whichever board is
+// currently marked in the home selection (state.homeSelection) — disabled unless exactly one is
+// picked, same idea as the canvas inspector only offering single-card actions.
 const toolsBtn=document.getElementById('toolsBtn');
-const toolsMenu=document.getElementById('toolsMenu');
-function closeToolsMenu(){ if(toolsMenu) toolsMenu.hidden=true; }
-function openToolsMenu(){
+const toolsSheet=document.getElementById('toolsSheet');
+const toolsSheetBackdrop=document.getElementById('toolsSheetBackdrop');
+function closeToolsSheet(){
+  if(!toolsSheet || toolsSheet.hidden) return;
+  toolsSheet.classList.remove('show');
+  toolsSheetBackdrop.classList.remove('show');
+  // Wait for the slide-down transition to actually finish before hiding — hiding immediately would
+  // just snap it away instead of sliding, the exact "flackert merkwürdig" feel this whole sheet
+  // exists to avoid.
+  setTimeout(()=>{ if(!toolsSheet.classList.contains('show')){ toolsSheet.hidden=true; toolsSheetBackdrop.hidden=true; } },260);
+}
+function openToolsSheet(){
   const exportItem=document.getElementById('toolsExportItem');
   if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
   const syncAllItem=document.getElementById('toolsSyncAllItem');
   if(syncAllItem) syncAllItem.disabled = !(fsState.root || driveState.root);
-  toolsMenu.hidden=false;
+  toolsSheet.hidden=false; toolsSheetBackdrop.hidden=false;
+  // Force layout before adding .show so the transform transition actually plays from translateY(100%).
+  void toolsSheet.offsetHeight;
+  toolsSheet.classList.add('show');
+  toolsSheetBackdrop.classList.add('show');
 }
 if(toolsBtn){
   toolsBtn.addEventListener('click',(e)=>{
     e.stopPropagation();
-    if(toolsMenu.hidden) openToolsMenu(); else closeToolsMenu();
+    if(toolsSheet.hidden) openToolsSheet(); else closeToolsSheet();
   });
   document.getElementById('toolsTemplatesItem').addEventListener('click',()=>{
-    closeToolsMenu();
+    closeToolsSheet();
     showTemplatePickerModal();
   });
   document.getElementById('toolsImportItem').addEventListener('click',()=>{
-    closeToolsMenu();
+    closeToolsSheet();
     triggerImport();
   });
   document.getElementById('toolsExportItem').addEventListener('click',()=>{
-    closeToolsMenu();
+    closeToolsSheet();
     if(state.homeSelection.size!==1){ showToast(t('toast_export_select_one')); return; }
     const [onlyId]=state.homeSelection;
     exportBoard(onlyId);
   });
   document.getElementById('toolsSyncAllItem').addEventListener('click',()=>{
-    closeToolsMenu();
+    closeToolsSheet();
     syncAllBoards();
   });
-  document.addEventListener('pointerdown',(e)=>{
-    if(toolsMenu.hidden) return;
-    if(e.target.closest('#toolsDropdown')) return;
-    closeToolsMenu();
+  document.getElementById('toolsTrashItem').addEventListener('click',()=>{
+    closeToolsSheet();
+    openTrash();
   });
+  toolsSheetBackdrop.addEventListener('click',closeToolsSheet);
 }
-document.getElementById('trashBtn').addEventListener('click',openTrash);
 document.getElementById('trashBackBtn').addEventListener('click',closeTrash);
 
 // Deep-clones a full board bundle (root board + every nested sub-board, their cards, connectors and
