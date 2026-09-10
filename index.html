@@ -1006,8 +1006,8 @@ try{
      overflow:auto above stays only as a safety net (a manually-shrunk card, or one pinned at the
      2000px height cap) so text is never truly unreachable, but the native scrollbar itself should
      never be visible; the content still scrolls with wheel/trackpad/touch, just without the bar. */
-  .note-body, .checklist-items, .table-scroll{ scrollbar-width:none; -ms-overflow-style:none; }
-  .note-body::-webkit-scrollbar, .checklist-items::-webkit-scrollbar, .table-scroll::-webkit-scrollbar{ display:none; width:0; height:0; }
+  .note-body, .checklist-items, .table-scroll, .wow-body{ scrollbar-width:none; -ms-overflow-style:none; }
+  .note-body::-webkit-scrollbar, .checklist-items::-webkit-scrollbar, .table-scroll::-webkit-scrollbar, .wow-body::-webkit-scrollbar{ display:none; width:0; height:0; }
   .note-body:empty::before{content:attr(data-placeholder); color:var(--card-placeholder-color, var(--faint));}
   /* An image dropped into a note (see mergeImageIntoNote) is a normal flow child of .note-body, not a
      separately positioned card — width:100% is genuinely "immer auf die Breite des Elements skaliert":
@@ -3898,8 +3898,24 @@ function driveRequestToken(opts){
 // interactive=false attempts a silent refresh (no popup; fails quietly if the browser session with
 // Google has expired or was revoked — the caller then falls back to asking for a real sign-in).
 // interactive=true shows Google's own account chooser/consent UI when needed.
+//
+// While driveState.pendingReconnect is true, a silent (interactive=false) call returns/throws
+// immediately WITHOUT ever calling into Google's SDK — this is what actually stops the repeated
+// auth-window problem. It's not enough to just skip the one deliberate boot-time silent attempt
+// (tryReconnectDrive, fixed in 1.0.67): every board open (resolveBoardSources), every home-screen
+// refresh (mergedAllBoards) and the background sync engine's own 30s cadence + after-every-edit
+// runs (runSyncEngine → pushDirtyBoards/pullRemoteChanges) ALL go through driveFetch → this same
+// function with interactive=false — so as long as pendingReconnect stays true (i.e. the user hasn't
+// done the one deliberate reconnect click yet), every single one of those was still independently
+// firing its own prompt:'none' request, and each one — same as the boot-time one — can no longer
+// stay silent once third-party cookies are blocked, surfacing its own real, failing popup. That's
+// the "öffnet immer noch mehrmals" behaviour: not one popup on load, but a fresh one every ~30s and
+// after every edit. Once the user does reconnect (confirmPendingDrive), pendingReconnect flips back
+// to false and normal silent token refreshes (for a token that's merely expired, not revoked) work
+// again as before.
 async function ensureAccessToken(interactive){
   if(driveState.accessToken && Date.now()<driveState.tokenExpiresAt-60000) return driveState.accessToken;
+  if(!interactive && driveState.pendingReconnect) throw new Error('drive-pending-reconnect');
   if(driveState.authPromise) return driveState.authPromise;
   const opts=interactive ? {} : {prompt:'none'};
   driveState.authPromise=driveRequestToken(opts).finally(()=>{ driveState.authPromise=null; });
@@ -6747,11 +6763,16 @@ async function openBoard(id, skipCrumbAnim){
     state.boardSources.set(id,{sources:new Set(resolved.all),bestSrc:resolved.best});
   }
   if(!(await ensureStorageReady())) return goHome();
-  // Pull in anything a connected target has that IndexedDB doesn't (or has newer than IndexedDB's
-  // copy) BEFORE reading — see the SYNC ENGINE section. DB.* below always reads IndexedDB now, so
-  // without this a board freshly edited on another device, or opened here for the very first time,
-  // would show stale or empty until the next background sync pass happened to catch up.
-  await ensureBoardMirroredAndFresh(id);
+  // A board IndexedDB doesn't have ANY copy of yet (the first time this specific device has ever
+  // opened it — e.g. a sub-board someone created on another device) has nothing local to show, so
+  // that one specific case still has to wait for a real pull before there's anything to render at
+  // all. Once IndexedDB has SOME copy, though, that copy is always safe to open immediately — the
+  // background top-up further below (after the board is already showing) is what picks up a newer
+  // remote copy from there, without making every single board open wait on a network round-trip.
+  const hasLocalCopy = resolved ? resolved.all.includes('idb') : true; // no fs/drive connected at all → idb was always the only possible source
+  if(!hasLocalCopy){
+    await withBusy(t('busy_pulling'), ()=>ensureBoardMirroredAndFresh(id).catch(()=>{}));
+  }
   const board=await DB.getBoard(id);
   if(!board) return goHome();
   state.currentBoardId=id;
@@ -6793,6 +6814,34 @@ async function openBoard(id, skipCrumbAnim){
   renderConnectors();
   updateEmptyHint();
   pushNavState();
+
+  // Pulling in anything a connected FS/Drive target has that IndexedDB doesn't yet (someone edited
+  // this board from another device) used to happen BEFORE any of the above — a real network round-trip
+  // standing between "click a board" and actually seeing it, on every single open. Same principle as
+  // trashBoard()/restoreBoardFromTrash() above ("im UI schonmal entfernt werden und im Hintergrund dann
+  // laden"): the board you already have locally is a perfectly valid thing to open and start looking at
+  // right away, so the freshness top-up now runs in the background afterward — chainBoardOp keeps it
+  // from racing a trash/restore/delete on the same board, withBusy shows the small non-blocking pill
+  // (not an overlay) while it's in flight. It only re-reads and re-renders if (a) this is still the
+  // board on screen — the user may well have already navigated elsewhere by the time a slow pull
+  // finishes, (b) nothing's been edited here yet in the meantime (state.dirtyBoards) — clobbering an
+  // in-progress edit with a re-read would be worse than the staleness this fixes, and (c) the pull
+  // actually found something newer at all (updatedAt changed) — the common case (nothing else touched
+  // this board) does no redundant re-render. Skipped when hasLocalCopy was already false above — that
+  // path just finished the exact same pull synchronously, moments ago, so doing it again here would
+  // only be a wasted extra round-trip.
+  if(hasLocalCopy){
+    chainBoardOp(id, ()=>withBusy(t('busy_pulling'), async ()=>{
+      try{ await ensureBoardMirroredAndFresh(id); }catch(e){ return; }
+      if(state.currentBoardId!==id || state.dirtyBoards.has(id)) return;
+      const freshBoard=await DB.getBoard(id).catch(()=>null);
+      if(!freshBoard || freshBoard.updatedAt===board.updatedAt) return;
+      state.cards=await DB.cardsForBoard(id);
+      state.connectors=await DB.connectorsForBoard(id);
+      renderAllCards();
+      renderConnectors();
+    })).catch(()=>{});
+  }
 }
 
 async function renderCrumbs(board){
@@ -7037,8 +7086,8 @@ function toggleDynamicContent(){
   try{ localStorage.setItem('notua-dynamic-content', state.dynamicContent?'1':'0'); }catch(e){}
   syncDynamicUI();
   if(state.dynamicContent){
-    // fit every note/checklist card already on the board right away, so turning it on feels immediate
-    state.cards.filter(c=>c.type==='note'||c.type==='checklist').forEach(c=>{
+    // fit every note/checklist/wowpvp card already on the board right away, so turning it on feels immediate
+    state.cards.filter(c=>c.type==='note'||c.type==='checklist'||c.type==='wowpvp').forEach(c=>{
       const el=cardsLayer.querySelector('.card[data-id="'+c.id+'"]');
       if(el) fitCardHeight(el,c);
     });
@@ -7097,7 +7146,11 @@ if(window.matchMedia){
 syncThemeUI();
 function fitCardHeight(el,card){
   if(!state.dynamicContent) return;
-  if(card.type!=='note' && card.type!=='checklist') return;
+  // wowpvp joined this list so the Verlauf tab's selects/chart and the always-visible copy-talents
+  // button never need .wow-body's own internal scrollbar (see the [data-beta="wow"] work below) — same
+  // "grow instead of scroll" idea notes/checklists already get, just triggered from renderResult()
+  // instead of a text-input handler.
+  if(card.type!=='note' && card.type!=='checklist' && card.type!=='wowpvp') return;
   const prevHeight=el.style.height;
   el.style.height='auto';
   const needed=Math.ceil(el.scrollHeight)+2; // +2px safety margin against sub-pixel rounding
@@ -8081,11 +8134,34 @@ function iconSwap(){return `<svg width="12" height="12" viewBox="0 0 24 24" fill
 /* ============================================================
    CARD RENDERING
    ============================================================ */
+// Populated once per renderAllCards() pass (see below), read by baseCardShell() further down instead
+// of each card re-querying getComputedStyle() itself. None of these three values — a tag color's RGB
+// triplet, the theme surface tone, the canvas color — vary per card, only per theme, so reading them
+// once per render pass instead of up to 3x PER CARD removes a real "layout thrashing" pattern:
+// baseCardShell() used to alternate reading computed styles with cardsLayer.appendChild()'s DOM
+// writes on almost every loop iteration, which forces the browser to recompute layout on nearly every
+// single card, EVERY time renderAllCards() runs — and renderAllCards() runs on essentially every board
+// action (add/move/delete/select/edit-confirm), not just once per board open. That's a big part of why
+// the whole app could feel a little sluggish on every little action, independent of any network I/O.
+// null outside an active renderAllCards() pass, so baseCardShell() still works correctly (just with a
+// live, uncached read) if it's ever reached from somewhere else in the future.
+let cardBuildTokens=null;
+function computeCardBuildTokens(){
+  const rootStyle=getComputedStyle(document.documentElement);
+  const tagRgb={};
+  TAG_COLORS.forEach(c=>{ tagRgb[c]=rootStyle.getPropertyValue('--tag-'+c).trim(); });
+  return{ tagRgb, surfaceRgb:rootStyle.getPropertyValue('--surface-rgb').trim(), canvasHex:rootStyle.getPropertyValue('--canvas').trim() };
+}
 function renderAllCards(){
   reconcileColumnMesh();
   cardsLayer.innerHTML='';
   const sorted=[...state.cards].sort((a,b)=>(a.z||0)-(b.z||0));
-  sorted.forEach(c=>cardsLayer.appendChild(buildCardEl(c)));
+  cardBuildTokens=computeCardBuildTokens();
+  try{
+    sorted.forEach(c=>cardsLayer.appendChild(buildCardEl(c)));
+  }finally{
+    cardBuildTokens=null;
+  }
   // Connectors and cluster outlines both depend on nothing but the current card list, exactly like
   // the cards themselves — so any renderAllCards() call refreshes them too now, rather than leaving
   // every caller responsible for remembering a separate renderConnectors() call alongside it. Missing
@@ -8098,8 +8174,12 @@ function renderAllCards(){
   renderConnectors();
   if(state.dynamicContent){
     sorted.forEach(c=>{
-      if(c.type!=='note' && c.type!=='checklist') return;
+      if(c.type!=='note' && c.type!=='checklist' && c.type!=='wowpvp') return;
       const el=cardsLayer.querySelector('.card[data-id="'+c.id+'"]');
+      // A wowpvp card's own renderResult() already calls fitCardHeight for every state change it makes
+      // itself (search, tab switch, select change) — this pass exists for the OTHER case: a board
+      // that's just been (re)loaded, showing a previous search's persisted result for the first time
+      // this session, before anything inside the card has fired a single event yet.
       if(el) fitCardHeight(el,c);
     });
   }
@@ -8160,10 +8240,13 @@ function baseCardShell(card,extraClass){
   // black/white by at most 70-80%, so the result is always a tinted shade of the fill color (here, a
   // blue-leaning grey, or the theme's own near-black/near-white) rather than a flat pure white/black.
   if(hasOwnColor || isColumn || isPlainTextCard){
+    // See cardBuildTokens above renderAllCards() — cached once per render pass; falls back to a live
+    // (still correct, just uncached) read the rare/future time this runs outside that pass.
+    const tokens=cardBuildTokens||computeCardBuildTokens();
     const rgbTriplet = isCustomColor
       ? hexToRgbTriplet(card.customColor)
       : hasOwnColor
-        ? getComputedStyle(document.documentElement).getPropertyValue('--tag-'+card.color).trim()
+        ? tokens.tagRgb[card.color]
         : isColumn
           ? '140,149,160'
           // Plain note/checklist/table/boardlink with no color of its own: the "color" its fill is
@@ -8172,7 +8255,7 @@ function baseCardShell(card,extraClass){
           // the accent-echoing extras (raw accent color, darker header shade) further down, which stay
           // exclusive to an actual chosen color/column so a default table/checklist keeps looking
           // exactly as before.
-          : getComputedStyle(document.documentElement).getPropertyValue('--surface-rgb').trim();
+          : tokens.surfaceRgb;
     const parts=rgbTriplet.split(',').map(Number);
     // Contrast has to be computed against what's actually VISIBLE, not the pure/undiluted color —
     // at a low Deckkraft the fill is mostly see-through, so the true backdrop behind the text is this
@@ -8185,8 +8268,7 @@ function baseCardShell(card,extraClass){
     // Compositing first means the computed color is always tuned for what you actually see.
     let effectiveTriplet=rgbTriplet;
     if(parts.length===3 && !parts.some(isNaN)){
-      const canvasHex=getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim();
-      const canvasRgb=hexToRgbArr(canvasHex);
+      const canvasRgb=hexToRgbArr(tokens.canvasHex);
       const a=Math.max(0,Math.min(1,opacityFrac));
       const blended=parts.map((c,i)=>c*a+canvasRgb[i]*(1-a));
       effectiveTriplet=blended.join(',');
@@ -9167,10 +9249,18 @@ function drustvarMaxRating(entries){
 // Cleans + sorts one bracket/spec's raw dated-snapshot array into {date,rating}[], oldest first — the
 // shape the Verlauf chart draws directly. Same source arrays foldDrustvarSeasonIntoPeak already reads
 // for the peak number; this just keeps every point instead of collapsing them to a single max.
+//
+// The real drustvar.com payload has NO plain `date` field (confirmed against an actual captured
+// response) — each snapshot instead carries `date_added` (a real ISO timestamp, e.g.
+// "2026-09-07T17:13:09+00:00") and `date_updated` (a human string like "2 days ago", useless for
+// sorting/plotting). Filtering on `e.date` therefore silently dropped every real entry, which is
+// exactly why the Verlauf tab showed "keine Verlaufsdaten vorhanden" for a character that clearly had
+// history — foldDrustvarSeasonIntoPeak never hit this bug because it only ever reads `.rating`, never
+// a date field. `date` is still checked as a fallback in case some other endpoint variant does use it.
 function wowSortedEntries(arr){
   return (Array.isArray(arr)?arr:[])
-    .filter(e=>e && typeof e.rating==='number' && e.date)
-    .map(e=>({date:e.date, rating:e.rating}))
+    .filter(e=>e && typeof e.rating==='number' && (e.date_added||e.date))
+    .map(e=>({date:e.date_added||e.date, rating:e.rating}))
     .sort((a,b)=>new Date(a.date)-new Date(b.date));
 }
 // Builds the full per-bracket, per-season rating-history series the Verlauf tab's chart draws from —
@@ -9614,10 +9704,11 @@ function buildWowPvpCard(card){
     const st=card.data.status;
     const hasQuery=!!(card.data.name && card.data.server);
     reloadBtn.hidden=!hasQuery;
-    if(st==='loading'){ resultEl.innerHTML=`<div class="wow-status-msg">${t('wowpvp_loading')}</div>`; return; }
+    if(st==='loading'){ resultEl.innerHTML=`<div class="wow-status-msg">${t('wowpvp_loading')}</div>`; fitCardHeight(el,card); return; }
     if(st==='error'){
       const openLink=hasQuery ? `<a class="wow-open-link" href="${buildDrustvarCharacterUrl(card.data.region,card.data.server,card.data.name)}" target="_blank" rel="noopener noreferrer">${t('wowpvp_open_link')}</a>` : '';
       resultEl.innerHTML=`<div class="wow-status-msg wow-status-error">${t('wowpvp_error')}</div>${openLink}`;
+      fitCardHeight(el,card);
       return;
     }
     if(st==='ok' && card.data.result){
@@ -9659,14 +9750,21 @@ function buildWowPvpCard(card){
         <button type="button" class="wow-tab-btn${card.data.activeTab==='history'?' active':''}" data-tab="history">${t('wowpvp_tab_history')}</button>
       </div>`;
 
+      // "Talentbuild kopieren" sits below both panels, outside the tab switch — Tom asked for it to
+      // always be reachable regardless of which tab is open, not just inside Verlauf.
+      const copyTalentsHtml=`<button type="button" class="wow-copy-talents-btn">${t('wowpvp_copy_talents_btn')}</button>`;
+
       resultEl.innerHTML = tabsHtml
         + `<div class="wow-tab-panel"${card.data.activeTab!=='overview'?' hidden':''} data-panel="overview">${overviewHtml}</div>`
-        + `<div class="wow-tab-panel"${card.data.activeTab!=='history'?' hidden':''} data-panel="history">${historyHtml}<button type="button" class="wow-copy-talents-btn">${t('wowpvp_copy_talents_btn')}</button></div>`;
+        + `<div class="wow-tab-panel"${card.data.activeTab!=='history'?' hidden':''} data-panel="history">${historyHtml}</div>`
+        + copyTalentsHtml;
 
       wireWowResultInteractions(history);
+      fitCardHeight(el,card);
       return;
     }
     resultEl.innerHTML='';
+    fitCardHeight(el,card);
   }
 
   // Wires up everything renderResult() just rebuilt as innerHTML — the tab switcher, the bracket/spec/
