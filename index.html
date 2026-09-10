@@ -4606,6 +4606,23 @@ async function checkRemoteConflict(boardId,target,backend){
   if(local && (remoteBoard.updatedAt||0)===(local.updatedAt||0)) return null; // already identical — nothing to ask about
   return remoteBoard;
 }
+// Pushes the deletion of ONE board out to every given target and, on full success, clears its dirty
+// flag (nothing left for a later background pass to redo). Every backend's deleteBoard() is already a
+// safe no-op when it has nothing under that id (never synced there, or already gone), so calling it
+// unconditionally on every connected target is fine even when most of them never had this board at
+// all. Used both by pushDirtyBoards() below (its own regular, debounced pass) and directly by
+// deleteBundle() right after a delete — see the comment there for why deleteBundle can't just leave
+// this to the background pass alone.
+async function pushBoardDeletionToTargets(boardId,targets){
+  let anyFailed=false;
+  for(const target of targets){
+    const backend=backendFor(target);
+    try{ await backend.deleteBoard(boardId); state.syncKnownRemote.delete(boardId+'|'+target); }
+    catch(e){ anyFailed=true; } // network hiccup etc — leave dirty, retry next pass
+  }
+  if(!anyFailed) state.dirtyBoards.delete(boardId);
+  return !anyFailed;
+}
 // Pushes every board in state.dirtyBoards out to every connected target. Per target, every board
 // actually involved (a board with nested sub-boards pulls its whole family along — see
 // collectBoardBundle) is checked for a conflict FIRST; if any of them conflicts, that whole push to
@@ -4619,21 +4636,11 @@ async function pushDirtyBoards(targets){
       const board=await IDB_DB.getBoard(boardId);
       if(!board){
         // Deleted locally in the meantime (permanentlyDeleteBoard/deleteBundle already removed it from
-        // IndexedDB) — but the deletion itself still has to be pushed out to every connected target, or
-        // it just keeps sitting there untouched. This used to simply drop the dirty entry here and stop,
-        // which meant the very next pullRemoteChanges() pass below saw that target still happily listing
-        // the "deleted" board (via allBoards()/allTrashedBoards()) and mirrored it straight back into
-        // IndexedDB — a permanently-deleted board reappearing a few seconds later. Every backend's
-        // deleteBoard() is already a safe no-op when it has nothing under that id (never synced there,
-        // or already gone), so calling it unconditionally on every connected target is fine even when
-        // most of them never had this board in the first place.
-        let anyFailed=false;
-        for(const target of targets){
-          const backend=backendFor(target);
-          try{ await backend.deleteBoard(boardId); state.syncKnownRemote.delete(boardId+'|'+target); }
-          catch(e){ anyFailed=true; } // network hiccup etc — leave dirty, retry next pass
-        }
-        if(!anyFailed) state.dirtyBoards.delete(boardId);
+        // IndexedDB). deleteBundle() already pushes this same deletion out synchronously right when it
+        // happens (see there), so by the time this regular pass gets here it's usually already a no-op
+        // — but this still catches a deletion that reached IndexedDB some other way, or one whose own
+        // synchronous push failed (e.g. briefly offline) and is now due for a retry.
+        await pushBoardDeletionToTargets(boardId,targets);
         continue;
       }
       const bundle=await collectBoardBundle(boardId); // reads via DB.* → IndexedDB, our one source of truth
@@ -5716,6 +5723,15 @@ async function trashBoard(boardId){
       showToast(t('toast_board_trash_failed',{name}));
       return;
     }
+    // Also push the new trashed:true state out to every connected target right now, synchronously —
+    // DB.setTrashed above only updates IndexedDB and queues the change for the next debounced
+    // background sync pass (same delay deleteBundle's identical fix addresses for a permanent delete —
+    // see its comment). Without this, the refreshHome() right below would still find this board's
+    // un-trashed copy sitting on any connected folder/Drive and show it right back in Home, looking
+    // like trashing it did nothing. A failure here (e.g. briefly offline) isn't treated as the whole
+    // operation failing — the trash itself already landed in IndexedDB either way, and the regular
+    // background pass (the dirty flag is still set) retries the push on its own.
+    try{ const targets=syncTargets(); if(targets.length) await syncBoardToTargets(boardId,targets); }catch(e){}
     state.optimisticHidden.delete(boardId);
     if(state.screen==='home') await refreshHome();
     if(!trashView.hidden) await refreshTrash();
@@ -5743,6 +5759,10 @@ async function restoreBoardFromTrash(boardId){
       showToast(t('toast_board_restore_failed',{name}));
       return;
     }
+    // Same reasoning as trashBoard's identical push — restoring only updated IndexedDB so far, and the
+    // refreshHome() right below needs the connected folder/Drive to already agree trashed is false again,
+    // or the restored board just silently fails to show up there until the next background pass.
+    try{ const targets=syncTargets(); if(targets.length) await syncBoardToTargets(boardId,targets); }catch(e){}
     // Cleared on the next full app start (it's a plain in-memory Set, nothing persisted) — exactly
     // as long as the user asked the "recently restored" hint should last.
     ids.forEach(id=>state.recentlyRestored.add(id));
@@ -7823,6 +7843,22 @@ async function deleteBundle(bundle){
   for(const c of bundle.cards) await DB.deleteCard(c.id);
   for(const img of (bundle.images||[])) await DB.deleteImage(img.id);
   for(const b of bundle.boards) await DB.deleteBoard(b.id);
+  // DB.deleteBoard above only removes IndexedDB's copy and queues the deletion for the next background
+  // sync pass (state.dirtyBoards, drained by pushDirtyBoards on its own debounced ~1.5s+ cadence — see
+  // the SYNC ENGINE section). That's too slow for the common case right after this: permanentlyDeleteBoard
+  // immediately re-reads the merged board list to refresh the Papierkorb view once this call returns —
+  // and without pushing the deletion out right here too, that refresh still finds the board sitting
+  // untouched on any connected folder/Drive (the background push hasn't run yet), so a board that just
+  // got "endgültig gelöscht" reappeared in the Papierkorb anyway, only to vanish silently (no UI refresh
+  // tied to it) once the next background pass finally caught up. Pushing it out synchronously here means
+  // the very next refresh already sees the true, fully-deleted state everywhere.
+  if(bundle.boards && bundle.boards.length){
+    const targets=syncTargets();
+    if(targets.length){
+      for(const b of bundle.boards) await pushBoardDeletionToTargets(b.id,targets);
+      saveSyncKnownRemote();
+    }
+  }
 }
 async function restoreBundle(bundle){
   if(!bundle) return;
@@ -9022,10 +9058,16 @@ function buildDrustvarApiUrl(kind,region,server,name,season){
 // is logged to the console (proxy index + status/reason) so a future "still failing" report can be
 // diagnosed from DevTools → Console alone, without another full Network-tab walkthrough.
 // corsproxy.io now answers with HTTP 401 for anonymous/unregistered callers (confirmed live via a
-// user's own DevTools Network tab — a real Cloudflare-fronted 401, not a caching artifact), so it's
-// kept only as a last-resort fourth attempt instead of first, to avoid burning a guaranteed-failed
-// round trip on every single request.
+// user's own DevTools Network tab — a real Cloudflare-fronted 401, not a caching artifact); a follow-up
+// check showed allorigins.win, codetabs.com AND thingproxy all failing too, every shared public proxy
+// locking down or dying in turn — the exact kind of whack-a-mole this can't keep chasing. notua-wow-proxy
+// is a small Cloudflare Worker the user (Tom) owns and runs himself, hard-scoped to only ever forward to
+// drustvar.com for requests from notua.site (see worker.js/wrangler.jsonc next to this file) — not a
+// shared, rate-limited, anyone-can-use-it service, so it isn't subject to the same abuse-driven lockdowns.
+// It goes first; the public ones stay listed after it purely as a last-resort safety net in case Tom's
+// own Worker is ever down (Cloudflare outage, free-tier quota, etc.) — not because they're expected to work.
 const WOW_CORS_PROXIES=[
+  {name:'notua-wow-proxy (eigener Worker)', build:u=>'https://notua-wow-proxy.tomxluna.workers.dev/?url='+encodeURIComponent(u)},
   {name:'allorigins.win', build:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
   {name:'codetabs.com', build:u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)},
   {name:'thingproxy', build:u=>'https://thingproxy.freeboard.io/fetch/'+u},
@@ -12026,12 +12068,20 @@ async function connectDrive(){
     updateDriveStatusUI();
   }
 }
-// Runs once at boot (see init() at the bottom of the file). If Drive sync was active last session
-// (a driveAccount ref is on disk), this puts storageMode back to 'drive' and tries a SILENT token
-// refresh first (no popup) — that succeeds as long as the browser still has a live Google session,
-// which is the common case. If it fails (session expired, revoked, or GIS hasn't finished loading
-// yet), driveState.pendingReconnect stays true and the reconnect banner/red driveBtn ask for one
-// interactive click, exactly like tryReconnectFolder()'s pending-handle case above.
+// Runs once at boot (see init() at the bottom of the file). If Drive sync was active last session (a
+// driveAccount ref is on disk), this puts storageMode back to 'drive' — but, deliberately, no longer
+// attempts any automatic sign-in of its own. It used to: request a token with prompt:'none' ("silent",
+// meant to never show a popup) right here, which works fine as long as the browser still has a live,
+// cookie-backed Google session. With third-party cookies now widely blocked by default, that "silent"
+// request increasingly can't stay silent — Google's own popup-based token flow opens a real, visible
+// sign-in window anyway, and (for reasons on Google's end this app has no way to fix or even reliably
+// diagnose from here) that window can fail and reopen itself several times in a row right at page load,
+// each one asking to log in again — "4-5 mal das Gmail-Fenster beim Start, jedes Mal neu einloggen".
+// The only fix that's guaranteed to stop that outright is to never trigger it automatically at all, so
+// this now just shows the "bitte neu verbinden" banner/red driveBtn (pendingReconnect=true) and waits
+// for one deliberate click — confirmPendingDrive() does the exact same token request, but interactively
+// and only when the person actually asked for it right then, exactly like tryReconnectFolder()'s
+// pending-handle case above already does for a connected local folder.
 async function tryReconnectDrive(){
   if(!DRIVE_SUPPORTED) return;
   let ref=null;
@@ -12039,11 +12089,9 @@ async function tryReconnectDrive(){
   if(!ref || !ref.rootId) return;
   state.storageMode='drive';
   driveState.root=ref.rootId; driveState.email=ref.email||''; driveState.name=ref.name||'';
-  // No network at all right now means a silent token refresh is guaranteed to fail — and critically,
-  // that failure must NOT be read as "please reconnect" (pendingReconnect, the harder banner asking
-  // for a fresh interactive sign-in): this is just a connectivity gap, not an expired/revoked
-  // session. Drive's boards simply won't be reachable for the home-screen merge until back online;
-  // idb and a connected folder keep working normally in the meantime.
+  // No network at all right now isn't "please sign in again" (pendingReconnect, the harder banner) —
+  // it's just a connectivity gap; idb and a connected folder keep working normally in the meantime, and
+  // the softer "offline" pill (driveState.offline) says so without implying a fresh login is needed.
   if(navigator.onLine===false){
     driveState.offline=true;
     updateDriveStatusUI();
@@ -12051,13 +12099,6 @@ async function tryReconnectDrive(){
   }
   driveState.pendingReconnect=true;
   updateDriveStatusUI();
-  if(!(window.google && google.accounts && google.accounts.oauth2)) return;
-  try{
-    await ensureAccessToken(false);
-    await fetchDriveUserInfo();
-    driveState.pendingReconnect=false;
-    await activateDrive(ref.rootId,{offerMigration:false});
-  }catch(e){ /* silent refresh failed — stays pending until the person clicks through once */ }
 }
 function driveStorageBlocked(){ return state.storageMode==='drive' && driveState.pendingReconnect; }
 async function confirmPendingDrive(){
