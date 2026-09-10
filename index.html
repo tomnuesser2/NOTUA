@@ -1179,6 +1179,18 @@ try{
      black above, so nothing but Spotify's own surface is ever visible even for a stray sub-pixel
      rounding gap or the instant before the iframe finishes loading. */
   .yt-frame-wrap.spotify-frame{background:transparent;}
+  /* Strava's own embed cards are white/light-chrome, like Pinterest's board widget — scrolls
+     internally rather than clipping, since the embed's own height isn't always predictable up front. */
+  .yt-frame-wrap.strava-frame{background:#fff; overflow-y:auto; overflow-x:hidden;}
+  .strava-embed-mount{width:100%;}
+  .strava-reload-btn{
+    position:absolute; top:8px; right:8px; z-index:3; width:26px; height:26px; border-radius:50%;
+    border:none; background:rgba(0,0,0,.45); color:#fff; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; opacity:0; transition:opacity .12s;
+  }
+  .card-youtube.embedded:hover .strava-reload-btn, .card-youtube.embedded.selected .strava-reload-btn{opacity:1;}
+  @media not all and (hover:hover) and (pointer:fine){ .strava-reload-btn{opacity:0.85;} }
+  .strava-reload-btn:hover{background:rgba(0,0,0,.65);}
   .yt-input-wrap{flex:1; display:flex; align-items:center; padding:0 12px 12px; gap:8px;}
   .yt-input-wrap input{
     flex:1; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-family:inherit; font-size:0.82rem; outline:none; background:var(--surface); color:var(--ink);
@@ -1400,6 +1412,45 @@ try{
   }
   .cp-history-swatch:hover{transform:scale(1.15);}
 
+  /* ---------- WOW PVP-CHECK CARD (secret beta feature) ---------- */
+  .card-wowpvp{background:var(--surface);}
+  .wow-title-field{font-size:0.86rem; font-weight:700; color:var(--ink);}
+  .wow-body{flex:1; display:flex; flex-direction:column; gap:10px; padding:2px 14px 14px; min-height:0; overflow-y:auto;}
+  .wow-search-row{display:flex; align-items:center; gap:6px;}
+  .wow-search-row input{
+    min-width:0; font:inherit; font-size:0.8rem; background:var(--surface-2); border:1.5px solid transparent;
+    border-radius:7px; padding:6px 8px; color:var(--ink); outline:none;
+  }
+  .wow-search-row input:focus{border-color:var(--accent);}
+  .wow-name{flex:1.3;}
+  .wow-server{flex:1;}
+  .wow-region{
+    flex:none; font:inherit; font-size:0.76rem; background:var(--surface-2); border:1.5px solid transparent;
+    border-radius:7px; padding:6px 4px; color:var(--ink); outline:none;
+  }
+  .wow-go-btn, .wow-reload-btn{
+    flex:none; width:30px; height:30px; border-radius:8px; border:1.5px solid var(--border-strong); background:var(--surface-2);
+    color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:border-color .14s ease, color .14s ease;
+  }
+  .wow-go-btn:hover, .wow-reload-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .wow-result{display:flex; flex-direction:column; gap:8px;}
+  .wow-status-msg{font-size:0.78rem; color:var(--muted); line-height:1.4;}
+  .wow-status-error{color:var(--danger, #C0392B);}
+  .wow-tiles{display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
+  .wow-tile{
+    display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:9px; background:var(--surface-2);
+    border:1px solid var(--border);
+  }
+  .wow-tile-label{font-size:0.62rem; font-weight:700; letter-spacing:.04em; color:var(--faint); text-transform:uppercase;}
+  .wow-tile-value{font-size:1.02rem; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .wow-tile-bracket{gap:3px;}
+  .wow-tile-sub{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:0.64rem; color:var(--faint);}
+  .wow-tile-sub b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums;}
+  .wow-identity{font-size:0.74rem; color:var(--muted); margin:-2px 0 0;}
+  .wow-updated{font-size:0.66rem; color:var(--faint);}
+  .wow-open-link{align-self:flex-start; font-size:0.76rem; font-weight:600; color:var(--accent); text-decoration:none;}
+  .wow-open-link:hover{text-decoration:underline;}
+
   /* ---------- TAG COLOR CLASSES ---------- */
   .tag-none{--tint:255,255,255; }
   :root[data-theme="dark"] .tag-none, .card.tag-none{ }
@@ -1422,7 +1473,7 @@ try{
      card instead — "Note/Notiz... mit Opacity die Schrift so angepasst wird, dass sie leserlich bleibt".
      Image/youtube cards are deliberately NOT included here: their content already fully covers the card
      (a photo/embed), so fading the whole element is exactly the wanted effect there, not a bug to fix. */
-  .card-note.tag-none, .card-checklist.tag-none, .card-table.tag-none, .card-boardlink.tag-none, .card-colorpicker.tag-none{
+  .card-note.tag-none, .card-checklist.tag-none, .card-table.tag-none, .card-boardlink.tag-none, .card-colorpicker.tag-none, .card-wowpvp.tag-none{
     background:rgba(var(--surface-rgb), var(--tag-alpha));
   }
   .card-column.tag-yellow{border-color:rgb(var(--tag-yellow));}
@@ -2175,6 +2226,10 @@ try{
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.2" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="16.2" r="1.3" fill="currentColor" stroke="none"/><circle cx="7.8" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>
         <span>Farbe</span>
       </button>
+      <button class="dock-btn" data-add="wowpvp" data-beta="wow" hidden title="WoW-PvP-Check hinzufügen">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.3l7 2.8v5.4c0 5-3 7.9-7 9.2-4-1.3-7-4.2-7-9.2V6.1z"/><path d="M9 12l2.2 2.2L15.5 9.5"/></svg>
+        <span>WoW PvP</span>
+      </button>
       <button class="dock-btn" data-add="board" title="Unter-Board erstellen">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
         <span>Board</span>
@@ -2263,6 +2318,10 @@ try{
         <button class="drawer-btn" data-add="colorpicker">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.2" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="16.2" r="1.3" fill="currentColor" stroke="none"/><circle cx="7.8" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>
           <span>Farbe</span>
+        </button>
+        <button class="drawer-btn" data-add="wowpvp" data-beta="wow" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.3l7 2.8v5.4c0 5-3 7.9-7 9.2-4-1.3-7-4.2-7-9.2V6.1z"/><path d="M9 12l2.2 2.2L15.5 9.5"/></svg>
+          <span>WoW PvP</span>
         </button>
         <button class="drawer-btn" data-add="board">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
@@ -2376,6 +2435,62 @@ function extractPinterestBoard(url){
   if(!user || !board || /^pin$/i.test(user)) return null; // e.g. pinterest.com/pin/12345/ is a single pin
   return `https://www.pinterest.com/${encodeURIComponent(user)}/${encodeURIComponent(board)}/`;
 }
+// Widgets card, Strava kind: accepts either the exact embed snippet Strava's own "Embed" button
+// generates — a strava-embed-placeholder div with data-embed-type/data-embed-id (plus whatever other
+// data-* attrs) followed by a script tag loading strava-embeds.com's embed.js — or, as a
+// convenience, a plain strava.com/activities/<id> or strava.com/routes/<id> link. The embed-code path
+// is the reliable one for EVERY type Strava supports (activity/route/profile/club/...): whatever
+// data-embed-type Strava decided on, and every extra data-* attribute (data-style, data-map-hash,
+// data-terrain, ...) it added, is read straight off the pasted markup and passed straight through
+// untouched, so this never has to know the full set of type strings itself. A bare profile/athlete
+// URL is deliberately NOT accepted here — Strava's own docs describe the profile-feed embed as
+// something you get from "Share your Activities" on your profile, not a plain link, so there's no
+// reliable way to build that one from just an athlete id; the embed-code path is required for that
+// type ("den Code eines Strava Embeds eingeben" — that was the actual original ask).
+function extractStravaEmbed(input){
+  if(!input) return null;
+  const raw=input.trim();
+  if(!raw) return null;
+  if(/strava-embed-placeholder/.test(raw)){
+    const tmp=document.createElement('div');
+    tmp.innerHTML=raw;
+    const ph=tmp.querySelector('.strava-embed-placeholder');
+    if(!ph) return null;
+    const type=ph.getAttribute('data-embed-type'), id=ph.getAttribute('data-embed-id');
+    if(!type || !id) return null;
+    const attrs={};
+    Array.from(ph.attributes).forEach(a=>{
+      if(a.name.startsWith('data-') && a.name!=='data-embed-type' && a.name!=='data-embed-id') attrs[a.name]=a.value;
+    });
+    return {type,id,attrs};
+  }
+  let m=raw.match(/strava\.com\/activities\/(\d+)/);
+  if(m) return {type:'activity', id:m[1], attrs:{}};
+  m=raw.match(/strava\.com\/routes\/(\d+)/);
+  if(m) return {type:'route', id:m[1], attrs:{}};
+  return null;
+}
+// Mounts (or re-mounts, for the reload button) a Strava embed into its container — creates a fresh
+// placeholder div plus a fresh <script src="strava-embeds.com/embed.js"> every time, rather than
+// loading that script once globally: unlike Pinterest's pinit.js (which exposes an explicit
+// PinUtils.build() re-scan hook, see loadPinIt() below), Strava's script only ever scans the page
+// once, at the moment it executes — so getting it to notice a newly-added/changed placeholder means
+// re-appending the script element itself (a freshly appended <script src> always re-fetches — browser-
+// cached, so this is cheap — and re-runs its top-level scan) every single time, on first embed AND on
+// reload alike.
+function mountStravaEmbed(mountEl,data){
+  if(!mountEl || !data || !data.stravaType || !data.stravaId) return;
+  mountEl.innerHTML='';
+  const ph=document.createElement('div');
+  ph.className='strava-embed-placeholder';
+  ph.setAttribute('data-embed-type',data.stravaType);
+  ph.setAttribute('data-embed-id',data.stravaId);
+  Object.entries(data.stravaAttrs||{}).forEach(([k,v])=>ph.setAttribute(k,v));
+  mountEl.appendChild(ph);
+  const s=document.createElement('script');
+  s.src='https://strava-embeds.com/embed.js';
+  mountEl.appendChild(s);
+}
 // Pinterest's official board widget needs their own pinit.js loaded once, globally — it converts
 // every <a data-pin-do="embedBoard"> anchor it finds into the real scrollable pin grid. Loaded
 // on-demand (only once a Pinterest widget card is actually embedded) rather than upfront, same as
@@ -2468,6 +2583,36 @@ const I18N={
   widget_change_title:{de:'Anderes Widget einbetten',en:'Embed a different widget'},
   placeholder_spotify_link:{de:'Spotify-Link einfügen',en:'Paste a Spotify link'},
   placeholder_pinterest_link:{de:'Pinterest-Board-Link einfügen (z. B. pinterest.com/name/board/)',en:'Paste a Pinterest board link (e.g. pinterest.com/name/board/)'},
+  placeholder_strava_link:{de:'Strava-Embed-Code oder Link einfügen',en:'Paste a Strava embed code or link'},
+  strava_reload_title:{de:'Strava-Einbettung neu laden',en:'Reload the Strava embed'},
+  strava_invalid_toast:{de:'Kein gültiger Strava-Embed-Code oder -Link erkannt',en:'Not a recognized Strava embed code or link'},
+  add_wowpvp_title:{de:'WoW-PvP-Check hinzufügen',en:'Add WoW PvP check'},
+  add_wowpvp_label:{de:'WoW PvP',en:'WoW PvP'},
+  type_wowpvp:{de:'WoW-PvP-Check',en:'WoW PvP check'},
+  wowpvp_title:{de:'WoW PvP-Check',en:'WoW PvP check'},
+  wowpvp_name_placeholder:{de:'Name',en:'Name'},
+  wowpvp_server_placeholder:{de:'Server',en:'Realm'},
+  wowpvp_search_title:{de:'Suchen',en:'Search'},
+  wowpvp_reload_title:{de:'Neu laden',en:'Reload'},
+  wowpvp_open_link:{de:'Auf check-pvp.fr öffnen ↗',en:'Open on check-pvp.fr ↗'},
+  wowpvp_loading:{de:'Lade Daten…',en:'Loading data…'},
+  wowpvp_error:{de:'Daten konnten nicht automatisch geladen werden. Bitte direkt auf check-pvp.fr nachsehen.',en:'Data couldn’t be loaded automatically. Please check directly on check-pvp.fr.'},
+  wowpvp_no_data:{de:'Keine strukturierten Werte gefunden — bitte direkt auf check-pvp.fr nachsehen.',en:'No structured values found — please check directly on check-pvp.fr.'},
+  wowpvp_missing_fields:{de:'Bitte Name, Server und Region ausfüllen',en:'Please fill in name, realm and region'},
+  wowpvp_itemlevel_label:{de:'Item Level',en:'Item level'},
+  wowpvp_bracket_2v2:{de:'2v2',en:'2v2'},
+  wowpvp_bracket_3v3:{de:'3v3',en:'3v3'},
+  wowpvp_bracket_rbg:{de:'RBG',en:'RBG'},
+  wowpvp_bracket_shuffle:{de:'Solo Shuffle',en:'Solo Shuffle'},
+  wowpvp_bracket_blitz:{de:'Solo Blitz',en:'Solo Blitz'},
+  wowpvp_last_season_label:{de:'Letzte Season',en:'Last season'},
+  wowpvp_peak_label:{de:'Rekord',en:'Peak'},
+  wowpvp_level_label:{de:'Lvl',en:'Lvl'},
+  wowpvp_score_label:{de:'Check-PvP-Score',en:'Check-PvP score'},
+  wowpvp_score_arena_label:{de:'Arena',en:'Arena'},
+  wowpvp_updated_label:{de:'Zuletzt geladen',en:'Last loaded'},
+  beta_strava_unlocked_toast:{de:'Strava-Widget freigeschaltet — zu finden unter Widgets',en:'Strava widget unlocked — find it under Widgets'},
+  beta_wow_unlocked_toast:{de:'WoW-PvP-Check freigeschaltet',en:'WoW PvP check unlocked'},
   add_column_title:{de:'Spalte / Bereich hinzufügen',en:'Add column / area'},
   add_column_label:{de:'Spalte',en:'Column'},
   column_add_left_title:{de:'Spalte links hinzufügen',en:'Add column to the left'},
@@ -2975,6 +3120,7 @@ function applyI18n(){
     ['.dock-btn[data-add="checklist"]','title',t('add_checklist_title')],['.dock-btn[data-add="checklist"] span','text',t('add_checklist_label_dock')],
     ['.dock-btn[data-add="table"]','title',t('add_table_title')],['.dock-btn[data-add="table"] span','text',t('add_table_label')],
     ['.dock-btn[data-add="colorpicker"]','title',t('add_colorpicker_title')],['.dock-btn[data-add="colorpicker"] span','text',t('add_colorpicker_label')],
+    ['.dock-btn[data-add="wowpvp"]','title',t('add_wowpvp_title')],['.dock-btn[data-add="wowpvp"] span','text',t('add_wowpvp_label')],
     ['.dock-btn[data-add="board"]','title',t('add_boardlink_title')],['.dock-btn[data-add="board"] span','text',t('add_boardlink_label_dock')],
     ['#connectBtn','title',t('connect_title')],['#connectBtn span','text',t('connect_label')],
     ['#zoomOut','title',t('zoom_out_title')],['#zoomIn','title',t('zoom_in_title')],['#fitBtn','title',t('fit_title')],
@@ -2994,6 +3140,7 @@ function applyI18n(){
     ['.drawer-btn[data-add="checklist"] span','text',t('add_checklist_label_drawer')],
     ['.drawer-btn[data-add="table"] span','text',t('add_table_label')],
     ['.drawer-btn[data-add="colorpicker"] span','text',t('add_colorpicker_label')],
+    ['.drawer-btn[data-add="wowpvp"] span','text',t('add_wowpvp_label')],
     ['.drawer-btn[data-add="board"] span','text',t('add_boardlink_label_drawer')],
     ['#drawerConnectBtn span','text',t('connect_label')],
     ['#drawerFitBtn span','text',t('fit_label')],
@@ -4983,6 +5130,26 @@ function showThemeMenuModal(){
   document.body.appendChild(scrim);
 }
 
+// Two more secret beta-tester unlocks, same invisible-button/password mechanism as the theme menu
+// above, just persisting a flag instead of opening a modal: once entered, that flag lives in
+// localStorage ("für immer", as asked), so the Strava widget kind / WoW-PvP-Check card type stay
+// available on this device from then on rather than needing the password again every time.
+function isBetaFeatureUnlocked(key){
+  try{ return localStorage.getItem('notua-beta-'+key)==='1'; }catch(e){ return false; }
+}
+function unlockBetaFeature(key){
+  try{ localStorage.setItem('notua-beta-'+key,'1'); }catch(e){}
+  applyBetaFeatureVisibility();
+}
+// Toggles every static dock/drawer button tagged data-beta="<key>" (only the WoW-PvP-Check button
+// needs this — Strava rides the existing "Widgets" submenu instead, see getWidgetFamilyKinds()) to
+// match whichever beta flags are currently unlocked. Run once on boot (so a returning beta tester
+// sees it immediately) and again right after a successful unlock (so it appears without a reload).
+function applyBetaFeatureVisibility(){
+  document.querySelectorAll('[data-beta]').forEach(el=>{
+    el.hidden=!isBetaFeatureUnlocked(el.dataset.beta);
+  });
+}
 function showSecretPasswordModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   scrim.innerHTML=`<div class="modal">
@@ -5001,7 +5168,10 @@ function showSecretPasswordModal(){
   const errEl=scrim.querySelector('#secretPasswordError');
   scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
   function trySubmit(){
-    if(input.value==='tomistcool'){ scrim.remove(); showThemeMenuModal(); }
+    const v=input.value;
+    if(v==='tomistcool'){ scrim.remove(); showThemeMenuModal(); }
+    else if(v==='functionstrava'){ scrim.remove(); unlockBetaFeature('strava'); showToast(t('beta_strava_unlocked_toast')); }
+    else if(v==='functionwow'){ scrim.remove(); unlockBetaFeature('wow'); showToast(t('beta_wow_unlocked_toast')); }
     else{ errEl.textContent=t('secret_password_wrong'); input.value=''; input.focus(); }
   }
   scrim.querySelector('[data-a="ok"]').addEventListener('click',trySubmit);
@@ -5012,6 +5182,7 @@ function showSecretPasswordModal(){
 const themeSecretBtn=document.getElementById('themeSecretBtn');
 if(themeSecretBtn) themeSecretBtn.addEventListener('click',showSecretPasswordModal);
 loadCustomThemeOnBoot();
+applyBetaFeatureVisibility();
 
 /* ============================================================
    HOME VIEW
@@ -7516,7 +7687,7 @@ async function deleteConnectorWithUndo(connId){
   });
 }
 function typeLabel(type){
-  const key={note:'type_note',image:'type_image',file:'type_file',youtube:'type_youtube',column:'type_column',checklist:'type_checklist',table:'type_table',boardlink:'type_boardlink',colorpicker:'type_colorpicker'}[type];
+  const key={note:'type_note',image:'type_image',file:'type_file',youtube:'type_youtube',column:'type_column',checklist:'type_checklist',table:'type_table',boardlink:'type_boardlink',colorpicker:'type_colorpicker',wowpvp:'type_wowpvp'}[type];
   return key ? t(key) : type;
 }
 function colorLabel(c){
@@ -7814,7 +7985,7 @@ function baseCardShell(card,extraClass){
   // that happen to have a tag color. Image/youtube stay out of this: their content IS the whole card
   // (a photo/embed), so the plain whole-element opacity fade further below is the correct, wanted
   // effect there, not something to route through the text-contrast machinery.
-  const isPlainTextCard = !isColumn && ['card-note','card-checklist','card-table','card-boardlink','card-colorpicker'].includes(extraClass);
+  const isPlainTextCard = !isColumn && ['card-note','card-checklist','card-table','card-boardlink','card-colorpicker','card-wowpvp'].includes(extraClass);
   // Anything whose background is itself the alpha-driven rgba(tag, --tag-alpha) rule gets Deckkraft
   // applied to JUST that fill, starting fully solid: a colored regular card, ANY column, or now any
   // plain-text card type above — even uncolored, since all of these always paint an alpha wash rather
@@ -7968,6 +8139,7 @@ function buildCardEl(card){
   else if(card.type==='boardlink') el=buildBoardlinkCard(card);
   else if(card.type==='colorpicker') el=buildColorpickerCard(card);
   else if(card.type==='file') el=buildFileCard(card);
+  else if(card.type==='wowpvp') el=buildWowPvpCard(card);
   else { el=baseCardShell(card,'card-note'); }
   attachDragAndSelect(el,card);
   // No more per-card cluster styling here — the whole cluster now gets one shared silhouette outline
@@ -7982,7 +8154,7 @@ function buildCardEl(card){
     dateBadge.addEventListener('click',(e)=>{ e.stopPropagation(); openCalendarPanel(card.date); });
     el.appendChild(dateBadge);
   }
-  if(['note','column','checklist','table','image','youtube'].includes(card.type)){
+  if(['note','column','checklist','table','image','youtube','wowpvp'].includes(card.type)){
     const rh=document.createElement('div'); rh.className='resize-handle';
     attachResize(rh,el,card);
     el.appendChild(rh);
@@ -8005,7 +8177,8 @@ function typeChipIcon(type){
     file:'<path d="M6 3.5h8l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V5A1.5 1.5 0 0 1 5.5 3.5z"/><path d="M14 3.5V8h4"/><path d="M8 12.5h8M8 16h5"/>',
     youtube:'<rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M10.5 9.5l5 2.5-5 2.5z" fill="currentColor" stroke="none"/>',
     boardlink:'<path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/>',
-    colorpicker:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.2" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="16.2" r="1.3" fill="currentColor" stroke="none"/><circle cx="7.8" cy="12" r="1.3" fill="currentColor" stroke="none"/>'
+    colorpicker:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.2" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="16.2" r="1.3" fill="currentColor" stroke="none"/><circle cx="7.8" cy="12" r="1.3" fill="currentColor" stroke="none"/>',
+    wowpvp:'<path d="M12 3.3l7 2.8v5.4c0 5-3 7.9-7 9.2-4-1.3-7-4.2-7-9.2V6.1z"/><path d="M9 12l2.2 2.2L15.5 9.5"/>'
   };
   return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${map[type]||''}</svg>`;
 }
@@ -8654,14 +8827,16 @@ async function showFileViewerModal(card){
 // too, for the same reason: one link field, one kind, no grouping to reason about).
 function resetWidgetEmbed(card){
   card.data.videoId=null; card.data.spotifyId=null; card.data.spotifyType=null;
-  card.data.pinterestUrl=null; card.data.url='';
+  card.data.pinterestUrl=null; card.data.stravaType=null; card.data.stravaId=null; card.data.stravaAttrs=null;
+  card.data.url='';
   DB.putCard(card); renderAllCards(); applySelectionClasses();
 }
-const WIDGET_KIND_LABEL={youtube:'YouTube', spotify:'Spotify', pinterest:'Pinterest'};
+const WIDGET_KIND_LABEL={youtube:'YouTube', spotify:'Spotify', pinterest:'Pinterest', strava:'Strava'};
 function isWidgetEmbedded(card){
   switch(card.data.kind){
     case 'spotify': return !!card.data.spotifyId;
     case 'pinterest': return !!card.data.pinterestUrl;
+    case 'strava': return !!(card.data.stravaType && card.data.stravaId);
     default: return !!card.data.videoId;
   }
 }
@@ -8676,6 +8851,8 @@ function buildWidgetCard(card){
     let frameHtml;
     if(kind==='pinterest'){
       frameHtml=`<div class="yt-frame-wrap pin-frame"><a data-pin-do="embedBoard" href="${escapeHtml(card.data.pinterestUrl)}"></a></div>`;
+    }else if(kind==='strava'){
+      frameHtml=`<div class="yt-frame-wrap strava-frame"><div class="strava-embed-mount"></div><button type="button" class="strava-reload-btn" title="${t('strava_reload_title')}">${iconReloadSmall()}</button></div>`;
     }else if(kind==='youtube'){
       const src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(card.data.videoId)}`;
       frameHtml=`<div class="yt-frame-wrap"><iframe src="${src}" title="${label} Widget" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
@@ -8695,10 +8872,18 @@ function buildWidgetCard(card){
     `;
     if(kind==='pinterest'){
       loadPinIt().then(()=>{ if(window.PinUtils && PinUtils.build) PinUtils.build(); });
+    }else if(kind==='strava'){
+      mountStravaEmbed(el.querySelector('.strava-embed-mount'),card.data);
+      const reloadBtn=el.querySelector('.strava-reload-btn');
+      reloadBtn.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
+      reloadBtn.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        mountStravaEmbed(el.querySelector('.strava-embed-mount'),card.data);
+      });
     }
   }else{
     const placeholderKey={youtube:'placeholder_youtube_link', spotify:'placeholder_spotify_link',
-      pinterest:'placeholder_pinterest_link'}[kind];
+      pinterest:'placeholder_pinterest_link', strava:'placeholder_strava_link'}[kind];
     // Every kind is standalone now — just that one kind's link field, no in-card tab switcher.
     el.innerHTML=`
       <div class="card-head"><div class="type-chip">${typeChipIcon('youtube')}</div></div>
@@ -8724,6 +8909,14 @@ function buildWidgetCard(card){
       }else if(kind==='pinterest'){
         const board=extractPinterestBoard(input.value);
         if(board){ card.data.pinterestUrl=board; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
+      }else if(kind==='strava'){
+        const se=extractStravaEmbed(input.value);
+        if(se){
+          card.data.stravaType=se.type; card.data.stravaId=se.id; card.data.stravaAttrs=se.attrs; card.data.url=input.value;
+          DB.putCard(card); renderAllCards(); applySelectionClasses();
+        }else{
+          showToast(t('strava_invalid_toast'));
+        }
       }else{
         const vid=extractYouTubeId(input.value);
         if(vid){ card.data.videoId=vid; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
@@ -8734,6 +8927,242 @@ function buildWidgetCard(card){
     go.addEventListener('click',commit);
     setTimeout(()=>input.focus(),0);
   }
+  return el;
+}
+
+/* ============================================================
+   WOW PVP-CHECK CARD (secret beta-tester feature, password "functionwow")
+   A small Name/Server/Region search that calls check-pvp.fr's own internal JSON API and shows the
+   result — item level, current/last-season/all-time-peak ratings for 2v2/3v3/RBG, overall + per-spec
+   Solo Shuffle and Solo Blitz ratings, and Check-PvP's own Arena/RBG scores — styled in NOTUA's own
+   look rather than the source site's. That endpoint (`/api/characters/{region}/{realm}/{name}/history`)
+   isn't publicly documented; it was found by inspecting a real browser session's network traffic, since
+   check-pvp.fr renders its character pages entirely client-side and never puts this data in the page's
+   initial HTML. NOTUA is a pure static/client-side app with no backend of its own, and check-pvp.fr
+   sends no CORS headers, so the request goes through a public CORS-proxy relay. That, plus the fact
+   that check-pvp.fr could rename or protect this endpoint at any time without notice, makes this the
+   single most fragile piece in the whole app — every failure path below ends in a clear, honest state
+   with a direct link to the real site, never a silent blank card, and the reload button just re-runs
+   the exact same search on demand.
+   ============================================================ */
+const WOW_REGION_PATH={EU:'eu', NA:'us'};
+function buildCheckPvpUrl(region,server,name){
+  const seg=WOW_REGION_PATH[region]||'eu';
+  return `https://check-pvp.fr/${seg}/${encodeURIComponent(server)}/${encodeURIComponent(name)}`;
+}
+function buildCheckPvpApiUrl(region,server,name){
+  const seg=WOW_REGION_PATH[region]||'eu';
+  return `https://check-pvp.fr/api/characters/${seg}/${encodeURIComponent(server)}/${encodeURIComponent(name)}/history`;
+}
+// Two independent public CORS-proxy relays, tried in order — if the first is down or rate-limited the
+// second still gives this a real shot instead of failing outright on one dead service.
+const WOW_CORS_PROXIES=[
+  u=>'https://corsproxy.io/?url='+encodeURIComponent(u),
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+];
+async function wowFetchViaCorsProxies(url){
+  let lastErr=null;
+  for(const build of WOW_CORS_PROXIES){
+    try{
+      const res=await fetch(build(url),{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const text=await res.text();
+      if(text && text.length>10) return text;
+      throw new Error('empty response');
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr||new Error('all proxies failed');
+}
+// Class and specialization IDs are Blizzard's own stable numeric scheme (unchanged since Dragonflight
+// added Evoker) — not something check-pvp.fr defines, so this is safe to hardcode rather than guess at.
+const WOW_CLASS_NAMES={1:'Warrior',2:'Paladin',3:'Hunter',4:'Rogue',5:'Priest',6:'Death Knight',7:'Shaman',8:'Mage',9:'Warlock',10:'Monk',11:'Druid',12:'Demon Hunter',13:'Evoker'};
+const WOW_SPEC_NAMES={
+  62:'Arcane',63:'Fire',64:'Frost',
+  65:'Holy',66:'Protection',70:'Retribution',
+  71:'Arms',72:'Fury',73:'Protection',
+  102:'Balance',103:'Feral',104:'Guardian',105:'Restoration',
+  250:'Blood',251:'Frost',252:'Unholy',
+  253:'Beast Mastery',254:'Marksmanship',255:'Survival',
+  256:'Discipline',257:'Holy',258:'Shadow',
+  259:'Assassination',260:'Outlaw',261:'Subtlety',
+  262:'Elemental',263:'Enhancement',264:'Restoration',
+  265:'Affliction',266:'Demonology',267:'Destruction',
+  268:'Brewmaster',269:'Windwalker',270:'Mistweaver',
+  577:'Havoc',581:'Vengeance',
+  1467:'Devastation',1468:'Preservation',1473:'Augmentation',
+};
+function wowNum(v){ return (typeof v==='number' && isFinite(v)) ? v : null; }
+// A rating of 0 in this API consistently means "hasn't played this bracket" rather than an earned
+// rating of zero, so it's treated as "no value" throughout — the UI shows a dash instead of a 0 that
+// would misleadingly read as an actual (terrible) rating.
+function wowRatingOrNull(v){ const n=wowNum(v); return (n!=null && n>0) ? n : null; }
+// Parses check-pvp.fr's own `/api/characters/.../history` JSON response — reverse-engineered from a
+// real HAR capture (check-pvp.fr publishes no docs for this endpoint), so every field is read
+// defensively rather than assumed to always be present.
+function parseWowHistoryJson(json){
+  if(!json || typeof json!=='object') return null;
+  const bracket=(cur,season,last,max)=>({
+    current: wowRatingOrNull(json[cur]),
+    seasonBest: wowRatingOrNull(json[season]),
+    lastSeasonBest: wowRatingOrNull(json[last]),
+    peak: wowRatingOrNull(json[max]),
+  });
+  const specName=(id)=>WOW_SPEC_NAMES[id]||null;
+  const bySpec=(arr)=>Array.isArray(arr) ? arr.map(s=>({
+    specId:s && s.specId, specName:specName(s && s.specId),
+    current:wowRatingOrNull(s && s.rating), peak:wowRatingOrNull(s && s.maxRating),
+  })) : [];
+  return{
+    name: typeof json.name==='string' ? json.name : null,
+    level: wowNum(json.level),
+    className: WOW_CLASS_NAMES[json.class]||null,
+    activeSpecName: specName(json.activeSpecId),
+    itemLevel: wowNum(json.averageItemLevelEquipped),
+    brackets:{
+      '2v2': bracket('rateatm2v2','best2v2RatingSeason','best2v2LastSeason','ratemax2v2'),
+      '3v3': bracket('rateatm3v3','best3v3RatingSeason','best3v3LastSeason','ratemax3v3'),
+      rbg: bracket('rateatmrbg','bestRBGRatingSeason','bestRBGLastSeason','ratemaxrbg'),
+    },
+    shuffleOverall:{ current: wowRatingOrNull(json.rateatmshuffle), peak: wowRatingOrNull(json.ratemaxshuffle) },
+    blitzOverall:{ current: wowRatingOrNull(json.rateatmblitz), peak: wowRatingOrNull(json.ratemaxblitz) },
+    shuffleBySpec: bySpec(json.soloshuffles),
+    blitzBySpec: bySpec(json.soloBlitzs),
+    scoreArena: wowNum(json.scoreArena),
+    scoreRBG: wowNum(json.scoreRBG),
+  };
+}
+async function fetchWowPvpData(region,server,name){
+  const url=buildCheckPvpApiUrl(region,server,name);
+  const text=await wowFetchViaCorsProxies(url);
+  let json;
+  try{ json=JSON.parse(text); }catch(e){ throw new Error('bad json'); }
+  const parsed=parseWowHistoryJson(json);
+  // If neither a name nor an item level came back, this almost certainly wasn't a real character
+  // payload (a proxy error page, an empty/soft-404 JSON object, etc.) — surface it as an error rather
+  // than a confusing, entirely blank result card.
+  if(!parsed || (parsed.name==null && parsed.itemLevel==null)) throw new Error('unexpected shape');
+  return parsed;
+}
+function buildWowPvpCard(card){
+  const el=baseCardShell(card,'card-wowpvp');
+  if(!card.data.status) card.data.status='idle';
+  if(!card.data.region) card.data.region='EU';
+  el.innerHTML=`
+    <div class="card-head"><div class="type-chip">${typeChipIcon('wowpvp')}</div><span class="wow-title-field">${t('wowpvp_title')}</span></div>
+    <div class="wow-body">
+      <div class="wow-search-row">
+        <input class="wow-name" placeholder="${t('wowpvp_name_placeholder')}" spellcheck="false" value="${escapeHtml(card.data.name||'')}"/>
+        <input class="wow-server" placeholder="${t('wowpvp_server_placeholder')}" spellcheck="false" value="${escapeHtml(card.data.server||'')}"/>
+        <select class="wow-region"><option value="EU">EU</option><option value="NA">NA</option></select>
+        <button type="button" class="wow-go-btn" title="${t('wowpvp_search_title')}">${iconSearchSmall()}</button>
+        <button type="button" class="wow-reload-btn" title="${t('wowpvp_reload_title')}">${iconReloadSmall()}</button>
+      </div>
+      <div class="wow-result"></div>
+    </div>
+  `;
+  const nameInput=el.querySelector('.wow-name');
+  const serverInput=el.querySelector('.wow-server');
+  const regionSelect=el.querySelector('.wow-region');
+  const goBtn=el.querySelector('.wow-go-btn');
+  const reloadBtn=el.querySelector('.wow-reload-btn');
+  const resultEl=el.querySelector('.wow-result');
+  regionSelect.value=card.data.region;
+
+  [nameInput,serverInput,regionSelect,goBtn,reloadBtn].forEach(node=>{
+    node.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
+  });
+
+  function fmtVal(n){ return n!=null ? String(n) : '–'; }
+  function bracketTile(labelKey,br){
+    if(!br || (br.current==null && br.lastSeasonBest==null && br.peak==null)) return '';
+    return `<div class="wow-tile wow-tile-bracket">
+      <span class="wow-tile-label">${t(labelKey)}</span>
+      <span class="wow-tile-value">${fmtVal(br.current)}</span>
+      <span class="wow-tile-sub"><span>${t('wowpvp_last_season_label')}</span><b>${fmtVal(br.lastSeasonBest)}</b></span>
+      <span class="wow-tile-sub"><span>${t('wowpvp_peak_label')}</span><b>${fmtVal(br.peak)}</b></span>
+    </div>`;
+  }
+  function soloTile(labelKey,overall,bySpec){
+    if(!overall || (overall.current==null && overall.peak==null)) return '';
+    const specRows=(bySpec||[])
+      .filter(s=>s.current!=null || s.peak!=null)
+      .map(s=>`<span class="wow-tile-sub"><span>${escapeHtml(s.specName||('#'+s.specId))}</span><b>${fmtVal(s.current)} / ${fmtVal(s.peak)}</b></span>`)
+      .join('');
+    return `<div class="wow-tile wow-tile-bracket">
+      <span class="wow-tile-label">${t(labelKey)}</span>
+      <span class="wow-tile-value">${fmtVal(overall.current)}</span>
+      <span class="wow-tile-sub"><span>${t('wowpvp_peak_label')}</span><b>${fmtVal(overall.peak)}</b></span>
+      ${specRows}
+    </div>`;
+  }
+
+  function renderResult(){
+    const st=card.data.status;
+    const hasQuery=!!(card.data.name && card.data.server);
+    reloadBtn.hidden=!hasQuery;
+    const openLink=hasQuery ? `<a class="wow-open-link" href="${buildCheckPvpUrl(card.data.region,card.data.server,card.data.name)}" target="_blank" rel="noopener noreferrer">${t('wowpvp_open_link')}</a>` : '';
+    if(st==='loading'){ resultEl.innerHTML=`<div class="wow-status-msg">${t('wowpvp_loading')}</div>`; return; }
+    if(st==='error'){ resultEl.innerHTML=`<div class="wow-status-msg wow-status-error">${t('wowpvp_error')}</div>${openLink}`; return; }
+    if(st==='ok' && card.data.result){
+      const r=card.data.result;
+      const identityBits=[];
+      if(r.className) identityBits.push(escapeHtml(r.className));
+      if(r.activeSpecName) identityBits.push(escapeHtml(r.activeSpecName));
+      if(r.level!=null) identityBits.push(t('wowpvp_level_label')+' '+r.level);
+      const identity=identityBits.length ? `<div class="wow-identity">${identityBits.join(' · ')}</div>` : '';
+
+      const tiles=[];
+      if(r.itemLevel!=null) tiles.push(`<div class="wow-tile"><span class="wow-tile-label">${t('wowpvp_itemlevel_label')}</span><span class="wow-tile-value">${r.itemLevel}</span></div>`);
+      tiles.push(bracketTile('wowpvp_bracket_2v2', r.brackets && r.brackets['2v2']));
+      tiles.push(bracketTile('wowpvp_bracket_3v3', r.brackets && r.brackets['3v3']));
+      tiles.push(bracketTile('wowpvp_bracket_rbg', r.brackets && r.brackets.rbg));
+      tiles.push(soloTile('wowpvp_bracket_shuffle', r.shuffleOverall, r.shuffleBySpec));
+      tiles.push(soloTile('wowpvp_bracket_blitz', r.blitzOverall, r.blitzBySpec));
+      if(r.scoreArena!=null || r.scoreRBG!=null){
+        tiles.push(`<div class="wow-tile">
+          <span class="wow-tile-label">${t('wowpvp_score_label')}</span>
+          <span class="wow-tile-sub"><span>${t('wowpvp_score_arena_label')}</span><b>${fmtVal(r.scoreArena)}</b></span>
+          <span class="wow-tile-sub"><span>${t('wowpvp_bracket_rbg')}</span><b>${fmtVal(r.scoreRBG)}</b></span>
+        </div>`);
+      }
+      const tileHtml=tiles.filter(Boolean).join('');
+      const updated=card.data.fetchedAt ? `<div class="wow-updated">${t('wowpvp_updated_label')}: ${fmtDate(card.data.fetchedAt)}</div>` : '';
+      resultEl.innerHTML = identity + (tileHtml
+        ? `<div class="wow-tiles">${tileHtml}</div>${updated}${openLink}`
+        : `<div class="wow-status-msg">${t('wowpvp_no_data')}</div>${updated}${openLink}`);
+      return;
+    }
+    resultEl.innerHTML='';
+  }
+
+  async function runSearch(){
+    const name=nameInput.value.trim(), server=serverInput.value.trim(), region=regionSelect.value;
+    if(!name || !server){ showToast(t('wowpvp_missing_fields')); return; }
+    card.data.name=name; card.data.server=server; card.data.region=region;
+    card.data.status='loading'; renderResult(); DB.putCard(card);
+    try{
+      const data=await fetchWowPvpData(region,server,name);
+      card.data.status='ok';
+      card.data.result=data;
+      card.data.fetchedAt=Date.now();
+    }catch(e){
+      card.data.status='error';
+    }
+    DB.putCard(card);
+    renderResult();
+  }
+
+  goBtn.addEventListener('click',runSearch);
+  reloadBtn.addEventListener('click',runSearch);
+  [nameInput,serverInput].forEach(inp=>inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') runSearch(); }));
+  regionSelect.addEventListener('change',()=>{ card.data.region=regionSelect.value; DB.putCard(card); });
+  // Persists in-progress edits even without hitting search, same as every other text field on a card —
+  // doesn't touch card.data.status/result, so an already-loaded result just stays showing underneath.
+  [nameInput,serverInput].forEach(inp=>inp.addEventListener('blur',()=>{
+    card.data.name=nameInput.value.trim(); card.data.server=serverInput.value.trim(); saveCardSoon(card);
+  }));
+
+  renderResult();
   return el;
 }
 
@@ -9263,6 +9692,8 @@ function buildBoardlinkCard(card){
 function iconEyedropper(){return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3.3 20.7 7 18 9.7l-3.7-3.7L17 3.3Z"/><path d="M14.5 5.8 4 16.3v3.7h3.7L18.2 9.5"/><path d="M12.8 7.5l3.7 3.7"/></svg>`;}
 function iconCopySmall(){return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`;}
 function iconCheckSmall(){return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>`;}
+function iconReloadSmall(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11A8 8 0 1 0 18.6 16"/><path d="M20 5v6h-6"/></svg>`;}
+function iconSearchSmall(){return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>`;}
 
 // "Colorpicker" — a board tool card, not content: pick a color (native OS picker — its own "Farbrad"
 // on most platforms — or the eyedropper below), then read it back in HEX/RGB/HSL to reuse elsewhere
@@ -9673,6 +10104,12 @@ function attachResize(handle,el,card){
       // just shows more of the board rather than distorting anything.
       card.w=snap(clamp(rs.w+dx,180,2000));
       card.h=snap(clamp(rs.h+dy,120,2000));
+    }else if(card.type==='youtube' && card.data.kind==='strava'){
+      // Strava's own embed iframe isn't a fixed ratio/size either (it fills whatever container it's
+      // given) — free resize on both axes, same treatment as Pinterest above, including the rebuild-
+      // on-release below (its iframe is sized once at creation, not reactively, per Strava's script).
+      card.w=snap(clamp(rs.w+dx,220,2000));
+      card.h=snap(clamp(rs.h+dy,140,2000));
     }else if(card.type==='table'){
       // The corner handle no longer stretches a fixed-size grid inside a bigger box (which is what
       // left blank space growing the card): it changes the table's own zoom level instead, so every
@@ -9717,14 +10154,10 @@ function attachResize(handle,el,card){
   handle.addEventListener('pointerup',(e)=>{
     if(!rs) return;
     rs=null; DB.putCard(card);
-    if(card.type==='youtube' && card.data.kind==='pinterest'){
-      // Pinterest's own widget script measures its container's width once and builds a FIXED-size
-      // iframe from it — unlike a plain <iframe> (width/height:100%), it does NOT reactively track
-      // further CSS resizes, so the box above grows live during the drag but the actual pin grid
-      // inside stays whatever size it started at, leaving a growing gap of bare white space instead
-      // of "mehr Inhalte des Boards" ("eigentlich sollte ja auch das Pinterest Ding größer werden").
-      // Rebuilding the card re-creates a fresh, unconverted anchor at the new width and re-runs
-      // pinit.js against it, so the widget itself actually grows to fill it.
+    if(card.type==='youtube' && (card.data.kind==='pinterest' || card.data.kind==='strava')){
+      // Same reasoning as the Pinterest comment above — Strava's widget script also just measures its
+      // container once at creation, so re-mounting a fresh placeholder+script at the new size is what
+      // makes the embed itself actually grow/shrink with the card, not just the box around it.
       renderAllCards(); applySelectionClasses();
     }
   });
@@ -10750,6 +11183,10 @@ async function addCard(type, extra){
   if(type==='column'){ w=380; h=280; data={title:'', text:''}; }
   if(type==='checklist'){ w=260; h=180; data={title:'',items:[]}; }
   if(type==='colorpicker'){ w=270; h=340; data={hex:'#FF6B57', history:[]}; }
+  if(type==='wowpvp'){
+    w=300; h=280;
+    data={region:'EU', server:'', name:'', status:'idle', errorMsg:'', result:null};
+  }
   if(type==='table'){
     w=380; h=220;
     data={title:'', cols:[{id:uid(),w:90},{id:uid(),w:90},{id:uid(),w:90}], rows:[{id:uid(),h:30},{id:uid(),h:30},{id:uid(),h:30}], cells:{}, rowColors:{}, colColors:{}, ampelMode:false, showProgress:false};
@@ -10759,7 +11196,20 @@ async function addCard(type, extra){
   // lets it be turned off per-image for the old free-form (crop via object-fit:cover) behavior.
   if(type==='image'){ w=280; h=200; data={imageId:extra&&extra.imageId?extra.imageId:null, caption:'', lockAspect:true}; }
   if(type==='file'){ w=200; h=104; data={fileId:extra&&extra.fileId?extra.fileId:null, fileName:extra&&extra.fileName?extra.fileName:'', mimeType:extra&&extra.mimeType?extra.mimeType:''}; }
-  if(type==='youtube'){ w=320; h=200; data={kind:(extra&&extra.kind)||'youtube', videoId:extra&&extra.videoId?extra.videoId:null, url:extra&&extra.url?extra.url:''}; }
+  if(type==='youtube'){
+    const kind=(extra&&extra.kind)||'youtube';
+    w=320; h=200;
+    data={kind, videoId:extra&&extra.videoId?extra.videoId:null, url:extra&&extra.url?extra.url:''};
+    if(kind==='strava'){
+      // A pasted Strava embed code (or plain activity/route link) can already carry the full
+      // type/id/attrs straight through — see extractStravaEmbed — so a card can come into being
+      // pre-embedded (paste-on-canvas), not just via the empty-input state.
+      data.stravaType=extra&&extra.stravaType?extra.stravaType:null;
+      data.stravaId=extra&&extra.stravaId?extra.stravaId:null;
+      data.stravaAttrs=extra&&extra.stravaAttrs?extra.stravaAttrs:{};
+      h=260; // Strava's own activity/route cards read a bit taller by default than a 16:9 video
+    }
+  }
   if(type==='boardlink'){
     if(!(await ensureStorageReady())) return;
     w=200; h=140;
@@ -10841,11 +11291,19 @@ function handleAddTool(type,at){
 // switch — pulled back out again ("nimm eyecanndy und cosmos wieder raus das funktioniert noch
 // nicht"), since their plain-iframe embeds never reliably rendered. Pinterest is standalone now,
 // same as YouTube/Spotify.
-const WIDGET_FAMILY_KINDS=[
+const WIDGET_FAMILY_KINDS_BASE=[
   {familyKind:'youtube', label:'YouTube'},
   {familyKind:'spotify', label:'Spotify'},
   {familyKind:'pinterest', label:'Pinterest'},
 ];
+// Strava only ever shows up here once unlocked via the secret beta-tester code ("functionstrava") —
+// computed fresh every time the submenu opens (not cached at module-load time) so it appears the
+// moment the code is entered, no reload needed, same pattern as language switches already use here.
+function getWidgetFamilyKinds(){
+  return isBetaFeatureUnlocked('strava')
+    ? [...WIDGET_FAMILY_KINDS_BASE, {familyKind:'strava', label:'Strava'}]
+    : WIDGET_FAMILY_KINDS_BASE;
+}
 function addWidgetCardOfKind(familyKind,at){
   addCard('youtube', {kind:familyKind, at});
 }
@@ -10865,7 +11323,7 @@ function closeWidgetSubmenu(){ if(widgetSubmenuEl) widgetSubmenuEl.hidden=true; 
 function openWidgetSubmenu(anchor,onPick){
   const el=ensureWidgetSubmenu();
   const r=(anchor instanceof Element) ? anchor.getBoundingClientRect() : anchor;
-  el.innerHTML=WIDGET_FAMILY_KINDS.map(it=>
+  el.innerHTML=getWidgetFamilyKinds().map(it=>
     `<button type="button" class="widget-submenu-item" data-kind="${it.familyKind}">${it.labelKey?t(it.labelKey):it.label}</button>`
   ).join('');
   el.hidden=false;
@@ -10890,11 +11348,16 @@ window.addEventListener('keydown',(e)=>{
 });
 
 /* ---------- CREATE MENU (double-click on empty canvas) ---------- */
-const CREATE_MENU_TYPES=['note','image','file','youtube','column','checklist','table','colorpicker','board'];
+const CREATE_MENU_TYPES_BASE=['note','image','file','youtube','column','checklist','table','colorpicker','board'];
+// Same beta-gating idea as getWidgetFamilyKinds() above — 'wowpvp' only joins the list once unlocked
+// via the secret "functionwow" code, computed fresh on every open so it appears immediately.
+function getCreateMenuTypes(){
+  return isBetaFeatureUnlocked('wow') ? [...CREATE_MENU_TYPES_BASE,'wowpvp'] : CREATE_MENU_TYPES_BASE;
+}
 const CREATE_MENU_LABEL_KEY={
   note:'add_note_label', image:'add_image_label', file:'add_file_label', youtube:'add_youtube_label',
   column:'add_column_label', checklist:'add_checklist_label_dock', table:'add_table_label',
-  colorpicker:'add_colorpicker_label', board:'add_boardlink_label_dock'
+  colorpicker:'add_colorpicker_label', board:'add_boardlink_label_dock', wowpvp:'add_wowpvp_label'
 };
 const createMenuEl=document.getElementById('createMenu');
 let createMenuCanvasPos=null;
@@ -10902,7 +11365,7 @@ let createGhostEl=null;
 
 function openCreateMenu(clientX,clientY){
   createMenuCanvasPos=screenToCanvas(clientX,clientY);
-  createMenuEl.innerHTML=CREATE_MENU_TYPES.map(type=>
+  createMenuEl.innerHTML=getCreateMenuTypes().map(type=>
     `<button type="button" class="create-menu-item" data-type="${type}">${typeChipIcon(type==='board'?'boardlink':type)}<span>${t(CREATE_MENU_LABEL_KEY[type])}</span></button>`
   ).join('');
   createMenuEl.hidden=false;
@@ -11129,6 +11592,13 @@ window.addEventListener('paste',async (e)=>{
   const vid=extractYouTubeId(text);
   if(vid && /youtu/.test(text)){
     await addCard('youtube',{videoId:vid, url:text, at:state.lastPointer});
+    return;
+  }
+  if(isBetaFeatureUnlocked('strava') && /strava/i.test(text)){
+    const se=extractStravaEmbed(text);
+    if(se){
+      await addCard('youtube',{kind:'strava', stravaType:se.type, stravaId:se.id, stravaAttrs:se.attrs, url:text, at:state.lastPointer});
+    }
   }
 });
 
