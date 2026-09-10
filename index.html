@@ -377,6 +377,17 @@ try{
   }
   :root[data-theme="dark"]{ --trash-accent:#C9A877; --trash-accent-soft:rgba(201,168,119,0.16); --trash-accent-border:rgba(201,168,119,0.4); }
   #trashView{background:var(--trash-accent-soft);}
+
+  /* ---------- WOW PVP-CHECK — Verlauf (history) chart accent ---------- */
+  /* A cool arcane teal-blue rather than the app's warm main accent — the rating-history chart is its
+     own small "instrument panel" inside the card, so it earns a hue of its own instead of borrowing
+     --accent (used everywhere else: tab underline, focus rings, the go button…). Peak dot stays gold
+     in both themes since that reads universally as "best result" regardless of the chart's own hue. */
+  :root{ --wow-chart-accent:#2E86AB; --wow-chart-accent-soft:rgba(46,134,171,0.16); --wow-chart-peak:#D6A03C; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --wow-chart-accent:#5FB4DE; --wow-chart-accent-soft:rgba(95,180,222,0.18); --wow-chart-peak:#E4B858; }
+  }
+  :root[data-theme="dark"]{ --wow-chart-accent:#5FB4DE; --wow-chart-accent-soft:rgba(95,180,222,0.18); --wow-chart-peak:#E4B858; }
   /* Aligns with the header's baseline-aligned flex row (see .home-header) without inheriting that
      baseline alignment itself, which would sit a plain icon button oddly low next to the title text. */
   #emptyTrashAllBtn{align-self:flex-start; margin-top:2px; color:var(--danger);}
@@ -1454,6 +1465,46 @@ try{
   .wow-updated{font-size:0.66rem; color:var(--faint);}
   .wow-open-link{align-self:flex-start; font-size:0.76rem; font-weight:600; color:var(--accent); text-decoration:none;}
   .wow-open-link:hover{text-decoration:underline;}
+
+  /* ---------- WOW PVP-CHECK — Übersicht/Verlauf tabs + history chart ---------- */
+  .wow-tabs{display:flex; gap:2px; padding:2px; background:var(--surface-2); border-radius:9px; margin:-2px 0 2px;}
+  .wow-tab-btn{
+    flex:1; font:inherit; font-size:0.74rem; font-weight:700; letter-spacing:.01em; padding:6px 8px; border:none;
+    border-radius:7px; background:transparent; color:var(--muted); cursor:pointer; transition:background .14s ease, color .14s ease;
+  }
+  .wow-tab-btn:hover{color:var(--ink);}
+  .wow-tab-btn.active{background:var(--surface); color:var(--wow-chart-accent); box-shadow:0 1px 2px rgba(0,0,0,0.08);}
+  .wow-tab-panel{display:flex; flex-direction:column; gap:8px;}
+  .wow-history-controls{display:flex; flex-wrap:wrap; gap:6px;}
+  .wow-history-select{
+    flex:1; min-width:84px; font:inherit; font-size:0.74rem; font-weight:600; background:var(--wow-chart-accent-soft);
+    border:1.5px solid transparent; border-radius:7px; padding:6px 7px; color:var(--ink); outline:none; cursor:pointer;
+  }
+  .wow-history-select:hover{border-color:var(--wow-chart-accent);}
+  .wow-chart-wrap{position:relative; width:100%; aspect-ratio:300/120; border-radius:9px; background:var(--surface-2); padding:4px;}
+  .wow-chart{width:100%; height:100%; display:block; overflow:visible; touch-action:none;}
+  .wow-chart-grid{stroke:var(--border); stroke-width:0.6; shape-rendering:crispEdges;}
+  .wow-chart-axis-label{font-size:6.2px; fill:var(--faint); font-variant-numeric:tabular-nums;}
+  .wow-chart-area{fill:var(--wow-chart-accent-soft);}
+  .wow-chart-line{stroke:var(--wow-chart-accent); stroke-width:1.8; stroke-linejoin:round; stroke-linecap:round;}
+  .wow-chart-peak-dot{fill:var(--wow-chart-peak); stroke:var(--surface-2); stroke-width:1;}
+  .wow-chart-end-dot{fill:var(--wow-chart-accent); stroke:var(--surface-2); stroke-width:1;}
+  .wow-chart-hover-line{stroke:var(--wow-chart-accent); stroke-width:0.7; stroke-dasharray:2 2; opacity:.7;}
+  .wow-chart-hover-dot{fill:var(--surface); stroke:var(--wow-chart-accent); stroke-width:1.6;}
+  .wow-chart-empty{font-size:0.78rem; color:var(--muted); line-height:1.4; padding:14px 4px;}
+  .wow-chart-tooltip{
+    position:absolute; transform:translate(-50%,-130%); pointer-events:none; background:var(--ink); color:var(--surface);
+    font-size:0.68rem; line-height:1.25; border-radius:6px; padding:4px 7px; white-space:nowrap; display:flex;
+    flex-direction:column; align-items:center; gap:0; box-shadow:0 2px 8px rgba(0,0,0,0.18);
+  }
+  .wow-chart-tooltip b{font-size:0.78rem; font-variant-numeric:tabular-nums;}
+  .wow-chart-tooltip span{opacity:.75;}
+  .wow-copy-talents-btn{
+    align-self:flex-start; font:inherit; font-size:0.74rem; font-weight:700; padding:7px 12px; border-radius:8px;
+    border:1.5px solid var(--wow-chart-accent); background:transparent; color:var(--wow-chart-accent); cursor:pointer;
+    transition:background .14s ease, color .14s ease;
+  }
+  .wow-copy-talents-btn:hover{background:var(--wow-chart-accent); color:var(--surface);}
 
   /* ---------- TAG COLOR CLASSES ---------- */
   .tag-none{--tint:255,255,255; }
@@ -2616,6 +2667,12 @@ const I18N={
   wowpvp_score_arena_label:{de:'Arena',en:'Arena'},
   wowpvp_peak_incomplete:{de:'Rekord evtl. unvollständig — nicht alle Seasons konnten geladen werden',en:'Peak may be incomplete — not all seasons could be loaded'},
   wowpvp_updated_label:{de:'Zuletzt geladen',en:'Last loaded'},
+  wowpvp_tab_overview:{de:'Übersicht',en:'Overview'},
+  wowpvp_tab_history:{de:'Verlauf',en:'History'},
+  wowpvp_history_spec_all:{de:'Alle Specs',en:'All specs'},
+  wowpvp_history_no_data:{de:'Für diese Auswahl liegen keine Verlaufsdaten vor.',en:'No history data for this selection.'},
+  wowpvp_copy_talents_btn:{de:'Talentbuild kopieren',en:'Copy talent build'},
+  wowpvp_copy_talents_unavailable:{de:'Der Talentbuild-Code ist von drustvar.com für diesen Charakter (noch) nicht abrufbar — daran arbeite ich noch.',en:'The talent build code isn’t available from drustvar.com for this character (yet) — still working on that.'},
   beta_strava_unlocked_toast:{de:'Strava-Widget freigeschaltet — zu finden unter Widgets',en:'Strava widget unlocked — find it under Widgets'},
   beta_wow_unlocked_toast:{de:'WoW-PvP-Check freigeschaltet',en:'WoW PvP check unlocked'},
   add_column_title:{de:'Spalte / Bereich hinzufügen',en:'Add column / area'},
@@ -9107,6 +9164,87 @@ function drustvarMaxRating(entries){
   for(const e of entries){ if(e && typeof e.rating==='number' && (max==null || e.rating>max)) max=e.rating; }
   return max;
 }
+// Cleans + sorts one bracket/spec's raw dated-snapshot array into {date,rating}[], oldest first — the
+// shape the Verlauf chart draws directly. Same source arrays foldDrustvarSeasonIntoPeak already reads
+// for the peak number; this just keeps every point instead of collapsing them to a single max.
+function wowSortedEntries(arr){
+  return (Array.isArray(arr)?arr:[])
+    .filter(e=>e && typeof e.rating==='number' && e.date)
+    .map(e=>({date:e.date, rating:e.rating}))
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+}
+// Builds the full per-bracket, per-season rating-history series the Verlauf tab's chart draws from —
+// every season payload already fetched for the peak computation gets walked again here, so this costs
+// no extra network requests. Shuffle/Blitz are keyed by drustvar's own spec key (e.g.
+// "shuffle-evoker-preservation") since a character can have played more than one spec across different
+// seasons; the label/icon for each spec key is looked up from whichever of the CURRENT season's
+// shuffles/blitzs lists has a matching spec name (a spec no longer played this season still gets a
+// readable title-cased name from the key itself, just without an icon).
+function buildWowHistory(seasonPayloads,sortedSeasonIds,seasons,me){
+  const seasonNameById={};
+  (seasons||[]).forEach(s=>{ if(s && s.id!=null) seasonNameById[s.id]=s.name||('Season '+s.id); });
+  const seasonList=sortedSeasonIds.map(id=>({id, name:seasonNameById[id]||('Season '+id)}));
+
+  const series={ '2v2':{}, '3v3':{}, rbg:{}, shuffle:{}, blitz:{} };
+  const specSeen={ shuffle:new Map(), blitz:new Map() };
+  const iconForSpec=(key,list)=>{
+    const specLower=key.split('-').slice(2).join('-');
+    const hit=(list||[]).find(s=>s && typeof s.spec==='string' && s.spec.toLowerCase()===specLower);
+    return hit ? (hit.icon||null) : null;
+  };
+
+  sortedSeasonIds.forEach(id=>{
+    const payload=seasonPayloads[id];
+    if(!payload || !payload.ratings) return;
+    const r=payload.ratings;
+    ['2v2','3v3','rbg'].forEach(b=>{
+      const entries=wowSortedEntries(r[b]);
+      if(entries.length) series[b][id]=entries;
+    });
+    ['shuffle','blitz'].forEach(cat=>{
+      const obj=r[cat]||{};
+      for(const key in obj){
+        const entries=wowSortedEntries(obj[key] && obj[key].ratings);
+        if(!entries.length) continue;
+        if(!series[cat][key]) series[cat][key]={};
+        series[cat][key][id]=entries;
+        if(!specSeen[cat].has(key)){
+          specSeen[cat].set(key,{
+            key,
+            name: wowTitleCase(key.split('-').slice(2).join('-')) || key,
+            icon: iconForSpec(key, cat==='shuffle'?me.shuffles:me.blitzs),
+          });
+        }
+      }
+    });
+  });
+
+  return{
+    seasons:seasonList,
+    series,
+    specs:{ shuffle:[...specSeen.shuffle.values()], blitz:[...specSeen.blitz.values()] },
+  };
+}
+// Picks a sensible starting bracket/spec/season for the Verlauf tab the first time a result loads —
+// the character's actual first-played bracket with any history, rather than always defaulting to 2v2
+// and greeting a pure Solo-Shuffle player with an empty chart. seasons is already newest-first, so the
+// first season id found in a bracket's series map is that bracket's most recent season WITH data.
+function wowPickDefaultHistorySelection(history){
+  const tryBracket=(b,specKey)=>{
+    const map=specKey!=null ? (history.series[b][specKey]||{}) : (history.series[b]||{});
+    for(const s of history.seasons){ if(map[s.id]) return {bracket:b, spec:specKey, season:s.id}; }
+    return null;
+  };
+  for(const b of ['2v2','3v3','rbg']){
+    const hit=tryBracket(b,null); if(hit) return hit;
+  }
+  for(const b of ['shuffle','blitz']){
+    for(const spec of (history.specs[b]||[])){
+      const hit=tryBracket(b,spec.key); if(hit) return hit;
+    }
+  }
+  return {bracket:'2v2', spec:null, season:(history.seasons[0]&&history.seasons[0].id)||null};
+}
 // Folds one season's `/ratings` payload into a running per-bracket max — called once per season fetched
 // (current season's own response, plus every other season pulled in parallel) to build up a genuine
 // all-time peak rather than trusting any single number.
@@ -9206,6 +9344,7 @@ async function fetchWowPvpData(region,server,name){
     shuffleBySpec: bySpecList(me.shuffles, peak.shuffle, 'shuffle'),
     blitzBySpec: bySpecList(me.blitzs, peak.blitz, 'blitz'),
     peakIncomplete,
+    history: buildWowHistory(seasonPayloads, sortedSeasonIds, seasons, me),
   };
 }
 // Realm name lists for the server-name autocomplete (a <datalist>, not a rigid closed <select> — a realm
@@ -9215,6 +9354,195 @@ async function fetchWowPvpData(region,server,name){
 // New realms are added rarely enough that a static list embedded at build time is fine — no live fetch.
 const WOW_REALMS_EU=["Aegwynn","Aerie Peak","Agamaggan","Aggra (Português)","Aggramar","Ahn'Qiraj","Al'Akir","Alexstrasza","Alleria","Alonsus","Aman'Thul","Ambossar","Anachronos","Anetheron","Antonidas","Anub'arak","Arak-arahm","Arathi","Arathor","Archimonde","Area 52","Argent Dawn","Arthas","Arygos","Ashenvale","Aszune","Auchindoun","Azjol-Nerub","Azshara","Azuregos","Azuremyst","Baelgun","Balnazzar","Blackhand","Blackmoore","Blackrock","Blackscar","Blade's Edge","Bladefist","Bloodfeather","Bloodhoof","Bloodscalp","Blutkessel","Booty Bay","Borean Tundra","Boulderfist","Bronze Dragonflight","Bronzebeard","Burning Blade","Burning Legion","Burning Steppes","C'Thun","Chamber of Aspects","Chants éternels","Cho'gall","Chromaggus","Colinas Pardas","Confrérie du Thorium","Conseil des Ombres","Crushridge","Culte de la Rive noire","Daggerspine","Dalaran","Dalvengyr","Darkmoon Faire","Darksorrow","Darkspear","Das Konsortium","Das Syndikat","Deathguard","Deathweaver","Deathwing","Deepholm","Defias Brotherhood","Dentarg","Der Mithrilorden","Der Rat von Dalaran","Der abyssische Rat","Destromath","Dethecus","Die Aldor","Die Arguswacht","Die Nachtwache","Die Silberne Hand","Die Todeskrallen","Die ewige Wacht","Doomhammer","Draenor","Dragonblight","Dragonmaw","Drak'thul","Drek'Thar","Dun Modr","Dun Morogh","Dunemaul","Durotan","Earthen Ring","Echsenkessel","Eitrigg","Eldre'Thalas","Elune","Emerald Dream","Emeriss","Eonar","Eredar","Eversong","Executus","Exodar","Festung der Stürme","Fordragon","Forscherliga","Frostmane","Frostmourne","Frostwhisper","Frostwolf","Galakrond","Garona","Garrosh","Genjuros","Ghostlands","Gilneas","Goldrinn","Gordunni","Gorgonnash","Greymane","Grim Batol","Grom","Gul'dan","Hakkar","Haomarush","Hellfire","Hellscream","Howling Fjord","Hyjal","Illidan","Jaedenar","Kael'thas","Karazhan","Kargath","Kazzak","Kel'Thuzad","Khadgar","Khaz Modan","Khaz'goroth","Kil'jaeden","Kilrogg","Kirin Tor","Kor'gall","Krag'jin","Krasus","Kul Tiras","Kult der Verdammten","La Croisade écarlate","Laughing Skull","Les Clairvoyants","Les Sentinelles","Lich King","Lightbringer","Lightning's Blade","Lordaeron","Los Errantes","Lothar","Madmortem","Magtheridon","Mal'Ganis","Malfurion","Malorne","Malygos","Mannoroth","Marécage de Zangar","Mazrigos","Medivh","Minahonda","Moonglade","Mug'thol","Nagrand","Nathrezim","Naxxramas","Nazjatar","Nefarian","Nemesis","Neptulon","Ner'zhul","Nera'thor","Nethersturm","Nordrassil","Norgannon","Nozdormu","Onyxia","Outland","Perenolde","Pozzo dell'Eternità","Proudmoore","Quel'Thalas","Ragnaros","Rajaxx","Rashgarroth","Ravencrest","Ravenholdt","Razuvious","Rexxar","Runetotem","Sanguino","Sargeras","Saurfang","Scarshield Legion","Sen'jin","Shadowsong","Shattered Halls","Shattered Hand","Shattrath","Shen'dralar","Silvermoon","Sinstralis","Skullcrusher","Soulflayer","Spinebreaker","Sporeggar","Steamwheedle Cartel","Stormrage","Stormreaver","Stormscale","Sunstrider","Suramar","Sylvanas","Taerar","Talnivarr","Tarren Mill","Teldrassil","Temple noir","Terenas","Terokkar","Terrordar","The Maelstrom","The Sha'tar","The Venture Co","Theradras","Thermaplugg","Thrall","Throk'Feroth","Thunderhorn","Tichondrius","Tirion","Todeswache","Trollbane","Turalyon","Twilight's Hammer","Twisting Nether","Tyrande","Uldaman","Ulduar","Uldum","Un'Goro","Varimathras","Vashj","Vek'lor","Vek'nilash","Vol'jin","Wildhammer","Wrathbringer","Xavius","Ysera","Ysondre","Zenedar","Zirkel des Cenarius","Zul'jin","Zuluhed"];
 const WOW_REALMS_NA=["Aegwynn","Aerie Peak","Agamaggan","Aggramar","Akama","Alexstrasza","Alleria","Altar of Storms","Alterac Mountains","Aman'Thul","Andorhal","Anetheron","Antonidas","Anub'arak","Anvilmar","Arathor","Archimonde","Area 52","Argent Dawn","Arthas","Arygos","Auchindoun","Azgalor","Azjol-Nerub","Azralon","Azshara","Azuremyst","Baelgun","Balnazzar","Barthilas","Black Dragonflight","Blackhand","Blackrock","Blackwater Raiders","Blackwing Lair","Blade's Edge","Bladefist","Bleeding Hollow","Blood Furnace","Bloodhoof","Bloodscalp","Bonechewer","Borean Tundra","Boulderfist","Bronzebeard","Burning Blade","Burning Legion","Caelestrasz","Cairne","Cenarion Circle","Cenarius","Cho'gall","Chromaggus","Coilfang","Crushridge","Daggerspine","Dalaran","Dalvengyr","Dark Iron","Darkspear","Darrowmere","Dath'Remar","Dawnbringer","Deathwing","Demon Soul","Dentarg","Destromath","Dethecus","Detheroc","Doomhammer","Draenor","Dragonblight","Dragonmaw","Drak'Tharon","Drak'thul","Draka","Drakkari","Dreadmaul","Drenden","Dunemaul","Durotan","Duskwood","Earthen Ring","Echo Isles","Eitrigg","Eldre'Thalas","Elune","Emerald Dream","Eonar","Eredar","Executus","Exodar","Farstriders","Feathermoon","Fenris","Firetree","Fizzcrank","Frostmane","Frostmourne","Frostwolf","Galakrond","Gallywix","Garithos","Garona","Garrosh","Ghostlands","Gilneas","Gnomeregan","Goldrinn","Gorefiend","Gorgonnash","Greymane","Grizzly Hills","Gul'dan","Gundrak","Gurubashi","Hakkar","Haomarush","Hellscream","Hydraxis","Hyjal","Icecrown","Illidan","Jaedenar","Jubei'Thos","Kael'thas","Kalecgos","Kargath","Kel'Thuzad","Khadgar","Khaz Modan","Khaz'goroth","Kil'jaeden","Kilrogg","Kirin Tor","Korgath","Korialstrasz","Kul Tiras","Laughing Skull","Lethon","Lightbringer","Lightning's Blade","Lightninghoof","Llane","Lothar","Madoran","Maelstrom","Magtheridon","Maiev","Mal'Ganis","Malfurion","Malorne","Malygos","Mannoroth","Medivh","Misha","Mok'Nathal","Moon Guard","Moonrunner","Mug'thol","Muradin","Nagrand","Nathrezim","Nazgrel","Nazjatar","Nemesis","Ner'zhul","Nesingwary","Nordrassil","Norgannon","Onyxia","Perenolde","Proudmoore","Quel'Thalas","Quel'dorei","Ragnaros","Ravencrest","Ravenholdt","Rexxar","Rivendare","Runetotem","Sargeras","Saurfang","Scarlet Crusade","Scilla","Sen'jin","Sentinels","Shadow Council","Shadowmoon","Shadowsong","Shandris","Shattered Halls","Shattered Hand","Shu'halo","Silver Hand","Silvermoon","Sisters of Elune","Skullcrusher","Skywall","Smolderthorn","Spinebreaker","Spirestone","Staghelm","Steamwheedle Cartel","Stonemaul","Stormrage","Stormreaver","Stormscale","Suramar","Tanaris","Terenas","Terokkar","Thaurissan","The Forgotten Coast","The Scryers","The Underbog","The Venture Co","Thorium Brotherhood","Thrall","Thunderhorn","Thunderlord","Tichondrius","Tol Barad","Tortheldrin","Trollbane","Turalyon","Twisting Nether","Uldaman","Uldum","Undermine","Ursin","Uther","Vashj","Vek'nilash","Velen","Warsong","Whisperwind","Wildhammer","Windrunner","Winterhoof","Wyrmrest Accord","Ysera","Ysondre","Zangarmarsh","Zul'jin","Zuluhed"];
+// ---- Verlauf-Tab chart: a small hand-rolled SVG line chart (no charting library — one line chart
+// doesn't earn a new dependency in a single-file, no-build app). Drawn into a fixed viewBox and scaled
+// to the card's actual width purely via CSS (width:100% + an aspect-ratio on the wrapper), so there's
+// no need to measure the container in JS or redraw on resize. ----
+const WOW_CHART_W=300, WOW_CHART_H=120, WOW_CHART_PAD={l:34,r:8,t:10,b:18};
+function wowChartScales(entries){
+  const xs=entries.map(e=>+new Date(e.date));
+  const ys=entries.map(e=>e.rating);
+  const xMin=Math.min(...xs), xMax=Math.max(...xs);
+  let yMin=Math.min(...ys), yMax=Math.max(...ys);
+  if(yMin===yMax){ yMin-=10; yMax+=10; } // a dead-flat line still gets visible vertical room
+  const pad=(yMax-yMin)*0.12 || 10;
+  yMin-=pad; yMax+=pad;
+  const xSpan=(xMax-xMin)||1;
+  const innerW=WOW_CHART_W-WOW_CHART_PAD.l-WOW_CHART_PAD.r;
+  const innerH=WOW_CHART_H-WOW_CHART_PAD.t-WOW_CHART_PAD.b;
+  return{
+    px:x=>WOW_CHART_PAD.l + ((x-xMin)/xSpan)*innerW,
+    py:y=>WOW_CHART_PAD.t + innerH - ((y-yMin)/(yMax-yMin))*innerH,
+    yMin,yMax,
+  };
+}
+function wowFmtChartDate(d){
+  const dt=new Date(d);
+  if(isNaN(dt)) return '';
+  return dt.toLocaleDateString(state.lang==='de'?'de-DE':'en-US',{day:'2-digit',month:'short'});
+}
+// Renders (or re-renders — wrapEl is cleared first) one bracket/spec/season's rating history as a
+// stock-chart-style line: faint gridlines with y-axis values, a soft area fill, the line itself, the
+// season's peak point picked out (gold), the latest point emphasized, and a hover crosshair + tooltip
+// that snaps to the nearest data point under the pointer.
+function renderWowHistoryChart(wrapEl, entries){
+  wrapEl.innerHTML='';
+  if(!entries || entries.length<2){
+    wrapEl.innerHTML=`<div class="wow-chart-empty">${escapeHtml(t('wowpvp_history_no_data'))}</div>`;
+    return;
+  }
+  const {px,py,yMin,yMax}=wowChartScales(entries);
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox',`0 0 ${WOW_CHART_W} ${WOW_CHART_H}`);
+  svg.setAttribute('class','wow-chart');
+  svg.setAttribute('preserveAspectRatio','none');
+
+  const gridN=3;
+  for(let i=0;i<=gridN;i++){
+    const v=yMin+((yMax-yMin)*i/gridN);
+    const y=py(v);
+    const line=document.createElementNS(svgNS,'line');
+    line.setAttribute('x1',WOW_CHART_PAD.l); line.setAttribute('x2',WOW_CHART_W-WOW_CHART_PAD.r);
+    line.setAttribute('y1',y); line.setAttribute('y2',y);
+    line.setAttribute('class','wow-chart-grid');
+    svg.appendChild(line);
+    const label=document.createElementNS(svgNS,'text');
+    label.setAttribute('x',WOW_CHART_PAD.l-4); label.setAttribute('y',y+3);
+    label.setAttribute('class','wow-chart-axis-label'); label.setAttribute('text-anchor','end');
+    label.textContent=String(Math.round(v));
+    svg.appendChild(label);
+  }
+
+  const pts=entries.map(e=>[px(+new Date(e.date)),py(e.rating)]);
+  const linePath='M'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L');
+  const baseline=WOW_CHART_H-WOW_CHART_PAD.b;
+  const areaPath=linePath+` L${pts[pts.length-1][0].toFixed(1)},${baseline} L${pts[0][0].toFixed(1)},${baseline} Z`;
+
+  const area=document.createElementNS(svgNS,'path');
+  area.setAttribute('d',areaPath); area.setAttribute('class','wow-chart-area');
+  svg.appendChild(area);
+  const lineEl=document.createElementNS(svgNS,'path');
+  lineEl.setAttribute('d',linePath); lineEl.setAttribute('class','wow-chart-line'); lineEl.setAttribute('fill','none');
+  svg.appendChild(lineEl);
+
+  let peakIdx=0;
+  entries.forEach((e,i)=>{ if(e.rating>entries[peakIdx].rating) peakIdx=i; });
+  if(peakIdx!==entries.length-1){
+    const dot=document.createElementNS(svgNS,'circle');
+    dot.setAttribute('cx',pts[peakIdx][0]); dot.setAttribute('cy',pts[peakIdx][1]); dot.setAttribute('r',2.6);
+    dot.setAttribute('class','wow-chart-peak-dot');
+    svg.appendChild(dot);
+  }
+  const [lx,ly]=pts[pts.length-1];
+  const endDot=document.createElementNS(svgNS,'circle');
+  endDot.setAttribute('cx',lx); endDot.setAttribute('cy',ly); endDot.setAttribute('r',3);
+  endDot.setAttribute('class','wow-chart-end-dot');
+  svg.appendChild(endDot);
+
+  const startLabel=document.createElementNS(svgNS,'text');
+  startLabel.setAttribute('x',WOW_CHART_PAD.l); startLabel.setAttribute('y',WOW_CHART_H-4);
+  startLabel.setAttribute('class','wow-chart-axis-label'); startLabel.textContent=wowFmtChartDate(entries[0].date);
+  svg.appendChild(startLabel);
+  const endLabel=document.createElementNS(svgNS,'text');
+  endLabel.setAttribute('x',WOW_CHART_W-WOW_CHART_PAD.r); endLabel.setAttribute('y',WOW_CHART_H-4);
+  endLabel.setAttribute('class','wow-chart-axis-label'); endLabel.setAttribute('text-anchor','end');
+  endLabel.textContent=wowFmtChartDate(entries[entries.length-1].date);
+  svg.appendChild(endLabel);
+
+  const hoverLine=document.createElementNS(svgNS,'line');
+  hoverLine.setAttribute('y1',WOW_CHART_PAD.t); hoverLine.setAttribute('y2',baseline);
+  hoverLine.setAttribute('class','wow-chart-hover-line'); hoverLine.style.display='none';
+  svg.appendChild(hoverLine);
+  const hoverDot=document.createElementNS(svgNS,'circle');
+  hoverDot.setAttribute('r',3); hoverDot.setAttribute('class','wow-chart-hover-dot'); hoverDot.style.display='none';
+  svg.appendChild(hoverDot);
+
+  const hit=document.createElementNS(svgNS,'rect');
+  hit.setAttribute('x',0); hit.setAttribute('y',0);
+  hit.setAttribute('width',WOW_CHART_W); hit.setAttribute('height',WOW_CHART_H);
+  hit.setAttribute('fill','transparent');
+  svg.appendChild(hit);
+
+  const tooltip=document.createElement('div');
+  tooltip.className='wow-chart-tooltip'; tooltip.hidden=true;
+  wrapEl.appendChild(svg);
+  wrapEl.appendChild(tooltip);
+
+  function showAt(i){
+    const e=entries[i]; const [x,y]=pts[i];
+    hoverLine.setAttribute('x1',x); hoverLine.setAttribute('x2',x); hoverLine.style.display='';
+    hoverDot.setAttribute('cx',x); hoverDot.setAttribute('cy',y); hoverDot.style.display='';
+    tooltip.hidden=false;
+    tooltip.style.left=(x/WOW_CHART_W*100)+'%';
+    tooltip.style.top=(y/WOW_CHART_H*100)+'%';
+    tooltip.innerHTML=`<b>${e.rating}</b><span>${escapeHtml(wowFmtChartDate(e.date))}</span>`;
+  }
+  function hide(){ hoverLine.style.display='none'; hoverDot.style.display='none'; tooltip.hidden=true; }
+  hit.addEventListener('pointermove',(ev)=>{
+    const rect=svg.getBoundingClientRect();
+    if(!rect.width) return;
+    const relX=(ev.clientX-rect.left)/rect.width*WOW_CHART_W;
+    let nearest=0,best=Infinity;
+    pts.forEach((p,i)=>{ const d=Math.abs(p[0]-relX); if(d<best){ best=d; nearest=i; } });
+    showAt(nearest);
+  });
+  hit.addEventListener('pointerleave',hide);
+}
+const WOW_BRACKET_ORDER=['2v2','3v3','rbg','shuffle','blitz'];
+const WOW_BRACKET_LABEL_KEY={'2v2':'wowpvp_bracket_2v2','3v3':'wowpvp_bracket_3v3',rbg:'wowpvp_bracket_rbg',shuffle:'wowpvp_bracket_shuffle',blitz:'wowpvp_bracket_blitz'};
+function wowBracketHasAnyData(history,bracket){
+  const node=history.series[bracket];
+  if(!node) return false;
+  if(bracket==='shuffle'||bracket==='blitz'){
+    return Object.values(node).some(bySeason=>Object.values(bySeason||{}).some(arr=>arr&&arr.length));
+  }
+  return Object.values(node).some(arr=>arr&&arr.length);
+}
+function wowHistoryEntriesFor(history,bracket,spec,season){
+  if(!history || !season || !history.series[bracket]) return null;
+  const node=history.series[bracket];
+  if(bracket==='shuffle'||bracket==='blitz'){
+    if(!spec || !node[spec]) return null;
+    return node[spec][season]||null;
+  }
+  return node[season]||null;
+}
+// Builds the Verlauf tab's controls (bracket / spec / season selects) plus an empty chart mount point —
+// the chart itself is drawn separately via renderWowHistoryChart once this HTML is actually in the DOM,
+// since an SVG with a live hover handler can't be expressed as an innerHTML string.
+function buildWowHistoryPanelHtml(card,history){
+  if(!history){
+    return `<div class="wow-chart-empty">${escapeHtml(t('wowpvp_history_no_data'))}</div>`;
+  }
+  const availableBrackets=WOW_BRACKET_ORDER.filter(b=>wowBracketHasAnyData(history,b));
+  if(!availableBrackets.length || !card.data.historySelection){
+    return `<div class="wow-chart-empty">${escapeHtml(t('wowpvp_history_no_data'))}</div>`;
+  }
+  const sel=card.data.historySelection;
+  const bracketOptions=availableBrackets.map(b=>`<option value="${b}"${sel.bracket===b?' selected':''}>${escapeHtml(t(WOW_BRACKET_LABEL_KEY[b]))}</option>`).join('');
+
+  const isSpecBracket=(sel.bracket==='shuffle'||sel.bracket==='blitz');
+  let specSelectHtml='';
+  if(isSpecBracket){
+    const specs=(history.specs && history.specs[sel.bracket])||[];
+    const specOptions=specs.map(s=>`<option value="${escapeHtml(s.key)}"${sel.spec===s.key?' selected':''}>${escapeHtml(s.name||s.key)}</option>`).join('');
+    specSelectHtml=`<select class="wow-history-select wow-history-spec-select">${specOptions}</select>`;
+  }
+
+  const seasonNode=isSpecBracket ? ((history.series[sel.bracket]||{})[sel.spec]||{}) : (history.series[sel.bracket]||{});
+  const seasonOptions=(history.seasons||[])
+    .filter(s=>seasonNode[s.id] && seasonNode[s.id].length)
+    .map(s=>`<option value="${escapeHtml(String(s.id))}"${String(sel.season)===String(s.id)?' selected':''}>${escapeHtml(s.name||('Season '+s.id))}</option>`)
+    .join('');
+
+  return `<div class="wow-history-controls">
+      <select class="wow-history-select wow-history-bracket-select">${bracketOptions}</select>
+      ${specSelectHtml}
+      <select class="wow-history-select wow-history-season-select">${seasonOptions}</select>
+    </div>
+    <div class="wow-chart-wrap"></div>`;
+}
 function buildWowPvpCard(card){
   const el=baseCardShell(card,'card-wowpvp');
   if(!card.data.status) card.data.status='idle';
@@ -9280,13 +9608,18 @@ function buildWowPvpCard(card){
     </div>`;
   }
 
+  // Only the error view still links out to drustvar.com's own page — once we have real data to show
+  // (overview tiles or a history chart), sending people away to the source site has nothing left to add.
   function renderResult(){
     const st=card.data.status;
     const hasQuery=!!(card.data.name && card.data.server);
     reloadBtn.hidden=!hasQuery;
-    const openLink=hasQuery ? `<a class="wow-open-link" href="${buildDrustvarCharacterUrl(card.data.region,card.data.server,card.data.name)}" target="_blank" rel="noopener noreferrer">${t('wowpvp_open_link')}</a>` : '';
     if(st==='loading'){ resultEl.innerHTML=`<div class="wow-status-msg">${t('wowpvp_loading')}</div>`; return; }
-    if(st==='error'){ resultEl.innerHTML=`<div class="wow-status-msg wow-status-error">${t('wowpvp_error')}</div>${openLink}`; return; }
+    if(st==='error'){
+      const openLink=hasQuery ? `<a class="wow-open-link" href="${buildDrustvarCharacterUrl(card.data.region,card.data.server,card.data.name)}" target="_blank" rel="noopener noreferrer">${t('wowpvp_open_link')}</a>` : '';
+      resultEl.innerHTML=`<div class="wow-status-msg wow-status-error">${t('wowpvp_error')}</div>${openLink}`;
+      return;
+    }
     if(st==='ok' && card.data.result){
       const r=card.data.result;
       const identityIcons=[];
@@ -9310,12 +9643,105 @@ function buildWowPvpCard(card){
       const tileHtml=tiles.filter(Boolean).join('');
       const incomplete=r.peakIncomplete ? `<div class="wow-status-msg">${t('wowpvp_peak_incomplete')}</div>` : '';
       const updated=card.data.fetchedAt ? `<div class="wow-updated">${t('wowpvp_updated_label')}: ${fmtDate(card.data.fetchedAt)}</div>` : '';
-      resultEl.innerHTML = identity + (tileHtml
-        ? `<div class="wow-tiles">${tileHtml}</div>${incomplete}${updated}${openLink}`
-        : `<div class="wow-status-msg">${t('wowpvp_no_data')}</div>${updated}${openLink}`);
+      const overviewHtml = identity + (tileHtml
+        ? `<div class="wow-tiles">${tileHtml}</div>${incomplete}${updated}`
+        : `<div class="wow-status-msg">${t('wowpvp_no_data')}</div>${updated}`);
+
+      if(!card.data.activeTab) card.data.activeTab='overview';
+      const history=r.history;
+      if(history && !card.data.historySelection){
+        card.data.historySelection=wowPickDefaultHistorySelection(history);
+      }
+      const historyHtml=buildWowHistoryPanelHtml(card,history);
+
+      const tabsHtml=`<div class="wow-tabs">
+        <button type="button" class="wow-tab-btn${card.data.activeTab==='overview'?' active':''}" data-tab="overview">${t('wowpvp_tab_overview')}</button>
+        <button type="button" class="wow-tab-btn${card.data.activeTab==='history'?' active':''}" data-tab="history">${t('wowpvp_tab_history')}</button>
+      </div>`;
+
+      resultEl.innerHTML = tabsHtml
+        + `<div class="wow-tab-panel"${card.data.activeTab!=='overview'?' hidden':''} data-panel="overview">${overviewHtml}</div>`
+        + `<div class="wow-tab-panel"${card.data.activeTab!=='history'?' hidden':''} data-panel="history">${historyHtml}<button type="button" class="wow-copy-talents-btn">${t('wowpvp_copy_talents_btn')}</button></div>`;
+
+      wireWowResultInteractions(history);
       return;
     }
     resultEl.innerHTML='';
+  }
+
+  // Wires up everything renderResult() just rebuilt as innerHTML — the tab switcher, the bracket/spec/
+  // season selects, the chart itself, and the talent-copy button. Runs fresh after every render, since
+  // replacing innerHTML always discards whatever listeners were attached to the old nodes.
+  function wireWowResultInteractions(history){
+    resultEl.querySelectorAll('.wow-tab-btn').forEach(btn=>{
+      btn.addEventListener('pointerdown',e=>{ if(!state.connectMode) e.stopPropagation(); });
+      btn.addEventListener('click',()=>{
+        card.data.activeTab=btn.dataset.tab;
+        DB.putCard(card);
+        renderResult();
+      });
+    });
+    const chartWrap=resultEl.querySelector('.wow-chart-wrap');
+    if(chartWrap && history && card.data.historySelection){
+      const sel=card.data.historySelection;
+      renderWowHistoryChart(chartWrap, wowHistoryEntriesFor(history,sel.bracket,sel.spec,sel.season));
+    }
+    const bracketSelect=resultEl.querySelector('.wow-history-bracket-select');
+    if(bracketSelect){
+      bracketSelect.addEventListener('pointerdown',e=>e.stopPropagation());
+      bracketSelect.addEventListener('change',()=>{
+        const sel=card.data.historySelection;
+        sel.bracket=bracketSelect.value;
+        if(sel.bracket==='shuffle'||sel.bracket==='blitz'){
+          const specs=(history.specs && history.specs[sel.bracket])||[];
+          if(!specs.some(s=>s.key===sel.spec)) sel.spec=specs[0]?specs[0].key:null;
+        } else {
+          sel.spec=null;
+        }
+        const seasonNode=(sel.bracket==='shuffle'||sel.bracket==='blitz')
+          ? ((history.series[sel.bracket]||{})[sel.spec]||{})
+          : (history.series[sel.bracket]||{});
+        const stillValid=seasonNode[sel.season] && seasonNode[sel.season].length;
+        if(!stillValid){
+          const withData=(history.seasons||[]).find(s=>seasonNode[s.id] && seasonNode[s.id].length);
+          sel.season=withData?withData.id:null;
+        }
+        DB.putCard(card);
+        renderResult();
+      });
+    }
+    const specSelect=resultEl.querySelector('.wow-history-spec-select');
+    if(specSelect){
+      specSelect.addEventListener('pointerdown',e=>e.stopPropagation());
+      specSelect.addEventListener('change',()=>{
+        const sel=card.data.historySelection;
+        sel.spec=specSelect.value;
+        const seasonNode=(history.series[sel.bracket]||{})[sel.spec]||{};
+        const stillValid=seasonNode[sel.season] && seasonNode[sel.season].length;
+        if(!stillValid){
+          const withData=(history.seasons||[]).find(s=>seasonNode[s.id] && seasonNode[s.id].length);
+          sel.season=withData?withData.id:null;
+        }
+        DB.putCard(card);
+        renderResult();
+      });
+    }
+    const seasonSelect=resultEl.querySelector('.wow-history-season-select');
+    if(seasonSelect){
+      seasonSelect.addEventListener('pointerdown',e=>e.stopPropagation());
+      seasonSelect.addEventListener('change',()=>{
+        card.data.historySelection.season=seasonSelect.value;
+        DB.putCard(card);
+        renderResult();
+      });
+    }
+    const copyTalentsBtn=resultEl.querySelector('.wow-copy-talents-btn');
+    if(copyTalentsBtn){
+      copyTalentsBtn.addEventListener('pointerdown',e=>e.stopPropagation());
+      // drustvar.com's API has no talent-loadout field for any character yet (checked directly) — an
+      // honest "not available yet" beats either faking a code or silently doing nothing on click.
+      copyTalentsBtn.addEventListener('click',()=>{ showToast(t('wowpvp_copy_talents_unavailable')); });
+    }
   }
 
   // A search this slow (up to ~8 proxied requests, see the section comment above) can still be in flight
