@@ -588,6 +588,16 @@ try{
   }
   .board-tile h3[contenteditable="true"]{-webkit-line-clamp:unset; overflow:visible; box-shadow:0 0 0 2px var(--accent); border-radius:3px; padding:0 2px;}
   .board-tile .meta{display:flex; justify-content:space-between; align-items:flex-end; color:var(--faint); font-size:0.72rem;}
+  .meta-left{display:flex; align-items:center; gap:5px;}
+  /* Deliberately tiny and low-contrast — a quiet "where is this board right now" hint, not something
+     meant to draw the eye. See computeBoardSourceBadges()/renderSourceBadges(). */
+  .tile-source-badges{display:flex; align-items:center; gap:3px;}
+  .src-badge{
+    display:flex; align-items:center; justify-content:center; width:15px; height:13px;
+    border-radius:3px; background:var(--surface-2); color:var(--faint);
+    font-size:0.55rem; font-weight:700; line-height:1; letter-spacing:0.01em;
+  }
+  .src-badge svg{width:8px; height:8px;}
   .tile-actions{
     position:absolute; top:10px; right:10px; display:flex; gap:5px;
     opacity:0; transition:opacity .15s ease;
@@ -1846,6 +1856,24 @@ try{
   .modal-actions button.primary{background:var(--danger); border-color:var(--danger); color:#fff;}
   .modal-actions button:hover{filter:brightness(0.97);}
   .modal.modal-wide{width:380px; max-height:80vh; overflow-y:auto;}
+  /* "Ordnerstruktur" panel (see showFolderStructureModal) — a plain 3-way segmented control standing
+     in for what was described as a slider; functionally identical (one of three positions active at a
+     time), simpler and more robust to build than an actual draggable slider. */
+  .fs-modal-section{display:flex; flex-direction:column; gap:6px;}
+  .fs-modal-label{font-size:0.86rem; font-weight:600;}
+  .fs-modal-hint{margin:0; font-size:0.76rem; color:var(--faint); line-height:1.45;}
+  .fs-modal-drive-hint{padding-top:2px; border-top:1px solid var(--border);}
+  .segmented{display:flex; border:1px solid var(--border); border-radius:7px; overflow:hidden;}
+  .segmented button{
+    flex:1; padding:7px 8px; border:none; background:var(--surface); color:var(--muted); font:inherit; font-size:0.82rem;
+    cursor:pointer; border-right:1px solid var(--border); transition:background .14s ease, color .14s ease;
+  }
+  .segmented button:last-child{border-right:none;}
+  .segmented button:hover:not(:disabled){background:var(--surface-2);}
+  .segmented button.active{background:var(--accent); color:#fff;}
+  .segmented button:disabled{color:var(--faint); cursor:not-allowed; opacity:.55;}
+  .fs-modal-toggle-row{display:flex; align-items:center; gap:8px; font-size:0.86rem; cursor:pointer;}
+  .fs-modal-toggle-row input[type="checkbox"]{width:16px; height:16px; accent-color:var(--accent); cursor:pointer;}
   .sync-conflict-options{display:flex; flex-direction:column; gap:8px;}
   .sync-conflict-opt{
     display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left;
@@ -2017,6 +2045,10 @@ try{
       </button>
       <button type="button" class="tools-sheet-card" id="toolsSyncAllItem">
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3M4 20v-5h5"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsFolderStructureItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M8 20v-6a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6" stroke-dasharray="1.6 1.8"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
       <button type="button" class="tools-sheet-card tools-sheet-card-danger" id="toolsTrashItem">
@@ -2973,6 +3005,18 @@ const I18N={
   tools_import_item:{de:'Board importieren',en:'Import board'},
   tools_export_item:{de:'Board exportieren',en:'Export board'},
   tools_sync_all_item:{de:'Alle synchronisieren',en:'Sync all'},
+  tools_folder_structure_item:{de:'Ordnerstruktur',en:'Storage view'},
+  folder_structure_title:{de:'Ordnerstruktur',en:'Storage view'},
+  folder_structure_filter_label:{de:'Welche Boards auf der Übersicht angezeigt werden',en:'Which boards show up on the overview'},
+  folder_structure_filter_local:{de:'Lokal',en:'Local'},
+  folder_structure_filter_all:{de:'Alle',en:'All'},
+  folder_structure_filter_drive:{de:'Drive',en:'Drive'},
+  folder_structure_filter_hint:{de:'Wirkt nur auf die Ansicht – Boards werden dadurch nicht anders synchronisiert.',en:'Affects the view only – boards keep syncing exactly the same either way.'},
+  folder_structure_filter_hint_disabled_fs:{de:'"Lokal" ist erst wählbar, sobald ein Ordner verbunden ist.',en:'"Local" only becomes selectable once a folder is connected.'},
+  folder_structure_filter_hint_disabled_drive:{de:'"Drive" ist erst wählbar, sobald Google Drive verbunden ist.',en:'"Drive" only becomes selectable once Google Drive is connected.'},
+  folder_structure_icons_label:{de:'Speicherort-Icons auf den Kacheln anzeigen',en:'Show storage-location icons on tiles'},
+  folder_structure_icons_hint:{de:'Zeigt auf jeder Board-Kachel, wo diese Kopie gerade überall liegt (Ordner/DB/Drive) – verschwindet automatisch, sobald ein Board wirklich überall angekommen ist.',en:'Shows on every board tile where that copy currently exists (Folder/DB/Drive) – disappears automatically once a board has genuinely reached everywhere.'},
+  folder_structure_drive_sync_hint:{de:'Wird bei verbundenem Google Drive geräteübergreifend mitsynchronisiert, sonst nur lokal auf diesem Gerät gespeichert.',en:'Synced across your devices while Google Drive is connected, otherwise saved only on this device.'},
   sync_btn_title:{de:'Synchronisieren',en:'Sync'},
   sync_popover_title:{de:'"{name}" synchronisieren',en:'Sync "{name}"'},
   sync_popover_sub:{de:'Befindet sich gerade in: {sources}. Wohin synchronisieren?',en:'Currently in: {sources}. Where do you want to sync it to?'},
@@ -3104,6 +3148,28 @@ function loadDynamicContent(){
   try{ const saved=localStorage.getItem('notua-dynamic-content'); if(saved==='0') return false; }catch(e){}
   return true; // default: on
 }
+// "Ordnerstruktur" panel prefs (see showFolderStructureModal) — purely a Home-overview display
+// setting, never a sync control (see the comment on applyHomeSourceFilter). Local by default; when
+// Drive is connected, these two get mirrored into a small settings file in the NOTUA root and pulled
+// from there on every connect (see syncHomeSettingsWithDrive), so the same filter/icon choice follows
+// you across every device signed into that Drive account — exactly like every other piece of real
+// board data already does, just for this one small piece of UI state instead.
+function loadHomeSourceFilter(){
+  try{ const saved=localStorage.getItem('notua-home-source-filter'); if(saved==='fs'||saved==='drive'||saved==='all') return saved; }catch(e){}
+  return 'all';
+}
+function saveHomeSourceFilter(val){
+  try{ localStorage.setItem('notua-home-source-filter',val); }catch(e){}
+  syncHomeSettingsWithDrive();
+}
+function loadHomeSourceIconsEnabled(){
+  try{ const saved=localStorage.getItem('notua-home-source-icons'); if(saved==='0') return false; }catch(e){}
+  return true; // default: on
+}
+function saveHomeSourceIconsEnabled(val){
+  try{ localStorage.setItem('notua-home-source-icons', val?'1':'0'); }catch(e){}
+  syncHomeSettingsWithDrive();
+}
 // Projects (board-overview folders) are a lightweight organizational layer over the boards
 // already stored in DB — kept in localStorage rather than the boards database itself, since a
 // project is purely "which boards are grouped together, in what order", not board content.
@@ -3162,6 +3228,7 @@ function applyI18n(){
     ['#toolsImportItem .tools-sheet-card-label','text',t('tools_import_item')],
     ['#toolsExportItem .tools-sheet-card-label','text',t('tools_export_item')],
     ['#toolsSyncAllItem .tools-sheet-card-label','text',t('tools_sync_all_item')],
+    ['#toolsFolderStructureItem .tools-sheet-card-label','text',t('tools_folder_structure_item')],
     ['#toolsTrashItem .tools-sheet-card-label','text',t('trash_btn_title')],
     ['#menuBtn','title',t('menu_title')],
     ['#homeBtn','title',t('home_title')],
@@ -3725,21 +3792,49 @@ const FS_DB={
   },
 };
 
-// One-time migration for a folder that was already connected before board-folder nesting existed:
-// every board folder used to sit directly in the connected root (flat), trash included. If
-// notua-boards/ doesn't exist yet, this moves every board folder found directly under root into it —
-// nested under its logical parent (per meta.parentBoardId) however deep that goes, exactly matching
-// where putBoard() would create it fresh today — and moves the old root-level _Papierkorb the same
-// way into notua-boards/_Papierkorb. Called from activateFolder() on every connect; a no-op (one
-// cheap existence check) once notua-boards/ already exists, so it's safe to call every time.
+// Sweeps a connected folder for board folders still sitting directly in the connected root (flat)
+// instead of nested under notua-boards/ — the layout every board folder used to have before nesting
+// existed — moving anything genuinely unmigrated in (per meta.parentBoardId, however deep that goes,
+// exactly matching where putBoard() would create it fresh today) and the old root-level _Papierkorb
+// the same way into notua-boards/_Papierkorb. Called from activateFolder() on every connect.
+//
+// An earlier version of this function bailed out the instant notua-boards/ existed at all, treating
+// that as proof the sweep had already finished. It hadn't: notua-boards/ gets created the moment ANY
+// board write happens (fsGetBoardsRootDir(), called from all over the sync engine), completely
+// independent of whether a flat-folder scan ever ran to completion — and a single failure partway used
+// to abort that whole scan silently (see the old comment on the old catch below). So a connected folder
+// could get permanently stuck with some boards migrated and others flat forever, and — worse — once
+// notua-boards/ existed, any later write for one of those still-flat boards (from a session that had
+// never seen its flat folder, since putBoard() only ever looks inside notua-boards/) would create a
+// BRAND NEW, correctly-nested folder for that same board id right next to its still-flat original —
+// the File System Access API happily allows two same-named directories side by side, so nothing ever
+// complained. That's how a connected root ends up with a board folder appearing twice.
+//
+// This version always re-scans the connected root for stray flat board folders on every connect (one
+// cheap directory listing when there's nothing left to find — the common case once a folder is caught
+// up) and reconciles anything it finds by board id against what's already nested, rather than trusting
+// a single existence check. A flat folder whose id has no nested counterpart yet is genuinely
+// unmigrated and gets moved in, same as before. A flat folder whose id ALREADY has a nested counterpart
+// is a leftover duplicate from the bug above — its nested counterpart is what the app has actually been
+// reading from and writing to, so it stays authoritative; the flat leftover is relocated into a
+// dedicated "notua-boards/_Migrations-Duplikate/" holding folder instead, named by its (unique) board
+// id so a second stray duplicate can never collide with it. That's deliberately NOT the app's own
+// _Papierkorb/Trash: this app's trash is live, synced, restorable state the sync engine and Home's
+// Papierkorb view both reason about, and dropping a second copy of an id that's simultaneously active
+// elsewhere in there risks exactly the kind of "which one is real" confusion this fix exists to remove.
+// _Migrations-Duplikate/ is just an inert parking spot nothing in the app ever scans (fsWalkBoardChildren
+// only ever recurses into a folder that itself has a board.json — a plain holding folder doesn't — so
+// its contents are invisible to Home, Trash and the sync engine alike) — nothing is ever deleted, it's
+// just out of the way, and still there in the folder itself for a manual look if anything seems off.
 async function fsMigrateFlatToNested(){
   if(!fsState.root) return;
-  try{ await fsState.root.getDirectoryHandle('notua-boards'); return; }catch(e){} // already migrated (or a brand-new empty folder) — nothing flat to move
+  const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return;
   const flatBoards=[]; // {handle,meta}
   let oldTrashHandle=null;
   try{
     for await (const [name,handle] of fsState.root.entries()){
       if(handle.kind!=='directory') continue;
+      if(name==='notua-boards') continue;
       if(name==='_Papierkorb'){ oldTrashHandle=handle; continue; }
       const data=await fsGetFileJSON(handle,'board.json',null);
       if(data && data.meta && data.meta.id) flatBoards.push({handle,meta:data.meta});
@@ -3755,27 +3850,53 @@ async function fsMigrateFlatToNested(){
       }
     }catch(e){ oldTrashHandle=null; } // couldn't read the old trash folder — skip migrating it this round rather than fail the whole migration
   }
-  const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return;
+  if(!flatBoards.length && !trashedFlatBoards.length) return; // nothing stray — the common case once a folder is caught up
+  const nestedIds=new Set(); await fsWalkBoardChildren(boardsRoot,null,nestedIds);
+  let dupeFolder=null;
+  async function archiveDuplicate(fromDir,item){
+    if(!dupeFolder) dupeFolder=await boardsRoot.getDirectoryHandle('_Migrations-Duplikate',{create:true});
+    const destName=item.meta.id+'__'+slugify(item.meta.name||'Board');
+    const newDir=await dupeFolder.getDirectoryHandle(destName,{create:true});
+    await fsCopyDirRecursive(item.handle,newDir);
+    await fromDir.removeEntry(item.handle.name,{recursive:true});
+  }
   try{
-    if(flatBoards.length) await fsMigrateBoardGroupToNested(flatBoards,boardsRoot);
+    const flatDupes=flatBoards.filter(item=>nestedIds.has(item.meta.id));
+    const freshFlat=flatBoards.filter(item=>!nestedIds.has(item.meta.id));
+    for(const item of flatDupes) await archiveDuplicate(fsState.root,item);
+    if(freshFlat.length){
+      await fsMigrateBoardGroupToNested(freshFlat,boardsRoot);
+      for(const item of freshFlat){ try{ await fsState.root.removeEntry(item.handle.name,{recursive:true}); }catch(e){} }
+    }
     if(trashedFlatBoards.length){
-      const newTrash=await boardsRoot.getDirectoryHandle('_Papierkorb',{create:true});
-      await fsMigrateBoardGroupToNested(trashedFlatBoards,newTrash);
+      const nestedTrashIds=new Set();
+      let existingTrash=null;
+      try{ existingTrash=await boardsRoot.getDirectoryHandle('_Papierkorb'); }catch(e){}
+      if(existingTrash) await fsWalkBoardChildren(existingTrash,null,nestedTrashIds);
+      const trashDupes=trashedFlatBoards.filter(item=>nestedTrashIds.has(item.meta.id) || nestedIds.has(item.meta.id));
+      const freshTrashed=trashedFlatBoards.filter(item=>!nestedTrashIds.has(item.meta.id) && !nestedIds.has(item.meta.id));
+      for(const item of trashDupes) await archiveDuplicate(oldTrashHandle,item);
+      if(freshTrashed.length){
+        const newTrash=await boardsRoot.getDirectoryHandle('_Papierkorb',{create:true});
+        await fsMigrateBoardGroupToNested(freshTrashed,newTrash);
+        for(const item of freshTrashed){ try{ await oldTrashHandle.removeEntry(item.handle.name,{recursive:true}); }catch(e){} }
+      }
     }
   }catch(e){
-    // Something failed mid-copy — do NOT delete any old originals below; leave the (possibly partial)
-    // copies under notua-boards/ in place too. Worst case is a harmless duplicate on the next connect
-    // attempt (this function bails out early once notua-boards/ exists — so re-running it by hand
-    // would need notua-boards/ removed first); nothing on disk is ever destroyed by this catch.
+    // Something failed mid-sweep — whatever wasn't confirmed copied+removed (or archived) above is
+    // simply untouched, safe to retry next connect; nothing on disk is ever destroyed by this catch.
     return;
   }
-  // Every board folder now has a confirmed copy under notua-boards/ — safe to remove the old flat
-  // originals (and the old root-level _Papierkorb) now.
-  for(const {handle} of flatBoards){ try{ await fsState.root.removeEntry(handle.name,{recursive:true}); }catch(e){} }
-  if(oldTrashHandle){ try{ await fsState.root.removeEntry('_Papierkorb',{recursive:true}); }catch(e){} }
-  // Every fsState.dirs/parentDirs/cache entry populated during the scan above still points at the OLD
-  // (now-deleted) flat locations — clear everything so the very next enumeration (allBoards() etc,
-  // called right after this from activateFolder) does a clean walk of the new nested layout instead.
+  // The old root-level _Papierkorb folder is now empty (everything inside it was either archived as a
+  // duplicate or relocated into notua-boards/_Papierkorb above) — tidy it away, same as before.
+  if(oldTrashHandle){
+    let stillThere=false;
+    for await (const _ of oldTrashHandle.entries()){ stillThere=true; break; }
+    if(!stillThere){ try{ await fsState.root.removeEntry('_Papierkorb',{recursive:true}); }catch(e){} }
+  }
+  // Every fsState.dirs/parentDirs/cache entry populated during the scan above still points at pre-sweep
+  // (now possibly stale) locations — clear everything so the very next enumeration (allBoards() etc,
+  // called right after this from activateFolder) does a clean walk of the current nested layout instead.
   fsState.dirs.clear(); fsState.parentDirs.clear(); fsState.cache.clear();
   fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
 }
@@ -4059,6 +4180,48 @@ async function driveWriteJSON(fileId,parentId,name,data){
 }
 async function driveDeleteFile(fileId){
   try{ await driveFetch(`${DRIVE_API}/${fileId}`,{method:'DELETE'}); }catch(e){}
+}
+// Small standalone JSON file directly in the NOTUA root (a sibling of notua-boards/, never inside it —
+// it isn't a board, so it must never end up looking like one to driveEnumerateBoards) holding
+// {homeSourceFilter, homeSourceIconsEnabled, updatedAt}: the "Ordnerstruktur" panel's two settings (see
+// showFolderStructureModal). Pulled once right after a Drive connection is established (see
+// activateDrive) so this device picks up whatever the setting was last changed to on any other device;
+// pushed (fire-and-forget, never blocks the UI) whenever the setting changes locally while Drive is
+// connected. With no Drive connected, saveHomeSourceFilter/saveHomeSourceIconsEnabled above already
+// wrote the value to localStorage regardless — that's still there and still works, this is purely an
+// extra mirror for when Drive is around to carry it between devices.
+const DRIVE_SETTINGS_FILE='notua-app-settings.json';
+async function syncHomeSettingsWithDrive(){
+  if(!driveState.root) return;
+  try{
+    const existing=await driveFindChild(driveState.root,DRIVE_SETTINGS_FILE,false);
+    await driveWriteJSON(existing?existing.id:null, driveState.root, DRIVE_SETTINGS_FILE, {
+      homeSourceFilter:state.homeSourceFilter,
+      homeSourceIconsEnabled:state.homeSourceIconsEnabled,
+      updatedAt:Date.now(),
+    });
+  }catch(e){} // best-effort — the local value (already in localStorage before this is ever called) works fine either way
+}
+// Called once from activateDrive() right after (re)connecting: adopts whatever this Drive account's
+// settings file already has — any other device's last change wins, since propagating that is the whole
+// point — or, first-ever connect for this account with nothing there yet, bootstraps the file from
+// whatever this device already has locally so it has somewhere to start from.
+async function pullHomeSettingsFromDrive(){
+  if(!driveState.root) return;
+  try{
+    const existing=await driveFindChild(driveState.root,DRIVE_SETTINGS_FILE,false);
+    if(!existing){ await syncHomeSettingsWithDrive(); return; }
+    const data=await driveGetJSON(existing.id,null);
+    if(!data) return;
+    if(data.homeSourceFilter==='fs'||data.homeSourceFilter==='drive'||data.homeSourceFilter==='all'){
+      state.homeSourceFilter=data.homeSourceFilter;
+      try{ localStorage.setItem('notua-home-source-filter',state.homeSourceFilter); }catch(e){}
+    }
+    if(typeof data.homeSourceIconsEnabled==='boolean'){
+      state.homeSourceIconsEnabled=data.homeSourceIconsEnabled;
+      try{ localStorage.setItem('notua-home-source-icons', state.homeSourceIconsEnabled?'1':'0'); }catch(e){}
+    }
+  }catch(e){}
 }
 async function driveMoveFile(fileId,fromParent,toParent){
   try{ await driveFetch(`${DRIVE_API}/${fileId}?addParents=${toParent}&removeParents=${fromParent}&fields=id`,{method:'PATCH'}); }catch(e){}
@@ -4388,21 +4551,49 @@ async function downscaleImageForDrive(blob){
   }catch(e){ return blob; }
 }
 
-// One-time migration for a Drive account that was already connected before board-folder nesting
-// existed: every board folder used to sit directly in the NOTUA root (flat), trash included. Mirrors
-// fsMigrateFlatToNested()'s logic exactly, just using real Drive moves (driveMoveFile) instead of
+// Sweeps a Drive account for board folders still sitting directly in the NOTUA root (flat) instead of
+// nested under notua-boards/ — the layout every board folder used to have before nesting existed.
+// Mirrors fsMigrateFlatToNested()'s logic, just using real Drive moves (driveMoveFile) instead of
 // FS_DB's copy-then-delete dance — Drive addresses everything by id, so nothing here ever re-uploads
 // any file content, it only relinks folders to new parents. Called from activateDrive() on every
-// connect; a no-op (one cheap existence check) once notua-boards/ already exists.
+// connect.
+//
+// An earlier version of this function bailed out the instant notua-boards/ existed at all, treating
+// that as proof the sweep had already finished. It hadn't: notua-boards/ gets created the moment ANY
+// board write happens (driveGetBoardsRootDir(), called from all over the sync engine), completely
+// independent of whether a flat-folder scan ever ran to completion — and a single failed move used to
+// abort that whole scan silently (see the old catch below). So an account could get permanently stuck
+// with some boards migrated and others flat forever, and — worse — once notua-boards/ existed, any
+// later write for one of those still-flat boards (from a session that had never seen its flat folder,
+// since driveFindOrCreateFolder only searches inside the container it's given) would create a BRAND
+// NEW, correctly-nested folder for that same board id right next to its still-flat original. Drive
+// happily allows two folders with an identical name, so nothing ever complained — that's exactly how
+// a NOTUA root ends up with folders like "Shotlist-Visuals-4a60b9" appearing twice.
+//
+// This version always re-scans the NOTUA root for stray flat board folders on every connect (one cheap
+// folder listing when there's nothing left to find — the common case once an account is caught up) and
+// reconciles anything it finds by board id against what's already nested, rather than trusting a single
+// existence check. A flat folder whose id has no nested counterpart yet is genuinely unmigrated and
+// gets moved in, same as before. A flat folder whose id ALREADY has a nested counterpart is a leftover
+// duplicate from the bug above — its nested counterpart is what the app has actually been reading from
+// and writing to, so it stays authoritative; the flat leftover is relinked into a dedicated
+// "notua-boards/_Migrations-Duplikate/" holding folder instead. That's deliberately NOT the app's own
+// _Papierkorb/Trash: this app's trash is live, synced, restorable state the sync engine and Home's
+// Papierkorb view both reason about, and dropping a second copy of an id that's simultaneously active
+// elsewhere in there risks exactly the kind of "which one is real" confusion this fix exists to remove.
+// _Migrations-Duplikate/ is just an inert parking spot nothing in the app ever scans (driveEnumerateBoards
+// only ever recurses into a folder that itself has a board.json — a plain holding folder doesn't — so
+// its contents are invisible to Home, Trash and the sync engine alike) — nothing is ever deleted, it's
+// just out of the way, and still there in Drive itself for a manual look if anything ever seems off.
 async function driveMigrateFlatToNested(){
   if(!driveState.root) return;
-  const existing=await driveFindChild(driveState.root,'notua-boards',true);
-  if(existing){ driveState.boardsRoot=existing.id; return; } // already migrated (or a brand-new empty NOTUA folder) — nothing flat to move
+  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
   const children=await driveListFolderChildren(driveState.root);
   const flatBoards=[]; // {folderId,meta}
   let oldTrashId=null;
   for(const child of children){
     if(child.mimeType!=='application/vnd.google-apps.folder') continue;
+    if(child.id===boardsRoot) continue;
     if(child.name==='_Papierkorb'){ oldTrashId=child.id; continue; }
     const boardFile=await driveFindChild(child.id,'board.json',false);
     if(!boardFile) continue;
@@ -4420,24 +4611,37 @@ async function driveMigrateFlatToNested(){
       if(data && data.meta && data.meta.id) trashedFlatBoards.push({folderId:child.id,meta:data.meta});
     }
   }
-  if(!flatBoards.length && !trashedFlatBoards.length){
-    await driveGetBoardsRootDir(); // still create notua-boards/ so future writes land in the right place
-    return;
+  if(!flatBoards.length && !trashedFlatBoards.length) return; // nothing stray — the common case once an account is caught up
+  const nestedIds=new Set((await driveEnumerateBoards(boardsRoot)).map(b=>b.id));
+  let dupeFolder=null;
+  async function archiveDuplicate(folderId,fromParent){
+    if(!dupeFolder) dupeFolder=await driveFindOrCreateFolder(boardsRoot,'_Migrations-Duplikate');
+    await driveMoveFile(folderId,fromParent,dupeFolder);
   }
-  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
   try{
-    if(flatBoards.length) await driveMigrateGroupToNested(flatBoards,driveState.root,boardsRoot);
-    if(trashedFlatBoards.length && oldTrashId){
-      const newTrash=await driveFindOrCreateFolder(boardsRoot,'_Papierkorb');
-      await driveMigrateGroupToNested(trashedFlatBoards,oldTrashId,newTrash);
+    for(const item of flatBoards){ if(nestedIds.has(item.meta.id)) await archiveDuplicate(item.folderId,driveState.root); }
+    const freshFlat=flatBoards.filter(item=>!nestedIds.has(item.meta.id));
+    if(freshFlat.length) await driveMigrateGroupToNested(freshFlat,driveState.root,boardsRoot);
+    if(trashedFlatBoards.length){
+      const existingTrash=await driveFindChild(boardsRoot,'_Papierkorb',true);
+      const nestedTrashIds=existingTrash ? new Set((await driveEnumerateBoards(existingTrash.id)).map(b=>b.id)) : new Set();
+      for(const item of trashedFlatBoards){ if(nestedTrashIds.has(item.meta.id) || nestedIds.has(item.meta.id)) await archiveDuplicate(item.folderId,oldTrashId); }
+      const freshTrashed=trashedFlatBoards.filter(item=>!nestedTrashIds.has(item.meta.id) && !nestedIds.has(item.meta.id));
+      if(freshTrashed.length){
+        const newTrash=await driveFindOrCreateFolder(boardsRoot,'_Papierkorb');
+        await driveMigrateGroupToNested(freshTrashed,oldTrashId,newTrash);
+      }
     }
-  }catch(e){ return; } // a move failed partway — nothing was ever deleted here (moves only relink, they don't copy-then-remove), so just retry the whole scan next connect
-  // The old root-level _Papierkorb folder itself (not its former contents, which just got relinked
-  // into notua-boards/_Papierkorb above) is now an empty leftover — tidy it away.
-  if(oldTrashId){ try{ await driveDeleteFile(oldTrashId); }catch(e){} }
-  // Everything scanned above still has driveState.dirs/parentDirs/cache pointing at the pre-migration
-  // parent ids for some entries — clear it all so the very next enumeration (allBoards() etc, called
-  // right after this from activateDrive) does a clean walk of the new nested layout instead.
+  }catch(e){ return; } // something failed mid-sweep — nothing was ever deleted (moves only relink, archiving only relinks too), so just retry the remaining strays next connect
+  // The old root-level _Papierkorb folder is now empty (everything inside it was either archived as a
+  // duplicate or relocated into notua-boards/_Papierkorb above) — tidy it away, same as before.
+  if(oldTrashId){
+    const stillThere=await driveListFolderChildren(oldTrashId);
+    if(!stillThere.length){ try{ await driveDeleteFile(oldTrashId); }catch(e){} }
+  }
+  // Everything scanned above still has driveState.dirs/parentDirs/cache pointing at pre-sweep parent
+  // ids for some entries — clear it all so the very next enumeration (allBoards() etc, called right
+  // after this from activateDrive) does a clean walk of the current nested layout instead.
   driveState.dirs.clear(); driveState.parentDirs.clear(); driveState.cache.clear();
   driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear();
   driveState.boardFileId.clear(); driveState.imagesDirId.clear(); driveState.imageFileId.clear();
@@ -4964,6 +5168,8 @@ const state={
   gridEnabled:true,
   snapEnabled:true,
   dynamicContent:loadDynamicContent(),
+  homeSourceFilter:loadHomeSourceFilter(),     // 'all' | 'fs' | 'drive' — Home-overview visibility filter, see applyHomeSourceFilter()
+  homeSourceIconsEnabled:loadHomeSourceIconsEnabled(), // show/hide the small per-tile storage-location badges, see computeBoardSourceBadges()
   projects:loadProjects(),
   connectMode:false,
   connectFrom:null,
@@ -5424,8 +5630,53 @@ async function refreshHome(){
   if(hasRemoteSource) await withBusy(t('busy_syncing'), doMerge);
   else await doMerge();
 }
+// "Ordnerstruktur" panel's Local|Alle|Drive filter (see showFolderStructureModal) — purely a
+// Home-overview visibility filter, nothing more: it decides which tiles paintHomeGrid draws, never
+// what the sync engine actually does in the background (that keeps running exactly the same for a
+// filtered-out board as for a visible one — hiding a tile here doesn't stop it syncing). Falls back to
+// showing everything if the selected backend isn't even connected right now, so picking "Lokal" before
+// ever connecting a folder can't leave Home looking empty with no explanation on screen.
+function applyHomeSourceFilter(list){
+  const mode=state.homeSourceFilter;
+  if(mode==='fs' && fsState.root) return list.filter(b=>{ const info=state.boardSources&&state.boardSources.get(b.id); return !!(info && info.sources.has('fs')); });
+  if(mode==='drive' && driveState.root) return list.filter(b=>{ const info=state.boardSources&&state.boardSources.get(b.id); return !!(info && info.sources.has('drive')); });
+  return list;
+}
+// Which of the three physical locations (Local folder, IndexedDB, Google Drive) currently have a copy
+// of this board — the small, deliberately subtle per-tile hint (see buildBoardTile). Reuses
+// state.boardSources, already populated by every Home refresh's mergedAllBoards() call, so this never
+// costs an extra network round-trip just to paint a hint (same reasoning as openBoard()'s
+// state.boardSources cache-reuse elsewhere this round). Checked against the fixed set of all three
+// locations, not just whichever happen to be connected right now — a board that's only ever reached
+// two of the three (e.g. no folder ever connected on this account) keeps showing its badges
+// permanently, which is accurate, not a bug: they disappear the moment you connect the missing
+// location and this specific board actually reaches it too.
+function computeBoardSourceBadges(boardId){
+  if(!state.homeSourceIconsEnabled) return [];
+  const info=state.boardSources && state.boardSources.get(boardId);
+  const present=info ? info.sources : new Set(['idb']);
+  const have=['fs','idb','drive'].filter(src=>present.has(src));
+  return have.length>=3 ? [] : have;
+}
+function renderSourceBadges(container,boardId){
+  if(!container) return;
+  const have=computeBoardSourceBadges(boardId);
+  container.innerHTML=have.map(src=>`<span class="src-badge" title="${escapeHtml(syncSourceLabel(src))}">${src==='fs'?iconFolder():src==='drive'?'G':'DB'}</span>`).join('');
+  container.hidden=!have.length;
+}
+// Re-paints just the badges on whatever tiles are already on screen, without going through
+// paintHomeGrid's own repaint-dedupe (which keys off board ids/updatedAt/project state — none of
+// which change when only state.homeSourceIconsEnabled is flipped, so that dedupe would otherwise skip
+// the repaint entirely). Cheap: no DB access, just re-reads the same state.boardSources map already
+// in memory for every tile currently rendered.
+function refreshAllTileBadges(){
+  document.querySelectorAll('.board-tile[data-board-id]').forEach(tile=>{
+    renderSourceBadges(tile.querySelector('.tile-source-badges'), tile.dataset.boardId);
+  });
+}
 let lastHomePaintSig=null;
-async function paintHomeGrid(all){
+async function paintHomeGrid(allIn){
+  const all=applyHomeSourceFilter(allIn);
   // Boards mid-flight in an optimistic delete (see trashBoard) are excluded here too — otherwise
   // this merge (which still sees the old backend state until the background write lands) would
   // make the tile flicker right back after it was already removed from the UI.
@@ -5443,11 +5694,15 @@ async function paintHomeGrid(all){
   // Self-heal project state: drop references to boards that no longer exist, and auto-dissolve
   // any project a removal leaves with one or zero boards (a "folder" of a single item doesn't
   // make sense — same as how Android auto-unpacks a folder down to its last icon).
-  const rootIds=new Set(roots.map(b=>b.id));
+  // Project membership is real data, not a view — a board hidden by the "Ordnerstruktur" filter must
+  // never look like a deleted board to this self-heal pass, or picking e.g. "Drive" would silently
+  // rip every non-Drive board out of its project the first time Home repaints. So this checks against
+  // every board that actually still exists (the UNFILTERED list), not just the ones currently painted.
+  const unfilteredRootIds=new Set(allIn.filter(b=>!b.parentBoardId && !state.optimisticHidden.has(b.id)).map(b=>b.id));
   let projectsChanged=false;
   state.projects.forEach(p=>{
     const before=p.boardIds.length;
-    p.boardIds=p.boardIds.filter(id=>rootIds.has(id));
+    p.boardIds=p.boardIds.filter(id=>unfilteredRootIds.has(id));
     if(p.boardIds.length!==before) projectsChanged=true;
   });
   const keptProjects=state.projects.filter(p=>p.boardIds.length>1);
@@ -5584,7 +5839,10 @@ async function buildBoardTile(b,opts){
       <h3 spellcheck="false">${escapeHtml(b.name)}</h3>
     </div>
     <div class="meta">
-      <span class="mono">${opts.trash ? t('trash_tile_date',{date:fmtDate(b.trashedAt||b.updatedAt)}) : fmtDate(b.updatedAt)}</span>
+      <span class="meta-left">
+        <span class="mono">${opts.trash ? t('trash_tile_date',{date:fmtDate(b.trashedAt||b.updatedAt)}) : fmtDate(b.updatedAt)}</span>
+        <span class="tile-source-badges" hidden></span>
+      </span>
       <span>${t('tile_element_count',{n:count,e:count===1?'':'e'})}</span>
     </div>
     ${(!opts.trash && state.recentlyRestored.has(b.id)) ? `<div class="restored-badge">${escapeHtml(t('recently_restored_badge'))}</div>` : ''}
@@ -5597,6 +5855,8 @@ async function buildBoardTile(b,opts){
   if(b.logoImageId){
     withBoardBackend(b.id, ()=>getImageUrl(b.logoImageId)).then(url=>{ if(url) tile.querySelector('.tile-logo').src=url; });
   }
+  // Tiny "which physical locations already have this board" hint — see computeBoardSourceBadges().
+  renderSourceBadges(tile.querySelector('.tile-source-badges'), b.id);
 
   // ---- Papierkorb tiles: a much smaller, self-contained set of behaviors ----
   if(opts.trash){
@@ -8134,6 +8394,69 @@ function confirmModal(title,body,confirmLabel,onConfirm){
   bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
   scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>{ scrim.remove(); onConfirm(); });
+  document.body.appendChild(scrim);
+}
+
+/* ============================================================
+   "ORDNERSTRUKTUR" PANEL — Werkzeuge > Ordnerstruktur (see the Tools-sheet wiring further down).
+   Two small, purely cosmetic Home-overview settings: which boards are shown (Local|Alle|Drive — see
+   applyHomeSourceFilter) and whether the per-tile storage-location badges are shown at all (see
+   computeBoardSourceBadges). Both apply live as soon as they're changed, same as the language/theme
+   toggles elsewhere — there's deliberately no separate "save" step.
+   ============================================================ */
+function showFolderStructureModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal modal-wide folder-structure-modal">
+    <h4>${escapeHtml(t('folder_structure_title'))}</h4>
+    <div class="fs-modal-section">
+      <div class="fs-modal-label">${escapeHtml(t('folder_structure_filter_label'))}</div>
+      <div class="segmented" id="fsFilterSegmented">
+        <button type="button" data-val="fs" ${fsState.root?'':'disabled'}>${escapeHtml(t('folder_structure_filter_local'))}</button>
+        <button type="button" data-val="all">${escapeHtml(t('folder_structure_filter_all'))}</button>
+        <button type="button" data-val="drive" ${driveState.root?'':'disabled'}>${escapeHtml(t('folder_structure_filter_drive'))}</button>
+      </div>
+      <p class="fs-modal-hint" id="fsFilterHint"></p>
+    </div>
+    <div class="fs-modal-section">
+      <label class="fs-modal-toggle-row">
+        <input type="checkbox" id="fsIconsToggle" ${state.homeSourceIconsEnabled?'checked':''}/>
+        <span>${escapeHtml(t('folder_structure_icons_label'))}</span>
+      </label>
+      <p class="fs-modal-hint">${escapeHtml(t('folder_structure_icons_hint'))}</p>
+    </div>
+    ${driveState.root ? `<p class="fs-modal-hint fs-modal-drive-hint">${escapeHtml(t('folder_structure_drive_sync_hint'))}</p>` : ''}
+    <div class="modal-actions">
+      <button data-a="ok">${escapeHtml(t('close_title'))}</button>
+    </div>
+  </div>`;
+  const segmented=scrim.querySelector('#fsFilterSegmented');
+  const hintEl=scrim.querySelector('#fsFilterHint');
+  function refreshFilterUI(){
+    segmented.querySelectorAll('button[data-val]').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.val===state.homeSourceFilter);
+    });
+    hintEl.textContent = state.homeSourceFilter==='fs' && !fsState.root ? t('folder_structure_filter_hint_disabled_fs')
+      : state.homeSourceFilter==='drive' && !driveState.root ? t('folder_structure_filter_hint_disabled_drive')
+      : t('folder_structure_filter_hint');
+  }
+  refreshFilterUI();
+  segmented.querySelectorAll('button[data-val]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(btn.disabled) return;
+      state.homeSourceFilter=btn.dataset.val;
+      saveHomeSourceFilter(state.homeSourceFilter);
+      refreshFilterUI();
+      lastHomePaintSig=null; // force a repaint even if the filtered board set happens to look identical
+      if(state.screen==='home') paintHomeGrid(applyBoardOverrides(state.boards));
+    });
+  });
+  scrim.querySelector('#fsIconsToggle').addEventListener('change',(e)=>{
+    state.homeSourceIconsEnabled=e.target.checked;
+    saveHomeSourceIconsEnabled(state.homeSourceIconsEnabled);
+    refreshAllTileBadges();
+  });
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
   document.body.appendChild(scrim);
 }
 
@@ -12586,6 +12909,10 @@ async function activateDrive(rootId,opts){
   // anything below reads from this Drive account — see driveMigrateFlatToNested's own comment. A
   // no-op (one cheap existence check) once it's already on the new layout, or a brand-new NOTUA folder.
   await driveMigrateFlatToNested();
+  // Adopt whatever the "Ordnerstruktur" panel's settings were last changed to on any other device
+  // signed into this same Drive account (see pullHomeSettingsFromDrive's own comment) — before
+  // anything below paints Home with these settings' old, possibly-stale local values.
+  await pullHomeSettingsFromDrive();
   // A local folder and Google Drive can now be connected at the same time (see MULTI-QUELLEN-SPEICHER
   // above) — connecting one no longer disconnects the other the way it used to.
   if(opts.offerMigration){
@@ -13190,6 +13517,10 @@ if(toolsBtn){
   document.getElementById('toolsSyncAllItem').addEventListener('click',()=>{
     closeToolsSheet();
     syncAllBoards();
+  });
+  document.getElementById('toolsFolderStructureItem').addEventListener('click',()=>{
+    closeToolsSheet();
+    showFolderStructureModal();
   });
   document.getElementById('toolsTrashItem').addEventListener('click',()=>{
     closeToolsSheet();
