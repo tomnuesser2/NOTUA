@@ -8966,22 +8966,38 @@ function buildDrustvarApiUrl(kind,region,server,name,season){
   if(season!=null) url+='?season='+encodeURIComponent(season);
   return url;
 }
-// Two independent public CORS-proxy relays, tried in order — if the first is down or rate-limited the
-// second still gives this a real shot instead of failing outright on one dead service.
+// Four independent public CORS-proxy relays, tried in order — if one is down, rate-limited, or (like
+// corsproxy.io as of late 2026) now demands a registered-domain API key for anonymous callers, the next
+// one still gives this a real shot instead of failing outright on one dead/gatekept service. Each attempt
+// is logged to the console (proxy index + status/reason) so a future "still failing" report can be
+// diagnosed from DevTools → Console alone, without another full Network-tab walkthrough.
+// corsproxy.io now answers with HTTP 401 for anonymous/unregistered callers (confirmed live via a
+// user's own DevTools Network tab — a real Cloudflare-fronted 401, not a caching artifact), so it's
+// kept only as a last-resort fourth attempt instead of first, to avoid burning a guaranteed-failed
+// round trip on every single request.
 const WOW_CORS_PROXIES=[
-  u=>'https://corsproxy.io/?url='+encodeURIComponent(u),
-  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+  {name:'allorigins.win', build:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)},
+  {name:'codetabs.com', build:u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)},
+  {name:'thingproxy', build:u=>'https://thingproxy.freeboard.io/fetch/'+u},
+  {name:'corsproxy.io', build:u=>'https://corsproxy.io/?url='+encodeURIComponent(u)},
 ];
 async function wowFetchViaCorsProxies(url){
   let lastErr=null;
-  for(const build of WOW_CORS_PROXIES){
+  for(let i=0;i<WOW_CORS_PROXIES.length;i++){
+    const proxy=WOW_CORS_PROXIES[i];
     try{
-      const res=await fetch(build(url),{cache:'no-store'});
+      const res=await fetch(proxy.build(url),{cache:'no-store'});
       if(!res.ok) throw new Error('HTTP '+res.status);
       const text=await res.text();
-      if(text && text.length>10) return text;
+      if(text && text.length>10){
+        if(i>0) console.warn('[NOTUA wow] '+proxy.name+' succeeded after an earlier proxy failed for', url);
+        return text;
+      }
       throw new Error('empty response');
-    }catch(e){ lastErr=e; }
+    }catch(e){
+      console.warn('[NOTUA wow] '+proxy.name+' failed for', url, '—', e && e.message);
+      lastErr=e;
+    }
   }
   throw lastErr||new Error('all proxies failed');
 }
