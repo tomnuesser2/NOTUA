@@ -316,6 +316,17 @@ try{
   .download-platform-row:not(.disabled):hover .dp-icon{color:var(--accent);}
   .download-platform-row.disabled{opacity:0.45; cursor:not-allowed; pointer-events:none;}
   .download-platform-row .dp-soon{flex:none; font-size:0.68rem; color:var(--faint); text-transform:uppercase; letter-spacing:.03em;}
+  /* Landing-page "Mit Google anmelden" — deliberately styled like the familiar neutral "Sign in with
+     Google" button convention (white/surface ground, thin border, the full-color "G" mark) rather than
+     matching NOTUA's own accent color, so it reads as a distinct Google action, not an app action. */
+  .google-signin-btn{
+    display:inline-flex; align-items:center; gap:9px; border:1px solid var(--border-strong); border-radius:10px;
+    background:var(--surface); color:var(--ink); font:inherit; font-size:0.84rem; font-weight:600;
+    padding:9px 16px; cursor:pointer; transition:background .15s ease, box-shadow .15s ease, transform .12s ease;
+  }
+  .google-signin-btn:hover{background:var(--surface-2); box-shadow:0 4px 12px -6px var(--shadow-lg);}
+  .google-signin-btn:active{transform:scale(.97);}
+  .google-signin-btn:disabled{opacity:.6; cursor:default; transform:none;}
   .lang-switch{display:flex; gap:3px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:3px;}
   .lang-switch button{
     border:none; background:none; padding:4px 11px; border-radius:16px; font:inherit; font-size:0.72rem; font-weight:600;
@@ -2073,6 +2084,20 @@ try{
         <h1 class="notua-letters"><span style="--i:0">N</span><span style="--i:1">O</span><span style="--i:2">T</span><span style="--i:3">U</span><span style="--i:4">A</span></h1>
         <p id="landingTagline">Boards für deine kreativen Projekte – Notizen, Workflows, Moodboards und mehr, an einem Ort.</p>
       </div>
+      <!-- Same connectDrive() flow as the Werkzeuge-sheet's "Ordner synchronisieren" — purely an
+           alternative, earlier entry point into it, nothing more (Drive's own scope only — see
+           connectDrive()'s own comment on why a combined Drive+Calendar request doesn't live here).
+           The plain arrow above still opens NOTUA with no Google account at all, nothing here is
+           required. -->
+      <button class="google-signin-btn" id="landingGoogleBtn" type="button">
+        <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.5 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.3 13 17.6 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 2.9-2.2 5.4-4.7 7.1l7.3 5.7C43.5 37.6 46.5 31.6 46.5 24.5z"/>
+          <path fill="#FBBC05" d="M10.5 19.3A14.5 14.5 0 0 0 9.7 24c0 1.6.3 3.2.8 4.7l-7.9 6.1A24 24 0 0 1 0 24c0-3.8.9-7.4 2.6-10.6l7.9 6.1z"/>
+          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2.1 1.4-4.9 2.2-8.6 2.2-6.4 0-11.7-3.5-13.6-8.6l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
+        </svg>
+        <span id="landingGoogleBtnLabel">Mit Google anmelden</span>
+      </button>
       <div class="lang-switch" role="group" aria-label="Language">
         <button data-lang="de" class="active" title="Deutsch">DE</button>
         <button data-lang="en" title="English">EN</button>
@@ -3006,6 +3031,7 @@ const I18N={
   tools_export_item:{de:'Board exportieren',en:'Export board'},
   tools_sync_all_item:{de:'Alle synchronisieren',en:'Sync all'},
   tools_folder_structure_item:{de:'Ordnerstruktur',en:'Storage view'},
+  landing_google_signin_label:{de:'Mit Google anmelden',en:'Sign in with Google'},
   folder_structure_title:{de:'Ordnerstruktur',en:'Storage view'},
   folder_structure_filter_label:{de:'Welche Boards auf der Übersicht angezeigt werden',en:'Which boards show up on the overview'},
   folder_structure_filter_local:{de:'Lokal',en:'Local'},
@@ -3219,6 +3245,7 @@ function applyI18n(){
     ['#homeTagline','text',t('home_tagline')],
     ['.donate-link span','text',t('donate_label')],
     ['#downloadBtnLabel','text',t('download_label')],
+    ['#landingGoogleBtnLabel','text',t('landing_google_signin_label')],
     ['#impressumBtn','text',t('impressum_label')],
     ['#aboutBtn','text',t('about_label')],
     ['#datenschutzBtn','text',t('datenschutz_label')],
@@ -4295,16 +4322,42 @@ async function driveEnsureImagesDir(boardId){
 // (still-valid) parent pointer to it, whether that folder itself just moved across Drive or not. FS_DB
 // needs the repair only because the File System Access API has no true move — a "move" there means
 // create-new-copy-then-delete-old, which really does invalidate every handle underneath.
+// Rewritten this round for real: this used to walk children.length folders one at a time — for EVERY
+// child it awaited a separate driveFindChild() (a filtered "does board.json exist here" query) before
+// even knowing whether that folder was a board at all, then, if it recursed into it, immediately
+// re-listed that same folder's children again from scratch via driveListFolderChildren at the top of
+// the recursive call. For an account with N board folders that's on the order of 2-3×N sequential,
+// AWAITED round trips to the Drive API just to find out what's there — with each round trip costing
+// somewhere in the 150-500ms range, an account with ~20 boards (not unusual — see the folder-structure
+// cleanup earlier this round) could easily spend several seconds, serially, on every single sync-engine
+// tick, every openBoard() cache-miss, every Home refresh's mergedAllBoards(). That's the concrete,
+// fixable half of "die sync time ist so gottlos lang" — the other half (Google's per-request latency
+// itself) isn't something this app controls, but doing those requests IN PARALLEL instead of one after
+// another, and only ONCE per folder instead of twice, is squarely within its control.
+// driveWalkBoards (the public entry point, same signature/behavior as before) now just lists parentId
+// once and hands off to driveProcessBoardChildren, which does two things differently: (1) it processes
+// every child folder of a level CONCURRENTLY (Promise.all) instead of one at a time — latency now scales
+// with the TREE'S DEPTH, not with how many boards exist at each level; (2) each child folder is listed
+// with driveListFolderChildren exactly ONCE, and that same listing is reused both to look for its own
+// board.json (replacing the old separate driveFindChild query) and, if it turns out to be a board, to
+// recurse into its own children — instead of listing the same folder twice like the old code did.
 async function driveWalkBoards(parentId,collect,seenIds){
   const children=await driveListFolderChildren(parentId);
-  for(const child of children){
-    if(child.mimeType!=='application/vnd.google-apps.folder' || child.name==='images') continue;
-    const boardFile=await driveFindChild(child.id,'board.json',false);
-    if(!boardFile) continue;
+  await driveProcessBoardChildren(children,parentId,collect,seenIds);
+}
+async function driveProcessBoardChildren(children,parentId,collect,seenIds){
+  const folders=children.filter(c=>c.mimeType==='application/vnd.google-apps.folder' && c.name!=='images');
+  await Promise.all(folders.map(async (child)=>{
+    const innerChildren=await driveListFolderChildren(child.id);
+    const boardFile=innerChildren.find(f=>f.name==='board.json' && f.mimeType!=='application/vnd.google-apps.folder');
+    if(!boardFile) return; // not a board folder (e.g. the images/ subfolder already filtered above, or
+                            // the _Migrations-Duplikate holding folder from this session's earlier fix —
+                            // deliberately never has a board.json of its own, so it's silently skipped
+                            // here exactly like before, its contents never recursed into)
     const data=await driveGetJSON(boardFile.id,null);
-    if(!data || !data.meta || !data.meta.id) continue;
+    if(!data || !data.meta || !data.meta.id) return;
     const id=data.meta.id;
-    if(seenIds.has(id)) continue; seenIds.add(id);
+    if(seenIds.has(id)) return; seenIds.add(id);
     driveState.dirs.set(id,child.id);
     driveState.parentDirs.set(id,parentId);
     driveState.boardFileId.set(id,boardFile.id);
@@ -4317,8 +4370,10 @@ async function driveWalkBoards(parentId,collect,seenIds){
       (data.connectors||[]).forEach(cn=>driveState.connOwner.set(cn.id,id));
     }
     if(collect) collect.push({...driveState.cache.get(id).meta});
-    await driveWalkBoards(child.id,collect,seenIds); // recurse for this board's own nested sub-boards
-  }
+    // Recurse for this board's own nested sub-boards using the innerChildren listing already fetched
+    // above — never re-lists child.id's contents a second time.
+    await driveProcessBoardChildren(innerChildren,child.id,collect,seenIds);
+  }));
 }
 async function driveEnumerateBoards(parentId){ const out=[]; await driveWalkBoards(parentId,out,new Set()); return out; }
 
@@ -6710,6 +6765,18 @@ const landingView=document.getElementById('landingView');
 document.getElementById('landingCircle').addEventListener('click',(e)=>{
   revealToHome(e.currentTarget);
 });
+const landingGoogleBtn=document.getElementById('landingGoogleBtn');
+if(landingGoogleBtn){
+  landingGoogleBtn.addEventListener('click',async (e)=>{
+    landingGoogleBtn.disabled=true;
+    try{
+      await connectDrive(); // same Drive connect as Werkzeuge's own Drive button
+      if(driveState.root) revealToHome(e.currentTarget); // only actually enter the app once sign-in succeeded — a cancelled/failed popup leaves you right here, free to just use the plain arrow instead
+    }finally{
+      landingGoogleBtn.disabled=false;
+    }
+  });
+}
 const homeWordmark=document.getElementById('homeWordmark');
 homeWordmark.addEventListener('click',()=>{
   if(state.screen!=='home') return;
@@ -12933,6 +13000,17 @@ async function activateDrive(rootId,opts){
   // waiting for its next ~30s cadence (see the SYNC ENGINE section).
   scheduleSyncSoon(1000);
 }
+// NOTE — a combined Drive+Calendar consent request (asking for both scopes in one popup) briefly lived
+// here this round, but got reverted once it became clear NOTUA is a genuinely public app, not a small
+// team-internal tool: bundling calendar.events (a scope Google classifies as sensitive, requiring
+// verification) into THIS button meant every single visitor connecting Drive — previously frictionless
+// and warning-free, since drive.file is exempt from Google's review — would now hit Google's "diese App
+// wurde nicht überprüft" warning too, just to use the core sync feature. Reverted to Drive's own scope
+// only, exactly as it was before this round; Calendar's own separate, on-demand request (further down,
+// see the big comment on the Calendar OAuth section) still asks for its scope only when someone actually
+// clicks "In Google Kalender übernehmen" — so only people who actually touch that feature ever see the
+// warning, not every visitor who just wants to sync boards. See this round's chat summary for the
+// current path to removing the warning entirely (Google OAuth verification for the sensitive scope).
 async function connectDrive(){
   if(!DRIVE_SUPPORTED){ showToast(t('toast_drive_no_client_id')); return; }
   if(!(window.google && google.accounts && google.accounts.oauth2)){ showToast(t('toast_drive_unsupported')); return; }
@@ -13028,6 +13106,12 @@ async function migrateIdbToDrive(idbBoards){
 // genuine network-level failure and is purely informational here (no auto-retry/reconcile behind it
 // any more — Sync, further down, is how a person actually pushes/pulls now).
 function updateDriveStatusUI(){
+  // Landing page's "Mit Google anmelden" is just an earlier entry point into the same connectDrive()
+  // flow the Werkzeuge sheet's Drive button already offers — once actually connected, showing it again
+  // on landing would only look like "you're not signed in yet" when you already are, so it hides itself
+  // the moment driveState.root is set, same as it hides outright when Drive isn't configured at all.
+  const landingGoogleBtn=document.getElementById('landingGoogleBtn');
+  if(landingGoogleBtn) landingGoogleBtn.hidden = !DRIVE_SUPPORTED || !!driveState.root;
   if(!driveBtn) return;
   if(!DRIVE_SUPPORTED){ driveBtn.hidden=true; return; }
   driveBtn.hidden=false;
