@@ -1444,9 +1444,13 @@ try{
   .wow-tile-label{font-size:0.62rem; font-weight:700; letter-spacing:.04em; color:var(--faint); text-transform:uppercase;}
   .wow-tile-value{font-size:1.02rem; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums;}
   .wow-tile-bracket{gap:3px;}
-  .wow-tile-sub{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:0.64rem; color:var(--faint);}
-  .wow-tile-sub b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums;}
-  .wow-identity{font-size:0.74rem; color:var(--muted); margin:-2px 0 0;}
+  .wow-tile-sub{display:flex; align-items:baseline; gap:6px; font-size:0.64rem; color:var(--faint);}
+  .wow-tile-sub span{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .wow-tile-sub b{flex:none; color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums;}
+  .wow-spec-icon{width:14px; height:14px; border-radius:3px; flex:none; vertical-align:-2px;}
+  .wow-identity{display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--muted); margin:-2px 0 0;}
+  .wow-portrait{width:30px; height:30px; border-radius:50%; object-fit:cover; flex:none; border:1.5px solid var(--border);}
+  .wow-id-icon{width:18px; height:18px; border-radius:4px; flex:none;}
   .wow-updated{font-size:0.66rem; color:var(--faint);}
   .wow-open-link{align-self:flex-start; font-size:0.76rem; font-weight:600; color:var(--accent); text-decoration:none;}
   .wow-open-link:hover{text-decoration:underline;}
@@ -2594,9 +2598,9 @@ const I18N={
   wowpvp_server_placeholder:{de:'Server',en:'Realm'},
   wowpvp_search_title:{de:'Suchen',en:'Search'},
   wowpvp_reload_title:{de:'Neu laden',en:'Reload'},
-  wowpvp_open_link:{de:'Auf check-pvp.fr öffnen ↗',en:'Open on check-pvp.fr ↗'},
+  wowpvp_open_link:{de:'Auf drustvar.com öffnen ↗',en:'Open on drustvar.com ↗'},
   wowpvp_loading:{de:'Lade Daten…',en:'Loading data…'},
-  wowpvp_error:{de:'Daten konnten nicht automatisch geladen werden. Bitte direkt auf check-pvp.fr nachsehen.',en:'Data couldn’t be loaded automatically. Please check directly on check-pvp.fr.'},
+  wowpvp_error:{de:'Daten konnten nicht automatisch geladen werden. Bitte direkt auf drustvar.com nachsehen.',en:'Data couldn’t be loaded automatically. Please check directly on drustvar.com.'},
   wowpvp_no_data:{de:'Keine strukturierten Werte gefunden — bitte direkt auf check-pvp.fr nachsehen.',en:'No structured values found — please check directly on check-pvp.fr.'},
   wowpvp_missing_fields:{de:'Bitte Name, Server und Region ausfüllen',en:'Please fill in name, realm and region'},
   wowpvp_itemlevel_label:{de:'Item Level',en:'Item level'},
@@ -2610,6 +2614,7 @@ const I18N={
   wowpvp_level_label:{de:'Lvl',en:'Lvl'},
   wowpvp_score_label:{de:'Check-PvP-Score',en:'Check-PvP score'},
   wowpvp_score_arena_label:{de:'Arena',en:'Arena'},
+  wowpvp_peak_incomplete:{de:'Rekord evtl. unvollständig — nicht alle Seasons konnten geladen werden',en:'Peak may be incomplete — not all seasons could be loaded'},
   wowpvp_updated_label:{de:'Zuletzt geladen',en:'Last loaded'},
   beta_strava_unlocked_toast:{de:'Strava-Widget freigeschaltet — zu finden unter Widgets',en:'Strava widget unlocked — find it under Widgets'},
   beta_wow_unlocked_toast:{de:'WoW-PvP-Check freigeschaltet',en:'WoW PvP check unlocked'},
@@ -8932,27 +8937,34 @@ function buildWidgetCard(card){
 
 /* ============================================================
    WOW PVP-CHECK CARD (secret beta-tester feature, password "functionwow")
-   A small Name/Server/Region search that calls check-pvp.fr's own internal JSON API and shows the
-   result — item level, current/last-season/all-time-peak ratings for 2v2/3v3/RBG, overall + per-spec
-   Solo Shuffle and Solo Blitz ratings, and Check-PvP's own Arena/RBG scores — styled in NOTUA's own
-   look rather than the source site's. That endpoint (`/api/characters/{region}/{realm}/{name}/history`)
-   isn't publicly documented; it was found by inspecting a real browser session's network traffic, since
-   check-pvp.fr renders its character pages entirely client-side and never puts this data in the page's
-   initial HTML. NOTUA is a pure static/client-side app with no backend of its own, and check-pvp.fr
-   sends no CORS headers, so the request goes through a public CORS-proxy relay. That, plus the fact
-   that check-pvp.fr could rename or protect this endpoint at any time without notice, makes this the
-   single most fragile piece in the whole app — every failure path below ends in a clear, honest state
-   with a direct link to the real site, never a silent blank card, and the reload button just re-runs
-   the exact same search on demand.
+   A small Name/Server/Region search that calls drustvar.com's own JSON API and shows the result —
+   class/spec/portrait, current 2v2/3v3/RBG/Solo-Shuffle/Solo-Blitz ratings, and a genuine ALL-TIME PEAK
+   per bracket computed by pulling every season this character has rating history for and taking the
+   max. drustvar.com (unlike check-pvp.fr, which sends back an HTTP 401 for exactly this kind of
+   anonymous automated request — confirmed by hand — and unlike pvpleaderboard.com, whose robots.txt
+   explicitly asks automated tools to stay off its character pages) needs no auth token and no signed
+   header at all; this was found the same way as check-pvp.fr's endpoint — inspecting a real browser
+   session's network traffic — but here every endpoint really is answering plain, unauthenticated GETs.
+   NOTUA is a pure static/client-side app with no backend of its own, and drustvar.com sends no CORS
+   headers either, so every request still goes through the same public CORS-proxy relay as before.
+   "All-time peak" here is computed client-side from real per-season snapshots (drustvar.com tracks a
+   dated rating history per season) rather than trusting a single opaque field, which is arguably more
+   trustworthy than check-pvp.fr's own "ratemax" would have been — but it does mean several season
+   requests happen per search; if some of them fail, the peak shown is the max of whatever DID come
+   back, flagged as possibly incomplete rather than silently presented as definitive. Every failure path
+   ends in a clear, honest state with a direct link to the real site, never a silent blank card, and the
+   reload button just re-runs the exact same search on demand.
    ============================================================ */
 const WOW_REGION_PATH={EU:'eu', NA:'us'};
-function buildCheckPvpUrl(region,server,name){
+function buildDrustvarCharacterUrl(region,server,name){
   const seg=WOW_REGION_PATH[region]||'eu';
-  return `https://check-pvp.fr/${seg}/${encodeURIComponent(server)}/${encodeURIComponent(name)}`;
+  return `https://drustvar.com/character/${seg}/${encodeURIComponent(server)}/${encodeURIComponent(name)}`;
 }
-function buildCheckPvpApiUrl(region,server,name){
+function buildDrustvarApiUrl(kind,region,server,name,season){
   const seg=WOW_REGION_PATH[region]||'eu';
-  return `https://check-pvp.fr/api/characters/${seg}/${encodeURIComponent(server)}/${encodeURIComponent(name)}/history`;
+  let url=`https://drustvar.com/api/v1/character/${kind}/${seg}/${encodeURIComponent(server)}/${encodeURIComponent(name)}`;
+  if(season!=null) url+='?season='+encodeURIComponent(season);
+  return url;
 }
 // Two independent public CORS-proxy relays, tried in order — if the first is down or rate-limited the
 // second still gives this a real shot instead of failing outright on one dead service.
@@ -8973,76 +8985,128 @@ async function wowFetchViaCorsProxies(url){
   }
   throw lastErr||new Error('all proxies failed');
 }
-// Class and specialization IDs are Blizzard's own stable numeric scheme (unchanged since Dragonflight
-// added Evoker) — not something check-pvp.fr defines, so this is safe to hardcode rather than guess at.
-const WOW_CLASS_NAMES={1:'Warrior',2:'Paladin',3:'Hunter',4:'Rogue',5:'Priest',6:'Death Knight',7:'Shaman',8:'Mage',9:'Warlock',10:'Monk',11:'Druid',12:'Demon Hunter',13:'Evoker'};
-const WOW_SPEC_NAMES={
-  62:'Arcane',63:'Fire',64:'Frost',
-  65:'Holy',66:'Protection',70:'Retribution',
-  71:'Arms',72:'Fury',73:'Protection',
-  102:'Balance',103:'Feral',104:'Guardian',105:'Restoration',
-  250:'Blood',251:'Frost',252:'Unholy',
-  253:'Beast Mastery',254:'Marksmanship',255:'Survival',
-  256:'Discipline',257:'Holy',258:'Shadow',
-  259:'Assassination',260:'Outlaw',261:'Subtlety',
-  262:'Elemental',263:'Enhancement',264:'Restoration',
-  265:'Affliction',266:'Demonology',267:'Destruction',
-  268:'Brewmaster',269:'Windwalker',270:'Mistweaver',
-  577:'Havoc',581:'Vengeance',
-  1467:'Devastation',1468:'Preservation',1473:'Augmentation',
-};
 function wowNum(v){ return (typeof v==='number' && isFinite(v)) ? v : null; }
-// A rating of 0 in this API consistently means "hasn't played this bracket" rather than an earned
-// rating of zero, so it's treated as "no value" throughout — the UI shows a dash instead of a 0 that
-// would misleadingly read as an actual (terrible) rating.
+// A rating of 0 consistently means "hasn't played this bracket" rather than an earned rating of zero,
+// so it's treated as "no value" throughout — the UI shows a dash instead of a 0 that would misleadingly
+// read as an actual (terrible) rating.
 function wowRatingOrNull(v){ const n=wowNum(v); return (n!=null && n>0) ? n : null; }
-// Parses check-pvp.fr's own `/api/characters/.../history` JSON response — reverse-engineered from a
-// real HAR capture (check-pvp.fr publishes no docs for this endpoint), so every field is read
-// defensively rather than assumed to always be present.
-function parseWowHistoryJson(json){
-  if(!json || typeof json!=='object') return null;
-  const bracket=(cur,season,last,max)=>({
-    current: wowRatingOrNull(json[cur]),
-    seasonBest: wowRatingOrNull(json[season]),
-    lastSeasonBest: wowRatingOrNull(json[last]),
-    peak: wowRatingOrNull(json[max]),
+function wowTitleCase(s){ return (typeof s==='string' && s) ? s.charAt(0).toUpperCase()+s.slice(1) : null; }
+// The highest `rating` value across one bracket's array of dated snapshots — drustvar.com's own way of
+// representing "how did this rating move over time" for a single season.
+function drustvarMaxRating(entries){
+  if(!Array.isArray(entries) || !entries.length) return null;
+  let max=null;
+  for(const e of entries){ if(e && typeof e.rating==='number' && (max==null || e.rating>max)) max=e.rating; }
+  return max;
+}
+// Folds one season's `/ratings` payload into a running per-bracket max — called once per season fetched
+// (current season's own response, plus every other season pulled in parallel) to build up a genuine
+// all-time peak rather than trusting any single number.
+function foldDrustvarSeasonIntoPeak(peak,payload){
+  if(!payload || !payload.ratings) return;
+  const r=payload.ratings;
+  ['2v2','3v3','rbg'].forEach(b=>{
+    const m=drustvarMaxRating(r[b]);
+    if(m!=null && (peak[b]==null || m>peak[b])) peak[b]=m;
   });
-  const specName=(id)=>WOW_SPEC_NAMES[id]||null;
-  const bySpec=(arr)=>Array.isArray(arr) ? arr.map(s=>({
-    specId:s && s.specId, specName:specName(s && s.specId),
-    current:wowRatingOrNull(s && s.rating), peak:wowRatingOrNull(s && s.maxRating),
-  })) : [];
-  return{
-    name: typeof json.name==='string' ? json.name : null,
-    level: wowNum(json.level),
-    className: WOW_CLASS_NAMES[json.class]||null,
-    activeSpecName: specName(json.activeSpecId),
-    itemLevel: wowNum(json.averageItemLevelEquipped),
-    brackets:{
-      '2v2': bracket('rateatm2v2','best2v2RatingSeason','best2v2LastSeason','ratemax2v2'),
-      '3v3': bracket('rateatm3v3','best3v3RatingSeason','best3v3LastSeason','ratemax3v3'),
-      rbg: bracket('rateatmrbg','bestRBGRatingSeason','bestRBGLastSeason','ratemaxrbg'),
-    },
-    shuffleOverall:{ current: wowRatingOrNull(json.rateatmshuffle), peak: wowRatingOrNull(json.ratemaxshuffle) },
-    blitzOverall:{ current: wowRatingOrNull(json.rateatmblitz), peak: wowRatingOrNull(json.ratemaxblitz) },
-    shuffleBySpec: bySpec(json.soloshuffles),
-    blitzBySpec: bySpec(json.soloBlitzs),
-    scoreArena: wowNum(json.scoreArena),
-    scoreRBG: wowNum(json.scoreRBG),
-  };
+  ['shuffle','blitz'].forEach(cat=>{
+    const obj=r[cat]||{};
+    for(const key in obj){
+      const val=obj[key];
+      const m=drustvarMaxRating(val && val.ratings);
+      if(m==null) continue;
+      const existing=peak[cat][key];
+      if(!existing) peak[cat][key]={peak:m};
+      else if(m>existing.peak) existing.peak=m;
+    }
+  });
 }
 async function fetchWowPvpData(region,server,name){
-  const url=buildCheckPvpApiUrl(region,server,name);
-  const text=await wowFetchViaCorsProxies(url);
-  let json;
-  try{ json=JSON.parse(text); }catch(e){ throw new Error('bad json'); }
-  const parsed=parseWowHistoryJson(json);
-  // If neither a name nor an item level came back, this almost certainly wasn't a real character
-  // payload (a proxy error page, an empty/soft-404 JSON object, etc.) — surface it as an error rather
-  // than a confusing, entirely blank result card.
-  if(!parsed || (parsed.name==null && parsed.itemLevel==null)) throw new Error('unexpected shape');
-  return parsed;
+  const [altsText,ratingsText]=await Promise.all([
+    wowFetchViaCorsProxies(buildDrustvarApiUrl('alts',region,server,name)),
+    wowFetchViaCorsProxies(buildDrustvarApiUrl('ratings',region,server,name)),
+  ]);
+  let altsJson,ratingsJson;
+  try{ altsJson=JSON.parse(altsText); }catch(e){ throw new Error('bad alts json'); }
+  try{ ratingsJson=JSON.parse(ratingsText); }catch(e){ throw new Error('bad ratings json'); }
+
+  const alts=Array.isArray(altsJson && altsJson.alts) ? altsJson.alts : [];
+  const me=alts.find(a=>a && a.current) ||
+    alts.find(a=>a && typeof a.name==='string' && a.name.toLowerCase()===name.toLowerCase());
+  if(!me) throw new Error('character not found');
+
+  const seasons=Array.isArray(ratingsJson && ratingsJson.seasons) ? ratingsJson.seasons : [];
+  const sortedSeasonIds=seasons.map(s=>s && s.id).filter(id=>id!=null).sort((a,b)=>b-a);
+  const currentSeasonId=sortedSeasonIds.length ? sortedSeasonIds[0] : null;
+  const lastSeasonId=sortedSeasonIds.length>1 ? sortedSeasonIds[1] : null;
+  const otherSeasonIds=sortedSeasonIds.filter(id=>id!==currentSeasonId);
+
+  // Current season's payload is what the no-season-param call already returned — only the OTHER seasons
+  // need their own request. A failure on any one of them doesn't kill the search; it just means the
+  // computed all-time peak might be missing that season's contribution (flagged via peakIncomplete).
+  const seasonPayloads={};
+  if(currentSeasonId!=null) seasonPayloads[currentSeasonId]=ratingsJson;
+  let peakIncomplete=false;
+  if(otherSeasonIds.length){
+    const results=await Promise.allSettled(otherSeasonIds.map(id=>
+      wowFetchViaCorsProxies(buildDrustvarApiUrl('ratings',region,server,name,id)).then(text=>({id,text}))
+    ));
+    results.forEach(res=>{
+      if(res.status==='fulfilled'){
+        try{ seasonPayloads[res.value.id]=JSON.parse(res.value.text); }
+        catch(e){ peakIncomplete=true; }
+      }else{ peakIncomplete=true; }
+    });
+  }
+
+  const peak={ '2v2':null,'3v3':null,rbg:null, shuffle:{}, blitz:{} };
+  Object.values(seasonPayloads).forEach(p=>foldDrustvarSeasonIntoPeak(peak,p));
+  const lastSeasonPayload=lastSeasonId!=null ? seasonPayloads[lastSeasonId] : null;
+  const lastSeasonPeak={ '2v2':null,'3v3':null,rbg:null };
+  if(lastSeasonPayload && lastSeasonPayload.ratings){
+    ['2v2','3v3','rbg'].forEach(b=>{ lastSeasonPeak[b]=drustvarMaxRating(lastSeasonPayload.ratings[b]); });
+  }
+
+  const bracket=(currentField,peakKey)=>({
+    current: wowRatingOrNull(me[currentField]),
+    lastSeasonBest: lastSeasonPeak[peakKey],
+    peak: peak[peakKey],
+  });
+  const classSlug=typeof me.class==='string' ? me.class.toLowerCase() : '';
+  const bySpecList=(currentList,peakMap,catPrefix)=>(Array.isArray(currentList)?currentList:[]).map(s=>{
+    const peakEntry=peakMap[`${catPrefix}-${classSlug}-${(s && s.spec || '').toLowerCase()}`];
+    return{
+      name: wowTitleCase(s && s.spec),
+      icon: (s && s.icon) || null,
+      current: wowRatingOrNull(s && s.rating),
+      peak: peakEntry ? peakEntry.peak : null,
+    };
+  });
+
+  return{
+    className: me.class_text || null,
+    specName: me.spec || null,
+    level: wowNum(me.level),
+    portrait: me.thumbnail || null,
+    classIcon: me.class_icon || null,
+    specIcon: me.spec_icon || null,
+    brackets:{
+      '2v2': bracket('rating2v2','2v2'),
+      '3v3': bracket('rating3v3','3v3'),
+      rbg: bracket('ratingRbg','rbg'),
+    },
+    shuffleBySpec: bySpecList(me.shuffles, peak.shuffle, 'shuffle'),
+    blitzBySpec: bySpecList(me.blitzs, peak.blitz, 'blitz'),
+    peakIncomplete,
+  };
 }
+// Realm name lists for the server-name autocomplete (a <datalist>, not a rigid closed <select> — a realm
+// missing from this static snapshot can still be typed by hand and searched normally). Sourced from a
+// public realm index (EU) and Warcraft Wiki's realm-by-datacenter page (NA); internal/technical test
+// realm codes that don't correspond to real, player-facing servers were filtered out of the EU source.
+// New realms are added rarely enough that a static list embedded at build time is fine — no live fetch.
+const WOW_REALMS_EU=["Aegwynn","Aerie Peak","Agamaggan","Aggra (Português)","Aggramar","Ahn'Qiraj","Al'Akir","Alexstrasza","Alleria","Alonsus","Aman'Thul","Ambossar","Anachronos","Anetheron","Antonidas","Anub'arak","Arak-arahm","Arathi","Arathor","Archimonde","Area 52","Argent Dawn","Arthas","Arygos","Ashenvale","Aszune","Auchindoun","Azjol-Nerub","Azshara","Azuregos","Azuremyst","Baelgun","Balnazzar","Blackhand","Blackmoore","Blackrock","Blackscar","Blade's Edge","Bladefist","Bloodfeather","Bloodhoof","Bloodscalp","Blutkessel","Booty Bay","Borean Tundra","Boulderfist","Bronze Dragonflight","Bronzebeard","Burning Blade","Burning Legion","Burning Steppes","C'Thun","Chamber of Aspects","Chants éternels","Cho'gall","Chromaggus","Colinas Pardas","Confrérie du Thorium","Conseil des Ombres","Crushridge","Culte de la Rive noire","Daggerspine","Dalaran","Dalvengyr","Darkmoon Faire","Darksorrow","Darkspear","Das Konsortium","Das Syndikat","Deathguard","Deathweaver","Deathwing","Deepholm","Defias Brotherhood","Dentarg","Der Mithrilorden","Der Rat von Dalaran","Der abyssische Rat","Destromath","Dethecus","Die Aldor","Die Arguswacht","Die Nachtwache","Die Silberne Hand","Die Todeskrallen","Die ewige Wacht","Doomhammer","Draenor","Dragonblight","Dragonmaw","Drak'thul","Drek'Thar","Dun Modr","Dun Morogh","Dunemaul","Durotan","Earthen Ring","Echsenkessel","Eitrigg","Eldre'Thalas","Elune","Emerald Dream","Emeriss","Eonar","Eredar","Eversong","Executus","Exodar","Festung der Stürme","Fordragon","Forscherliga","Frostmane","Frostmourne","Frostwhisper","Frostwolf","Galakrond","Garona","Garrosh","Genjuros","Ghostlands","Gilneas","Goldrinn","Gordunni","Gorgonnash","Greymane","Grim Batol","Grom","Gul'dan","Hakkar","Haomarush","Hellfire","Hellscream","Howling Fjord","Hyjal","Illidan","Jaedenar","Kael'thas","Karazhan","Kargath","Kazzak","Kel'Thuzad","Khadgar","Khaz Modan","Khaz'goroth","Kil'jaeden","Kilrogg","Kirin Tor","Kor'gall","Krag'jin","Krasus","Kul Tiras","Kult der Verdammten","La Croisade écarlate","Laughing Skull","Les Clairvoyants","Les Sentinelles","Lich King","Lightbringer","Lightning's Blade","Lordaeron","Los Errantes","Lothar","Madmortem","Magtheridon","Mal'Ganis","Malfurion","Malorne","Malygos","Mannoroth","Marécage de Zangar","Mazrigos","Medivh","Minahonda","Moonglade","Mug'thol","Nagrand","Nathrezim","Naxxramas","Nazjatar","Nefarian","Nemesis","Neptulon","Ner'zhul","Nera'thor","Nethersturm","Nordrassil","Norgannon","Nozdormu","Onyxia","Outland","Perenolde","Pozzo dell'Eternità","Proudmoore","Quel'Thalas","Ragnaros","Rajaxx","Rashgarroth","Ravencrest","Ravenholdt","Razuvious","Rexxar","Runetotem","Sanguino","Sargeras","Saurfang","Scarshield Legion","Sen'jin","Shadowsong","Shattered Halls","Shattered Hand","Shattrath","Shen'dralar","Silvermoon","Sinstralis","Skullcrusher","Soulflayer","Spinebreaker","Sporeggar","Steamwheedle Cartel","Stormrage","Stormreaver","Stormscale","Sunstrider","Suramar","Sylvanas","Taerar","Talnivarr","Tarren Mill","Teldrassil","Temple noir","Terenas","Terokkar","Terrordar","The Maelstrom","The Sha'tar","The Venture Co","Theradras","Thermaplugg","Thrall","Throk'Feroth","Thunderhorn","Tichondrius","Tirion","Todeswache","Trollbane","Turalyon","Twilight's Hammer","Twisting Nether","Tyrande","Uldaman","Ulduar","Uldum","Un'Goro","Varimathras","Vashj","Vek'lor","Vek'nilash","Vol'jin","Wildhammer","Wrathbringer","Xavius","Ysera","Ysondre","Zenedar","Zirkel des Cenarius","Zul'jin","Zuluhed"];
+const WOW_REALMS_NA=["Aegwynn","Aerie Peak","Agamaggan","Aggramar","Akama","Alexstrasza","Alleria","Altar of Storms","Alterac Mountains","Aman'Thul","Andorhal","Anetheron","Antonidas","Anub'arak","Anvilmar","Arathor","Archimonde","Area 52","Argent Dawn","Arthas","Arygos","Auchindoun","Azgalor","Azjol-Nerub","Azralon","Azshara","Azuremyst","Baelgun","Balnazzar","Barthilas","Black Dragonflight","Blackhand","Blackrock","Blackwater Raiders","Blackwing Lair","Blade's Edge","Bladefist","Bleeding Hollow","Blood Furnace","Bloodhoof","Bloodscalp","Bonechewer","Borean Tundra","Boulderfist","Bronzebeard","Burning Blade","Burning Legion","Caelestrasz","Cairne","Cenarion Circle","Cenarius","Cho'gall","Chromaggus","Coilfang","Crushridge","Daggerspine","Dalaran","Dalvengyr","Dark Iron","Darkspear","Darrowmere","Dath'Remar","Dawnbringer","Deathwing","Demon Soul","Dentarg","Destromath","Dethecus","Detheroc","Doomhammer","Draenor","Dragonblight","Dragonmaw","Drak'Tharon","Drak'thul","Draka","Drakkari","Dreadmaul","Drenden","Dunemaul","Durotan","Duskwood","Earthen Ring","Echo Isles","Eitrigg","Eldre'Thalas","Elune","Emerald Dream","Eonar","Eredar","Executus","Exodar","Farstriders","Feathermoon","Fenris","Firetree","Fizzcrank","Frostmane","Frostmourne","Frostwolf","Galakrond","Gallywix","Garithos","Garona","Garrosh","Ghostlands","Gilneas","Gnomeregan","Goldrinn","Gorefiend","Gorgonnash","Greymane","Grizzly Hills","Gul'dan","Gundrak","Gurubashi","Hakkar","Haomarush","Hellscream","Hydraxis","Hyjal","Icecrown","Illidan","Jaedenar","Jubei'Thos","Kael'thas","Kalecgos","Kargath","Kel'Thuzad","Khadgar","Khaz Modan","Khaz'goroth","Kil'jaeden","Kilrogg","Kirin Tor","Korgath","Korialstrasz","Kul Tiras","Laughing Skull","Lethon","Lightbringer","Lightning's Blade","Lightninghoof","Llane","Lothar","Madoran","Maelstrom","Magtheridon","Maiev","Mal'Ganis","Malfurion","Malorne","Malygos","Mannoroth","Medivh","Misha","Mok'Nathal","Moon Guard","Moonrunner","Mug'thol","Muradin","Nagrand","Nathrezim","Nazgrel","Nazjatar","Nemesis","Ner'zhul","Nesingwary","Nordrassil","Norgannon","Onyxia","Perenolde","Proudmoore","Quel'Thalas","Quel'dorei","Ragnaros","Ravencrest","Ravenholdt","Rexxar","Rivendare","Runetotem","Sargeras","Saurfang","Scarlet Crusade","Scilla","Sen'jin","Sentinels","Shadow Council","Shadowmoon","Shadowsong","Shandris","Shattered Halls","Shattered Hand","Shu'halo","Silver Hand","Silvermoon","Sisters of Elune","Skullcrusher","Skywall","Smolderthorn","Spinebreaker","Spirestone","Staghelm","Steamwheedle Cartel","Stonemaul","Stormrage","Stormreaver","Stormscale","Suramar","Tanaris","Terenas","Terokkar","Thaurissan","The Forgotten Coast","The Scryers","The Underbog","The Venture Co","Thorium Brotherhood","Thrall","Thunderhorn","Thunderlord","Tichondrius","Tol Barad","Tortheldrin","Trollbane","Turalyon","Twisting Nether","Uldaman","Uldum","Undermine","Ursin","Uther","Vashj","Vek'nilash","Velen","Warsong","Whisperwind","Wildhammer","Windrunner","Winterhoof","Wyrmrest Accord","Ysera","Ysondre","Zangarmarsh","Zul'jin","Zuluhed"];
 function buildWowPvpCard(card){
   const el=baseCardShell(card,'card-wowpvp');
   if(!card.data.status) card.data.status='idle';
@@ -9052,7 +9116,8 @@ function buildWowPvpCard(card){
     <div class="wow-body">
       <div class="wow-search-row">
         <input class="wow-name" placeholder="${t('wowpvp_name_placeholder')}" spellcheck="false" value="${escapeHtml(card.data.name||'')}"/>
-        <input class="wow-server" placeholder="${t('wowpvp_server_placeholder')}" spellcheck="false" value="${escapeHtml(card.data.server||'')}"/>
+        <input class="wow-server" placeholder="${t('wowpvp_server_placeholder')}" spellcheck="false" autocomplete="off" list="wow-server-list-${card.id}" value="${escapeHtml(card.data.server||'')}"/>
+        <datalist id="wow-server-list-${card.id}"></datalist>
         <select class="wow-region"><option value="EU">EU</option><option value="NA">NA</option></select>
         <button type="button" class="wow-go-btn" title="${t('wowpvp_search_title')}">${iconSearchSmall()}</button>
         <button type="button" class="wow-reload-btn" title="${t('wowpvp_reload_title')}">${iconReloadSmall()}</button>
@@ -9062,11 +9127,20 @@ function buildWowPvpCard(card){
   `;
   const nameInput=el.querySelector('.wow-name');
   const serverInput=el.querySelector('.wow-server');
+  const serverListEl=el.querySelector('datalist');
   const regionSelect=el.querySelector('.wow-region');
   const goBtn=el.querySelector('.wow-go-btn');
   const reloadBtn=el.querySelector('.wow-reload-btn');
   const resultEl=el.querySelector('.wow-result');
   regionSelect.value=card.data.region;
+
+  // Populates the realm-name suggestion list for whichever region is currently selected — a <datalist>
+  // rather than a closed <select> so a realm missing from the static snapshot can still be typed by hand.
+  function populateServerList(){
+    const names=regionSelect.value==='NA' ? WOW_REALMS_NA : WOW_REALMS_EU;
+    serverListEl.innerHTML=names.map(n=>`<option value="${escapeHtml(n)}"></option>`).join('');
+  }
+  populateServerList();
 
   [nameInput,serverInput,regionSelect,goBtn,reloadBtn].forEach(node=>{
     node.addEventListener('pointerdown',e=>{ if(state.connectMode) return; e.stopPropagation(); });
@@ -9082,16 +9156,18 @@ function buildWowPvpCard(card){
       <span class="wow-tile-sub"><span>${t('wowpvp_peak_label')}</span><b>${fmtVal(br.peak)}</b></span>
     </div>`;
   }
-  function soloTile(labelKey,overall,bySpec){
-    if(!overall || (overall.current==null && overall.peak==null)) return '';
-    const specRows=(bySpec||[])
-      .filter(s=>s.current!=null || s.peak!=null)
-      .map(s=>`<span class="wow-tile-sub"><span>${escapeHtml(s.specName||('#'+s.specId))}</span><b>${fmtVal(s.current)} / ${fmtVal(s.peak)}</b></span>`)
+  function soloTile(labelKey,bySpec){
+    const list=(bySpec||[]).filter(s=>s.current!=null || s.peak!=null);
+    if(!list.length) return '';
+    // The overall value shown big is whichever spec currently has a rating (a character normally only
+    // has one "live" Shuffle/Blitz spec at a time) — falls back to the first spec's peak if none is active.
+    const lead=list.find(s=>s.current!=null) || list[0];
+    const specRows=list
+      .map(s=>`<span class="wow-tile-sub">${s.icon?`<img class="wow-spec-icon" src="${escapeHtml(s.icon)}" alt="" loading="lazy"/>`:''}<span>${escapeHtml(s.name||'?')}</span><b>${fmtVal(s.current)} / ${fmtVal(s.peak)}</b></span>`)
       .join('');
     return `<div class="wow-tile wow-tile-bracket">
       <span class="wow-tile-label">${t(labelKey)}</span>
-      <span class="wow-tile-value">${fmtVal(overall.current)}</span>
-      <span class="wow-tile-sub"><span>${t('wowpvp_peak_label')}</span><b>${fmtVal(overall.peak)}</b></span>
+      <span class="wow-tile-value">${fmtVal(lead.current)}</span>
       ${specRows}
     </div>`;
   }
@@ -9100,52 +9176,59 @@ function buildWowPvpCard(card){
     const st=card.data.status;
     const hasQuery=!!(card.data.name && card.data.server);
     reloadBtn.hidden=!hasQuery;
-    const openLink=hasQuery ? `<a class="wow-open-link" href="${buildCheckPvpUrl(card.data.region,card.data.server,card.data.name)}" target="_blank" rel="noopener noreferrer">${t('wowpvp_open_link')}</a>` : '';
+    const openLink=hasQuery ? `<a class="wow-open-link" href="${buildDrustvarCharacterUrl(card.data.region,card.data.server,card.data.name)}" target="_blank" rel="noopener noreferrer">${t('wowpvp_open_link')}</a>` : '';
     if(st==='loading'){ resultEl.innerHTML=`<div class="wow-status-msg">${t('wowpvp_loading')}</div>`; return; }
     if(st==='error'){ resultEl.innerHTML=`<div class="wow-status-msg wow-status-error">${t('wowpvp_error')}</div>${openLink}`; return; }
     if(st==='ok' && card.data.result){
       const r=card.data.result;
+      const identityIcons=[];
+      if(r.classIcon) identityIcons.push(`<img class="wow-id-icon" src="${escapeHtml(r.classIcon)}" alt="" loading="lazy"/>`);
+      if(r.specIcon) identityIcons.push(`<img class="wow-id-icon" src="${escapeHtml(r.specIcon)}" alt="" loading="lazy"/>`);
+      const portrait=r.portrait ? `<img class="wow-portrait" src="${escapeHtml(r.portrait)}" alt="" loading="lazy"/>` : '';
       const identityBits=[];
       if(r.className) identityBits.push(escapeHtml(r.className));
-      if(r.activeSpecName) identityBits.push(escapeHtml(r.activeSpecName));
+      if(r.specName) identityBits.push(escapeHtml(r.specName));
       if(r.level!=null) identityBits.push(t('wowpvp_level_label')+' '+r.level);
-      const identity=identityBits.length ? `<div class="wow-identity">${identityBits.join(' · ')}</div>` : '';
+      const identity=(portrait || identityIcons.length || identityBits.length)
+        ? `<div class="wow-identity">${portrait}${identityIcons.join('')}<span>${identityBits.join(' · ')}</span></div>`
+        : '';
 
       const tiles=[];
-      if(r.itemLevel!=null) tiles.push(`<div class="wow-tile"><span class="wow-tile-label">${t('wowpvp_itemlevel_label')}</span><span class="wow-tile-value">${r.itemLevel}</span></div>`);
       tiles.push(bracketTile('wowpvp_bracket_2v2', r.brackets && r.brackets['2v2']));
       tiles.push(bracketTile('wowpvp_bracket_3v3', r.brackets && r.brackets['3v3']));
       tiles.push(bracketTile('wowpvp_bracket_rbg', r.brackets && r.brackets.rbg));
-      tiles.push(soloTile('wowpvp_bracket_shuffle', r.shuffleOverall, r.shuffleBySpec));
-      tiles.push(soloTile('wowpvp_bracket_blitz', r.blitzOverall, r.blitzBySpec));
-      if(r.scoreArena!=null || r.scoreRBG!=null){
-        tiles.push(`<div class="wow-tile">
-          <span class="wow-tile-label">${t('wowpvp_score_label')}</span>
-          <span class="wow-tile-sub"><span>${t('wowpvp_score_arena_label')}</span><b>${fmtVal(r.scoreArena)}</b></span>
-          <span class="wow-tile-sub"><span>${t('wowpvp_bracket_rbg')}</span><b>${fmtVal(r.scoreRBG)}</b></span>
-        </div>`);
-      }
+      tiles.push(soloTile('wowpvp_bracket_shuffle', r.shuffleBySpec));
+      tiles.push(soloTile('wowpvp_bracket_blitz', r.blitzBySpec));
       const tileHtml=tiles.filter(Boolean).join('');
+      const incomplete=r.peakIncomplete ? `<div class="wow-status-msg">${t('wowpvp_peak_incomplete')}</div>` : '';
       const updated=card.data.fetchedAt ? `<div class="wow-updated">${t('wowpvp_updated_label')}: ${fmtDate(card.data.fetchedAt)}</div>` : '';
       resultEl.innerHTML = identity + (tileHtml
-        ? `<div class="wow-tiles">${tileHtml}</div>${updated}${openLink}`
+        ? `<div class="wow-tiles">${tileHtml}</div>${incomplete}${updated}${openLink}`
         : `<div class="wow-status-msg">${t('wowpvp_no_data')}</div>${updated}${openLink}`);
       return;
     }
     resultEl.innerHTML='';
   }
 
+  // A search this slow (up to ~8 proxied requests, see the section comment above) can still be in flight
+  // when the user fires another one (edits the name and hits search again, or mashes reload) — this
+  // token makes sure only the LATEST search's outcome is ever applied, so a slow stale attempt finishing
+  // after a newer one can't clobber it with an older result.
+  let searchToken=0;
   async function runSearch(){
     const name=nameInput.value.trim(), server=serverInput.value.trim(), region=regionSelect.value;
     if(!name || !server){ showToast(t('wowpvp_missing_fields')); return; }
+    const myToken=++searchToken;
     card.data.name=name; card.data.server=server; card.data.region=region;
     card.data.status='loading'; renderResult(); DB.putCard(card);
     try{
       const data=await fetchWowPvpData(region,server,name);
+      if(myToken!==searchToken) return;
       card.data.status='ok';
       card.data.result=data;
       card.data.fetchedAt=Date.now();
     }catch(e){
+      if(myToken!==searchToken) return;
       card.data.status='error';
     }
     DB.putCard(card);
@@ -9155,7 +9238,7 @@ function buildWowPvpCard(card){
   goBtn.addEventListener('click',runSearch);
   reloadBtn.addEventListener('click',runSearch);
   [nameInput,serverInput].forEach(inp=>inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') runSearch(); }));
-  regionSelect.addEventListener('change',()=>{ card.data.region=regionSelect.value; DB.putCard(card); });
+  regionSelect.addEventListener('change',()=>{ card.data.region=regionSelect.value; populateServerList(); DB.putCard(card); });
   // Persists in-progress edits even without hitting search, same as every other text field on a card —
   // doesn't touch card.data.status/result, so an already-loaded result just stays showing underneath.
   [nameInput,serverInput].forEach(inp=>inp.addEventListener('blur',()=>{
