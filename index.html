@@ -3913,12 +3913,29 @@ function driveRequestToken(opts){
 // after every edit. Once the user does reconnect (confirmPendingDrive), pendingReconnect flips back
 // to false and normal silent token refreshes (for a token that's merely expired, not revoked) work
 // again as before.
+//
+// That gate alone still left ONE gap: pendingReconnect only ever STARTS true via tryReconnectDrive()
+// at boot. If the Google-side session instead expires or gets revoked mid-session — the token simply
+// runs out after ~55 minutes of use, a network drop invalidates it, the user revokes NOTUA's access
+// on Google's end — pendingReconnect is still false at that moment, so the very next silent refresh
+// (the 30s steady sync cadence, or the reconnect-triggered scheduleSyncSoon(500) after the browser's
+// 'online' event fires again post-dropout — exactly what "beim trennen" sees) goes through, fails the
+// same third-party-cookie way, and — with nothing here reacting to that failure — every cadence tick
+// after it tries again just as blindly, each one its own failing popup. A silent failure now arms
+// pendingReconnect itself, right here, so the SECOND attempt onward is caught by the gate above same
+// as the boot-time case — at most one failed silent attempt ever, never a repeating one, regardless
+// of why the token stopped working.
 async function ensureAccessToken(interactive){
   if(driveState.accessToken && Date.now()<driveState.tokenExpiresAt-60000) return driveState.accessToken;
   if(!interactive && driveState.pendingReconnect) throw new Error('drive-pending-reconnect');
   if(driveState.authPromise) return driveState.authPromise;
   const opts=interactive ? {} : {prompt:'none'};
-  driveState.authPromise=driveRequestToken(opts).finally(()=>{ driveState.authPromise=null; });
+  driveState.authPromise=driveRequestToken(opts)
+    .catch(err=>{
+      if(!interactive){ driveState.pendingReconnect=true; updateDriveStatusUI(); }
+      throw err;
+    })
+    .finally(()=>{ driveState.authPromise=null; });
   return driveState.authPromise;
 }
 // The single chokepoint every Drive REST call goes through — which makes it the one place that can
@@ -6756,11 +6773,23 @@ async function openBoard(id, skipCrumbAnim){
   // Which backend this specific board actually lives in (idb / a connected folder / connected Drive)
   // — picks the most recently updated copy if it exists in more than one, and points DB.* at it for
   // as long as this board stays open. See the MULTI-QUELLEN-SPEICHER section above.
-  const resolved=await resolveBoardSources(id);
+  // Reuse state.boardSources when it's already populated — refreshHome()'s mergedAllBoards() call just
+  // ran moments ago, right before whatever click got us here, and already resolved every board's
+  // sources — instead of redoing the same live network check across every backend. Same cache-first
+  // pattern withBoardBackend() already uses. This is what actually fixes "ich klicke in ein board, gehe
+  // wieder raus, und es ist noch nicht da" when Drive is connected: without this, every single board
+  // open paid for a fresh round-trip that almost always just reconfirmed what was already known —
+  // and the background top-up further below (which does do a real, current network check) still runs
+  // right after, so a stale cache entry only ever costs a brief delay before it's corrected, never
+  // wrong data staying on screen.
+  const cached=state.boardSources && state.boardSources.get(id);
+  const resolved=cached ? {best:cached.bestSrc, all:[...cached.sources]} : await resolveBoardSources(id);
   if(resolved){
     state.storageMode=resolved.best;
-    if(!state.boardSources) state.boardSources=new Map();
-    state.boardSources.set(id,{sources:new Set(resolved.all),bestSrc:resolved.best});
+    if(!cached){
+      if(!state.boardSources) state.boardSources=new Map();
+      state.boardSources.set(id,{sources:new Set(resolved.all),bestSrc:resolved.best});
+    }
   }
   if(!(await ensureStorageReady())) return goHome();
   // A board IndexedDB doesn't have ANY copy of yet (the first time this specific device has ever
