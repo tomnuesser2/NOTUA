@@ -3473,7 +3473,13 @@ const FS_DB={
     // above), so they're kept out of the normal overview purely by this flag, mirroring how IDB mode
     // does it too. (_Papierkorb itself is never picked up here at all: it has no board.json of its
     // own, so fsWalkBoardChildren's board.json check already skips it — see that function.)
-    return out.filter(b=>!b.isTemplate);
+    // Also filters out b.trashed — the automatic background sync engine (pushBundleToBackend) only
+    // ever writes board.json's fields via putBoard(); it never calls the physical-relocate dance below
+    // (DB.setTrashed always routes to IndexedDB only — see activeBackend()), so a board trashed while
+    // this folder was connected sits right here in the main tree with trashed:true in its own
+    // board.json, not actually moved into _Papierkorb/. Without this filter that board kept showing up
+    // in the merged Home list forever — trashing it from the overview looked like it did nothing.
+    return out.filter(b=>!b.isTemplate && !b.trashed);
   },
   // Same enumeration as allBoards() above, just keeping the isTemplate:true boards instead of
   // filtering them out — the template picker's own listing.
@@ -3484,15 +3490,27 @@ const FS_DB={
     await fsWalkBoardChildren(boardsRoot,out,new Set());
     return out.filter(b=>b.isTemplate);
   },
-  // Mirrors allBoards() above exactly, just scoped to the trash subfolder instead of the boards root —
-  // every board sitting in there IS the Papierkorb's contents, nothing to filter by flag.
+  // Mirrors allBoards() above, scoped to the trash subfolder — every board actually relocated there
+  // (by a real setTrashed() call from before the always-IndexedDB refactor, or a future one) IS the
+  // Papierkorb's contents. On top of that, this also picks up any board still physically sitting in
+  // the main boards tree but flagged trashed:true there (see the comment on allBoards() above) — the
+  // currently-common case, since the background sync engine never physically relocates anything.
+  // Without this, such a board would vanish from BOTH allBoards() (filtered by trashed) AND here
+  // (never walked, wrong folder) the moment sync pushed it out — gone from the app, but never really
+  // deleted, and stuck that way until the folder's mismatch was fixed by hand.
   async allTrashedBoards(){
     if(!fsState.root) return [];
-    const trashDir=await fsGetTrashDir();
-    if(!trashDir) return [];
     const out=[];
-    await fsWalkBoardChildren(trashDir,out,new Set());
-    return out;
+    const seen=new Set();
+    const trashDir=await fsGetTrashDir();
+    if(trashDir){ await fsWalkBoardChildren(trashDir,out,seen); }
+    const boardsRoot=await fsGetBoardsRootDir();
+    if(boardsRoot){
+      const mainOut=[];
+      await fsWalkBoardChildren(boardsRoot,mainOut,new Set());
+      for(const b of mainOut){ if(b.trashed && !seen.has(b.id)){ seen.add(b.id); out.push(b); } }
+    }
+    return out.filter(b=>!b.isTemplate);
   },
   // Trashing/restoring a folder-backed board physically relocates its whole folder between notua-boards/
   // and notua-boards/_Papierkorb — same manual "create new dir, copy the tree across, delete the old
@@ -4052,20 +4070,34 @@ async function driveWalkBoards(parentId,collect,seenIds){
 async function driveEnumerateBoards(parentId){ const out=[]; await driveWalkBoards(parentId,out,new Set()); return out; }
 
 const DRIVE_DB={
+  // Filters out b.trashed for the same reason as FS_DB.allBoards() above — the background sync engine
+  // only ever writes board.json's fields via putBoard(); the physical-relocate move below (via
+  // driveMoveFile) is only ever reached from setTrashed(), which DB.setTrashed no longer calls for
+  // this backend at all (see activeBackend() further up). A trashed board can easily still be sitting
+  // right here with trashed:true in its own meta, not actually moved into _Papierkorb/.
   async allBoards(){
     if(!driveState.root) return [];
     const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return [];
-    return (await driveEnumerateBoards(boardsRoot)).filter(b=>!b.isTemplate);
+    return (await driveEnumerateBoards(boardsRoot)).filter(b=>!b.isTemplate && !b.trashed);
   },
   async allTemplates(){
     if(!driveState.root) return [];
     const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return [];
     return (await driveEnumerateBoards(boardsRoot)).filter(b=>b.isTemplate);
   },
+  // Mirrors allBoards() above: on top of whatever's actually relocated into _Papierkorb/, also picks
+  // up any board still sitting in the main boards tree but flagged trashed:true there — see the
+  // comment on allBoards() and on FS_DB's identical fix just above.
   async allTrashedBoards(){
     if(!driveState.root) return [];
-    const trashDir=await driveGetTrashDir(); if(!trashDir) return [];
-    return driveEnumerateBoards(trashDir);
+    const out=[]; const seen=new Set();
+    const trashDir=await driveGetTrashDir();
+    if(trashDir){ for(const b of await driveEnumerateBoards(trashDir)){ if(!seen.has(b.id)){ seen.add(b.id); out.push(b); } } }
+    const boardsRoot=await driveGetBoardsRootDir();
+    if(boardsRoot){
+      for(const b of await driveEnumerateBoards(boardsRoot)){ if(b.trashed && !seen.has(b.id)){ seen.add(b.id); out.push(b); } }
+    }
+    return out.filter(b=>!b.isTemplate);
   },
   // Mirrors FS_DB.setTrashed: physically relocates the board's whole folder between notua-boards/ and
   // notua-boards/_Papierkorb — Drive's addParents/removeParents move (real move, not FS_DB's manual
@@ -4585,7 +4617,25 @@ async function pushDirtyBoards(targets){
   await withBusy(t('busy_syncing'), async ()=>{
     for(const boardId of ids){
       const board=await IDB_DB.getBoard(boardId);
-      if(!board){ state.dirtyBoards.delete(boardId); continue; } // deleted locally in the meantime — nothing to push
+      if(!board){
+        // Deleted locally in the meantime (permanentlyDeleteBoard/deleteBundle already removed it from
+        // IndexedDB) — but the deletion itself still has to be pushed out to every connected target, or
+        // it just keeps sitting there untouched. This used to simply drop the dirty entry here and stop,
+        // which meant the very next pullRemoteChanges() pass below saw that target still happily listing
+        // the "deleted" board (via allBoards()/allTrashedBoards()) and mirrored it straight back into
+        // IndexedDB — a permanently-deleted board reappearing a few seconds later. Every backend's
+        // deleteBoard() is already a safe no-op when it has nothing under that id (never synced there,
+        // or already gone), so calling it unconditionally on every connected target is fine even when
+        // most of them never had this board in the first place.
+        let anyFailed=false;
+        for(const target of targets){
+          const backend=backendFor(target);
+          try{ await backend.deleteBoard(boardId); state.syncKnownRemote.delete(boardId+'|'+target); }
+          catch(e){ anyFailed=true; } // network hiccup etc — leave dirty, retry next pass
+        }
+        if(!anyFailed) state.dirtyBoards.delete(boardId);
+        continue;
+      }
       const bundle=await collectBoardBundle(boardId); // reads via DB.* → IndexedDB, our one source of truth
       let anyDeferred=false;
       for(const target of targets){
