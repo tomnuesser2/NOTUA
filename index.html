@@ -9225,8 +9225,16 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    Bump APP_VERSION (and WHATSNEW_ITEMS below, if the release is worth announcing) together with
    .notua_version/CACHE_NAME at ship time — they're independent constants on purpose (a silent bugfix
    release shouldn't have to invent a What's-New entry just to keep this in sync), but keeping them
-   moving together is what makes "first open of the new version" actually mean something. */
-const APP_VERSION='1.0.135';
+   moving together is what makes "first open of the new version" actually mean something.
+   VERSIONING SCHEME (from 2.3.5 on, "die Version soll fortlaufend sein... nach jedem Zähler soll der
+   hoch zählen und keine Zahl hinzufügen"): plain odometer, X.Y.Z, every digit stays single (0–9).
+   Each shipped release bumps Z by one; once Z would hit 10 it wraps back to 0 and Y bumps instead
+   (and the same carry from Y into X if Y would hit 10) — so the version NEVER grows a multi-digit
+   segment like the old …134/135 patch counter did. Next after 2.3.5 is 2.3.6, …, 2.3.9, 2.4.0, 2.4.1,
+   and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
+   markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
+   anywhere else, just this one string bumped by hand at ship time same as always. */
+const APP_VERSION='2.3.6';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
@@ -12600,10 +12608,11 @@ function buildWidgetCard(card){
           // Snap straight to the compact-embed height the moment a link is embedded — otherwise the
           // card keeps whatever height it happened to have (e.g. a leftover 16:9-ish size from
           // before), and Spotify pads that mismatch with its own dark backdrop until the next manual
-          // resize fixes it. Width floor is 340, not the card's own general 220 (see attachResize's
-          // identical spotify floor) — narrower than that and Spotify's own iframe hides its volume
-          // control to fit ("Lautstärke nicht verstellbar").
-          card.h=SPOTIFY_COMPACT_HEIGHT; card.w=clamp(card.w,340,2000);
+          // resize fixes it. Width floor is SPOTIFY_VOLUME_SAFE_WIDTH, not the card's own general 220
+          // (see attachResize's identical spotify floor and SPOTIFY_VOLUME_SAFE_WIDTH's own comment) —
+          // narrower than that and Spotify's own iframe hides its volume control to fit
+          // ("Lautstärke nicht verstellbar").
+          card.h=SPOTIFY_COMPACT_HEIGHT; card.w=clamp(card.w,SPOTIFY_VOLUME_SAFE_WIDTH,2000);
           DB.putCard(card); renderAllCards(); applySelectionClasses();
         }
       }else if(kind==='pinterest'){
@@ -14905,6 +14914,16 @@ const WIDGET_ASPECT={youtube:16/9};
 // resizing its width keeps it exactly in Spotify's own compact layout, "wirklich nur die Oberfläche
 // von Spotify".
 const SPOTIFY_COMPACT_HEIGHT=152;
+// "Spotify hat auch immer noch kein Lautstärke-Regler" — Spotify's own embed iframe is cross-origin
+// with no external control API at all (confirmed against Spotify's own official IFrame API docs:
+// play/pause/resume/seek/loadEntity/destroy, nothing volume-related), so NOTUA has no way to build a
+// real, working volume slider of its own anywhere (Eigenschaftentab included) — one would just be a
+// fake control that visibly does nothing. The only real volume control that exists at all is
+// Spotify's OWN, drawn inside its own iframe chrome once given enough width — the previous 340px
+// floor (see attachResize/commit below) turned out to still not be reliably enough. Spotify doesn't
+// document an exact breakpoint, so this is a generous, empirically-safe width rather than a measured
+// one — cards live on a free-form canvas, so a wider floor costs nothing.
+const SPOTIFY_VOLUME_SAFE_WIDTH=500;
 function attachResize(handle,el,card){
   let rs=null;
   handle.addEventListener('pointerdown',(e)=>{
@@ -14923,14 +14942,14 @@ function attachResize(handle,el,card){
       card.h=clamp(Math.round(card.w/WIDGET_ASPECT.youtube),120,2000);
     }else if(card.type==='youtube' && card.data.kind==='spotify'){
       // Width-only: height stays pinned to the compact embed's own fixed height (see
-      // SPOTIFY_COMPACT_HEIGHT above) no matter how the corner handle is dragged. The 340px floor
-      // (was 220) keeps Spotify's OWN iframe chrome wide enough to draw its own volume control —
-      // below that, Spotify's compact embed progressively hides its own controls (starting with
-      // volume) to fit the space, which read as "Lautstärke nicht verstellbar". That control lives
-      // entirely inside Spotify's cross-origin iframe — nothing here can force it to show beyond
-      // giving it enough room, so a very old board resized below 340 before this fix needs one manual
-      // resize to pick the new floor back up.
-      card.w=snap(clamp(rs.w+dx,340,2000));
+      // SPOTIFY_COMPACT_HEIGHT above) no matter how the corner handle is dragged. SPOTIFY_VOLUME_SAFE_WIDTH
+      // (see its own comment) keeps Spotify's OWN iframe chrome wide enough to draw its own volume
+      // control — below that, Spotify's compact embed progressively hides its own controls (starting
+      // with volume) to fit the space, which read as "Lautstärke nicht verstellbar". That control
+      // lives entirely inside Spotify's cross-origin iframe — nothing here can force it to show beyond
+      // giving it enough room, so a board resized below this floor before this fix needs one manual
+      // resize to pick the new, wider floor back up.
+      card.w=snap(clamp(rs.w+dx,SPOTIFY_VOLUME_SAFE_WIDTH,2000));
       card.h=SPOTIFY_COMPACT_HEIGHT;
     }else if(card.type==='youtube' && card.data.kind==='pinterest'){
       // Not a fixed-ratio player — Pinterest's board widget is a scrollable list of pin thumbnails —
