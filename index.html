@@ -857,6 +857,40 @@ try{
     color:var(--ink); font-weight:600; outline:none; padding:4px 6px; border-radius:5px; max-width:40vw; overflow:hidden; text-overflow:ellipsis;
   }
   .crumbs .current[contenteditable="true"]{box-shadow:0 0 0 2px var(--accent); background:var(--surface-2);}
+  /* Mobile-only board-path control — see the HTML comment on #mobileCrumbBtn and the
+     @media(max-width:640px) override further down that actually swaps it in for .crumbs. Hidden by
+     default (desktop keeps the plain .crumbs chain) so this rule alone changes nothing above 640px. */
+  .mobile-crumb-btn{
+    display:none; align-items:center; gap:5px; flex:1; min-width:0; background:none; border:none;
+    color:var(--ink); font:inherit; font-size:0.9rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);
+    padding:6px 7px; border-radius:7px;
+  }
+  .mobile-crumb-btn:hover, .mobile-crumb-btn:active{background:var(--surface-2);}
+  .mobile-crumb-btn svg{flex:none; color:var(--muted); transition:transform .16s ease;}
+  .mobile-crumb-btn.open svg{transform:rotate(180deg);}
+  .mobile-crumb-name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  /* Body-appended singleton popup (same pattern as .blanket-thickness-pop/.blanket-colorwheel-pop
+     above — see openMobileCrumbMenu()): the whole board path, Start first, one tappable row per
+     level, so "vor und zurück kommen" is a single direct tap to any ancestor instead of a truncated
+     chain of tiny buttons squeezed into the topbar. */
+  .mobile-crumb-menu{
+    position:fixed; z-index:60; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    box-shadow:0 14px 34px -12px var(--shadow-lg); padding:6px; min-width:200px; max-width:82vw;
+    max-height:60vh; overflow-y:auto;
+  }
+  .mobile-crumb-menu-item{
+    display:flex; align-items:center; gap:8px; width:100%; padding:10px 11px; border:none; background:none;
+    border-radius:8px; font:inherit; font-size:0.86rem; color:var(--ink); text-align:left; cursor:var(--custom-pointer-cursor,pointer);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .mobile-crumb-menu-item:hover{background:var(--surface-2);}
+  /* The last row — the board you're already on — is a plain highlighted label, not a button (tapping
+     it wouldn't do anything anyway); everything else navigates on tap. */
+  .mobile-crumb-menu-item.current{font-weight:700; color:var(--accent); background:var(--accent-soft); cursor:default;}
+  @media (max-width:640px){
+    .crumbs{display:none !important;}
+    .mobile-crumb-btn{display:flex;}
+  }
   .icon-btn{
     width:32px; height:32px; border-radius:6px; border:none; background:transparent; color:var(--muted);
     display:flex; align-items:center; justify-content:center; cursor:var(--custom-pointer-cursor,pointer); flex:none;
@@ -1792,6 +1826,22 @@ try{
   }
   .blanket-pen:hover{transform:scale(1.1);}
   .blanket-pen.active{border-color:var(--ink); transform:scale(1.12);}
+  /* Pen TYPE picker (fountain/normal/marker/fineliner — see BLANKET_PEN_TYPES/blanketPenTypesHtml()):
+     deliberately its own small icon-only segmented-control look, distinct from both the round color
+     .blanket-pen swatches and the labeled .dock-btn/.drawer-btn rows either side of it — this is a
+     compact row either way (4 icons, no text) so it reads the same and fits the same whether it's
+     sitting in the wide desktop dock or the narrower mobile drawer (see ensureBlanketDock()/
+     ensureDrawerBlanketSection(), both of which just drop blanketPenTypesHtml()'s markup in as-is). */
+  .blanket-pentypes{display:flex; align-items:center; gap:4px;}
+  .blanket-pentype-btn{
+    width:30px; height:30px; padding:0; border:none; border-radius:8px; background:var(--surface-2);
+    color:var(--muted); display:flex; align-items:center; justify-content:center; flex:none;
+    cursor:var(--custom-pointer-cursor,pointer); transition:background .14s ease, color .14s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
+  }
+  .blanket-pentype-btn:hover{background:var(--border); color:var(--ink);}
+  .blanket-pentype-btn:active{transform:scale(.9);}
+  .blanket-pentype-btn.active{background:var(--accent); color:var(--accent-ink);}
+  .blanket-pentype-name{display:none;}
   .blanket-toolbar .blanket-tool-btn{
     width:24px; height:24px; border-radius:6px; border:none; background:transparent; color:var(--muted); cursor:var(--custom-pointer-cursor,pointer);
     display:flex; align-items:center; justify-content:center; flex:none; margin-left:auto; transition:background .12s ease, color .12s ease;
@@ -3223,6 +3273,21 @@ try{
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <div class="crumbs" id="crumbs"></div>
+      <!-- "statt dem Start/Unbenanntes Board/Drawboard soll am Smartphone lieber so ein Menü sein
+           mit vorheriges Board irgendwie, man checkt nicht ganz wie man vor und zurück kommt" — the
+           full "Start / Elternboard / … / Aktuelles Board" chain above (#crumbs) only ever really
+           worked as a desktop-width control: on a phone it has to squeeze into the same topbar as
+           the hamburger button and the icon buttons on the other side, so it truncates hard and
+           reads as unclear which piece does what. Swapped in for #crumbs only on mobile (see the
+           @media(max-width:640px) block below — desktop is completely untouched, still the plain
+           inline chain) for a single compact button showing just the current board's name, which
+           opens #mobileCrumbMenu (built by renderCrumbs() itself, right alongside #crumbs — see
+           there) — a small dropdown listing the WHOLE path as one tappable list, closest to what Tom
+           asked for ("ein Menü mit vorheriges Board"). -->
+      <button type="button" class="mobile-crumb-btn" id="mobileCrumbBtn" title="Boardpfad">
+        <span class="mobile-crumb-name" id="mobileCrumbName"></span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
       <button class="icon-btn" id="boardColorBtn"><span class="board-color-dot" id="boardColorDot"></span></button>
       <button class="icon-btn" id="searchBtn" title="Suchen">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -3425,6 +3490,21 @@ try{
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
+      <!-- "in der Smartphone Ansicht gibt es keine Werkzeugleiste im Drawboard" — on a phone the
+           normal #dock/#blanketDock bottom bars are both display:none (see .bottom-bars in the
+           @media (max-width:640px) block); the only surviving toolbar UI there is this hamburger
+           drawer, but applyBlanketBoardChrome() never touched it, so the dedicated Zeichenblanket-
+           Board's pen/eraser/thickness/undo controls were reachable on desktop only. This section is
+           the drawer's own equivalent of #blanketDock, swapped in over #drawerAddSection/
+           #drawerToolSection (see applyBlanketBoardChrome() — adding note/image/etc. or connecting
+           cards makes no sense on this board anyway, it holds nothing but the one giant canvas card)
+           the same way the bottom dock is swapped there on desktop. Built lazily by
+           ensureDrawerBlanketSection(), kept in sync by refreshDrawerBlanketSection() — folded into
+           the existing refreshBlanketDock(card) call sites so every place that already refreshes the
+           desktop dock refreshes this for free, no new call sites needed. -->
+      <div class="drawer-section" id="drawerBlanketSection" hidden>
+        <div class="drawer-label">Zeichnen</div>
+      </div>
       <div class="drawer-section" id="drawerAddSection">
         <div class="drawer-label">Hinzufügen</div>
         <button class="drawer-btn" data-add="note">
@@ -3472,7 +3552,7 @@ try{
           <span>Unter-Board</span>
         </button>
       </div>
-      <div class="drawer-section">
+      <div class="drawer-section" id="drawerToolSection">
         <div class="drawer-label">Werkzeug</div>
         <button class="drawer-btn" id="drawerConnectBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="7" r="2.4"/><circle cx="18" cy="17" r="2.4"/><path d="M8 8.5l8 7"/></svg>
@@ -4073,6 +4153,17 @@ const I18N={
   add_draw_label:{de:'Draw',en:'Draw'},
   draw_submenu_blanketboard_label:{de:'Drawboard',en:'Drawboard'},
   blanket_pen_title:{de:'Stift {n}',en:'Pen {n}'},
+  // "man soll auch vier verschiedene Stifte benutzen können" — a second, independent choice from the
+  // color swatches above: WHICH kind of pen draws the stroke (see BLANKET_PEN_TYPES/drawBlanketStroke).
+  blanket_pentype_label:{de:'Stiftart',en:'Pen type'},
+  blanket_pentype_fountain_title:{de:'Füller (spitz zulaufende Enden)',en:'Fountain pen (tapered ends)'},
+  blanket_pentype_fountain_label:{de:'Füller',en:'Fountain'},
+  blanket_pentype_normal_title:{de:'Stift (normal)',en:'Pen (normal)'},
+  blanket_pentype_normal_label:{de:'Stift',en:'Pen'},
+  blanket_pentype_marker_title:{de:'Textmarker (transparent)',en:'Highlighter (transparent)'},
+  blanket_pentype_marker_label:{de:'Marker',en:'Marker'},
+  blanket_pentype_fineliner_title:{de:'Feinliner (gleichmäßig dünn, für präzise Notizen)',en:'Fineliner (uniform thin line, for precise notes)'},
+  blanket_pentype_fineliner_label:{de:'Fein',en:'Fine'},
   blanket_eraser_title:{de:'Radierer',en:'Eraser'},
   blanket_eraser_label:{de:'Radierer',en:'Eraser'},
   blanket_undo_title:{de:'Letzten Strich rückgängig machen',en:'Undo last stroke'},
@@ -9025,6 +9116,7 @@ document.addEventListener('pointerdown',(e)=>{
 document.getElementById('homeBtn').addEventListener('click',()=>navigateBackWithZoom(goHome));
 async function goHome(){
   applyBlanketBoardChrome(null); // leaving whatever board was open — stop any running stop-motion playback and restore the normal dock/viewctl
+  closeMobileCrumbMenu();
   state.screen='home';
   state.selection.clear();
   closeInspector();
@@ -9234,7 +9326,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.3.6';
+const APP_VERSION='2.4.2';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
@@ -9548,6 +9640,25 @@ async function navigateBackWithZoom(navigateFn){
   setTimeout(()=>incoming.classList.remove('board-enter-zoom'),340);
 }
 async function openBoard(id, skipCrumbAnim){
+  // "in ein Board springen soll niemals die Tastatur direkt öffnen sondern immer ohne Auswahl
+  // starten also nix markieren" — every "jump into a board" path (a Home tile, a boardlink/sub-board
+  // card, a breadcrumb, browser back/forward via popstate) funnels through this one function, but
+  // nothing here ever blurred whatever text field was focused on the board/screen being LEFT. The
+  // boardlink card's own name label (see buildBoardlinkCard) is contenteditable="true" from the
+  // moment it's built — not gated behind a dblclick like every other rename field — so tapping
+  // directly on a sub-board card's title text (the "clean click" that also opens it) natively
+  // focuses that field first (a plain browser default for contenteditable, independent of any of
+  // this file's own click/select logic). On mobile that pops the on-screen keyboard right there,
+  // and since nothing ever blurred it, it was still focused (keyboard still up, a stray text caret/
+  // selection still showing) once the new board had already finished loading underneath — reading
+  // as "opening a board opens the keyboard". Blurring proactively here, before anything else, closes
+  // that out immediately (its own existing blur handler still commits any in-progress rename first)
+  // and guarantees the new board always starts with no lingering text focus, whatever the previous
+  // screen was.
+  if(document.activeElement && typeof document.activeElement.blur==='function' && document.activeElement!==document.body){
+    document.activeElement.blur();
+  }
+  closeMobileCrumbMenu();
   // Which backend this specific board actually lives in (idb / a connected folder / connected Drive)
   // — picks the most recently updated copy if it exists in more than one, and points DB.* at it for
   // as long as this board stays open. See the MULTI-QUELLEN-SPEICHER section above.
@@ -9717,7 +9828,80 @@ async function renderCrumbs(board){
       crumbsEl.appendChild(btn);
     }
   });
+  // Mobile counterpart — see #mobileCrumbBtn's HTML comment. Built right here, off the exact same
+  // `chain` just walked above, rather than re-deriving it separately: the button's own label is
+  // just the current board's name, and the dropdown gets one row per level (Start first, current
+  // board last) reusing the very same navigateBackWithZoom(...) calls the desktop chain's own
+  // buttons use above, so both stay behaviorally identical — only the presentation differs.
+  const mobileCrumbNameEl=document.getElementById('mobileCrumbName');
+  if(mobileCrumbNameEl) mobileCrumbNameEl.textContent=board.name;
+  const menu=ensureMobileCrumbMenu();
+  menu.innerHTML='';
+  const homeRow=document.createElement('button');
+  homeRow.type='button'; homeRow.className='mobile-crumb-menu-item';
+  homeRow.textContent=t('crumb_home');
+  homeRow.addEventListener('click',()=>{ closeMobileCrumbMenu(); navigateBackWithZoom(goHome); });
+  menu.appendChild(homeRow);
+  chain.forEach((b,i)=>{
+    if(i===chain.length-1){
+      const row=document.createElement('div');
+      row.className='mobile-crumb-menu-item current';
+      row.textContent=b.name;
+      menu.appendChild(row);
+    }else{
+      const row=document.createElement('button');
+      row.type='button'; row.className='mobile-crumb-menu-item';
+      row.textContent=b.name;
+      row.addEventListener('click',()=>{ closeMobileCrumbMenu(); navigateBackWithZoom(()=>openBoard(b.id)); });
+      menu.appendChild(row);
+    }
+  });
 }
+let mobileCrumbMenuEl=null;
+function ensureMobileCrumbMenu(){
+  if(mobileCrumbMenuEl) return mobileCrumbMenuEl;
+  const el=document.createElement('div');
+  el.className='mobile-crumb-menu'; el.hidden=true;
+  el.addEventListener('pointerdown',e=>e.stopPropagation());
+  document.body.appendChild(el);
+  mobileCrumbMenuEl=el;
+  return el;
+}
+function closeMobileCrumbMenu(){
+  if(!mobileCrumbMenuEl || mobileCrumbMenuEl.hidden) return;
+  mobileCrumbMenuEl.hidden=true;
+  const btn=document.getElementById('mobileCrumbBtn');
+  if(btn) btn.classList.remove('open');
+}
+function openMobileCrumbMenu(){
+  const btn=document.getElementById('mobileCrumbBtn');
+  const menu=ensureMobileCrumbMenu();
+  if(!btn || !menu.children.length) return;
+  menu.hidden=false;
+  btn.classList.add('open');
+  const r=btn.getBoundingClientRect();
+  const mw=menu.offsetWidth||200, mh=menu.offsetHeight||120;
+  let left=Math.max(8, Math.min(r.left, window.innerWidth-mw-8));
+  let top=r.bottom+6;
+  if(top+mh>window.innerHeight-8) top=Math.max(8, r.top-mh-6);
+  menu.style.left=left+'px'; menu.style.top=top+'px';
+}
+const mobileCrumbBtnEl=document.getElementById('mobileCrumbBtn');
+if(mobileCrumbBtnEl){
+  mobileCrumbBtnEl.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    if(mobileCrumbMenuEl && !mobileCrumbMenuEl.hidden) closeMobileCrumbMenu();
+    else openMobileCrumbMenu();
+  });
+}
+document.addEventListener('pointerdown',(e)=>{
+  if(!mobileCrumbMenuEl || mobileCrumbMenuEl.hidden) return;
+  if(e.target.closest('.mobile-crumb-menu') || e.target.closest('#mobileCrumbBtn')) return;
+  closeMobileCrumbMenu();
+});
+window.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape' && mobileCrumbMenuEl && !mobileCrumbMenuEl.hidden) closeMobileCrumbMenu();
+});
 async function refreshBoardLinkCardsFor(boardId){
   // if a parent board has a board-link card pointing here, update its displayed title in DB (cosmetic, lazy)
 }
@@ -10513,6 +10697,13 @@ function updateInspector(){
   // the latter replays the entrance animation. See staggerInspectorRows()/.insp-body.no-entrance.
   const prevSig=inspectorSig;
   closeInspector();
+  // "der Eigenschaftentab soll weg im Drawboard, den braucht man da nicht" — inside a dedicated
+  // Zeichenblanket-Board (state.blanketBoardCardId, set by applyBlanketBoardChrome() while that board
+  // is open) there's only ever the one giant canvas card, and its own bottom toolbar already covers
+  // everything the inspector would (Farbe, Stärke, Glätten, Stop-Motion, Undo, ...) — showing the
+  // normal card inspector on top of that is pure redundant clutter, so it's suppressed outright for
+  // as long as that board stays open.
+  if(state.blanketBoardCardId) return;
   if(state.selectedConnectorId){ hideCardDatePopover(); renderConnectorInspector(state.selectedConnectorId, prevSig); return; }
   if(state.selection.size===0){ hideCardDatePopover(); return; }
   const ids=[...state.selection];
@@ -14150,6 +14341,12 @@ const saveCardSoon=debounce((card)=>{ DB.putCard(card); },350);
    previous frame drawn first at low opacity ("onion skin") as a tracing guide. See addBlanketBoard()
    further down for the "eigenes Board... unendliches Zeichenblanket" variant. */
 const BLANKET_REF_W=320; // the card width BLANKET_PENS'/eraser's `w` values were tuned against
+// Upper bound on how wide a card's actual thickness scaling is allowed to grow with — see
+// drawBlanketStroke()'s wAt() for the full reasoning ("Mindestdicke... viel zu dick" on the giant
+// Zeichenblanket-Board canvas). Matches the standard corner-drag width ceiling used throughout the
+// rest of the app (attachResize's plain clamp(...,180,2000) for every other freely-resizable card
+// type), so it changes nothing for a normal card and only stops the runaway growth on BOARD_CANVAS_SIZE.
+const BLANKET_THICKNESS_SCALE_CAP=2000;
 // "einstellbar wie viele Frames pro Sekunde" — default playback speed (matches the old hardcoded
 // 180ms interval, ≈5.6fps, rounded to a clean 6) until Tom picks something else via the inspector's
 // fps cycle button (see updateInspector()'s blanket block / #blanketFpsBtn).
@@ -14170,6 +14367,65 @@ function iconBlanketPause(){return `<svg width="13" height="13" viewBox="0 0 24 
 // "man soll auch die Dicke des Stiftes auswählen können" — a simple line-weight glyph (three bars,
 // thin to thick) for the toolbar button that opens the thickness popover (see openBlanketThicknessPop()).
 function iconBlanketThickness(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M4 7h16" stroke-width="1.2"/><path d="M4 12.5h16" stroke-width="2.6"/><path d="M4 18h16" stroke-width="4.4"/></svg>`;}
+// "man soll auch vier verschiedene Stifte benutzen können: einen Füller der das Ende und den Anfang
+// immer so spitz abschließt, dann Stift normal wie jetzt auch, Textmarker der soll leicht transparent
+// sein, und noch einen praktischen Stift" — four PEN TYPES, independent of and layered on top of the
+// existing color choice (BLANKET_PENS/card.data.pen still picks the color; card.data.penType, new,
+// picks which of these four shapes/behaviors draws it — see newBlanketStroke() for where a stroke's
+// .penType is stamped on at creation and drawBlanketStroke() for where each type actually renders
+// differently). 'normal' keeps today's exact stroke unchanged — every existing board's strokes have no
+// .penType at all and fall back to it (see drawBlanketStroke), so nothing already drawn changes. The
+// fourth ("practical") pen is a Feinliner (fineliner): a fixed-width technical pen with no pressure
+// taper at all — Tom left this one up to me ("am besten irgendwas sinnvolles"); a NOTUA board's other
+// three pens (fountain, normal, marker) all vary in width as you draw, which is exactly wrong for
+// underlining a line of text or boxing off part of a note precisely — a fineliner's whole point is a
+// perfectly uniform, predictable line for that kind of precise, practical annotation.
+const BLANKET_PEN_TYPES=[
+  {key:'fountain',  icon:()=>iconBlanketPenFountain(),  titleKey:'blanket_pentype_fountain_title',  labelKey:'blanket_pentype_fountain_label'},
+  {key:'normal',    icon:()=>iconBlanketPenNormal(),    titleKey:'blanket_pentype_normal_title',    labelKey:'blanket_pentype_normal_label'},
+  {key:'marker',    icon:()=>iconBlanketPenMarker(),    titleKey:'blanket_pentype_marker_title',    labelKey:'blanket_pentype_marker_label'},
+  {key:'fineliner', icon:()=>iconBlanketPenFineliner(), titleKey:'blanket_pentype_fineliner_title', labelKey:'blanket_pentype_fineliner_label'},
+];
+// Shared builder for the pen-type button group — used by both ensureBlanketDock() (desktop) and
+// ensureDrawerBlanketSection() (mobile drawer), so the 4 buttons/handlers exist in exactly one place
+// instead of duplicated per toolbar like the rest of this dock/drawer pair's controls are; toggling a
+// type never needs its own popover or drawer-close/reopen logic (unlike color/thickness), so there was
+// nothing dock/drawer-specific to keep separate here.
+function blanketPenTypesHtml(idPrefix){
+  return `<div class="blanket-pentypes" id="${idPrefix}PenTypes">${BLANKET_PEN_TYPES.map(pt=>
+    `<button type="button" class="blanket-pentype-btn" data-pentype="${pt.key}" title="${t(pt.titleKey)}"><span class="blanket-pentype-icon">${pt.icon()}</span><span class="blanket-pentype-name">${t(pt.labelKey)}</span></button>`
+  ).join('')}</div>`;
+}
+function wireBlanketPenTypes(root,afterSelect){
+  root.querySelectorAll('.blanket-pentype-btn').forEach(btn=>{
+    btn.addEventListener('pointerdown',e=>e.stopPropagation());
+    btn.addEventListener('click',()=>{
+      const c=currentBlanketBoardCard(); if(!c) return;
+      c.data.penType=btn.dataset.pentype;
+      DB.putCard(c);
+      refreshBlanketDock(c);
+      if(afterSelect) afterSelect();
+    });
+  });
+}
+function refreshBlanketPenTypes(root,card){
+  const active=card.data.penType||'normal';
+  root.querySelectorAll('.blanket-pentype-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.pentype===active);
+  });
+}
+// Nib-shaped teardrop with a center slit + breather hole — the classic fountain-pen-nib silhouette.
+function iconBlanketPenFountain(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4L18 9l-4.6 11.1a1.5 1.5 0 0 1-2.8 0L6 9z"/><path d="M12 10.6v7.2"/><circle cx="12" cy="8.8" r="0.9" fill="currentColor" stroke="none"/></svg>`;}
+// Same silhouette as the existing "Draw" dock/drawer button's own pen icon — reused here (at the
+// smaller 14×14 toolbar size) so "normal" reads as exactly the pen Tom already knows, not a new shape.
+function iconBlanketPenNormal(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.6L15.2 5.2a1.8 1.8 0 0 1 2.6 0l1 1a1.8 1.8 0 0 1 0 2.6L8.6 19 4 20z"/><path d="M13.6 6.8l3.6 3.6"/></svg>`;}
+// Chisel-tip highlighter: an angled body plus a small solid ink-mark at the tip (same solid-fill
+// convention iconBlanketPlay() already uses elsewhere in this file for "this bit is filled, not
+// stroked"), reading as a highlighter rather than a fountain pen at a glance.
+function iconBlanketPenMarker(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.2 15.3L15.7 7.8l3 3-7.5 7.5H8.2z"/><path d="M13.2 5.3l3 3"/><path d="M8.2 15.3l-2.7 5.4 5.4-2.7z" fill="currentColor" stroke="none"/></svg>`;}
+// A plain thin diagonal line ending in a small solid point — "uniform, precise" is the whole idea, so
+// the glyph itself stays as plain/undecorated as the pen's own actual line output.
+function iconBlanketPenFineliner(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5.5 18.5L17 7"/><circle cx="18.3" cy="5.7" r="1.15" fill="currentColor" stroke="none"/></svg>`;}
 // One shared, body-appended popover (same singleton pattern as ensureWidgetSubmenu()/ensureDrawSubmenu()
 // above) rather than one per card — a board can hold several Blanket cards, and rebuilding this on
 // every renderAllCards() would otherwise mean re-wiring (and potentially leaking) a fresh range-input
@@ -14180,7 +14436,10 @@ function ensureBlanketThicknessPop(){
   if(blanketThicknessPopEl) return blanketThicknessPopEl;
   const el=document.createElement('div');
   el.className='blanket-thickness-pop'; el.hidden=true;
-  el.innerHTML=`<span class="blanket-thickness-dot" id="blanketThicknessDot"></span><input type="range" id="blanketThicknessRange" min="0.5" max="2.5" step="0.1">`;
+  // min lowered from 0.5 — "Stärke darf gern noch kleiner" — the thinnest setting still hits wAt()'s
+  // own absolute 0.6px floor (see drawBlanketStroke) on a normal card, but on anything larger it now
+  // reaches a genuinely finer line than 0.5 ever could.
+  el.innerHTML=`<span class="blanket-thickness-dot" id="blanketThicknessDot"></span><input type="range" id="blanketThicknessRange" min="0.15" max="2.5" step="0.05">`;
   document.body.appendChild(el);
   el.addEventListener('pointerdown',e=>e.stopPropagation());
   const range=el.querySelector('#blanketThicknessRange');
@@ -14221,8 +14480,20 @@ function openBlanketThicknessPop(anchor,card){
   const cardEl=document.querySelector(`.card[data-id="${card.id}"]`);
   const bounds=cardEl ? cardEl.getBoundingClientRect() : {left:0,right:window.innerWidth,top:0,bottom:window.innerHeight};
   let left=Math.max(bounds.left+4, Math.min(r.left+r.width/2-mw/2, bounds.right-mw-4));
-  let top=r.bottom+6;
-  if(top+mh>bounds.bottom-4){ top=Math.max(bounds.top+4, r.top-mh-6); }
+  // "bei Stärke soll die Auswahl für Dicke über der Leiste angezeigt werden auf PC" — on a real desktop/
+  // mouse setup (dockMagnifyEligible(), the same hover:hover+pointer:fine check used elsewhere in this
+  // file to tell a mouse apart from touch) the popover always opens ABOVE its anchor now, never below-
+  // by-default-with-flip — the toolbar/dock sits at the bottom of the screen, so "below" routinely meant
+  // half off-screen anyway. Touch (mobile drawer, tablet) keeps the old below-first-flip-if-no-room
+  // logic, since Tom's own wording specifically says "auf PC".
+  let top;
+  if(dockMagnifyEligible()){
+    top=r.top-mh-6;
+    if(top<bounds.top+4) top=bounds.top+4; // degrade gracefully if there's truly no room above at all
+  }else{
+    top=r.bottom+6;
+    if(top+mh>bounds.bottom-4){ top=Math.max(bounds.top+4, r.top-mh-6); }
+  }
   // Final safety clamp against the viewport too, in case the card itself runs partly off-screen.
   left=Math.max(6, Math.min(left, window.innerWidth-mw-6));
   top=Math.max(6, Math.min(top, window.innerHeight-mh-6));
@@ -14230,7 +14501,13 @@ function openBlanketThicknessPop(anchor,card){
 }
 document.addEventListener('pointerdown',(e)=>{
   if(!blanketThicknessPopEl || blanketThicknessPopEl.hidden) return;
-  if(e.target.closest('.blanket-thickness-pop') || e.target.closest('#blanketThicknessBtn')) return;
+  // "#blanketDockThicknessBtn"/"#drawerBlanketThicknessBtn" (the dedicated Zeichenblanket-Board's
+  // dock/drawer buttons) belong in this exclusion exactly like the on-card "#blanketThicknessBtn"
+  // already was — without it, tapping either while the popover was already open closed it right here
+  // on pointerdown, then the button's own click handler immediately reopened it (its toggle check
+  // just saw "closed" and acted accordingly), a harmless but pointless close-then-reopen flicker on
+  // every second tap instead of an actual close.
+  if(e.target.closest('.blanket-thickness-pop') || e.target.closest('#blanketThicknessBtn') || e.target.closest('#blanketDockThicknessBtn') || e.target.closest('#drawerBlanketThicknessBtn')) return;
   closeBlanketThicknessPop();
 });
 window.addEventListener('keydown',(e)=>{
@@ -14255,15 +14532,41 @@ function newBlanketStroke(card){
   // eraser's own tuned base width, from the toolbar's thickness popover (default 1 = unchanged).
   const mul=card.data.thickness||1;
   if(card.data.eraser) return {erase:true, size:(BLANKET_ERASER_W*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, points:[]};
+  // "man soll auch vier verschiedene Stifte benutzen können" — the pen TYPE (fountain/normal/marker/
+  // fineliner, see BLANKET_PEN_TYPES) is stamped onto the stroke at creation time, same as color/size/
+  // smooth already are, so already-drawn strokes keep rendering however they were drawn even if the
+  // pen type is switched afterward — drawBlanketStroke() falls back to 'normal' when this is absent,
+  // which is every stroke ever drawn before this feature existed, so nothing already on a board changes.
+  const penType=card.data.penType||'normal';
   // "Farbauswahl per Colorwheel" (see openBlanketColorWheelPop()) — card.data.pen==='custom' is a
   // sixth, non-indexed "pen" whose color comes from card.data.customColor instead of BLANKET_PENS;
   // its width still follows the same base as the first preset pen (BLANKET_PENS has no tuned width of
   // its own to fall back on for an arbitrary color).
   if(card.data.pen==='custom' && card.data.customColor){
-    return {color:card.data.customColor, size:(BLANKET_PENS[0].w*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, points:[]};
+    return {color:card.data.customColor, size:(BLANKET_PENS[0].w*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, penType, points:[]};
   }
   const pen=BLANKET_PENS[card.data.pen]||BLANKET_PENS[0];
-  return {color:pen.color, size:(pen.w*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, points:[]};
+  return {color:pen.color, size:(pen.w*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, penType, points:[]};
+}
+// Fountain pen taper envelope — "das Ende und den Anfang immer so spitz abschließt durch Druck und an
+// der Maus mit einem allgemeinen Durchschnitt": a real pressure-sensitive input (Apple Pencil etc.)
+// already feeds a genuine per-point p into wAt() below, but a mouse/plain touch never varies (always
+// 0.5, see pointFromEvent's own comment) — so tapering the ENDS of the stroke can't rely on hardware
+// pressure alone, or a mouse-drawn "fountain" stroke would just come out a uniform width like the
+// normal pen. This is the "an der Maus mit einem allgemeinen Durchschnitt" half: a plain positional
+// taper (thin → full width over the first ~18% of the stroke's own points, full → thin over the last
+// ~18%) that works identically regardless of input device, then MULTIPLIES with the real per-point
+// pressure term in wAt() — so a Pencil stroke gets both effects (its own natural pressure taper, deepened
+// by this positional one) while mouse/touch get this positional taper as their only — but still very
+// real — tapered-ends look.
+function blanketFountainTaper(idx,total){
+  if(total<2) return 0.15;
+  const edge=Math.max(1, Math.round(total*0.18));
+  const MIN=0.15;
+  if(idx<edge) return MIN+(1-MIN)*(idx/edge);
+  const fromEnd=total-1-idx;
+  if(fromEnd<edge) return MIN+(1-MIN)*(fromEnd/edge);
+  return 1;
 }
 // Draws one stroke onto ctx, in CSS-pixel space (cw/ch = the card's current w/h — ctx itself is
 // already scaled for devicePixelRatio by ensureBlanketCanvasSize, so callers never think in real
@@ -14299,25 +14602,79 @@ function smoothPolyline(pts,passes){
 // (dockMagnifyEligible()'s existing hover:hover+pointer:fine check — the same "this is a real mouse,
 // not touch" signal already used for the dock-magnify effect) smoothPolyline() runs extra passes for a
 // visibly rounder result; touch/pen devices keep the original, already-adequate amount unchanged.
+// "kantenglätten soll auch kurven glätten also rundungen viel smoother machen" — pushed further again:
+// more moving-average passes flattens jagged, faceted-looking turns/loops into genuinely round curves
+// (each pass blurs sharp angle changes a bit more; the quadratic-through-midpoints draw below already
+// turns every pair of segments into a curve, but that alone can't fix an already-jagged POINT PATH —
+// it can only round what smoothPolyline() hands it), at the cost of a little more amplitude loss on
+// tight loops, an acceptable trade for "much smoother" over the previous 5/2.
+// "das Glätten soll annähernd gerade Linien schon relativ gerade machen, mach da nochmal doppelt so
+// dolle Einstellung" — doubled again (5/2 → 9/4 → 18/8): a moving average pinned at both endpoints
+// converges toward a straight line between them the more passes it runs, so more passes is exactly
+// what pulls an almost-straight, slightly-wobbly stroke the rest of the way to actually straight.
 function drawBlanketStroke(ctx,stroke,cw,ch){
   const rawPts=stroke.points;
   if(!rawPts || !rawPts.length) return;
-  const smoothPasses=dockMagnifyEligible() ? 5 : 2;
+  const smoothPasses=dockMagnifyEligible() ? 18 : 8;
   const pts=stroke.smooth ? smoothPolyline(rawPts,smoothPasses) : rawPts;
+  // "vier verschiedene Stifte" — falls back to 'normal' for every stroke drawn before this feature
+  // existed (see newBlanketStroke()), so old boards render byte-for-byte the same as before.
+  const penType=stroke.erase ? 'normal' : (stroke.penType||'normal');
+  // "die Stifte sollen schon beim Malen anzeigen, gerade zieht es nach — es soll eine flüssige Animation
+  // sein, und bitte alle auf der selben Dicke immer anfangen lassen" — the fountain pen's taper
+  // (blanketFountainTaper) is a POSITIONAL envelope relative to the stroke's full, FINAL point count.
+  // The live in-progress preview (see the pointermove handler below in buildBlanketCard(), which redraws
+  // only the newest 2-point segment on every move for performance) doesn't know that final count yet —
+  // so every single live segment used to compute its taper as if the whole stroke were just those 2
+  // points, i.e. blanketFountainTaper(0,2)/(1,2) ≈ 0.15 for EVERY segment the entire time you're
+  // drawing, not just the true start/end. That's exactly "zieht nach": a thin, wrong-width line the
+  // whole time you draw, which only snapped to its real tapered shape once the stroke finished and got
+  // its one full redraw() (see finishStroke()). stroke.__live (set only by that live-preview call, never
+  // on a committed stroke) skips the taper envelope entirely while still drawing — every pen type now
+  // renders at its normal full width the instant ink appears, fluid and visually identical between pen
+  // types ("alle auf der selben Dicke anfangen") — and the real fountain taper is applied once,
+  // correctly, in the single full redraw that already runs on stroke finish.
+  const liveTaper = stroke.__live ? 1 : null;
   ctx.save();
   ctx.lineCap='round'; ctx.lineJoin='round';
   if(stroke.erase){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='#000'; ctx.fillStyle='#000'; }
-  else{ ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=stroke.color; ctx.fillStyle=stroke.color; }
-  const wAt=(p)=>Math.max(0.6, stroke.size*cw*(0.4+1.3*(p==null?0.5:p)));
+  else{
+    ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=stroke.color; ctx.fillStyle=stroke.color;
+    // "Textmarker der soll leicht transparent sein" — the one purely visual trait that makes a
+    // highlighter read as a highlighter rather than just a fat pen: overlapping strokes darken
+    // slightly at their crossings, same as a real one. ctx.save()/restore() above/below this function
+    // already scopes globalAlpha back to 1 for every other stroke, so this never leaks between cards.
+    ctx.globalAlpha = penType==='marker' ? 0.42 : 1;
+  }
+  // "Rauszoomen sorgt dafür und die Mindestdicke des Stiftes ist viel zu dick, mach eine[n] Pixel von
+  // 1 - eine sinnvolle Pixelanzahl" — stroke.size is deliberately a FRACTION of the card's own width
+  // (see BLANKET_REF_W's comment) so a normal, hand-resizable card's pen keeps the same relative
+  // thickness as it's dragged bigger/smaller. That breaks down hard for the dedicated "Zeichenblanket-
+  // Board" (addBlanketBoard(), a fixed 6000px-wide canvas card, BOARD_CANVAS_SIZE) — proportional-to-
+  // width scaling has no ceiling there, so even the thinnest pen at the lowest thickness setting comes
+  // out dozens of pixels wide, which is exactly what zooming out on that board makes obvious. Capping
+  // the width this formula scales against at BLANKET_THICKNESS_SCALE_CAP (2000 — the same corner-drag
+  // ceiling every other resizable card already uses, see attachResize's plain clamp(...,180,2000))
+  // makes this a pure no-op for every normal card (nothing is resizable past 2000 anyway) while giving
+  // the giant board's pen a real, sensible pixel width instead of one that keeps ballooning forever.
+  // "Feinliner" (the 4th, 'practical' pen) drops the pressure term entirely — a fixed mid-weight
+  // factor instead of 0.4+1.3*p — because its whole point is a perfectly uniform, predictable line for
+  // precise annotation (underlining, boxing off part of a note), not an expressive pressure-varied one.
+  const baseFactor=(p)=> penType==='fineliner' ? 0.75 : (0.4+1.3*(p==null?0.5:p));
+  const wAt=(p,taper)=>Math.max(0.6, stroke.size*Math.min(cw,BLANKET_THICKNESS_SCALE_CAP)*baseFactor(p)*(taper==null?1:taper));
   if(pts.length===1){
-    const r=wAt(pts[0].p)/2;
+    // A single tap/dot is simultaneously the very start AND end of the stroke, so a fountain pen's
+    // dot comes out as its thinnest (most tapered) point rather than full width — every other pen
+    // type is unaffected (taper=1, same as before this feature existed).
+    const r=wAt(pts[0].p, liveTaper!=null ? liveTaper : (penType==='fountain' ? blanketFountainTaper(0,1) : 1))/2;
     ctx.beginPath(); ctx.arc(pts[0].x*cw, pts[0].y*ch, r, 0, Math.PI*2); ctx.fill();
     ctx.restore(); return;
   }
   for(let i=0;i<pts.length-1;i++){
     const a=pts[i], b=pts[i+1];
     ctx.beginPath();
-    ctx.lineWidth=wAt(((a.p==null?0.5:a.p)+(b.p==null?0.5:b.p))/2);
+    const taperAvg = liveTaper!=null ? liveTaper : (penType==='fountain' ? (blanketFountainTaper(i,pts.length)+blanketFountainTaper(i+1,pts.length))/2 : 1);
+    ctx.lineWidth=wAt(((a.p==null?0.5:a.p)+(b.p==null?0.5:b.p))/2, taperAvg);
     if(stroke.smooth){
       const prevMidX=i===0?a.x*cw:((pts[i-1].x+a.x)/2*cw), prevMidY=i===0?a.y*ch:((pts[i-1].y+a.y)/2*ch);
       const midX=(a.x+b.x)/2*cw, midY=(a.y+b.y)/2*ch;
@@ -14338,7 +14695,14 @@ function drawBlanketStroke(ctx,stroke,cw,ch){
 // endless drawing surface) would try to allocate a multi-hundred-MB backing store at devicePixelRatio
 // 2-3, which reliably crashes/blanks out on a phone. A normal element-mode blanket card (a few hundred
 // px) never comes close to this cap, so it stays crisp at full dpr exactly as before.
-const BLANKET_MAX_BACKING_DIM=3200;
+// "jetzt ist der Stift irgendwie verpixelt" — this cap forced the giant board's own backing store down
+// to well under half its logical size (dpr≈0.53 at the old 3200), so it was always being upscaled
+// blurry/blocky by the browser; it read as acceptable before only because the pen was drawn much
+// thicker back then (BLANKET_THICKNESS_SCALE_CAP's fix), which hid the softness. Raised to 4800 —
+// dpr≈0.8 on the 6000px board, visibly sharper — while keeping the worst-case backing store bounded
+// at 4800×4800×4 bytes ≈ 92MB regardless of device dpr, comfortably below the crash territory the
+// original comment above was guarding against.
+const BLANKET_MAX_BACKING_DIM=4800;
 function ensureBlanketCanvasCtx(canvas,card){
   const cw=Math.max(1,card.w), ch=Math.max(1,card.h);
   let dpr=window.devicePixelRatio||1;
@@ -14452,6 +14816,19 @@ function buildBlanketCard(card){
     if(state.connectMode) return; // let it bubble — the whole-card connect-click handler takes it from here
     e.stopPropagation();
     if(e.button!==undefined && e.button>0) return;
+    // "wenn man ins Board klickt während irgendetwas wie Farbe angeklickt ist soll der erste Klick
+    // immer erst das Menü schließen und dann zeichnen" — the stopPropagation() just above (needed so
+    // a stroke never also gets read as a card-drag/selection click) has the side effect of hiding this
+    // very click from the color-wheel/thickness popovers' own document-level outside-click dismiss
+    // listeners (see closeBlanketColorWheelPop()/closeBlanketThicknessPop() below), so with one of
+    // them open, clicking the canvas used to draw a stray stroke while the popover just stayed open
+    // forever ("bleibt Farbwahl die ganze Zeit offen"). Closing whichever is open here and bailing out
+    // of THIS pointerdown before a stroke ever starts makes that first click a plain dismiss, same as
+    // clicking anywhere else outside the popover would — drawing resumes normally on the next click.
+    let closedPopover=false;
+    if(blanketColorWheelEl && !blanketColorWheelEl.hidden){ closeBlanketColorWheelPop(); closedPopover=true; }
+    if(blanketThicknessPopEl && !blanketThicknessPopEl.hidden){ closeBlanketThicknessPop(); closedPopover=true; }
+    if(closedPopover) return;
     if(!state.selection.has(card.id)) toggleSelect(card.id, isMultiSelectKey(e));
     if(activePointerId!=null) return; // already mid-stroke from another pointer — ignore a second one
     activePointerId=e.pointerId;
@@ -14465,9 +14842,11 @@ function buildBlanketCard(card){
     e.stopPropagation();
     activeStroke.points.push(pointFromEvent(e));
     // Live feedback draws just the newest segment onto the existing bitmap (cheap, keeps up with fast
-    // pointer input) instead of a full redrawBlanketCanvas() on every single move.
+    // pointer input) instead of a full redrawBlanketCanvas() on every single move. __live:true tells
+    // drawBlanketStroke() to skip the fountain-taper envelope while still drawing (see its own comment)
+    // — the real taper is applied once, correctly, by the full redraw() finishStroke() runs on release.
     const n=activeStroke.points.length;
-    if(n>=2) drawBlanketStroke(canvas.getContext('2d'), {...activeStroke, points:activeStroke.points.slice(n-2)}, card.w, card.h);
+    if(n>=2) drawBlanketStroke(canvas.getContext('2d'), {...activeStroke, points:activeStroke.points.slice(n-2), __live:true}, card.w, card.h);
   });
   function finishStroke(e){
     if(e.pointerId!==activePointerId) return;
@@ -16365,7 +16744,7 @@ function openBlanketColorWheelPop(anchor,card){
 }
 document.addEventListener('pointerdown',(e)=>{
   if(!blanketColorWheelEl || blanketColorWheelEl.hidden) return;
-  if(e.target.closest('.blanket-colorwheel-pop') || e.target.closest('#blanketDockColorWheelBtn')) return;
+  if(e.target.closest('.blanket-colorwheel-pop') || e.target.closest('#blanketDockColorWheelBtn') || e.target.closest('#drawerBlanketColorWheelBtn')) return;
   closeBlanketColorWheelPop();
 });
 window.addEventListener('keydown',(e)=>{
@@ -16379,6 +16758,8 @@ function ensureBlanketDock(){
   dock.dataset.built='1';
   const pensHtml=BLANKET_PENS.map((p,i)=>`<button type="button" class="blanket-pen" data-pen="${i}" style="--pen-color:${p.color}" title="${t('blanket_pen_title',{n:i+1})}"></button>`).join('');
   dock.innerHTML=`
+    ${blanketPenTypesHtml('blanketDock')}
+    <div class="dock-sep"></div>
     <div class="blanket-pens" id="blanketDockPens">${pensHtml}</div>
     <button type="button" class="dock-btn" id="blanketDockColorWheelBtn" title="${t('blanket_colorwheel_title')}">
       <span class="blanket-dock-wheel-swatch" id="blanketDockWheelSwatch">${iconColorWheel()}</span>
@@ -16390,6 +16771,7 @@ function ensureBlanketDock(){
     <button type="button" class="dock-btn" id="blanketDockSmoothBtn" title="${t('blanket_smooth_toggle_title')}">${iconBlanketSmooth()}<span>${t('blanket_smooth_label')}</span></button>
     <button type="button" class="dock-btn" id="blanketDockUndoBtn" title="${t('blanket_undo_title')}">${iconBlanketUndo()}<span>${t('blanket_undo_label')}</span></button>
   `;
+  wireBlanketPenTypes(dock);
   function withCard(fn){ const c=currentBlanketBoardCard(); if(c) fn(c); }
   dock.querySelectorAll('.blanket-pen').forEach(btn=>{
     btn.addEventListener('pointerdown',e=>e.stopPropagation());
@@ -16432,6 +16814,7 @@ function ensureBlanketDock(){
 function refreshBlanketDock(card){
   const dock=document.getElementById('blanketDock');
   if(!dock || dock.hidden || !card) return;
+  refreshBlanketPenTypes(dock,card);
   dock.querySelectorAll('.blanket-pen').forEach(btn=>{
     const i=parseInt(btn.dataset.pen,10);
     btn.classList.toggle('active', !card.data.eraser && card.data.pen===i);
@@ -16447,6 +16830,85 @@ function refreshBlanketDock(card){
   const eraserBtn=dock.querySelector('#blanketDockEraserBtn');
   if(eraserBtn) eraserBtn.classList.toggle('active', !!card.data.eraser);
   const smoothBtn=dock.querySelector('#blanketDockSmoothBtn');
+  if(smoothBtn) smoothBtn.classList.toggle('active', !!card.data.smooth);
+  refreshDrawerBlanketSection(card);
+}
+
+// ---- same drawing controls, laid out for the mobile hamburger drawer (#drawerBlanketSection) —
+// see the HTML comment on that element for why this exists alongside #blanketDock. Every action
+// closes the drawer first (closeDrawer()) since the drawer sheet (z-index 61) sits ABOVE the
+// thickness/colorwheel popovers (z-index 60, see their own CSS) and would otherwise just cover
+// them — same "tap it, sheet closes, now go use it" pattern #drawerAddSection's own buttons already
+// use for adding a card. Thickness/colorwheel anchor to menuBtn (the hamburger icon itself, always
+// on screen, unaffected by the drawer's close animation) rather than their own tapped button, which
+// would already be sliding out of view the instant the popover tried to position itself against it.
+function ensureDrawerBlanketSection(){
+  const section=document.getElementById('drawerBlanketSection');
+  if(!section || section.dataset.built) return section;
+  section.dataset.built='1';
+  const pensHtml=BLANKET_PENS.map((p,i)=>`<button type="button" class="blanket-pen" data-pen="${i}" style="--pen-color:${p.color}" title="${t('blanket_pen_title',{n:i+1})}"></button>`).join('');
+  section.insertAdjacentHTML('beforeend', `
+    ${blanketPenTypesHtml('drawerBlanket')}
+    <div class="blanket-pens" id="drawerBlanketPens">${pensHtml}</div>
+    <button type="button" class="drawer-btn" id="drawerBlanketColorWheelBtn">
+      <span class="blanket-dock-wheel-swatch" id="drawerBlanketWheelSwatch">${iconColorWheel()}</span>
+      <span>${t('blanket_colorwheel_label')}</span>
+    </button>
+    <button type="button" class="drawer-btn" id="drawerBlanketEraserBtn">${iconBlanketEraser()}<span>${t('blanket_eraser_label')}</span></button>
+    <button type="button" class="drawer-btn" id="drawerBlanketThicknessBtn">${iconBlanketThickness()}<span>${t('blanket_thickness_label')}</span></button>
+    <button type="button" class="drawer-btn" id="drawerBlanketSmoothBtn">${iconBlanketSmooth()}<span>${t('blanket_smooth_label')}</span></button>
+    <button type="button" class="drawer-btn" id="drawerBlanketUndoBtn">${iconBlanketUndo()}<span>${t('blanket_undo_title')}</span></button>
+  `);
+  wireBlanketPenTypes(section, closeDrawer);
+  function withCard(fn){ const c=currentBlanketBoardCard(); if(c) fn(c); }
+  section.querySelectorAll('.blanket-pen').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      withCard(c=>{
+        c.data.pen=parseInt(btn.dataset.pen,10);
+        c.data.eraser=false;
+        DB.putCard(c);
+        refreshBlanketDock(c);
+        closeDrawer();
+      });
+    });
+  });
+  const wheelBtn=section.querySelector('#drawerBlanketColorWheelBtn');
+  wheelBtn.addEventListener('click',()=>{ withCard(c=>{ closeDrawer(); openBlanketColorWheelPop(menuBtn,c); }); });
+  const eraserBtn=section.querySelector('#drawerBlanketEraserBtn');
+  eraserBtn.addEventListener('click',()=>{ withCard(c=>{ c.data.eraser=!c.data.eraser; DB.putCard(c); refreshBlanketDock(c); closeDrawer(); }); });
+  const thicknessBtn=section.querySelector('#drawerBlanketThicknessBtn');
+  thicknessBtn.addEventListener('click',()=>{ withCard(c=>{ closeDrawer(); openBlanketThicknessPop(menuBtn,c); }); });
+  const smoothBtn=section.querySelector('#drawerBlanketSmoothBtn');
+  smoothBtn.addEventListener('click',()=>{ withCard(c=>{ c.data.smooth=!c.data.smooth; DB.putCard(c); refreshBlanketDock(c); closeDrawer(); }); });
+  const undoBtn=section.querySelector('#drawerBlanketUndoBtn');
+  undoBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      const arr=activeBlanketStrokes(c);
+      if(arr.length){ arr.pop(); DB.putCard(c); redrawBlanketBoardCanvas(c); }
+      closeDrawer();
+    });
+  });
+  return section;
+}
+function refreshDrawerBlanketSection(card){
+  const section=document.getElementById('drawerBlanketSection');
+  if(!section || section.hidden || !section.dataset.built || !card) return;
+  refreshBlanketPenTypes(section,card);
+  section.querySelectorAll('.blanket-pen').forEach(btn=>{
+    const i=parseInt(btn.dataset.pen,10);
+    btn.classList.toggle('active', !card.data.eraser && card.data.pen===i);
+  });
+  const isCustom=!card.data.eraser && card.data.pen==='custom' && !!card.data.customColor;
+  const wheelSwatch=section.querySelector('#drawerBlanketWheelSwatch');
+  if(wheelSwatch){
+    wheelSwatch.style.background=isCustom?card.data.customColor:'';
+    wheelSwatch.classList.toggle('has-color', isCustom);
+  }
+  const wheelBtn=section.querySelector('#drawerBlanketColorWheelBtn');
+  if(wheelBtn) wheelBtn.classList.toggle('active', isCustom);
+  const eraserBtn=section.querySelector('#drawerBlanketEraserBtn');
+  if(eraserBtn) eraserBtn.classList.toggle('active', !!card.data.eraser);
+  const smoothBtn=section.querySelector('#drawerBlanketSmoothBtn');
   if(smoothBtn) smoothBtn.classList.toggle('active', !!card.data.smooth);
 }
 
@@ -16586,19 +17048,36 @@ function applyBlanketBoardChrome(canvasCard){
   const dockEl=document.getElementById('dock');
   const blanketDockEl=ensureBlanketDock();
   const viewctlGroup=ensureViewctlBlanketGroup();
+  // "in der Smartphone Ansicht gibt es keine Werkzeugleiste im Drawboard, die soll auch das
+  // Hamburgermenü besetzen" — the mobile counterpart of the dockEl/blanketDockEl swap above: on a
+  // phone #dock/#blanketDock are both permanently display:none (see .bottom-bars in the
+  // @media(max-width:640px) block), so the drawer is the only place left for these controls to live.
+  // #drawerAddSection (add note/image/…) and #drawerToolSection (connect/customize) make no sense on
+  // this board either — it holds nothing but the one giant canvas card — so they're swapped out for
+  // #drawerBlanketSection the same way #dock itself is swapped out on desktop, not just supplemented.
+  const drawerAddSection=document.getElementById('drawerAddSection');
+  const drawerToolSection=document.getElementById('drawerToolSection');
+  const drawerBlanketSection=ensureDrawerBlanketSection();
   stopBlanketBoardPlaying();
   closeBlanketColorWheelPop();
+  closeBlanketThicknessPop();
   state.blanketBoardCardId=canvasCard?canvasCard.id:null;
   if(canvasCard){
     if(dockEl) dockEl.hidden=true;
     if(blanketDockEl) blanketDockEl.hidden=false;
     if(viewctlGroup) viewctlGroup.hidden=false;
+    if(drawerAddSection) drawerAddSection.hidden=true;
+    if(drawerToolSection) drawerToolSection.hidden=true;
+    if(drawerBlanketSection) drawerBlanketSection.hidden=false;
     refreshBlanketDock(canvasCard);
     refreshViewctlBlanketGroup(canvasCard);
   }else{
     if(dockEl) dockEl.hidden=false;
     if(blanketDockEl) blanketDockEl.hidden=true;
     if(viewctlGroup) viewctlGroup.hidden=true;
+    if(drawerAddSection) drawerAddSection.hidden=false;
+    if(drawerToolSection) drawerToolSection.hidden=false;
+    if(drawerBlanketSection) drawerBlanketSection.hidden=true;
   }
 }
 
