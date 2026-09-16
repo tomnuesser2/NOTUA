@@ -9117,8 +9117,21 @@ function showCloudSecurityExplainerModal(){
 // again on landing would only look like "you're not signed in yet" when you already are, so it hides
 // itself the moment that's true, same as it hides outright when Google sign-in isn't configured at all.
 function updateLandingGoogleBtnUI(){
-  if(!landingGoogleBtn) return;
-  landingGoogleBtn.hidden = !GOOGLE_SUPPORTED || (isR2SyncEnabled() && !!r2State.encKey);
+  // A plain live lookup, not the outer `landingGoogleBtn` const below — this function is also reached
+  // from applyDockCustomization()/r2BootIfEnabled(), both of which run during the script's own early
+  // top-level setup, well before execution reaches the LANDING VIEW section further down where that
+  // const is declared. Referencing it here threw "Cannot access 'landingGoogleBtn' before
+  // initialization" (a plain const is in the temporal dead zone until its own declaration line
+  // actually runs) — which, being an uncaught exception during synchronous top-level script
+  // execution, silently aborted everything after it, including every later addEventListener wiring
+  // call (the landing circle's own click handler included) and the final init() at the bottom. That's
+  // what made the whole landing page look dead except its two plain <a> links (Donate/Datenschutz),
+  // which need no JS at all. The button element already exists in the DOM by the time any inline
+  // script here runs (it's plain markup, parsed long before this tag), so a fresh lookup is always
+  // safe regardless of call order.
+  const btn=document.getElementById('landingGoogleBtn');
+  if(!btn) return;
+  btn.hidden = !GOOGLE_SUPPORTED || (isR2SyncEnabled() && !!r2State.encKey);
 }
 // Landing-page entry point for a device with no account/session at all — see the QR/CODE DEVICE
 // LINKING section in the JS and r2JoinDeviceBtn's own comment in the HTML above. Shown only once
@@ -9313,7 +9326,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.10';
+const APP_VERSION='2.4.11';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
