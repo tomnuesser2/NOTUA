@@ -5924,7 +5924,16 @@ async function r2OfferDeviceLink(onCodeReady,shouldCancel){
     const wrapped=await r2WrapEncrypt(wrapKey,payload);
     return await r2RelayPut(code,'r',wrapped,true);
   }catch(e){ return false; }
-  finally{ r2RelayDelete(code,'a',true); r2RelayDelete(code,'b',false); r2RelayDelete(code,'r',true); }
+  // Tom's own real-world report nailed this: "PC erfolgreich verknüpft" while the phone stayed stuck
+  // on "Warte auf Verbindung" forever after — this used to ALSO delete slot 'r' right here, the very
+  // instant this side finished, with zero regard for whether the other device had actually read it
+  // yet. r2JoinViaLinkCode() only polls every 2s, so there was a real window where this side published
+  // the payload, immediately deleted it again, and the phone's next poll simply found nothing —
+  // looking exactly like a permanent hang instead of the completed handshake it actually was. Slot 'r'
+  // is the ONE thing here Side B still needs after this function returns, so cleanup of it now belongs
+  // to Side B alone (see r2JoinViaLinkCode's own finally below) — this side only ever cleans up what it
+  // itself no longer needs: the public key it published ('a') and the peer's ('b').
+  finally{ r2RelayDelete(code,'a',true); r2RelayDelete(code,'b',false); }
 }
 // ----- Side B: the NEW, unlinked device joining via a scanned/typed code. -----
 async function r2JoinViaLinkCode(code){
@@ -5947,7 +5956,17 @@ async function r2JoinViaLinkCode(code){
         // what used to be a silent, unexplained 5-minute "Warte auf Verbindung" into a prompt failure
         // message instead. A network hiccup while checking just means "couldn't tell" — that keeps
         // the normal poll going rather than risking a false bail-out.
-        try{ if(await r2RelayGet(code,'a')===null) break; }catch(e){}
+        try{
+          if(await r2RelayGet(code,'a')===null){
+            // 'a' is only ever deleted AFTER r2OfferDeviceLink's own `return await r2RelayPut(code,'r',...)`
+            // has already resolved (success or not) — so if the other side succeeded, 'r' was written
+            // before 'a' could possibly be gone. One more direct check here closes the small gap between
+            // that write landing and this exact poll tick seeing it, so a genuine last-second success
+            // doesn't get reported as a failure just because of unlucky timing against the 2s poll cadence.
+            result=await r2RelayGet(code,'r').catch(()=>null);
+            if(!result) break;
+          }
+        }catch(e){}
       }
     }
     if(!result) return false;
@@ -5961,7 +5980,15 @@ async function r2JoinViaLinkCode(code){
     try{ localStorage.setItem('notua-r2-sync','1'); }catch(e){}
     return true;
   }catch(e){ return false; }
-  finally{ r2RelayDelete(code,'b',false); }
+  // Cleans up slot 'r' itself now (Side A no longer touches it at all — see r2OfferDeviceLink's own
+  // finally comment) — whichever side actually consumes a relay slot is the one responsible for
+  // deleting it, so there's never a window where the writer deletes something the reader hasn't read
+  // yet. authed:true to match how 'r' was written (r2RelayPut(...,true) on the offering side) — by
+  // this point r2SetDeviceToken() above has already given this device a real credential to delete
+  // with on the success path; on any path that never gets that far there's simply nothing to delete
+  // (r2RelayDelete swallows its own errors either way, so a stale, still-encrypted, one-time-code-only
+  // leftover is the worst case, never a crash or a stuck UI).
+  finally{ r2RelayDelete(code,'b',false); r2RelayDelete(code,'r',true); }
 }
 // Lists every "boards/*.json" key this user has on R2 right now — the R2 equivalent of FS_DB's folder
 // walk / DRIVE_DB's Drive query, just via the Worker's own /list route. Cached for a few seconds since
@@ -9346,7 +9373,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.12';
+const APP_VERSION='2.4.13';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
@@ -14343,20 +14370,26 @@ const saveCardSoon=debounce((card)=>{ DB.putCard(card); },350);
    "eine neue Karte... Blanket bzw irgendwie sowas wie Freihand... ein Zeichenmap... 4-5 verschiedene
    Stifte verschiedene Farben. Eine Druckintensitätsübersetzung bei iPad Stift und convertibles und
    soll auch einen Modus haben der krikelige Kanten glättet" — a vector (not raster) drawing engine:
-   every stroke is stored as {color, size, smooth, erase, points:[{x,y,p}]}, with x/y as FRACTIONS
-   (0..1) of the card's own width/height at the moment each point was drawn, not pixels. That's what
-   lets a resize (see resizeBlanketCanvas(), wired from attachResize() above) just rescale the whole
-   drawing live instead of cropping or stretching it out of shape — exactly like an SVG would, but
-   without the performance cost of hundreds of real SVG path elements. `size` is likewise a fraction
-   (of BLANKET_REF_W) rather than a fixed pixel width, for the same reason: a pen's line stays the
-   same RELATIVE thickness as the card is resized. Pressure (PointerEvent.pressure — Apple Pencil on
-   iPad Safari, most Wacom/Surface pens on Chrome, 0.5 for anything without a real sensor, e.g. mouse/
-   plain touch) varies each point's line width, per canvasPointFromEvent()'s own comment below.
+   every stroke is stored as {color, size, smooth, erase, points:[{x,y,p}]}.
+   "beim skalieren [sollen] die schrift und das gezeichnete nicht mitskaliert werden sondern nur mehr
+   Platz zum zeichnen erschaffen" — points are ABSOLUTE card-local CSS px (anchored to the card's own
+   top-left corner) and `size` is likewise an absolute px baseline, NOT a fraction of the card's
+   current width/height. Resizing the card (see resizeBlanketCanvas(), wired from attachResize()
+   above) therefore just grows/shrinks the visible canvas area — whatever was already drawn stays
+   exactly where and how big it was, the same way it would on a real sheet of paper you cut bigger or
+   smaller. (An earlier version of this stored points as FRACTIONS of the card's width/height instead,
+   deliberately so a resize would rescale the whole drawing — the opposite of what's wanted now; see
+   migrateBlanketCardToAbsCoords() below for the one-time conversion that keeps every board Tom already
+   drew on looking exactly as it did, frozen at whatever size the card happened to be the moment this
+   shipped.) Pressure (PointerEvent.pressure — Apple Pencil on iPad Safari, most Wacom/Surface pens on
+   Chrome, 0.5 for anything without a real sensor, e.g. mouse/plain touch) varies each point's line
+   width, per pointFromEvent()'s own comment below.
    Stop-motion ("Stopmotion... Bilderreihe weiterklicken... vorheriges Bild... drüberzeichnen...
    abspielen, frames löschen, alles resetten mit Bestätigung") reuses the exact same stroke format —
    frames are just an array of {strokes} snapshots (card.data.frames), with the always-adjacent
    previous frame drawn first at low opacity ("onion skin") as a tracing guide. See addBlanketBoard()
-   further down for the "eigenes Board... unendliches Zeichenblanket" variant. */
+   further down for the "eigenes Board... unendliches Zeichenblanket" variant (always a fixed size, so
+   this whole migration is a no-op for it in practice — it never gets resized to begin with). */
 const BLANKET_REF_W=320; // the card width BLANKET_PENS'/eraser's `w` values were tuned against
 // Upper bound on how wide a card's actual thickness scaling is allowed to grow with — see
 // drawBlanketStroke()'s wAt() for the full reasoning ("Mindestdicke... viel zu dick" on the giant
@@ -14530,6 +14563,30 @@ document.addEventListener('pointerdown',(e)=>{
 window.addEventListener('keydown',(e)=>{
   if(e.key==='Escape' && blanketThicknessPopEl && !blanketThicknessPopEl.hidden) closeBlanketThicknessPop();
 });
+// One-time conversion for any board drawn before this version shipped: old strokes stored points as
+// FRACTIONS (0..1) of the card's width/height and `size` as a fraction of BLANKET_REF_W, deliberately
+// so a resize would rescale the whole drawing (see the file header comment for why that's no longer
+// what's wanted — "beim skalieren sollen die schrift und das gezeichnete nicht mitskaliert werden").
+// Converts every point/size to the new absolute-px scheme using the card's CURRENT w/h — i.e. freezes
+// each existing drawing at exactly the size/position it already had on screen, so nothing Tom already
+// drew visibly jumps the moment this ships; only a resize from here on behaves differently. Gated by
+// card.data.absCoords so it only ever runs once per card — a brand-new card is created with that flag
+// already true (see newCard()/addBlanketBoard()) and never touches this at all.
+function migrateBlanketStrokesToAbsCoords(strokes,cw,ch,baseW){
+  (strokes||[]).forEach(s=>{
+    if(Array.isArray(s.points)) s.points.forEach(p=>{ p.x=p.x*cw; p.y=p.y*ch; });
+    if(typeof s.size==='number') s.size=s.size*baseW;
+  });
+}
+function migrateBlanketCardToAbsCoords(card){
+  if(card.data.absCoords) return;
+  const cw=Math.max(1,card.w||BLANKET_REF_W), ch=Math.max(1,card.h||BLANKET_REF_W);
+  const baseW=Math.min(cw,BLANKET_THICKNESS_SCALE_CAP);
+  migrateBlanketStrokesToAbsCoords(card.data.strokes,cw,ch,baseW);
+  (card.data.frames||[]).forEach(f=>migrateBlanketStrokesToAbsCoords(f.strokes,cw,ch,baseW));
+  card.data.absCoords=true;
+  DB.putCard(card);
+}
 // Which strokes array a new stroke/undo should actually target right now — plain draw mode just uses
 // card.data.strokes; stop-motion targets the CURRENT frame's own strokes instead. Lazily seeds
 // frames[0] from whatever was already drawn the first time stop-motion turns on (see
@@ -14548,7 +14605,12 @@ function newBlanketStroke(card){
   // "man soll auch die Dicke des Stiftes auswählen können" — a multiplier on top of each pen's/the
   // eraser's own tuned base width, from the toolbar's thickness popover (default 1 = unchanged).
   const mul=card.data.thickness||1;
-  if(card.data.eraser) return {erase:true, size:(BLANKET_ERASER_W*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, points:[]};
+  // Absolute px baseline, calibrated against the card's width RIGHT NOW (same visual weight a pen
+  // pick has always had) but — unlike the old `.../BLANKET_REF_W` fraction that wAt() re-multiplied
+  // by the card's CURRENT width on every redraw — never recalculated again after this, so a later
+  // resize can't fatten or thin lines that are already drawn (see the file header comment above).
+  const baseW=Math.min(card.w,BLANKET_THICKNESS_SCALE_CAP);
+  if(card.data.eraser) return {erase:true, size:(BLANKET_ERASER_W*mul*baseW)/BLANKET_REF_W, smooth:!!card.data.smooth, points:[]};
   // "man soll auch vier verschiedene Stifte benutzen können" — the pen TYPE (fountain/normal/marker/
   // fineliner, see BLANKET_PEN_TYPES) is stamped onto the stroke at creation time, same as color/size/
   // smooth already are, so already-drawn strokes keep rendering however they were drawn even if the
@@ -14560,10 +14622,10 @@ function newBlanketStroke(card){
   // its width still follows the same base as the first preset pen (BLANKET_PENS has no tuned width of
   // its own to fall back on for an arbitrary color).
   if(card.data.pen==='custom' && card.data.customColor){
-    return {color:card.data.customColor, size:(BLANKET_PENS[0].w*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, penType, points:[]};
+    return {color:card.data.customColor, size:(BLANKET_PENS[0].w*mul*baseW)/BLANKET_REF_W, smooth:!!card.data.smooth, penType, points:[]};
   }
   const pen=BLANKET_PENS[card.data.pen]||BLANKET_PENS[0];
-  return {color:pen.color, size:(pen.w*mul)/BLANKET_REF_W, smooth:!!card.data.smooth, penType, points:[]};
+  return {color:pen.color, size:(pen.w*mul*baseW)/BLANKET_REF_W, smooth:!!card.data.smooth, penType, points:[]};
 }
 // Fountain pen taper envelope — "das Ende und den Anfang immer so spitz abschließt durch Druck und an
 // der Maus mit einem allgemeinen Durchschnitt": a real pressure-sensitive input (Apple Pencil etc.)
@@ -14678,13 +14740,15 @@ function drawBlanketStroke(ctx,stroke,cw,ch){
   // factor instead of 0.4+1.3*p — because its whole point is a perfectly uniform, predictable line for
   // precise annotation (underlining, boxing off part of a note), not an expressive pressure-varied one.
   const baseFactor=(p)=> penType==='fineliner' ? 0.75 : (0.4+1.3*(p==null?0.5:p));
-  const wAt=(p,taper)=>Math.max(0.6, stroke.size*Math.min(cw,BLANKET_THICKNESS_SCALE_CAP)*baseFactor(p)*(taper==null?1:taper));
+  // stroke.size is already an absolute px baseline (see newBlanketStroke()'s own comment) — no `*cw`
+  // here anymore, that's exactly what used to make a resize fatten/thin already-drawn lines.
+  const wAt=(p,taper)=>Math.max(0.6, stroke.size*baseFactor(p)*(taper==null?1:taper));
   if(pts.length===1){
     // A single tap/dot is simultaneously the very start AND end of the stroke, so a fountain pen's
     // dot comes out as its thinnest (most tapered) point rather than full width — every other pen
     // type is unaffected (taper=1, same as before this feature existed).
     const r=wAt(pts[0].p, liveTaper!=null ? liveTaper : (penType==='fountain' ? blanketFountainTaper(0,1) : 1))/2;
-    ctx.beginPath(); ctx.arc(pts[0].x*cw, pts[0].y*ch, r, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pts[0].x, pts[0].y, r, 0, Math.PI*2); ctx.fill();
     ctx.restore(); return;
   }
   for(let i=0;i<pts.length-1;i++){
@@ -14693,13 +14757,14 @@ function drawBlanketStroke(ctx,stroke,cw,ch){
     const taperAvg = liveTaper!=null ? liveTaper : (penType==='fountain' ? (blanketFountainTaper(i,pts.length)+blanketFountainTaper(i+1,pts.length))/2 : 1);
     ctx.lineWidth=wAt(((a.p==null?0.5:a.p)+(b.p==null?0.5:b.p))/2, taperAvg);
     if(stroke.smooth){
-      const prevMidX=i===0?a.x*cw:((pts[i-1].x+a.x)/2*cw), prevMidY=i===0?a.y*ch:((pts[i-1].y+a.y)/2*ch);
-      const midX=(a.x+b.x)/2*cw, midY=(a.y+b.y)/2*ch;
+      // Points are already absolute card-local px (see the file header comment) — no more `*cw`/`*ch`.
+      const prevMidX=i===0?a.x:((pts[i-1].x+a.x)/2), prevMidY=i===0?a.y:((pts[i-1].y+a.y)/2);
+      const midX=(a.x+b.x)/2, midY=(a.y+b.y)/2;
       ctx.moveTo(prevMidX,prevMidY);
-      ctx.quadraticCurveTo(a.x*cw,a.y*ch,midX,midY);
+      ctx.quadraticCurveTo(a.x,a.y,midX,midY);
     }else{
-      ctx.moveTo(a.x*cw,a.y*ch);
-      ctx.lineTo(b.x*cw,b.y*ch);
+      ctx.moveTo(a.x,a.y);
+      ctx.lineTo(b.x,b.y);
     }
     ctx.stroke();
   }
@@ -14741,6 +14806,7 @@ function ensureBlanketCanvasCtx(canvas,card){
 // playback it still respects card.data.onionSkin ("vorherigen Frame transparent anzeigen soll man ein-
 // und ausschalten können" — defaults to on, see buildBlanketCard()'s/newCard()'s onionSkin hydration).
 function redrawBlanketCanvas(canvas,card,opts){
+  migrateBlanketCardToAbsCoords(card); // no-op after the first call — see its own comment
   const ctx=ensureBlanketCanvasCtx(canvas,card);
   const cw=card.w, ch=card.h;
   ctx.clearRect(0,0,cw,ch);
@@ -14820,9 +14886,15 @@ function buildBlanketCard(card){
   let activePointerId=null, activeStroke=null;
   function pointFromEvent(e){
     const r=canvas.getBoundingClientRect();
+    // Converts an on-screen pointer position into an ABSOLUTE card-local CSS px (see the file header
+    // comment) — canvas.getBoundingClientRect() reports the ON-SCREEN size, which differs from the
+    // card's own logical card.w/card.h whenever the whole board is zoomed/panned, so this scales by
+    // (card.w/r.width) to undo that and land back in the card's own, zoom-independent coordinate
+    // space — same math the old 0..1-fraction version did, just not re-normalized to 0..1 anymore.
+    const sx=card.w/Math.max(1,r.width), sy=card.h/Math.max(1,r.height);
     return {
-      x:clamp((e.clientX-r.left)/Math.max(1,r.width),0,1),
-      y:clamp((e.clientY-r.top)/Math.max(1,r.height),0,1),
+      x:clamp((e.clientX-r.left)*sx,0,card.w),
+      y:clamp((e.clientY-r.top)*sy,0,card.h),
       // PointerEvent.pressure: real value from an Apple Pencil (iPad Safari) or most Wacom/Surface
       // pens (Chrome); 0.5 for anything without a pressure sensor (mouse, plain touch) — never 0 while
       // actually drawing, which is what "e.pressure>0" is guarding against here.
@@ -14991,6 +15063,7 @@ function resetBlanketCard(card){
   card.data.strokes=[];
   card.data.frames=card.data.stopMotion?[{strokes:[]}]:null;
   card.data.frameIndex=0;
+  card.data.absCoords=true; // nothing left to migrate — same as a brand-new card, see newCard()
   DB.putCard(card);
   renderAllCards(); applySelectionClasses();
 }
@@ -16453,7 +16526,7 @@ async function addCard(type, extra){
   // redrawBlanketCanvas() below, which is what lets a resize just rescale the drawing instead of
   // cropping or distorting it. pen/smooth/eraser/stopMotion are the persisted toolbar state; frames
   // stays null until stopMotion is switched on for the first time (see buildBlanketCard's lazy init).
-  if(type==='blanket'){ w=320; h=260; data={strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS}; }
+  if(type==='blanket'){ w=320; h=260; data={strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, absCoords:true}; }
   if(type==='wowpvp'){
     w=300; h=280;
     data={region:'EU', server:'', name:'', status:'idle', errorMsg:'', result:null};
@@ -16564,7 +16637,7 @@ async function addBlanketBoard(at){
   const canvasCard={
     id:canvasCardId, boardId:nb.id, type:'blanket', color:'none',
     x:-BOARD_CANVAS_SIZE/2, y:-BOARD_CANVAS_SIZE/2, w:BOARD_CANVAS_SIZE, h:BOARD_CANVAS_SIZE, z:1,
-    data:{strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, customColor:null},
+    data:{strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, customColor:null, absCoords:true},
     createdAt:Date.now(), updatedAt:Date.now()
   };
   await DB.putCard(canvasCard);
