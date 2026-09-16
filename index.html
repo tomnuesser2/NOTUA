@@ -605,6 +605,10 @@ try{
      "on" look instead of just hover feedback. */
   .tools-sheet-card.active{background:var(--accent-soft); color:var(--accent);}
   .tools-sheet-card.active .tools-sheet-card-icon{color:var(--accent);}
+  /* Cloud Sync's own "Anmeldung abgelaufen, bitte neu anmelden" state (see r2NeedsReconnect()) — a
+     distinct danger-colored look so it reads as "needs attention", not just its normal on/off toggle. */
+  .tools-sheet-card.needs-reconnect{background:color-mix(in srgb, var(--danger) 14%, var(--surface-2)); color:var(--danger);}
+  .tools-sheet-card.needs-reconnect .tools-sheet-card-icon{color:var(--danger);}
   @media (min-width:641px){
     /* Desktop/PC: a small anchored dropdown under the gear button instead of a full-width sheet
        sliding up from the bottom of the whole screen — positioned by JS (positionToolsSheetForDesktop,
@@ -4076,6 +4080,9 @@ const I18N={
   r2_sync_label:{de:'Cloud Sync',en:'Cloud sync'},
   r2_sync_on_title:{de:'Cloud Sync ist an — Boards werden automatisch über deinen Cloudflare-Speicher synchronisiert',en:'Cloud sync is on — boards sync automatically through your Cloudflare storage'},
   r2_sync_off_title:{de:'Cloud Sync ist aus — antippen zum Aktivieren',en:'Cloud sync is off — tap to enable'},
+  r2_sync_reconnect_label:{de:'Cloud Sync — neu anmelden',en:'Cloud sync — reconnect'},
+  r2_sync_reconnect_title:{de:'Anmeldung abgelaufen — antippen, um dich neu anzumelden und das Synchronisieren fortzusetzen',en:'Sign-in expired — tap to reconnect and resume syncing'},
+  r2_reconnect_success_toast:{de:'Wieder angemeldet — Cloud Sync läuft weiter',en:'Reconnected — cloud sync is running again'},
   r2_sync_on_toast:{de:'Cloud Sync aktiviert',en:'Cloud sync turned on'},
   r2_sync_off_toast:{de:'Cloud Sync deaktiviert',en:'Cloud sync turned off'},
   cloud_explainer_title:{de:'Wie deine Daten gesichert werden',en:'How your data is secured'},
@@ -6209,6 +6216,31 @@ function refreshR2LinkDeviceUI(){
   const label=item.querySelector('.tools-sheet-card-label');
   if(label) label.textContent=t('r2_link_item_label');
 }
+// True while this device's Google session has gone stale (ensureAccessToken's own pendingReconnect
+// gate — see its comment) AND there's no device token to fall back on, meaning EVERY background sync
+// attempt (list, push, pull, all of it) has been silently failing since the first one hit this and
+// will keep failing indefinitely — pendingReconnect deliberately never retries silently on its own,
+// exactly to avoid a popup-storm (see ensureAccessToken's own reasoning). A real, deliberate tap here
+// is the one place that's allowed to pop an actual interactive sign-in window.
+// "gmail ist jetzt irgendwie immer verknüpft... sorgt dafür dass es nicht durchgeht und das syncen
+// nur funktioniert wenn man einmal cloud sync aus und wieder anmacht weil dann die Anmeldung
+// neuauftaucht" — Tom's own accidental workaround (toggling Cloud Sync off then back on) happened to
+// work only because turning it back ON is the one other place that already calls ensureAccessToken
+// with interactive:true. There used to be a dedicated "reconnect" affordance for exactly this
+// (confirmPendingDrive(), back when this same pendingReconnect gate powered Google Drive sync) — it
+// never got an R2 equivalent when Drive sync was removed, leaving pendingReconnect a dead end with no
+// visible way out except that off/on dance. r2Reconnect() below is that missing equivalent.
+function r2NeedsReconnect(){
+  return isR2SyncEnabled() && !r2GetDeviceToken() && !!driveState.pendingReconnect;
+}
+async function r2Reconnect(){
+  try{
+    await ensureAccessToken(true);
+    refreshR2SyncToggleUI();
+    showToast(t('r2_reconnect_success_toast'));
+    scheduleSyncSoon(200);
+  }catch(e){ showToast(t('r2_signin_failed_toast')); }
+}
 function refreshR2SyncToggleUI(){
   updateLandingGoogleBtnUI();
   const item=document.getElementById('toolsR2SyncItem');
@@ -6216,10 +6248,12 @@ function refreshR2SyncToggleUI(){
   if(!R2_SYNC_SUPPORTED){ item.hidden=true; return; }
   item.hidden=false;
   const on=isR2SyncEnabled();
+  const needsReconnect=on && r2NeedsReconnect();
   item.classList.toggle('active',on);
+  item.classList.toggle('needs-reconnect',needsReconnect);
   const label=item.querySelector('.tools-sheet-card-label');
-  if(label) label.textContent=t('r2_sync_label');
-  item.title=on?t('r2_sync_on_title'):t('r2_sync_off_title');
+  if(label) label.textContent=needsReconnect ? t('r2_sync_reconnect_label') : t('r2_sync_label');
+  item.title=needsReconnect ? t('r2_sync_reconnect_title') : (on?t('r2_sync_on_title'):t('r2_sync_off_title'));
 }
 // Side A UI — opened from the new "Gerät verknüpfen" tools-sheet card, only ever visible on a device
 // that already has a working key (see refreshR2LinkDeviceUI). Shows the QR (via the qrcodejs script
@@ -6647,7 +6681,8 @@ async function pullRemoteChanges(targets){
       toMirror.push({id:rb.id,target,backend});
     }
   }
-  if(!toMirror.length) return;
+  if(!toMirror.length) return 0;
+  let pulled=0;
   await withBusy(t('busy_pulling'), async ()=>{
     for(const {id,target,backend} of toMirror){
       try{
@@ -6658,12 +6693,14 @@ async function pullRemoteChanges(targets){
         // actual merge.
         const freshCards=await IDB_DB.cardsForBoard(id).catch(()=>null);
         if(freshCards) state.syncKnownCardIds.set(id+'|'+target, new Set(freshCards.map(c=>c.id)));
+        pulled++;
       }catch(e){ /* skip — retried next pass */ }
     }
     saveSyncKnownRemote(); saveSyncKnownCardIds();
     if(state.screen==='home') refreshHome();
     else if(state.screen==='trash') refreshTrash();
   });
+  return pulled;
 }
 // Copies ONE board's current board/cards/connectors/images from a specific backend straight into
 // IndexedDB. Deliberately non-recursive — pullRemoteChanges already visits every board a target has
@@ -7970,17 +8007,22 @@ function applyHomeSourceFilter(list){
 // one of the two (e.g. no folder ever connected on this account) keeps showing its badges
 // permanently, which is accurate, not a bug: they disappear the moment you connect the missing
 // location and this specific board actually reaches it too.
+// "fs" (a connected folder) and "r2" (Cloud Sync) — 'r2' was missing here entirely until this fix, a
+// leftover from before R2 replaced Google Drive as the cloud sync backend: this whole badge (like
+// syncAllBoards()/openSyncPopover() just below, which had the exact same gap) only ever checked for a
+// connected folder, so a board synced purely via Cloud Sync silently never got its badge, or got it
+// with the wrong "Lokaler Cache" label via the old syncSourceLabel() — see renderSourceBadges().
 function computeBoardSourceBadges(boardId){
   if(!state.homeSourceIconsEnabled) return [];
   const info=state.boardSources && state.boardSources.get(boardId);
   const present=info ? info.sources : new Set(['idb']);
-  const have=['fs','idb'].filter(src=>present.has(src));
+  const have=['fs','r2','idb'].filter(src=>present.has(src));
   return have.length>=2 ? [] : have;
 }
 function renderSourceBadges(container,boardId){
   if(!container) return;
   const have=computeBoardSourceBadges(boardId);
-  container.innerHTML=have.map(src=>`<span class="src-badge" title="${escapeHtml(syncSourceLabel(src))}">${src==='fs'?iconFolder():'DB'}</span>`).join('');
+  container.innerHTML=have.map(src=>`<span class="src-badge" title="${escapeHtml(src==='idb'?t('sync_source_local'):syncTargetLabel(src))}">${src==='fs'?iconFolder():src==='r2'?iconCloudSync():'DB'}</span>`).join('');
   container.hidden=!have.length;
 }
 // Re-paints just the badges on whatever tiles are already on screen, without going through
@@ -9376,7 +9418,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.14';
+const APP_VERSION='2.4.15';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
@@ -11546,6 +11588,10 @@ function iconCluster(){return `<svg width="14" height="14" viewBox="0 0 24 24" f
 function iconUncluster(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M14 6.5h3.5M17.5 6.5V10M10 17.5H6.5M6.5 17.5V14" stroke-dasharray="2 2"/></svg>`;}
 function iconClusterBadge(){return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 10l4 4"/></svg>`;}
 function iconFolder(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>`;}
+// Used for the R2 Cloud Sync source badge (see computeBoardSourceBadges/renderSourceBadges) — that
+// badge used to just fall through to a bare "DB" text label, a leftover from before R2 replaced
+// Google Drive as the cloud sync backend (see that function's own comment for the full story).
+function iconCloudSync(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/></svg>`;}
 function iconChevronUp(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 15l6-6 6 6"/></svg>`;}
 function iconChevronLeft(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>`;}
 function iconChevronRight(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>`;}
@@ -14809,23 +14855,33 @@ function ensureBlanketCanvasCtx(canvas,card){
 // playback it still respects card.data.onionSkin ("vorherigen Frame transparent anzeigen soll man ein-
 // und ausschalten können" — defaults to on, see buildBlanketCard()'s/newCard()'s onionSkin hydration).
 function redrawBlanketCanvas(canvas,card,opts){
-  migrateBlanketCardToAbsCoords(card); // no-op after the first call — see its own comment
-  const ctx=ensureBlanketCanvasCtx(canvas,card);
-  const cw=card.w, ch=card.h;
-  ctx.clearRect(0,0,cw,ch);
-  if(card.data.stopMotion){
-    const frames=card.data.frames||[];
-    const idx=Math.min(card.data.frameIndex||0, Math.max(0,frames.length-1));
-    const showOnion=!(opts && opts.playing) && card.data.onionSkin!==false;
-    if(showOnion && idx>0 && frames[idx-1]){
-      ctx.save(); ctx.globalAlpha=0.28;
-      (frames[idx-1].strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
-      ctx.restore();
+  // Defensive containment: this runs synchronously from inside renderAllCards() (every Blanket card on
+  // the board gets rebuilt any time ANY card anywhere is added/changed — see buildBlanketCard's own
+  // redraw() call), so an uncaught error in here — a bad migration, a malformed old stroke, anything —
+  // used to abort renderAllCards() entirely partway through, which silently broke completely unrelated
+  // things like adding an image or creating a Carousel (their own addCard()/renderAllCards() call never
+  // got to finish). One drawing's own failure should never be able to take the rest of the app down
+  // with it — worst case here is a blank/stale canvas on this one card, logged to the console, instead
+  // of a dead click on something else entirely.
+  try{
+    migrateBlanketCardToAbsCoords(card); // no-op after the first call — see its own comment
+    const ctx=ensureBlanketCanvasCtx(canvas,card);
+    const cw=card.w, ch=card.h;
+    ctx.clearRect(0,0,cw,ch);
+    if(card.data.stopMotion){
+      const frames=card.data.frames||[];
+      const idx=Math.min(card.data.frameIndex||0, Math.max(0,frames.length-1));
+      const showOnion=!(opts && opts.playing) && card.data.onionSkin!==false;
+      if(showOnion && idx>0 && frames[idx-1]){
+        ctx.save(); ctx.globalAlpha=0.28;
+        (frames[idx-1].strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
+        ctx.restore();
+      }
+      if(frames[idx]) (frames[idx].strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
+    }else{
+      (card.data.strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
     }
-    if(frames[idx]) (frames[idx].strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
-  }else{
-    (card.data.strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
-  }
+  }catch(e){ try{ console.warn('redrawBlanketCanvas failed for card', card&&card.id, e); }catch(e2){} }
 }
 // Called from attachResize() (see its own comment) while a blanket card is actively being dragged
 // bigger/smaller, so the drawing visibly rescales in real time instead of only snapping once at
@@ -18590,6 +18646,11 @@ function openToolsSheet(){
   if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
   const syncAllItem=document.getElementById('toolsSyncAllItem');
   if(syncAllItem) syncAllItem.disabled = !(fsState.root || isR2SyncEnabled());
+  // Picks up a "needs reconnect" state (see r2NeedsReconnect()) the moment it happens to be true —
+  // pendingReconnect can flip on in the background (a failed silent token refresh during an ordinary
+  // sync pass), so this is the one reliable place to catch it and show it, rather than only ever
+  // refreshing right after the user's own last toggle/link action.
+  refreshR2SyncToggleUI();
   positionToolsSheetForDesktop();
   toolsSheet.hidden=false; toolsSheetBackdrop.hidden=false;
   // Force layout before adding .show so the transform transition actually plays from its start state.
@@ -18634,6 +18695,7 @@ if(toolsBtn){
   });
   document.getElementById('toolsR2SyncItem').addEventListener('click',()=>{
     closeToolsSheet();
+    if(r2NeedsReconnect()){ r2Reconnect(); return; } // see r2NeedsReconnect()'s own comment
     setR2SyncEnabled(!isR2SyncEnabled());
   });
   document.getElementById('toolsR2LinkItem').addEventListener('click',()=>{
@@ -18761,7 +18823,11 @@ async function syncBoardToTargets(boardId,targets){
   }
   return true;
 }
-function syncSourceLabel(k){ return k==='fs' ? t('sync_source_folder') : t('sync_source_local'); }
+// idb (never synced anywhere) keeps its own "local cache" wording; fs/r2 both already have proper
+// labels via syncTargetLabel() (see syncTargets() above) — this used to duplicate that with its own,
+// incomplete 'fs'-or-else-"local cache" logic, which is exactly why an R2-synced board's badge/toast
+// used to misleadingly say "Lokaler Cache" instead of "Cloud Sync" (see renderSourceBadges() too).
+function boardSourceLabel(k){ return k==='idb' ? t('sync_source_local') : syncTargetLabel(k); }
 let syncPopoverEl=null;
 function ensureSyncPopover(){
   if(syncPopoverEl) return syncPopoverEl;
@@ -18777,12 +18843,17 @@ function hideSyncPopover(){ if(syncPopoverEl) syncPopoverEl.classList.remove('sh
 // one target exists and no popover is needed at all — one click, done). boardId/boardName identify
 // the board; onDone (optional) fires after a successful sync, e.g. to refresh a tile's UI.
 async function openSyncPopover(clientX,clientY,boardId,boardName,onDone){
-  const targets=[];
-  if(fsState.root) targets.push('fs');
+  // Used to only ever check fsState.root here — a leftover from before R2 Cloud Sync replaced Google
+  // Drive as the cloud sync backend, which meant this whole per-board "wohin synchronisieren" popover
+  // (and the "Alle synchronisieren" button below) silently did NOTHING for anyone using Cloud Sync
+  // without also having a folder connected: one click, an instant "kein Ordner verbunden" toast, done.
+  // syncTargets() is the same helper the automatic background engine already uses, so this now offers
+  // exactly whatever's actually connected, folder and/or Cloud Sync alike.
+  const targets=syncTargets();
   if(!targets.length){ showToast(t('toast_sync_no_targets')); return; }
   if(targets.length===1){
     const ok=await syncBoardToTargets(boardId,targets);
-    if(ok){ showToast(t('toast_sync_success',{name:boardName,target:syncSourceLabel(targets[0])})); if(onDone) onDone(); }
+    if(ok){ showToast(t('toast_sync_success',{name:boardName,target:boardSourceLabel(targets[0])})); if(onDone) onDone(); }
     return;
   }
   const info=state.boardSources && state.boardSources.get(boardId);
@@ -18790,9 +18861,9 @@ async function openSyncPopover(clientX,clientY,boardId,boardName,onDone){
   const bar=ensureSyncPopover();
   bar.innerHTML=`
     <div class="sync-popover-title">${escapeHtml(t('sync_popover_title',{name:boardName}))}</div>
-    <div class="sync-popover-sub">${escapeHtml(t('sync_popover_sub',{sources:already.map(syncSourceLabel).join(', ')}))}</div>
+    <div class="sync-popover-sub">${escapeHtml(t('sync_popover_sub',{sources:already.map(boardSourceLabel).join(', ')}))}</div>
     <div class="sync-popover-actions">
-      ${targets.map(tk=>`<button type="button" data-target="${tk}">${syncSourceLabel(tk)}</button>`).join('')}
+      ${targets.map(tk=>`<button type="button" data-target="${tk}">${boardSourceLabel(tk)}</button>`).join('')}
       <button type="button" data-target="__all" class="sync-popover-all">${t('sync_target_all')}</button>
     </div>
   `;
@@ -18803,7 +18874,7 @@ async function openSyncPopover(clientX,clientY,boardId,boardName,onDone){
       hideSyncPopover();
       const ok=await syncBoardToTargets(boardId,picked);
       if(ok){
-        const label=val==='__all' ? t('sync_target_all') : syncSourceLabel(val);
+        const label=val==='__all' ? t('sync_target_all') : boardSourceLabel(val);
         showToast(t('toast_sync_success',{name:boardName,target:label}));
         if(onDone) onDone();
       }
@@ -18828,19 +18899,32 @@ window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') hideSyncPopover();
 // "Alle synchronisieren" (Werkzeuge-Menü) — syncs every board the Home merge currently knows about to
 // every connected source that doesn't already have it as its best/most-current copy. One click,
 // no per-board picker — matches "durch einen Knopf ... gesamt werden alle Dateien gesynced".
+// "es sollte am besten einmal ein checkup geben was existiert schon und dann alles ziehen wenn noch
+// nix da ist" — this used to be push-only (and, per its own now-fixed bug above, fs-only), so it could
+// never actually be the "checkup" button for a board that exists on a Cloud-Sync-linked account but
+// was never opened on THIS device yet — there was nothing local to push in the first place, and
+// nothing here ever asked the target what IT has that this device doesn't. Runs the exact same
+// push-then-pull the automatic background engine already does on its own steady cadence (see
+// pushDirtyBoards/pullRemoteChanges above), just right now on demand instead of waiting for it.
 async function syncAllBoards(){
-  const targets=[];
-  if(fsState.root) targets.push('fs');
+  const targets=syncTargets();
   if(!targets.length){ showToast(t('toast_sync_no_targets')); return; }
+  await pushDirtyBoards(targets); // any pending local edit not yet pushed — already wraps itself in withBusy()
   const all=await mergedAllBoards();
   let count=0;
   for(const b of all){
     const info=state.boardSources && state.boardSources.get(b.id);
     const need=targets.filter(tk=>!(info && info.sources.has(tk)));
     if(!need.length) continue;
-    const ok=await syncBoardToTargets(b.id,need);
+    const ok=await syncBoardToTargets(b.id,need); // a clean board simply missing on a target — pushDirtyBoards above only looks at dirty ones
     if(ok) count++;
   }
+  // The actual "checkup" half: ask every target what IT has that this device doesn't (or only has an
+  // older copy of) and mirror that down — a board that exists on Cloud Sync but was never opened here
+  // wouldn't show up in mergedAllBoards()'s push loop above at all (nothing local to push for a board
+  // this device doesn't even know about yet), so without this the button could never actually recover
+  // a board missing purely on THIS device.
+  count += await pullRemoteChanges(targets)||0;
   showToast(count ? t('toast_sync_all_success',{n:count}) : t('toast_sync_all_nothing'));
   if(state.screen==='home') await refreshHome();
 }
