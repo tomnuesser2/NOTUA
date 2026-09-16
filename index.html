@@ -595,9 +595,9 @@ try{
     background:var(--surface); color:var(--accent);
   }
   .tools-sheet-card-danger .tools-sheet-card-icon{color:var(--danger);}
-  /* On/off state for the Dock-Magnify toggle card (#toolsDockMagnifyItem) — the only tools-sheet-card
-     that's a persistent switch rather than a one-shot action, so it gets a lasting "on" look instead
-     of just hover feedback. */
+  /* On/off state for the public Dynamic UI/Static UI toggle card (#toolsUiDynamicItem) — the only
+     tools-sheet-card that's a persistent switch rather than a one-shot action, so it gets a lasting
+     "on" look instead of just hover feedback. */
   .tools-sheet-card.active{background:var(--accent-soft); color:var(--accent);}
   .tools-sheet-card.active .tools-sheet-card-icon{color:var(--accent);}
   @media (min-width:641px){
@@ -2179,8 +2179,9 @@ try{
   .dock-btn:active{transform:scale(.92);}
   .dock-btn.active{background:var(--accent); color:var(--accent-ink);}
   .dock-sep{width:1px; height:30px; background:var(--border); margin:0 4px; flex:none;}
-  /* Dock-magnify (beta, toggled from the Werkzeuge sheet on the board overview — see #toolsDockMagnifyItem):
-     the spring loop below grows each .dock-btn's real width (and its icon's real size) every frame,
+  /* Dock-magnify (beta, unlocked via 'functiondock' — plays automatically whenever the public Dynamic
+     UI switch is on, see refreshDockMagnify()): the spring loop below grows each .dock-btn's real
+     width (and its icon's real size) every frame,
      exactly like the previews/dock-concept.html demo this is modeled on — no CSS transition fights
      it here on purpose. align-items:flex-end (instead of the dock's normal centered row) is what
      makes the icons visibly grow UP from the toolbar's bottom edge, mac-dock style, rather than
@@ -2608,11 +2609,10 @@ try{
   /* ---------- ANIMATIONS CONTROL PANEL (beta, 'functioncontrol') ---------- */
   .anim-control-list{display:flex; flex-direction:column; gap:10px;}
   .anim-control-row{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:0.86rem; color:var(--ink);}
-  /* "der [Dynamisch-Schalter] soll im selben Menü dann ganz oben sein" — the master switch used to only
-     live on its own separate, separately-unlocked tools-sheet card (#toolsDockMagnifyItem), so someone
-     who'd only ever unlocked 'functioncontrol' had no way to find it at all ("ist der irgendwie weg").
-     Now it's also the very first row here, visually set apart with its own divider + bold label since
-     it governs every row below it. */
+  /* "der [Dynamisch-Schalter] soll im selben Menü dann ganz oben sein" — the master switch (now the
+     public "Dynamic UI"/"Static UI" toggle, #toolsUiDynamicItem, no code needed) is also the very
+     first row here, visually set apart with its own divider + bold label since it governs every row
+     below it — so someone who's only ever unlocked 'functioncontrol' still finds it right away. */
   .anim-control-row.master{font-weight:700; padding-bottom:10px; margin-bottom:2px; border-bottom:1px solid var(--border);}
   .insp-action-btn{
     width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2);
@@ -3050,24 +3050,42 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M8 20v-6a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6" stroke-dasharray="1.6 1.8"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
+      <!-- Cloudflare R2 cloud sync ("Syncsystem über die 10gb free storage von Cloudflare") — public
+           toggle, but stays hidden entirely until Tom deploys notua-r2-worker.js and fills in
+           R2_SYNC_WORKER_URL (see R2_SYNC_SUPPORTED in the JS) — same inert-until-configured pattern
+           DRIVE_SUPPORTED already uses for the Drive button. Piggybacks on the same Google sign-in
+           already used for Drive (see r2Fetch/ensureAccessToken) — no separate connect flow, and no
+           API keys anywhere in this file; everything goes through the Worker. -->
+      <button type="button" class="tools-sheet-card" id="toolsR2SyncItem" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <!-- "die Animationen sollen im normalen Theme ohne functioncontrol Code an sein, nicht aus — nur
+           steuern soll man sie mit dem Code können, es soll Static UI/Dynamic UI heißen, ein Knopf der
+           beim Drücken umschaltet, in den Einstellungen im Boardübersicht" — PUBLIC, no secret code, no
+           `hidden`/`data-beta` unlike the two cards below. Default ON (isUiDynamicEnabled()) — see
+           refreshUiDynamicToggleUI() for how its own label text switches between the two names on every
+           click, rather than showing a fixed label next to an on/off switch like the cards elsewhere in
+           this sheet. -->
+      <button type="button" class="tools-sheet-card" id="toolsUiDynamicItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16c2-7 5-11 8-11s6 4 8 11" stroke-linecap="round"/><circle cx="4" cy="16" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
       <button type="button" class="tools-sheet-card tools-sheet-card-danger" id="toolsTrashItem">
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
-      <!-- Hidden-code-gated (password 'functiondock', see showSecretPasswordModal()/trySubmit()) —
-           unlocking just reveals this toggle here in the Werkzeuge sheet (Boardübersicht), not a
-           permanent extra button inside every board's own tool dock. Toggling it on/off drives the
-           real macOS-dock-style magnify-on-hover effect on the tool dock INSIDE a board (see the
-           "DOCK MAGNIFY (beta)" JS section) — it's a setting you flip once here, not a tool you'd
-           reach for while actually working on a board. -->
-      <button type="button" class="tools-sheet-card" id="toolsDockMagnifyItem" data-beta="dockmagnify" hidden>
-        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="15.5" r="2" stroke-width="1.6"/><circle cx="12" cy="12.5" r="3.4"/><circle cx="19.5" cy="15.5" r="2" stroke-width="1.6"/><path d="M2.5 19.5h19" stroke-width="1.4"/></svg></span>
-        <span class="tools-sheet-card-label"></span>
-      </button>
+      <!-- "dann kann der Dynamisch Button weg wenn es static und dynamic ui gibt" — the old separate
+           manual on/off toggle card for the dock-magnify hover-zoom effect is gone; unlocking
+           'functiondock' now just makes the effect play automatically whenever the public "Dynamic UI"
+           switch above is on, same as every other animation group — see isDockMagnifyEnabled() (now
+           simply "is this beta feature unlocked") and refreshDockMagnify() in the JS. Nothing left to
+           show here, so no button/card at all for this beta feature anymore. -->
       <!-- Hidden-code-gated (password 'functioncontrol', see showSecretPasswordModal()/trySubmit()) —
            unlocking reveals this card, which opens showAnimControlModal(): a panel listing every new
            animation group added this round individually, each with its own on/off switch (still gated
-           overall by the "Dynamisch" master switch above — see applyDynamicAnimSettings()). -->
+           overall by the PUBLIC "Dynamic UI"/"Static UI" master switch — #toolsUiDynamicItem above,
+           unrelated to the beta-only Dock-Magnify card right above it — see applyDynamicAnimSettings()). -->
       <button type="button" class="tools-sheet-card" id="toolsAnimControlItem" data-beta="control" hidden>
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="10" cy="18" r="2" fill="currentColor" stroke="none"/></svg></span>
         <span class="tools-sheet-card-label"></span>
@@ -3863,7 +3881,7 @@ const I18N={
   wowpvp_copy_talents_unavailable:{de:'Der Talentbuild-Code ist von drustvar.com für diesen Charakter (noch) nicht abrufbar — daran arbeite ich noch.',en:'The talent build code isn’t available from drustvar.com for this character (yet) — still working on that.'},
   beta_strava_unlocked_toast:{de:'Strava-Widget freigeschaltet — zu finden unter Widgets',en:'Strava widget unlocked — find it under Widgets'},
   beta_wow_unlocked_toast:{de:'WoW-PvP-Check freigeschaltet',en:'WoW PvP check unlocked'},
-  beta_dockmagnify_unlocked_toast:{de:'Dynamisches Werkzeugmenü freigeschaltet — Schalter im Werkzeuge-Menü der Boardübersicht',en:'Dynamic dock unlocked — switch in the overview\'s Tools menu'},
+  beta_dockmagnify_unlocked_toast:{de:'Dynamisches Werkzeugmenü freigeschaltet — aktiv, sobald Dynamic UI (Einstellungen) an ist',en:'Dynamic dock unlocked — active whenever Dynamic UI (Settings) is on'},
   beta_mobiledock_unlocked_toast:{de:'Kompaktes Mobil-Menü freigeschaltet — Schalter im Werkzeuge-Menü der Boardübersicht',en:'Compact mobile menu unlocked — switch in the overview\'s Tools menu'},
   beta_control_unlocked_toast:{de:'Einzelsteuerung für Animationen freigeschaltet — zu finden im Werkzeuge-Menü der Boardübersicht',en:'Per-animation controls unlocked — find them in the overview\'s Tools menu'},
   add_column_title:{de:'Card hinzufügen',en:'Add card'},
@@ -3975,12 +3993,21 @@ const I18N={
   dock_customize_btn_title:{de:'Werkzeugleiste anpassen',en:'Customize toolbar'},
   dock_customize_dock_label:{de:'Anpassen',en:'Customize'},
   dock_customize_title:{de:'Werkzeugleiste anpassen',en:'Customize toolbar'},
-  dock_magnify_label:{de:'Dynamisch',en:'Dynamic'},
-  dock_magnify_on_toast:{de:'Dynamisches Werkzeugmenü aktiviert',en:'Dynamic dock turned on'},
-  dock_magnify_off_toast:{de:'Dynamisches Werkzeugmenü deaktiviert',en:'Dynamic dock turned off'},
+  // "die Animationen sollen im normalen Theme ohne functioncontrol Code an sein, nicht aus — es soll
+  // Static UI und Dynamic UI heißen, ein Knopf der beim Drücken umschaltet, in den Einstellungen im
+  // Boardübersicht" — a PUBLIC toggle (no secret code needed, default ON) in the Werkzeuge sheet on the
+  // board overview. See isUiDynamicEnabled()/setUiDynamicEnabled()/refreshUiDynamicToggleUI(). Tom's own
+  // wording asked for exactly these two names, so they stay as given rather than being translated.
+  ui_dynamic_label:{de:'Dynamic UI',en:'Dynamic UI'},
+  ui_static_label:{de:'Static UI',en:'Static UI'},
+  ui_dynamic_title:{de:'Oberfläche ist animiert — antippen für Static UI (ohne Animationen)',en:'Interface is animated — tap for Static UI (no animations)'},
+  ui_static_title:{de:'Oberfläche ist statisch — antippen für Dynamic UI (mit Animationen)',en:'Interface is static — tap for Dynamic UI (with animations)'},
+  ui_dynamic_on_toast:{de:'Dynamic UI aktiviert',en:'Dynamic UI turned on'},
+  ui_dynamic_off_toast:{de:'Static UI aktiviert',en:'Static UI turned on'},
+  ui_dynamic_master_label:{de:'Dynamic UI',en:'Dynamic UI'},
   anim_control_label:{de:'Animationen',en:'Animations'},
   anim_control_title:{de:'Animationen einzeln steuern',en:'Control animations individually'},
-  anim_control_intro:{de:'Der „Dynamisch“-Schalter oben ist der Hauptschalter für alle neuen Animationen — ist er aus, bleibt auch der Rest hier aus. Bei eingeschaltetem Hauptschalter kann jede einzeln abgestellt werden.',en:'The “Dynamic” switch above is the master switch for all the new animations — when it’s off, everything else here stays off too. With it on, each one can be switched off individually.'},
+  anim_control_intro:{de:'Der „Dynamic UI“-Schalter oben ist der Hauptschalter für alle Animationen — ist er aus (Static UI), bleibt auch der Rest hier aus. Bei eingeschaltetem Hauptschalter kann jede Animation einzeln abgestellt werden.',en:'The “Dynamic UI” switch above is the master switch for all animations — when it’s off (Static UI), everything else here stays off too. With it on, each animation can be switched off individually.'},
   anim_group_boardzoom:{de:'Board-Zoom-Übergänge',en:'Board zoom transitions'},
   anim_group_carddrag:{de:'Karten-Effekte',en:'Card effects'},
   anim_group_editfit:{de:'Auto-Einpassen beim Bearbeiten',en:'Auto-fit while editing'},
@@ -4034,6 +4061,14 @@ const I18N={
   toast_sync_conflict_resolved:{de:'Konflikt gelöst',en:'Conflict resolved'},
   sync_target_fs:{de:'lokaler Ordner',en:'local folder'},
   sync_target_drive:{de:'Google Drive',en:'Google Drive'},
+  sync_target_r2:{de:'Cloud Sync',en:'cloud sync'},
+  r2_sync_label:{de:'Cloud Sync',en:'Cloud sync'},
+  r2_sync_on_title:{de:'Cloud Sync ist an — Boards werden automatisch über deinen Cloudflare-Speicher synchronisiert',en:'Cloud sync is on — boards sync automatically through your Cloudflare storage'},
+  r2_sync_off_title:{de:'Cloud Sync ist aus — antippen zum Aktivieren',en:'Cloud sync is off — tap to enable'},
+  r2_sync_on_toast:{de:'Cloud Sync aktiviert',en:'Cloud sync turned on'},
+  r2_sync_off_toast:{de:'Cloud Sync deaktiviert',en:'Cloud sync turned off'},
+  r2_signin_failed_toast:{de:'Google-Anmeldung fehlgeschlagen — Cloud Sync konnte nicht aktiviert werden',en:'Google sign-in failed — couldn\'t enable cloud sync'},
+  r2_quota_toast:{de:'Cloud-Speicher voll (100MB erreicht) — weitere Daten bleiben lokal gespeichert',en:'Cloud storage full (100MB reached) — further data stays stored locally'},
   recently_restored_badge:{de:'Kürzlich wiederhergestellt',en:'Recently restored'},
   insp_multi_count:{de:'{n} Elemente ausgewählt',en:'{n} items selected'},
   insp_color_label:{de:'Farbe',en:'Color'},
@@ -4213,6 +4248,13 @@ const I18N={
   empty_home_hint:{de:'Noch keine Boards. Leg dein erstes Board an und beginne mit der Planung deines Videoprojekts.',en:'No boards yet. Create your first board and start planning your video project.'},
   toast_folder_unsupported:{de:'Dieser Browser unterstützt keine Ordner-Anbindung.',en:'This browser doesn’t support connecting a folder.'},
   toast_folder_reconnect_needed:{de:'Bitte bestätige den Zugriff auf deinen Ordner (roter Button oben), um Boards zu erstellen oder zu öffnen.',en:'Please confirm access to your folder (red button up top) to create or open boards.'},
+  // "trotz Ordner-Auswahl synct er die Boards nicht in den lokalen Ordner" — see activateFolder()'s and
+  // fsReportWriteFailure()'s own comments: the folder button used to stay green/connected forever even
+  // when the browser had actually only granted READ access (or writes were failing for some other
+  // reason), with zero indication anywhere that nothing was really landing on disk. These two toasts
+  // give that failure an actual voice.
+  toast_folder_write_denied:{de:'Kein Schreibzugriff auf den gewählten Ordner erhalten – Boards werden vorerst nur lokal in diesem Browser gespeichert. Bitte Ordner erneut wählen und den Schreibzugriff bestätigen.',en:'Didn\'t get write access to the chosen folder – boards will only be saved locally in this browser for now. Please choose the folder again and confirm write access.'},
+  toast_folder_write_failed:{de:'Boards können gerade nicht in den verbundenen Ordner geschrieben werden (z. B. weil der Schreibzugriff nur „Lesen“ erlaubt). Bitte Ordner-Button oben antippen und den Ordner erneut verbinden.',en:'Boards can\'t currently be written to the connected folder (e.g. because access is read-only). Please tap the folder button above and reconnect the folder.'},
   folder_unavailable_label:{de:'Ordner nicht verfügbar',en:'Folder unavailable'},
   folder_unavailable_title:{de:'Dieser Browser unterstützt keine Ordner-Anbindung.',en:'This browser doesn’t support connecting a folder.'},
   folder_connected_title:{de:'Verbunden mit „{name}“ – klicken für Optionen',en:'Connected to "{name}" – click for options'},
@@ -4581,7 +4623,6 @@ function applyI18n(){
     ['.dock-btn[data-add="board"]','title',t('add_boardlink_title')],['.dock-btn[data-add="board"] span','text',t('add_boardlink_label_dock')],
     ['#connectBtn','title',t('connect_title')],['#connectBtn span','text',t('connect_label')],
     ['#dockCustomizeBtn','title',t('dock_customize_btn_title')],['#dockCustomizeLabel','text',t('dock_customize_dock_label')],
-    ['#toolsDockMagnifyItem .tools-sheet-card-label','text',t('dock_magnify_label')],
     ['#toolsAnimControlItem .tools-sheet-card-label','text',t('anim_control_label')],
     ['#familyBtn','title',t('family_btn_title')],['#familyPanelTitle','text',t('family_panel_title')],
     ['#familyPanelHint','text',t('family_panel_hint')],['#familyCarouselBtnLabel','text',t('family_carousel_btn')],
@@ -4750,12 +4791,24 @@ const fsState={
    folder moves, and a flat one-level directory scan would miss every sub-board entirely). Existing
    users who already have the old flat layout on disk get moved over automatically the first time
    their folder reconnects after this update — see fsMigrateFlatToNested(). */
+// "trotz Ordner-Auswahl synct er die Boards nicht in den lokalen Ordner" — this is the very FIRST
+// write NOTUA ever makes into a newly connected folder (creating the notua-boards/ subfolder itself),
+// and every other FS_DB write depends on it succeeding — so it's the single most useful place to catch
+// "connected but can't actually write" early. It used to swallow any failure into a plain `null`
+// (see fsReportWriteFailure()'s own comment for why that failure happens and how common it is), which
+// left the folder button showing green/connected forever with literally nothing ever landing on disk.
+let fsWriteFailureShown=false;
+function fsReportWriteFailure(e){
+  if(fsWriteFailureShown) return; // one toast per connected session is enough — not one per failed write
+  fsWriteFailureShown=true;
+  try{ showToast(t('toast_folder_write_failed')); }catch(err){}
+}
 function fsGetBoardsRootDir(){
   if(!fsState.root) return Promise.resolve(null);
   if(fsState.boardsRoot) return Promise.resolve(fsState.boardsRoot);
   return fsState.root.getDirectoryHandle('notua-boards',{create:true})
     .then(h=>{ fsState.boardsRoot=h; return h; })
-    .catch(()=>null);
+    .catch(e=>{ fsReportWriteFailure(e); return null; });
 }
 // The Papierkorb's own folder, now nested under notua-boards/ rather than sitting directly in the
 // connected root — named so it's recognizable if the user ever looks at the folder directly on disk,
@@ -4853,11 +4906,19 @@ function folderNameFor(id,name){ return slugify(name)+'-'+id.slice(0,6); }
 // fsReorganizeByProjects()/driveReorganizeByProjects() for what actually sorts boards into these.
 function fsGetOpenDir(){ return fsGetBoardsRootDir().then(root=>root && root.getDirectoryHandle('open',{create:true})).catch(()=>null); }
 function fsGetProjectsDir(){ return fsGetBoardsRootDir().then(root=>root && root.getDirectoryHandle('projects',{create:true})).catch(()=>null); }
-function extForBlob(blob){
-  const map={'image/png':'.png','image/jpeg':'.jpg','image/gif':'.gif','image/webp':'.webp','image/svg+xml':'.svg','image/bmp':'.bmp',
-    'application/pdf':'.pdf','text/plain':'.txt','application/msword':'.doc',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'.docx'};
-  return (blob && map[blob.type]) || '.png';
+const EXT_MIME_MAP={'image/png':'.png','image/jpeg':'.jpg','image/gif':'.gif','image/webp':'.webp','image/svg+xml':'.svg','image/bmp':'.bmp',
+  'application/pdf':'.pdf','text/plain':'.txt','application/msword':'.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'.docx'};
+function extForBlob(blob){ return (blob && EXT_MIME_MAP[blob.type]) || '.png'; }
+// The reverse of the above — R2_DB.getImage needs this because an R2-stored image is now encrypted
+// (see the ENCRYPTION comment block near r2EncryptBytes): the server never sees or stores the real
+// mime type at all, only the file's extension (tracked client-side, r2State.imageExt), so the blob's
+// correct type has to be looked back up from that extension after decrypting instead of coming from
+// the response itself the way FS_DB/DRIVE_DB's plain (unencrypted) file reads can.
+let EXT_MIME_REVERSE=null;
+function mimeForExt(ext){
+  if(!EXT_MIME_REVERSE){ EXT_MIME_REVERSE={}; for(const k in EXT_MIME_MAP) EXT_MIME_REVERSE[EXT_MIME_MAP[k]]=k; }
+  return EXT_MIME_REVERSE[ext] || 'application/octet-stream';
 }
 async function findImageExt(imagesDir,id){
   for await (const name of imagesDir.keys()){
@@ -4917,7 +4978,11 @@ function fsWriteBoardSoon(boardId){
     fsState.writers.set(boardId, debounce(async ()=>{
       const dir=fsState.dirs.get(boardId), data=fsState.cache.get(boardId);
       if(!dir||!data) return;
-      try{ await fsWriteFileJSON(dir,'board.json',data); }catch(e){}
+      // The actual per-board write — board.json itself, i.e. every card/stroke/note on it — used to
+      // swallow a failure here completely silently too (see fsReportWriteFailure()'s own comment on why
+      // this happens and how it read to Tom: a green "connected" folder button with nothing ever really
+      // landing on disk). This is the last of the three real write chokepoints to get that same toast.
+      try{ await fsWriteFileJSON(dir,'board.json',data); }catch(e){ fsReportWriteFailure(e); }
     },300));
   }
   fsState.writers.get(boardId)();
@@ -5062,7 +5127,12 @@ const FS_DB={
       const openDir=b.parentBoardId ? null : await fsGetOpenDir();
       const container=(b.parentBoardId && fsState.dirs.get(b.parentBoardId)) || openDir || boardsRoot;
       const folderName=folderNameFor(b.id,b.name);
-      dir=await container.getDirectoryHandle(folderName,{create:true});
+      // Unlike fsGetBoardsRootDir() above (the very first write), this one used to have no try/catch of
+      // its own at all — a failure here (same read-only-permission cause) just threw all the way out to
+      // pushDirtyBoards()'s own outer try/catch, which silently leaves the board dirty for a forever-
+      // retry with nothing ever shown to Tom. fsReportWriteFailure() gives this the same one-time toast.
+      try{ dir=await container.getDirectoryHandle(folderName,{create:true}); }
+      catch(e){ fsReportWriteFailure(e); return; }
       fsState.dirs.set(b.id,dir);
       fsState.parentDirs.set(b.id,container);
       fsState.cache.set(b.id,{meta:{...b}, cards:[], connectors:[]});
@@ -5443,6 +5513,19 @@ const GOOGLE_CLIENT_ID = '928872575646-h8244hvb98n1l39tabgskhtjsak6aovh.apps.goo
 const GOOGLE_DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
 const DRIVE_SUPPORTED = !!GOOGLE_CLIENT_ID;
 const DRIVE_API='https://www.googleapis.com/drive/v3/files';
+// Cloudflare R2 cloud sync — Tom's own 10GB-free-tier bucket ("notua-user-assets"), reached only
+// through a small Cloudflare Worker (delivered separately as notua-r2-worker.js) that holds no R2 API
+// key anywhere: the Worker talks to R2 through Cloudflare's native binding, not the S3-compatible API,
+// so there is nothing resembling a credential anywhere in THIS file for anyone to read out of the page
+// source — that's Tom's "es soll niemand über den Code die API fetchen können" requirement satisfied
+// structurally, not just by convention. Auth reuses the exact same Google sign-in/access token Drive
+// already uses (see r2Fetch below) — the Worker verifies that token against Google itself on every
+// request and derives a stable per-user id from it, so there's no separate NOTUA login to build.
+// Left empty until Tom deploys the Worker and pastes its https://...workers.dev URL in here — until
+// then the whole feature stays completely inert (R2_SYNC_SUPPORTED below), same pattern as
+// DRIVE_SUPPORTED just above: nothing shows up broken, it simply doesn't show up yet.
+const R2_SYNC_WORKER_URL = '';
+const R2_SYNC_SUPPORTED = !!R2_SYNC_WORKER_URL;
 const DRIVE_UPLOAD_API='https://www.googleapis.com/upload/drive/v3/files';
 
 const driveState={
@@ -6129,6 +6212,51 @@ async function downscaleImageForDrive(blob){
   }catch(e){ return blob; }
 }
 
+/* ---------- UNIVERSAL IMAGE COMPRESSION ("sorg dafür das Bilder höchstens 150kb groß sind") ----------
+   Tom's instruction alongside the new R2 cloud sync: every image that enters NOTUA — however it gets
+   in (image card, carousel, "Datei einfügen", a column's cover image, a board's own icon) — should be
+   capped at 150KB from the very start, everywhere it ends up stored (IndexedDB, a connected folder,
+   Drive, and now R2 alike), not just downscaled later for one specific backend the way
+   downscaleImageForDrive() above already does for Drive alone. Wired in at the one real choke point
+   every image write already goes through — DB.putImage, see the DB dispatcher below — so every
+   existing call site (there are close to a dozen) gets this for free, no call site touched.
+   WebP instead of JPEG: usually 25-35% smaller than JPEG at the same visual quality, which matters a
+   lot when 150KB is the WHOLE budget, not just "smaller is nicer". Resize first (longest side down to
+   IMAGE_MAX_DIM), then a quality ladder; if a very busy/detailed photo still doesn't fit even at the
+   lowest quality step, shrink the dimensions further and run the whole ladder again — a few rounds at
+   most, never long enough to freeze the UI on a huge phone photo. */
+const IMAGE_MAX_DIM=1600;
+const IMAGE_MAX_BYTES=150*1024;
+const IMAGE_WEBP_QUALITIES=[0.82,0.7,0.55,0.42,0.3];
+async function compressImageForStorage(blob){
+  if(!blob || !blob.type || !blob.type.startsWith('image/')) return blob; // not a raster image — nothing to compress (e.g. a "Datei einfügen" PDF/doc)
+  if(blob.type==='image/svg+xml' || blob.type==='image/gif') return blob; // vector (canvas would rasterize it) / possibly animated (canvas would flatten it) — leave both exactly as uploaded
+  if(blob.size<=IMAGE_MAX_BYTES) return blob; // already small enough
+  try{
+    const bitmap=await createImageBitmap(blob);
+    let{width,height}=bitmap;
+    let best=null; // smallest blob produced so far across every attempt, regardless of whether it hit the cap
+    for(let attempt=0; attempt<4; attempt++){
+      const longest=Math.max(width,height);
+      if(longest>IMAGE_MAX_DIM){ const scale=IMAGE_MAX_DIM/longest; width=Math.round(width*scale); height=Math.round(height*scale); }
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,width); canvas.height=Math.max(1,height);
+      canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+      let hit=null;
+      for(const q of IMAGE_WEBP_QUALITIES){
+        const attemptBlob=await new Promise(res=>canvas.toBlob(res,'image/webp',q));
+        if(!attemptBlob) continue;
+        if(!best || attemptBlob.size<best.size) best=attemptBlob;
+        if(attemptBlob.size<=IMAGE_MAX_BYTES){ hit=attemptBlob; break; }
+      }
+      if(hit){ best=hit; break; }
+      width=Math.round(width*0.75); height=Math.round(height*0.75); // still over budget — shrink further and try the whole quality ladder again
+    }
+    if(bitmap.close) bitmap.close();
+    return (best && best.size<blob.size) ? best : blob; // only ever use the compressed version if it actually came out smaller
+  }catch(e){ return blob; } // canvas/WebP encoding unsupported or failed for some reason — never lose the image over this, ship the original instead
+}
+
 // Sweeps a Drive account for board folders still sitting directly in the NOTUA root (flat) instead of
 // nested under notua-boards/ — the layout every board folder used to have before nesting existed.
 // Mirrors fsMigrateFlatToNested()'s logic, just using real Drive moves (driveMoveFile) instead of
@@ -6320,6 +6448,344 @@ async function driveRelocateBoardForProject(boardId){
 }
 
 /* ============================================================
+   CLOUDFLARE R2 CLOUD SYNC — Tom's fast replacement/supplement for the slow Google Drive sync above.
+   Same DB.* backend shape as FS_DB/DRIVE_DB (so it slots straight into backendFor()/syncTargets() and
+   every bit of the sync engine below with zero special-casing), but much simpler than either of them
+   internally: R2 is a flat key-value object store, not a real filesystem, so there's no folder-move
+   dance for rename/trash/restore the way FS_DB/DRIVE_DB need — a board is just one JSON object
+   (its meta+cards+connectors together, mirroring FS_DB's own board.json idea) plus its images as their
+   own individually-keyed blobs, all namespaced under this user's own "folder" (users/<uid>/...) by the
+   Worker itself — the client here never even sees or chooses that prefix.
+
+   Auth: r2Fetch() below reuses the exact same Google OAuth access token Drive already obtains
+   (ensureAccessToken()) — R2 sync "just works" the moment Tom is signed in with Google, no separate
+   login. The Worker verifies that token against Google on every request and derives the per-user
+   namespace from it, so nothing here needs its own session/identity handling.
+
+   Quota + compression: the 100MB-per-user limit is enforced server-side, in the Worker, on every write
+   (see notua-r2-worker.js) — never trust a client-side number for something a client could just lie
+   about. A write that gets rejected for being over quota shows one toast (r2ReportQuotaExceeded) and
+   is otherwise swallowed exactly like a failed FS_DB/DRIVE_DB write already is — the rest of a board's
+   sync still goes through. Every image is already squeezed to <=150KB before it ever gets here (see
+   compressImageForStorage() near downscaleImageForDrive above), so ~640 images comfortably fit the
+   100MB budget even before the Worker's own check.
+   ============================================================ */
+const r2State={
+  cache:new Map(),        // boardId -> {meta,cards,connectors}, mirrors fsState.cache/driveState.cache
+  writers:new Map(),      // boardId -> debounced flush fn
+  cardOwner:new Map(), connOwner:new Map(), imageOwner:new Map(), imageExt:new Map(),
+  boardIds:null, boardIdsAt:0, // short-lived cache of this user's board ids (see r2ListBoardIds)
+  offline:false,
+  quotaWarned:false,       // one toast per connected session, not one per rejected write — same idea as fsWriteFailureShown
+  encKey:null,             // this user's AES-GCM CryptoKey for this session, fetched once from the Worker (see r2GetKey) and kept in memory only — never written to localStorage
+  encKeyPromise:null,      // in-flight /key fetch, so two near-simultaneous callers (e.g. r2BootIfEnabled racing a sync tick) share one request instead of firing two
+};
+// The one chokepoint every R2 request goes through — mirrors driveFetch() property-for-property
+// (same silent-refresh-then-retry-once on a 401, same offline flag for a genuine network failure),
+// just pointed at Tom's own Worker instead of Google's API, and with no fallback token source since R2
+// sync has no other way to authenticate.
+async function r2Fetch(path,opts){
+  opts=opts||{};
+  let token;
+  try{ token=await ensureAccessToken(false); }catch(e){ token=driveState.accessToken; }
+  if(!token){ r2State.offline=true; throw new Error('r2-not-signed-in'); }
+  let res;
+  try{
+    res=await fetch(R2_SYNC_WORKER_URL+path,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+token})}));
+  }catch(e){ r2State.offline=true; throw e; }
+  if(res.status===401){
+    const fresh=await ensureAccessToken(false).catch(()=>null);
+    if(fresh) res=await fetch(R2_SYNC_WORKER_URL+path,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+fresh})}));
+  }
+  r2State.offline=false;
+  return res;
+}
+function r2ReportQuotaExceeded(){
+  if(r2State.quotaWarned) return;
+  r2State.quotaWarned=true;
+  try{ showToast(t('r2_quota_toast')); }catch(e){}
+}
+/* ---------- CLIENT-SIDE ENCRYPTION FOR R2 ----------
+   Tom's clarification: local storage (IndexedDB, a connected folder) stays exactly as it always was —
+   plain, untouched — but the cloud copy (R2) is encrypted so that nobody without the Worker's own
+   secret (i.e. no other user, and nobody without access to Tom's Cloudflare account) can read it.
+   Everything below only ever runs on the R2 path (r2GetJSON/r2PutJSON, R2_DB.putImage/getImage) —
+   FS_DB/DRIVE_DB/IDB_DB are never touched by any of this.
+
+   Tom's follow-up call after weighing the "own passphrase" version: the extra tap (typing a
+   password once per device) wasn't worth it to him, so this went back to fully automatic — the key is
+   derived server-side, in the Worker, from a secret only Tom's Cloudflare account holds
+   (ENCRYPTION_MASTER_SECRET) plus each user's Google id, and handed to the client once per session
+   (GET /key). Zero taps, works the instant someone signs in. The honest tradeoff, stated the same way
+   to Tom as in the code: because the Worker computes the key, whoever controls the Worker (Tom, as
+   operator) could in principle reconstruct any user's key — this protects every user's data from each
+   other and from anyone without Worker access, but it is NOT provably opaque to Tom himself the way a
+   passphrase-only scheme would be. Tom chose this tradeoff explicitly, in favor of a frictionless
+   sign-in-and-go experience. */
+async function r2GetKey(){
+  if(r2State.encKey) return r2State.encKey;
+  if(!r2State.encKeyPromise) r2State.encKeyPromise=r2FetchEncryptionKey().finally(()=>{ r2State.encKeyPromise=null; });
+  return r2State.encKeyPromise;
+}
+// One round trip to the Worker's /key, which derives this account's AES-256-GCM key from its own
+// master secret + the caller's verified Google id (see deriveUserKey in notua-r2-worker.js) — nothing
+// to type, nothing to remember, just needs a valid Google sign-in (already required for every other R2
+// call via r2Fetch). Kept in memory only for the rest of this session (r2State.encKey).
+async function r2FetchEncryptionKey(){
+  const res=await r2Fetch('/key');
+  if(!res.ok) throw new Error('r2-key-fetch-failed');
+  const data=await res.json();
+  const raw=Uint8Array.from(atob(data.key),c=>c.charCodeAt(0));
+  const key=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']);
+  r2State.encKey=key;
+  return key;
+}
+// IV (12 random bytes, fresh every single encryption — AES-GCM's own requirement, never reuse an IV
+// with the same key) is simply prepended to the ciphertext, so the one stored object is everything
+// r2DecryptBytes needs to reverse it — no separate metadata to keep in sync.
+async function r2EncryptBytes(bytes){
+  const key=await r2GetKey();
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,bytes);
+  const out=new Uint8Array(12+cipher.byteLength);
+  out.set(iv,0); out.set(new Uint8Array(cipher),12);
+  return out;
+}
+async function r2DecryptBytes(bytes){
+  const key=await r2GetKey();
+  const iv=bytes.slice(0,12);
+  const cipher=bytes.slice(12);
+  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,cipher);
+  return new Uint8Array(plain);
+}
+// Just resolves r2State.encKey (fetching it from the Worker the first time this session needs it) —
+// no prompt, no modal, nothing for the user to do beyond already being signed into Google. Returns
+// false only on a genuine failure (offline, sign-in problem, Worker unreachable).
+async function r2EnsureEncryptionReady(){
+  if(r2State.encKey) return true;
+  try{ await r2GetKey(); return true; }catch(e){ return false; }
+}
+function r2KeyForBoard(id){ return 'boards/'+id+'.json'; }
+async function r2GetJSON(key,fallback){
+  try{
+    const res=await r2Fetch('/object/'+key);
+    if(!res.ok) return fallback;
+    const buf=new Uint8Array(await res.arrayBuffer());
+    if(!buf.length) return fallback;
+    const plain=await r2DecryptBytes(buf);
+    const text=new TextDecoder().decode(plain);
+    return text ? JSON.parse(text) : fallback;
+  }catch(e){ return fallback; }
+}
+async function r2PutJSON(key,data){
+  try{
+    const bytes=new TextEncoder().encode(JSON.stringify(data));
+    const enc=await r2EncryptBytes(bytes);
+    const res=await r2Fetch('/object/'+key,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:enc});
+    if(res.status===413||res.status===402){ r2ReportQuotaExceeded(); return false; }
+    return res.ok;
+  }catch(e){ return false; }
+}
+async function r2Delete(key){ try{ await r2Fetch('/object/'+key,{method:'DELETE'}); }catch(e){} }
+// Lists every "boards/*.json" key this user has on R2 right now — the R2 equivalent of FS_DB's folder
+// walk / DRIVE_DB's Drive query, just via the Worker's own /list route. Cached for a few seconds since
+// allBoards()/allTrashedBoards()/allTemplates() below each call this once per merge pass (see
+// mergedBoardsFrom) — cheap to skip re-listing three times in a row for the same Home-screen refresh.
+async function r2ListBoardIds(force){
+  if(!force && r2State.boardIds && Date.now()-r2State.boardIdsAt<4000) return r2State.boardIds;
+  try{
+    const res=await r2Fetch('/list?prefix=boards/');
+    if(!res.ok) return r2State.boardIds||[];
+    const list=await res.json(); // [{key,size,uploaded}], key already relative to this user's own namespace
+    const ids=list.map(o=>o.key.replace(/^boards\//,'').replace(/\.json$/,'')).filter(Boolean);
+    r2State.boardIds=ids; r2State.boardIdsAt=Date.now();
+    return ids;
+  }catch(e){ return r2State.boardIds||[]; }
+}
+async function r2EnsureBoardLoaded(boardId){
+  if(r2State.cache.has(boardId)) return r2State.cache.get(boardId);
+  const data=await r2GetJSON(r2KeyForBoard(boardId),null);
+  if(!data || !data.meta) return null;
+  data.cards=data.cards||[]; data.connectors=data.connectors||[];
+  r2State.cache.set(boardId,data);
+  data.cards.forEach(c=>{ r2State.cardOwner.set(c.id,boardId); cardBlobRefs(c).forEach(bref=>r2State.imageOwner.set(bref,boardId)); });
+  data.connectors.forEach(cn=>r2State.connOwner.set(cn.id,boardId));
+  return data;
+}
+function r2WriteBoardSoon(boardId){
+  if(!r2State.writers.has(boardId)){
+    r2State.writers.set(boardId, debounce(async ()=>{
+      const data=r2State.cache.get(boardId); if(!data) return;
+      await r2PutJSON(r2KeyForBoard(boardId),data);
+    },300));
+  }
+  r2State.writers.get(boardId)();
+}
+const R2_DB={
+  async allBoards(){
+    const ids=await r2ListBoardIds();
+    const out=[];
+    for(const id of ids){ const e=await r2EnsureBoardLoaded(id); if(e && e.meta && !e.meta.isTemplate && !e.meta.trashed) out.push({...e.meta}); }
+    return out;
+  },
+  async allTemplates(){
+    const ids=await r2ListBoardIds();
+    const out=[];
+    for(const id of ids){ const e=await r2EnsureBoardLoaded(id); if(e && e.meta && e.meta.isTemplate) out.push({...e.meta}); }
+    return out;
+  },
+  async allTrashedBoards(){
+    const ids=await r2ListBoardIds();
+    const out=[];
+    for(const id of ids){ const e=await r2EnsureBoardLoaded(id); if(e && e.meta && e.meta.trashed && !e.meta.isTemplate) out.push({...e.meta}); }
+    return out;
+  },
+  async setTrashed(id,trashed){
+    const e=await r2EnsureBoardLoaded(id); if(!e) return;
+    e.meta.trashed=trashed; e.meta.trashedAt=trashed?Date.now():null;
+    r2WriteBoardSoon(id);
+  },
+  async getBoard(id){ const e=await r2EnsureBoardLoaded(id); return e?{...e.meta}:null; },
+  async putBoard(b){
+    let e=r2State.cache.get(b.id) || await r2EnsureBoardLoaded(b.id);
+    if(!e){
+      e={meta:{...b},cards:[],connectors:[]};
+      r2State.cache.set(b.id,e);
+      if(r2State.boardIds && !r2State.boardIds.includes(b.id)) r2State.boardIds.push(b.id);
+    }else{
+      e.meta={...e.meta,...b};
+    }
+    r2WriteBoardSoon(b.id);
+  },
+  async deleteBoard(id){
+    r2State.cache.delete(id); r2State.writers.delete(id);
+    if(r2State.boardIds) r2State.boardIds=r2State.boardIds.filter(x=>x!==id);
+    await r2Delete(r2KeyForBoard(id));
+  },
+  async cardsForBoard(boardId){ const e=await r2EnsureBoardLoaded(boardId); return e?e.cards.slice():[]; },
+  async putCard(c){
+    const e=await r2EnsureBoardLoaded(c.boardId); if(!e) return;
+    const i=e.cards.findIndex(x=>x.id===c.id);
+    if(i>=0) e.cards[i]=c; else e.cards.push(c);
+    r2State.cardOwner.set(c.id,c.boardId);
+    cardBlobRefs(c).forEach(bref=>r2State.imageOwner.set(bref,c.boardId));
+    r2WriteBoardSoon(c.boardId);
+  },
+  async putCards(list){
+    const byBoard=new Map();
+    list.forEach(c=>{ if(!byBoard.has(c.boardId)) byBoard.set(c.boardId,[]); byBoard.get(c.boardId).push(c); });
+    for(const [bid,cs] of byBoard){
+      const e=await r2EnsureBoardLoaded(bid); if(!e) continue;
+      cs.forEach(c=>{ const i=e.cards.findIndex(x=>x.id===c.id); if(i>=0) e.cards[i]=c; else e.cards.push(c); r2State.cardOwner.set(c.id,bid); });
+      r2WriteBoardSoon(bid);
+    }
+  },
+  async deleteCard(id){
+    const bid=r2State.cardOwner.get(id); if(!bid) return;
+    const e=r2State.cache.get(bid); if(!e) return;
+    e.cards=e.cards.filter(c=>c.id!==id);
+    r2State.cardOwner.delete(id);
+    r2WriteBoardSoon(bid);
+  },
+  async connectorsForBoard(boardId){ const e=await r2EnsureBoardLoaded(boardId); return e?e.connectors.slice():[]; },
+  async putConnector(c){
+    const e=await r2EnsureBoardLoaded(c.boardId); if(!e) return;
+    const i=e.connectors.findIndex(x=>x.id===c.id);
+    if(i>=0) e.connectors[i]=c; else e.connectors.push(c);
+    r2State.connOwner.set(c.id,c.boardId);
+    r2WriteBoardSoon(c.boardId);
+  },
+  async deleteConnector(id){
+    const bid=r2State.connOwner.get(id); if(!bid) return;
+    const e=r2State.cache.get(bid); if(!e) return;
+    e.connectors=e.connectors.filter(c=>c.id!==id);
+    r2State.connOwner.delete(id);
+    r2WriteBoardSoon(bid);
+  },
+  async putImage(id,blob,boardIdOverride){
+    const bid=boardIdOverride || r2State.imageOwner.get(id) || state.currentBoardId;
+    r2State.imageOwner.set(id,bid);
+    try{
+      const ext=extForBlob(blob);
+      r2State.imageExt.set(id,ext);
+      // Every image id is immutable content in this app (a re-upload always gets a fresh id — see
+      // cardBlobRefs' own comment), so if this exact id is already sitting on R2 there's nothing new to
+      // send — one cheap HEAD instead of a full re-upload, which is what makes a repeat sync of a board
+      // with mostly-unchanged images fast instead of re-pushing every image every time.
+      const head=await r2Fetch('/object/images/'+id+ext,{method:'HEAD'}).catch(()=>null);
+      if(head && head.ok) return;
+      // Encrypted client-side before it ever leaves — see the ENCRYPTION comment block above. The real
+      // mime type travels only as the file's own extension (r2State.imageExt, tracked locally), not as
+      // a header the Worker/bucket could read — to the server this is just an opaque encrypted blob.
+      const raw=new Uint8Array(await blob.arrayBuffer());
+      const enc=await r2EncryptBytes(raw);
+      const res=await r2Fetch('/object/images/'+id+ext,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:enc});
+      if(res.status===413||res.status===402) r2ReportQuotaExceeded();
+    }catch(e){}
+  },
+  async getImage(id){
+    try{
+      let ext=r2State.imageExt.get(id);
+      if(!ext){
+        const res=await r2Fetch('/list?prefix=images/'+id+'.');
+        if(res.ok){ const list=await res.json(); if(list[0]) ext=list[0].key.slice(('images/'+id).length); }
+        if(ext) r2State.imageExt.set(id,ext);
+      }
+      if(!ext) return null;
+      const res=await r2Fetch('/object/images/'+id+ext);
+      if(!res.ok) return null;
+      const raw=new Uint8Array(await res.arrayBuffer());
+      const plain=await r2DecryptBytes(raw);
+      const blob=new Blob([plain],{type:mimeForExt(ext)});
+      return {id, blob};
+    }catch(e){ return null; }
+  },
+  async deleteImage(id){
+    const ext=r2State.imageExt.get(id);
+    if(ext) await r2Delete('images/'+id+ext);
+    r2State.imageOwner.delete(id); r2State.imageExt.delete(id);
+  },
+};
+// Whether R2 cloud sync is currently switched on — a plain localStorage flag, since (unlike Drive/a
+// connected folder) there's no separate "connect" handshake to persist; the moment it's on AND Tom has
+// a Google session (piggybacked from Drive, see r2Fetch), syncTargets() below just starts using it.
+function isR2SyncEnabled(){
+  try{ return R2_SYNC_SUPPORTED && localStorage.getItem('notua-r2-sync')==='1'; }catch(e){ return false; }
+}
+async function setR2SyncEnabled(on){
+  if(on){
+    try{ await ensureAccessToken(true); } // interactive — shows the Google sign-in popup if not already signed in
+    catch(e){ showToast(t('r2_signin_failed_toast')); return; }
+    const ready=await r2EnsureEncryptionReady();
+    if(!ready){ showToast(t('r2_signin_failed_toast')); return; } // Worker/key fetch failed — stays off, nothing half-configured
+  }
+  try{ localStorage.setItem('notua-r2-sync',on?'1':'0'); }catch(e){}
+  if(!on){ r2State.cache.clear(); r2State.writers.clear(); r2State.boardIds=null; r2State.encKey=null; }
+  refreshR2SyncToggleUI();
+  showToast(on?t('r2_sync_on_toast'):t('r2_sync_off_toast'));
+  if(on) scheduleSyncSoon(200);
+}
+// Fire-and-forget: if Cloud Sync was left on from a previous session, this quietly gets r2State.encKey
+// ready again in the background right after boot — no prompt, just a /key fetch once a Google session
+// exists. Called once at boot from applyDockCustomization().
+function r2BootIfEnabled(){
+  if(isR2SyncEnabled() && !r2State.encKey){
+    r2EnsureEncryptionReady().then(ready=>{ if(ready) scheduleSyncSoon(200); });
+  }
+}
+function refreshR2SyncToggleUI(){
+  const item=document.getElementById('toolsR2SyncItem');
+  if(!item) return;
+  if(!R2_SYNC_SUPPORTED){ item.hidden=true; return; }
+  item.hidden=false;
+  const on=isR2SyncEnabled();
+  item.classList.toggle('active',on);
+  const label=item.querySelector('.tools-sheet-card-label');
+  if(label) label.textContent=t('r2_sync_label');
+  item.title=on?t('r2_sync_on_title'):t('r2_sync_off_title');
+}
+
+/* ============================================================
    MULTI-QUELLEN-SPEICHER — mehrere Speicherorte gleichzeitig, manueller Sync
    ============================================================
    Replaces the old single-active-backend model (idb XOR fs XOR drive, auto-reconciled/polled) with
@@ -6341,6 +6807,7 @@ async function driveRelocateBoardForProject(boardId){
 function backendFor(src){
   if(src==='fs') return FS_DB;
   if(src==='drive') return DRIVE_DB;
+  if(src==='r2') return R2_DB;
   return IDB_DB;
 }
 // Which backends currently hold a given board, and which one should be treated as "the" copy to open
@@ -6351,6 +6818,7 @@ async function resolveBoardSources(boardId){
   const checks=[['idb',IDB_DB]];
   if(fsState.root) checks.push(['fs',FS_DB]);
   if(driveState.root) checks.push(['drive',DRIVE_DB]);
+  if(isR2SyncEnabled() && r2State.encKey) checks.push(['r2',R2_DB]);
   const results=await Promise.all(checks.map(async ([src,backend])=>{
     try{ const b=await backend.getBoard(boardId); return b ? {src,updatedAt:b.updatedAt||0} : null; }
     catch(e){ return null; }
@@ -6420,7 +6888,10 @@ const DB={
   // putImage/deleteImage deliberately don't mark anything dirty here: every real call site pairs an
   // image write with a putCard for the card that owns it, and that putCard already marks the right
   // board dirty — the image record itself has no boardId to mark with.
-  putImage:(...a)=>activeBackend().putImage(...a),
+  // Every image, wherever it enters the app, gets squeezed to <=150KB right here before it ever
+  // reaches a backend — see compressImageForStorage()'s own comment for why this is the one chokepoint
+  // that covers every call site for free.
+  putImage:async(id,blob,...rest)=>{ const b=await compressImageForStorage(blob); return activeBackend().putImage(id,b,...rest); },
   getImage:(...a)=>activeBackend().getImage(...a),
   deleteImage:(...a)=>activeBackend().deleteImage(...a),
 };
@@ -6444,6 +6915,7 @@ async function mergedBoardsFrom(methodName){
   const checks=[['idb',IDB_DB]];
   if(fsState.root) checks.push(['fs',FS_DB]);
   if(driveState.root) checks.push(['drive',DRIVE_DB]);
+  if(isR2SyncEnabled() && r2State.encKey) checks.push(['r2',R2_DB]);
   const lists=await Promise.all(checks.map(async ([src,backend])=>{
     try{ return {src, boards:await backend[methodName]()}; }catch(e){ return {src, boards:[]}; }
   }));
@@ -6505,9 +6977,10 @@ function syncTargets(){
   const targets=[];
   if(fsState.root) targets.push('fs');
   if(driveState.root) targets.push('drive');
+  if(isR2SyncEnabled() && r2State.encKey) targets.push('r2');
   return targets;
 }
-function syncTargetLabel(target){ return t(target==='drive' ? 'sync_target_drive' : 'sync_target_fs'); }
+function syncTargetLabel(target){ return t(target==='drive' ? 'sync_target_drive' : target==='r2' ? 'sync_target_r2' : 'sync_target_fs'); }
 let syncEngineRunning=false;
 let syncEngineTimer=null;
 // Debounced kickoff: called after every local write (via markBoardDirty) and by runSyncEngine's own
@@ -7485,6 +7958,9 @@ function applyDockCustomization(){
   applyDockOrderAndVisibilityIn(document.getElementById('dock'),true);
   applyDockOrderAndVisibilityIn(document.getElementById('drawerAddSection'),false);
   refreshDockMagnify();
+  refreshUiDynamicToggleUI();
+  refreshR2SyncToggleUI();
+  r2BootIfEnabled();
 }
 function wireDockCustomizeEyeToggle(eyeBtn,onToggled){
   eyeBtn.addEventListener('click',()=>{
@@ -7591,14 +8067,13 @@ if(drawerCustomizeBtnEl) drawerCustomizeBtnEl.addEventListener('click',()=>{ clo
 
 // ---------- DOCK MAGNIFY (beta) ----------
 // Hidden-code-gated (password 'functiondock', see trySubmit() below) macOS-dock-style magnify-on-hover
-// effect for the desktop toolbar. Unlocking the beta flag only REVEALS the toggle card in the
-// Werkzeuge sheet on the board overview (#toolsDockMagnifyItem, via applyBetaFeatureVisibility()'s
-// generic [data-beta] handling) — the effect itself stays off until the user actually clicks that
-// card, and that on/off choice is remembered separately (notua-dockmagnify-enabled), independent of
-// the unlock flag (notua-beta-dockmagnify), so a fresh unlock never silently turns the effect on.
-// Deliberately NOT another permanent button crowding the tool dock you actually work in while inside
-// a board — it's a setting you flip once from the overview, same as "Ordner wählen" or the language
-// switch, not a tool you'd reach for mid-board.
+// effect for the desktop toolbar. "dann kann der Dynamisch Button weg wenn es static und dynamic ui
+// gibt" — this used to have its own separate manual on/off toggle card in the Werkzeuge sheet
+// (#toolsDockMagnifyItem), remembered independently of the unlock flag itself. That card is gone now:
+// unlocking 'functiondock' is the only step left — the effect simply plays automatically whenever the
+// public "Dynamic UI" switch (isUiDynamicEnabled(), see #toolsUiDynamicItem) is on, same as every other
+// animation group, and goes quiet under Static UI like all the others too. isDockMagnifyEnabled() below
+// now IS the unlock flag, nothing more.
 //
 // The spring loop below reproduces the one-off previews/dock-concept.html demo as closely as
 // possible on the REAL, already customization-aware .dock-btn children of #dock (so it automatically
@@ -7621,9 +8096,7 @@ const VIEWCTL_MAGNIFY_BASE=28, VIEWCTL_MAGNIFY_MAX=42, VIEWCTL_MAGNIFY_DISTANCE=
 // while sharing the exact same spring physics/on-off toggle (see refreshDockMagnify()/DYNAMIC_ANIM_KEYS'
 // own comment on why one switch covers every animation group added since, this one included).
 let dockMagnifyStates=[]; // {containerEl,raf,items:[{el,svg,iconBase,size,vel,target}],onMove,onLeave}[]
-function isDockMagnifyEnabled(){
-  try{ return localStorage.getItem('notua-dockmagnify-enabled')==='1'; }catch(e){ return false; }
-}
+function isDockMagnifyEnabled(){ return isBetaFeatureUnlocked('dockmagnify'); }
 function dockMagnifyEligible(){
   try{ return window.matchMedia('(hover:hover) and (pointer:fine)').matches; }catch(e){ return false; }
 }
@@ -7695,38 +8168,55 @@ function startDockMagnify(){
   startDockMagnifyBar(document.getElementById('dock'),'.dock-btn',DOCK_MAGNIFY_BASE,DOCK_MAGNIFY_MAX,DOCK_MAGNIFY_DISTANCE,false);
   startDockMagnifyBar(document.querySelector('.viewctl'),'button',VIEWCTL_MAGNIFY_BASE,VIEWCTL_MAGNIFY_MAX,VIEWCTL_MAGNIFY_DISTANCE,true);
 }
-// Re-syncs the running effect (or lack of it) with the persisted on/off choice — called once at boot
-// and again every time applyDockCustomization() runs, so a reorder/hide/show or a fresh unlock always
-// leaves the effect attached to the current, correct set of buttons rather than a stale one.
-function refreshDockMagnify(){
-  const item=document.getElementById('toolsDockMagnifyItem');
-  const on=isDockMagnifyEnabled();
-  if(item) item.classList.toggle('active',on);
-  if(on) startDockMagnify(); else stopDockMagnify();
+// "die Animationen sollen im normalen Theme ohne functioncontrol Code an sein, nicht aus — nur
+// [fein]steuern soll man sie mit dem Code können, es soll Static UI/Dynamic UI heißen, ein Knopf der
+// beim Drücken umschaltet, in den Einstellungen im Boardübersicht" — the PUBLIC master switch for
+// DYNAMIC_ANIM_KEYS below (board-zoom transitions, card drag/drop effects, edit-focus auto-fit, grid
+// parallax, empty-board pulse, menu stagger). No secret code needed to see or flip this one, unlike
+// isDockMagnifyEnabled() right below (still 'functiondock'-gated, still OFF by default) — that flag now
+// covers ONLY the literal toolbar-icon hover-zoom effect specifically, layered on top of this one (see
+// refreshDockMagnify()): Static UI always means "nothing moves", beta-tester or not, while Dynamic UI
+// (the default) plays the normal set of animations for everyone, with 'functioncontrol' still there for
+// a beta tester who wants to fine-tune which of the six groups play individually.
+function isUiDynamicEnabled(){
+  try{ return localStorage.getItem('notua-ui-dynamic')!=='0'; }catch(e){ return true; }
 }
-function setDockMagnifyEnabled(on){
-  try{ localStorage.setItem('notua-dockmagnify-enabled',on?'1':'0'); }catch(e){}
+function refreshUiDynamicToggleUI(){
+  const item=document.getElementById('toolsUiDynamicItem');
+  if(!item) return;
+  const on=isUiDynamicEnabled();
+  item.classList.toggle('active',on);
+  const label=item.querySelector('.tools-sheet-card-label');
+  if(label) label.textContent=on?t('ui_dynamic_label'):t('ui_static_label');
+  item.title=on?t('ui_dynamic_title'):t('ui_static_title');
+}
+function setUiDynamicEnabled(on){
+  try{ localStorage.setItem('notua-ui-dynamic',on?'1':'0'); }catch(e){}
   refreshDockMagnify();
-  // "alle Animationen die neu dazukamen über das Dynamisch im Einstellungen Tab ein und ausgeschaltet
-  // werden können" — this switch was, until now, only the dock-magnify effect's own on/off. It's now
-  // ALSO the master switch for every other animation group added this round (board-zoom transitions,
-  // card drag/drop effects, edit-focus auto-fit, grid parallax, empty-board pulse, menu stagger — see
-  // DYNAMIC_ANIM_KEYS/applyDynamicAnimSettings below): flipping it off turns all of them off together,
-  // on turns them back on (each still further toggleable on its own via the 'functioncontrol' panel).
   applyDynamicAnimSettings();
-  showToast(on?t('dock_magnify_on_toast'):t('dock_magnify_off_toast'));
+  refreshUiDynamicToggleUI();
+  showToast(on?t('ui_dynamic_on_toast'):t('ui_dynamic_off_toast'));
+}
+// Re-syncs the running effect (or lack of it) with the persisted unlock/Dynamic-UI state — called once
+// at boot and again every time applyDockCustomization() runs, so a reorder/hide/show or a fresh unlock
+// always leaves the effect attached to the current, correct set of buttons rather than a stale one. No
+// more separate manual toggle (see the section comment above) — just the beta unlock AND the public
+// Dynamic UI switch, both needing to be on; Static UI suppresses every animation, this beta one included.
+function refreshDockMagnify(){
+  const effectiveOn=isDockMagnifyEnabled() && isUiDynamicEnabled();
+  if(effectiveOn) startDockMagnify(); else stopDockMagnify();
 }
 // ---------- PER-ANIMATION CONTROLS (beta, "functioncontrol") ----------
 // Every animation group added in this round of work, keyed the same way its own CSS override class
 // is named (anim-off-<key>, see the matching :root.anim-off-<key> rules next to each feature's own
 // @media(prefers-reduced-motion) block) and the same way its localStorage flag is named
-// (notua-anim-<key>). isDockMagnifyEnabled() (the "Dynamisch" switch) is the master gate: OFF there
-// means every group reads as off regardless of its own individual flag, matching how the switch is
-// now documented/labelled everywhere else. Each individual flag defaults to ON (missing key = enabled)
-// so simply unlocking the beta panel never silently turns anything off that was already playing.
+// (notua-anim-<key>). isUiDynamicEnabled() (the PUBLIC "Dynamic UI"/"Static UI" switch) is the master
+// gate: Static UI means every group reads as off regardless of its own individual flag. Each individual
+// flag defaults to ON (missing key = enabled) so simply unlocking the beta panel never silently turns
+// anything off that was already playing.
 const DYNAMIC_ANIM_KEYS=['boardzoom','carddrag','editfit','gridparallax','emptypulse','menustagger'];
 function isAnimGroupEnabled(key){
-  if(!isDockMagnifyEnabled()) return false;
+  if(!isUiDynamicEnabled()) return false;
   try{ const v=localStorage.getItem('notua-anim-'+key); return v===null || v==='1'; }catch(e){ return true; }
 }
 function setAnimGroupEnabled(key,on){
@@ -7747,28 +8237,31 @@ function applyDynamicAnimSettings(){
   if(panel){
     panel.querySelectorAll('[data-anim-switch]').forEach(sw=>{
       sw.classList.toggle('on', isAnimGroupEnabled(sw.dataset.animSwitch));
-      sw.classList.toggle('insp-switch-disabled', !isDockMagnifyEnabled());
+      sw.classList.toggle('insp-switch-disabled', !isUiDynamicEnabled());
     });
     const masterSw=document.getElementById('animMasterSwitch');
-    if(masterSw) masterSw.classList.toggle('on', isDockMagnifyEnabled());
+    if(masterSw) masterSw.classList.toggle('on', isUiDynamicEnabled());
   }
 }
 // Lists every group from DYNAMIC_ANIM_KEYS with its own switch — disabled-looking (still clickable,
-// see the row comment above) whenever the "Dynamisch" master switch is off, since flipping one of
-// these then wouldn't visibly do anything until the master is back on. The master switch itself is
-// the first row (see its own CSS comment) — never dimmed, always the one control that's guaranteed to
-// do something no matter its current state.
+// see the row comment above) whenever the public "Dynamic UI" master switch is off (Static UI), since
+// flipping one of these then wouldn't visibly do anything until the master is back on. The master
+// switch itself is the first row (see its own CSS comment) — never dimmed, always the one control
+// that's guaranteed to do something no matter its current state. It's the SAME public switch as
+// #toolsUiDynamicItem in the Werkzeuge sheet (isUiDynamicEnabled()) — this panel doesn't gate anything
+// behind the secret code that wasn't already public; 'functioncontrol' only unlocks the convenience of
+// tuning each of the six groups individually from here.
 function showAnimControlModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   const masterRow=`<div class="anim-control-row master">
-    <span>${t('dock_magnify_label')}</span>
-    <button type="button" class="insp-switch${isDockMagnifyEnabled()?' on':''}" id="animMasterSwitch"></button>
+    <span>${t('ui_dynamic_master_label')}</span>
+    <button type="button" class="insp-switch${isUiDynamicEnabled()?' on':''}" id="animMasterSwitch"></button>
   </div>`;
   const rows=DYNAMIC_ANIM_KEYS.map(key=>{
     const on=isAnimGroupEnabled(key);
     return `<div class="anim-control-row">
       <span>${t('anim_group_'+key)}</span>
-      <button type="button" class="insp-switch${on?' on':''}${isDockMagnifyEnabled()?'':' insp-switch-disabled'}" data-anim-switch="${key}"></button>
+      <button type="button" class="insp-switch${on?' on':''}${isUiDynamicEnabled()?'':' insp-switch-disabled'}" data-anim-switch="${key}"></button>
     </div>`;
   }).join('');
   scrim.innerHTML=`<div class="modal">
@@ -7780,7 +8273,7 @@ function showAnimControlModal(){
   bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
   scrim.querySelector('#animMasterSwitch').addEventListener('click',()=>{
-    setDockMagnifyEnabled(!isDockMagnifyEnabled());
+    setUiDynamicEnabled(!isUiDynamicEnabled());
   });
   scrim.querySelectorAll('[data-anim-switch]').forEach(sw=>{
     sw.addEventListener('click',()=>{
@@ -7952,7 +8445,7 @@ async function refreshHome(){
   // that already happened locally (a rename, a delete) wouldn't SHOW anywhere until that round-trip
   // finished, which is exactly what read as "jede Änderung dauert ultra lange". A plain idb-only
   // setup has nothing slow to hide behind, so it skips straight to the one fast render below.
-  const hasRemoteSource=!!(fsState.root || driveState.root);
+  const hasRemoteSource=!!(fsState.root || driveState.root || isR2SyncEnabled());
   if(hasRemoteSource && state.boards.length) await paintHomeGrid(applyBoardOverrides(state.boards));
   const doMerge=async ()=>{
     const all=await mergedAllBoards();
@@ -9326,7 +9819,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.2';
+const APP_VERSION='2.4.8';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
@@ -17866,6 +18359,27 @@ function updateFolderStatusUI(){
 
 async function activateFolder(handle,opts){
   opts=opts||{};
+  // "trotz Ordner-Auswahl synct er die Boards nicht" — showDirectoryPicker({mode:'readwrite'}) (see
+  // connectFolder()/confirmPendingFolder()) is SUPPOSED to already grant write access as part of that
+  // one native picker interaction, but it can come back silently downgraded to read-only — the most
+  // common real-world case is a managed/enterprise Chrome policy, and the packaged desktop app
+  // (Electron/Nativefier — see the notua-app-env detection near the top of this file) doesn't get the
+  // full native OS permission flow at all, so a "successful" connect there can quietly mean read-only
+  // too. Everything downstream (fsGetBoardsRootDir() and every FS_DB write) used to just silently fail
+  // and swallow that failure, so the folder button stayed green/"connected" forever while literally
+  // nothing ever reached disk. Checking — and if needed explicitly re-requesting — readwrite right here
+  // means a folder that can't actually be written to is caught immediately, with a clear reason, instead
+  // of quietly pretending to work.
+  try{
+    let perm=await handle.queryPermission({mode:'readwrite'});
+    if(perm!=='granted' && typeof handle.requestPermission==='function'){ perm=await handle.requestPermission({mode:'readwrite'}); }
+    if(perm!=='granted'){
+      showToast(t('toast_folder_write_denied'));
+      return;
+    }
+  }catch(e){ /* queryPermission/requestPermission unsupported here — fall through and let the actual
+                write attempts decide; fsReportWriteFailure() below still catches that case */ }
+  fsWriteFailureShown=false; // fresh connect — a genuinely-fixed folder should get to report again if it breaks
   fsState.root=handle; fsState.rootName=handle.name;
   fsState.boardsRoot=null; fsState.trashDir=null; fsState.parentDirs.clear();
   fsState.dirs.clear(); fsState.cache.clear();
@@ -18704,7 +19218,7 @@ function openToolsSheet(){
   const exportItem=document.getElementById('toolsExportItem');
   if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
   const syncAllItem=document.getElementById('toolsSyncAllItem');
-  if(syncAllItem) syncAllItem.disabled = !(fsState.root || driveState.root);
+  if(syncAllItem) syncAllItem.disabled = !(fsState.root || driveState.root || isR2SyncEnabled());
   positionToolsSheetForDesktop();
   toolsSheet.hidden=false; toolsSheetBackdrop.hidden=false;
   // Force layout before adding .show so the transform transition actually plays from its start state.
@@ -18743,9 +19257,13 @@ if(toolsBtn){
     closeToolsSheet();
     openTrash();
   });
-  document.getElementById('toolsDockMagnifyItem').addEventListener('click',()=>{
+  document.getElementById('toolsUiDynamicItem').addEventListener('click',()=>{
     closeToolsSheet();
-    setDockMagnifyEnabled(!isDockMagnifyEnabled());
+    setUiDynamicEnabled(!isUiDynamicEnabled());
+  });
+  document.getElementById('toolsR2SyncItem').addEventListener('click',()=>{
+    closeToolsSheet();
+    setR2SyncEnabled(!isR2SyncEnabled());
   });
   document.getElementById('toolsAnimControlItem').addEventListener('click',()=>{
     closeToolsSheet();
