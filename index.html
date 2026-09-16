@@ -31,9 +31,15 @@
 <!-- Google Identity Services: powers the "Mit Google verbinden" (Google-Drive-Sync) button further
      down. Loaded with async/defer so it never blocks first paint; the app itself only touches
      window.google.accounts.oauth2 once the person actually clicks that button, and everything
-     fails soft (see DRIVE_SUPPORTED) if this script doesn't load at all (e.g. no network, or the
+     fails soft (see GOOGLE_SUPPORTED) if this script doesn't load at all (e.g. no network, or the
      page is running somewhere this host is blocked — see the code comment above GOOGLE_CLIENT_ID). -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Renders the QR code shown by showR2LinkDeviceModal() when linking a new device (see the QR/CODE
+     DEVICE LINKING section further down) — a tiny, dependency-free canvas-based generator, loaded the
+     same way as the two scripts above. Nothing here ever needs to SCAN a QR (any phone's own camera
+     app already does that, since the QR just encodes a plain notua.site/?link=<code> URL), only draw
+     one, so no camera/video library is needed at all. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" async defer></script>
 <script>
 // Applied synchronously here, before the stylesheet below and long before the main app script (which
 // only runs once the whole document — every card, every drawer row — has parsed), so an explicit
@@ -480,8 +486,7 @@ try{
     color:var(--ink);
     transition:opacity .4s cubic-bezier(.4,0,.2,1), transform .4s cubic-bezier(.4,0,.2,1);
   }
-  /* Applied by refreshHome()'s 30-second auto-dismiss for the Drive reconnect banner (see
-     driveState.reconnectBannerTimer) — slides it up and fades it out; `hidden` itself only gets set
+  /* Slide-up-and-fade transition for a reconnect banner being dismissed; `hidden` itself only gets set
      once this transition has actually finished (see the transitionend listener), so the motion is
      what's visible rather than an instant cut. */
   .folder-reconnect-banner.banner-auto-hide{ opacity:0; transform:translateY(-18px); pointer-events:none; }
@@ -495,7 +500,7 @@ try{
     transition:opacity .15s ease;
   }
   .folder-reconnect-banner button:hover{opacity:0.88;}
-  /* Small manual dismiss — see the HTML comment on #driveReconnectCloseBtn. Deliberately its own,
+  /* Small manual dismiss for the folder-reconnect banner's close button. Deliberately its own,
      lighter treatment rather than inheriting the rule above (transparent background, faint icon): the
      colored/filled look stays reserved for the one actual call-to-action button in the banner, so this
      one reads as "close", not as a second, competing action. */
@@ -2734,6 +2739,19 @@ try{
   .modal-actions button.primary{background:var(--danger); border-color:var(--danger); color:#fff;}
   .modal-actions button:hover{filter:brightness(0.97);}
   .modal.modal-wide{width:380px; max-height:80vh; overflow-y:auto;}
+  /* QR/code device-linking modal (showR2LinkDeviceModal) — the qrcodejs library draws straight into
+     r2-link-qr as a plain <canvas>/<table>, this just centers and frames it; r2-link-code is the same
+     code as large, spaced-out monospace text underneath, for typing by hand on a device with no camera. */
+  .r2-link-qr{display:flex; justify-content:center; padding:10px; background:#fff; border-radius:10px; align-self:center;}
+  .r2-link-code{text-align:center; font-size:1.3rem; font-weight:700; letter-spacing:0.14em; margin:2px 0 0;}
+  /* Small, deliberately understated text link inside a modal — used by showR2JoinModal's "Kein
+     anderes Gerät mehr zur Hand?" (a genuinely destructive escape hatch, see r2ResetCloudData), so it
+     reads as a quiet secondary option, never competing with the modal's real primary/cancel actions. */
+  .modal button.linklike{
+    align-self:flex-start; border:none; background:none; padding:0; margin-top:-6px; font:inherit;
+    font-size:0.78rem; color:var(--muted); text-decoration:underline; cursor:var(--custom-pointer-cursor,pointer);
+  }
+  .modal button.linklike:hover{color:var(--ink);}
 
   /* ---------- DOCK CUSTOMIZE PANEL ---------- */
   .dock-customize-list{display:flex; flex-direction:column; gap:4px;}
@@ -3053,11 +3071,19 @@ try{
       <!-- Cloudflare R2 cloud sync ("Syncsystem über die 10gb free storage von Cloudflare") — public
            toggle, but stays hidden entirely until Tom deploys notua-r2-worker.js and fills in
            R2_SYNC_WORKER_URL (see R2_SYNC_SUPPORTED in the JS) — same inert-until-configured pattern
-           DRIVE_SUPPORTED already uses for the Drive button. Piggybacks on the same Google sign-in
-           already used for Drive (see r2Fetch/ensureAccessToken) — no separate connect flow, and no
+           GOOGLE_SUPPORTED already uses for the Google sign-in button. Piggybacks on the same Google
+           sign-in (see r2Fetch/ensureAccessToken) — no separate connect flow, and no
            API keys anywhere in this file; everything goes through the Worker. -->
       <button type="button" class="tools-sheet-card" id="toolsR2SyncItem" hidden>
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <!-- "über einen QR-Code seinen Account autoverknüpfen... ohne Google OAuth" — opens
+           showR2LinkDeviceModal() (a QR/code this device generates for ANOTHER device to join with,
+           see the QR/CODE DEVICE LINKING section in the JS). Only ever visible once THIS device
+           already has a working key of its own to hand out — see refreshR2LinkDeviceUI(). -->
+      <button type="button" class="tools-sheet-card" id="toolsR2LinkItem" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 20h.01M17 20h.01M14 20v.01M20 17h.01"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
       <!-- "die Animationen sollen im normalen Theme ohne functioncontrol Code an sein, nicht aus — nur
@@ -3125,9 +3151,9 @@ try{
         <h1 class="notua-letters"><span style="--i:0">N</span><span style="--i:1">O</span><span style="--i:2">T</span><span style="--i:3">U</span><span style="--i:4">A</span></h1>
         <p id="landingTagline">Boards für deine kreativen Projekte – Notizen, Workflows, Moodboards und mehr, an einem Ort.</p>
       </div>
-      <!-- Same connectDrive() flow as the Werkzeuge-sheet's "Ordner synchronisieren" — purely an
-           alternative, earlier entry point into it, nothing more (Drive's own scope only — see
-           connectDrive()'s own comment on why a combined Drive+Calendar request doesn't live here).
+      <!-- Entry point into R2 Cloud Sync (end-to-end encrypted, see setR2SyncEnabled): shows a short
+           explanation of how the data is secured first (showCloudSecurityExplainerModal), then signs
+           in with Google purely for account identity — no Google Drive access is requested any more.
            The plain arrow above still opens NOTUA with no Google account at all, nothing here is
            required. -->
       <button class="google-signin-btn" id="landingGoogleBtn" type="button">
@@ -3157,6 +3183,12 @@ try{
       <a class="linklike" id="datenschutzBtn" href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>
       <span class="sep">·</span>
       <a class="linklike" id="nutzungsbedingungenBtn" href="nutzungsbedingungen.html" target="_blank" rel="noopener">Nutzungsbedingungen</a>
+      <!-- Entry point for a device that has no account/session at all yet ("ohne Google OAuth") to
+           join an existing account by scanning/typing a code from an already-linked device — opens
+           showR2JoinModal(). Hidden until R2_SYNC_SUPPORTED (see the JS boot code), same
+           inert-until-configured pattern as everything else R2-related. -->
+      <span class="sep" id="r2JoinDeviceSep" hidden>·</span>
+      <button class="linklike" id="r2JoinDeviceBtn" hidden></button>
     </div>
   </div>
 
@@ -3166,7 +3198,7 @@ try{
     <div class="home-header">
       <div>
         <div class="wordmark" id="homeWordmark" role="button" tabindex="0" title="Zurück zur Landing-Page"><span class="logo-dot"></span><h1>NOTUA</h1></div>
-        <p class="tagline" id="homeTagline">Boards für deine Videoprojekte – lokal gespeichert, portabel &amp; jederzeit exportierbar.</p>
+        <p class="tagline" id="homeTagline">Boards für deine kreativen Projekte – lokal gespeichert, portabel &amp; jederzeit exportierbar.</p>
       </div>
       <div class="home-header-right">
         <div class="board-count mono" id="boardCountLabel"></div>
@@ -3178,10 +3210,6 @@ try{
           <button class="folder-btn" id="folderBtn" title="Speicherordner verbinden">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
             <span id="folderLabel">Ordner wählen</span>
-          </button>
-          <button class="folder-btn" id="driveBtn" title="Mit Google Drive synchronisieren">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 1.2-7.8 5.5 5.5 0 0 0-10.6-1.7A4.2 4.2 0 0 0 7 18z"/><path d="M9.5 12.5 12 9l2.5 3.5M12 9v6"/></svg>
-            <span id="driveLabel">Google Drive</span>
           </button>
           <!-- Board-independent calendar (see the CALENDAR section in the script) is reachable from
                here too, not just from inside a board — same panel, same button behavior as the one in
@@ -3220,26 +3248,10 @@ try{
         </div>
         <button id="folderReconnectBtn" class="primary">Ordner erneut verbinden</button>
       </div>
-      <div id="driveReconnectBanner" class="folder-reconnect-banner" hidden>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 1.2-7.8 5.5 5.5 0 0 0-10.6-1.7A4.2 4.2 0 0 0 7 18z"/><path d="M9.5 12.5 12 9l2.5 3.5M12 9v6"/></svg>
-        <div class="folder-reconnect-text">
-          <strong id="driveReconnectTitle">Google-Verbindung bestätigen</strong>
-          <span id="driveReconnectBody"></span>
-        </div>
-        <button id="driveReconnectBtn" class="primary">Erneut mit Google verbinden</button>
-        <!-- "die Fehlermeldung nur einmal zeigen bis man sie weg klickt mit einem kleinen X" — a manual
-             dismiss alongside the existing 30s auto-hide (see refreshHome()'s driveReconnectBanner
-             block / dismissDriveReconnectBanner()), so the person doesn't have to wait out the timer if
-             they've already seen it and don't want it sitting there. Same reconnectBannerDismissed flag
-             either way, so once closed (by X or by the timer) it stays gone for this episode. -->
-        <button type="button" class="icon-btn folder-reconnect-close" id="driveReconnectCloseBtn" title="Schließen">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
-      </div>
       <div id="boardGrid" class="board-grid"></div>
       <div id="emptyHome" class="empty-home" hidden>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/><path d="M8 5v-1"/><path d="M16 5v-1"/></svg>
-        <p id="emptyHomeText">Noch keine Boards. Leg dein erstes Board an und beginne mit der Planung deines Videoprojekts.</p>
+        <p id="emptyHomeText">Noch keine Boards. Leg dein erstes Board an und beginne mit der Planung deines kreativen Projekts.</p>
       </div>
     </div>
     </div>
@@ -3826,7 +3838,7 @@ const I18N={
   feedback_error:{de:'Senden fehlgeschlagen – bitte später erneut versuchen.',en:'Sending failed – please try again later.'},
   feedback_empty_error:{de:'Bitte gib erst etwas Text ein.',en:'Please enter some text first.'},
   feedback_unavailable:{de:'Feedback-Versand ist gerade nicht verfügbar (keine Internetverbindung?).',en:'Feedback sending isn’t available right now (no internet connection?).'},
-  home_tagline:{de:'Boards für deine Videoprojekte – lokal gespeichert, portabel & jederzeit exportierbar.',en:'Boards for your video projects – stored locally, portable, and exportable anytime.'},
+  home_tagline:{de:'Boards für deine kreativen Projekte – lokal gespeichert, portabel & jederzeit exportierbar.',en:'Boards for your creative projects – stored locally, portable, and exportable anytime.'},
   board_count:{de:'{n} Board{s}',en:'{n} board{s}'},
   import_title:{de:'Board importieren',en:'Import board'},
   menu_title:{de:'Menü',en:'Menu'},
@@ -4060,15 +4072,39 @@ const I18N={
   toast_sync_conflict:{de:'„{name}“: unterschiedliche Versionen gefunden – bitte auswählen',en:'"{name}": different versions found – please choose'},
   toast_sync_conflict_resolved:{de:'Konflikt gelöst',en:'Conflict resolved'},
   sync_target_fs:{de:'lokaler Ordner',en:'local folder'},
-  sync_target_drive:{de:'Google Drive',en:'Google Drive'},
   sync_target_r2:{de:'Cloud Sync',en:'cloud sync'},
   r2_sync_label:{de:'Cloud Sync',en:'Cloud sync'},
   r2_sync_on_title:{de:'Cloud Sync ist an — Boards werden automatisch über deinen Cloudflare-Speicher synchronisiert',en:'Cloud sync is on — boards sync automatically through your Cloudflare storage'},
   r2_sync_off_title:{de:'Cloud Sync ist aus — antippen zum Aktivieren',en:'Cloud sync is off — tap to enable'},
   r2_sync_on_toast:{de:'Cloud Sync aktiviert',en:'Cloud sync turned on'},
   r2_sync_off_toast:{de:'Cloud Sync deaktiviert',en:'Cloud sync turned off'},
+  cloud_explainer_title:{de:'Wie deine Daten gesichert werden',en:'How your data is secured'},
+  cloud_explainer_body_1:{de:'Cloud Sync läuft über Cloudflare R2 und ist Ende-zu-Ende-verschlüsselt — selbst wir als Betreiber können deine Boards dort nicht lesen.',en:'Cloud sync runs through Cloudflare R2 and is end-to-end encrypted — not even we, as the operator, can read your boards there.'},
+  cloud_explainer_body_2:{de:'Der Schlüssel dafür wird automatisch auf deinem ersten Gerät erzeugt, kein Passwort nötig. Weitere Geräte verknüpfst du einfach per QR-Code oder kurzem Code — ebenfalls ohne Passwort.',en:'The encryption key is generated automatically on your first device — no password needed. Additional devices link in via a QR code or short code, also with no password.'},
+  cloud_explainer_body_3:{de:'Deine Boards bleiben zusätzlich immer lokal auf diesem Gerät gespeichert. Die Google-Anmeldung dient dabei nur zur Identifikation deines Accounts — NOTUA fragt keinen Zugriff auf dein Google Drive mehr an.',en:'Your boards also always stay stored locally on this device. Google sign-in here is used only to identify your account — NOTUA no longer requests any access to your Google Drive.'},
+  cloud_explainer_continue:{de:'Verstanden, weiter',en:'Got it, continue'},
   r2_signin_failed_toast:{de:'Google-Anmeldung fehlgeschlagen — Cloud Sync konnte nicht aktiviert werden',en:'Google sign-in failed — couldn\'t enable cloud sync'},
   r2_quota_toast:{de:'Cloud-Speicher voll (100MB erreicht) — weitere Daten bleiben lokal gespeichert',en:'Cloud storage full (100MB reached) — further data stays stored locally'},
+  r2_link_needed_toast:{de:'Cloud Sync: dieses Gerät ist noch nicht verknüpft — unter Werkzeuge → Gerät verknüpfen',en:'Cloud sync: this device isn\'t linked yet — see Tools → Link device'},
+  r2_link_item_label:{de:'Gerät verknüpfen',en:'Link device'},
+  r2_link_landing_label:{de:'Gerät verknüpfen',en:'Link device'},
+  r2_link_offer_title:{de:'Neues Gerät verknüpfen',en:'Link a new device'},
+  r2_link_offer_intro:{de:'Scanne diesen QR-Code mit der Kamera-App des anderen Geräts, oder gib den Code dort von Hand ein.',en:'Scan this QR code with the other device\'s camera app, or type the code in by hand there.'},
+  r2_link_waiting:{de:'Warte auf Verbindung …',en:'Waiting to connect …'},
+  r2_link_success:{de:'Gerät verknüpft ✓',en:'Device linked ✓'},
+  r2_link_failed:{de:'Abgebrochen oder abgelaufen',en:'Cancelled or expired'},
+  r2_link_success_toast:{de:'Neues Gerät erfolgreich verknüpft',en:'New device linked successfully'},
+  r2_link_join_title:{de:'Gerät verknüpfen',en:'Link this device'},
+  r2_link_join_intro:{de:'Gib den Code ein, der auf einem bereits verknüpften Gerät angezeigt wird (oder scanne dort den QR-Code).',en:'Enter the code shown on an already-linked device (or scan its QR code there).'},
+  r2_link_join_placeholder:{de:'Code (z.B. AB3D9XQK)',en:'Code (e.g. AB3D9XQK)'},
+  r2_link_join_submit:{de:'Verknüpfen',en:'Link'},
+  r2_link_join_invalid:{de:'Bitte den vollständigen Code eingeben',en:'Please enter the full code'},
+  r2_link_join_failed:{de:'Code ungültig oder abgelaufen',en:'Code invalid or expired'},
+  r2_link_reset_link:{de:'Kein anderes Gerät mehr zur Hand?',en:'No other device on hand anymore?'},
+  r2_link_reset_confirm_title:{de:'Cloud-Daten wirklich zurücksetzen?',en:'Really reset your cloud data?'},
+  r2_link_reset_confirm_body:{de:'Ohne ein Gerät, das den Schlüssel schon kennt, lassen sich die bisherigen Cloud-Daten nicht mehr entschlüsseln — das gilt auch für uns. Zurücksetzen löscht sie endgültig und lässt dieses Gerät frisch starten. Lokal gespeicherte Boards sind davon nicht betroffen.',en:'Without a device that already knows the key, the existing cloud data can no longer be decrypted — by anyone, us included. Resetting deletes it permanently and lets this device start fresh. Locally stored boards are unaffected either way.'},
+  r2_link_reset_confirm_submit:{de:'Endgültig zurücksetzen',en:'Reset permanently'},
+  r2_link_reset_done_toast:{de:'Cloud-Daten zurückgesetzt — dieses Gerät ist jetzt neu eingerichtet',en:'Cloud data reset — this device is now freshly set up'},
   recently_restored_badge:{de:'Kürzlich wiederhergestellt',en:'Recently restored'},
   insp_multi_count:{de:'{n} Elemente ausgewählt',en:'{n} items selected'},
   insp_color_label:{de:'Farbe',en:'Color'},
@@ -4245,7 +4281,7 @@ const I18N={
   yt_embed_button:{de:'Einbetten',en:'Embed'},
   bl_open_label:{de:'Öffnen',en:'Open'},
   empty_board_hint:{de:'Wähle ein Werkzeug, um deine erste Notiz, ein Bild oder einen Clip hinzuzufügen.',en:'Pick a tool to add your first note, image, or clip.'},
-  empty_home_hint:{de:'Noch keine Boards. Leg dein erstes Board an und beginne mit der Planung deines Videoprojekts.',en:'No boards yet. Create your first board and start planning your video project.'},
+  empty_home_hint:{de:'Noch keine Boards. Leg dein erstes Board an und beginne mit der Planung deines kreativen Projekts.',en:'No boards yet. Create your first board and start planning your creative project.'},
   toast_folder_unsupported:{de:'Dieser Browser unterstützt keine Ordner-Anbindung.',en:'This browser doesn’t support connecting a folder.'},
   toast_folder_reconnect_needed:{de:'Bitte bestätige den Zugriff auf deinen Ordner (roter Button oben), um Boards zu erstellen oder zu öffnen.',en:'Please confirm access to your folder (red button up top) to create or open boards.'},
   // "trotz Ordner-Auswahl synct er die Boards nicht in den lokalen Ordner" — see activateFolder()'s and
@@ -4265,33 +4301,6 @@ const I18N={
   folder_reconnect_banner_title:{de:'Ordner-Zugriff bestätigen',en:'Confirm folder access'},
   folder_reconnect_banner_body:{de:'Deine Boards liegen in einem verbundenen Ordner, aber der Zugriff darauf muss erneut bestätigt werden (das passiert z. B. nach jedem Neustart des Browsers). Bis dahin werden hier absichtlich keine Boards angezeigt – so kannst du nicht aus Versehen an einer alten, nicht verbundenen Kopie weiterschreiben.',en:'Your boards live in a connected folder, but access to it needs to be re-confirmed (this happens after every browser restart, for example). Until then, no boards are shown here on purpose — so you can\'t accidentally keep editing an old, disconnected copy.'},
   folder_reconnect_banner_btn:{de:'Ordner erneut verbinden',en:'Reconnect folder'},
-  drive_unavailable_label:{de:'Google Drive nicht verfügbar',en:'Google Drive unavailable'},
-  drive_unavailable_title:{de:'Google-Anmeldung konnte nicht geladen werden (keine Internetverbindung oder blockiert).',en:'Google sign-in could not be loaded (no internet connection, or it is blocked).'},
-  drive_connect_label:{de:'Google Drive',en:'Google Drive'},
-  drive_connect_title:{de:'Boards mit deinem Google Drive synchronisieren',en:'Sync your boards with your Google Drive'},
-  drive_connecting_label:{de:'Verbinde …',en:'Connecting…'},
-  drive_connected_title:{de:'Verbunden als {name} – klicken für Optionen',en:'Connected as {name} – click for options'},
-  drive_pending_label:{de:'Google erneut verbinden',en:'Reconnect Google'},
-  drive_pending_title:{de:'Anmeldung bei Google ist abgelaufen – erneut verbinden',en:'Google sign-in has expired – reconnect'},
-  drive_offline_label:{de:'Offline – lokal gespeichert',en:'Offline – saved locally'},
-  drive_offline_title:{de:'Kein Internet gerade – deine Änderungen werden lokal gespeichert und automatisch mit Drive abgeglichen, sobald du wieder online bist.',en:'No internet right now – your changes are being saved locally and will sync to Drive automatically once you\'re back online.'},
-  toast_drive_offline_working:{de:'Kein Internet gerade – du kannst einfach weiterarbeiten. Deine Änderungen werden lokal gespeichert und automatisch mit Google Drive abgeglichen, sobald du wieder online bist.',en:'No internet right now – just keep working. Your changes are being saved locally and will sync to Google Drive automatically once you\'re back online.'},
-  drive_reconnect_banner_title:{de:'Google-Verbindung bestätigen',en:'Confirm Google connection'},
-  drive_reconnect_banner_body:{de:'Deine Boards werden mit Google Drive synchronisiert, aber die Anmeldung ist abgelaufen (das passiert z. B. nach jedem Neustart des Browsers). Bis dahin werden hier absichtlich keine Boards angezeigt – so kannst du nicht aus Versehen an einer alten, nicht synchronisierten Kopie weiterschreiben.',en:'Your boards are synced with Google Drive, but the sign-in has expired (this happens after every browser restart, for example). Until then, no boards are shown here on purpose — so you can\'t accidentally keep editing an old, unsynced copy.'},
-  drive_reconnect_banner_btn:{de:'Erneut mit Google verbinden',en:'Reconnect with Google'},
-  toast_drive_unsupported:{de:'Google-Anmeldung konnte nicht geladen werden. Prüfe deine Internetverbindung.',en:'Google sign-in could not be loaded. Check your internet connection.'},
-  toast_drive_reconnect_needed:{de:'Bitte verbinde dich erneut mit Google (Button oben), um Boards zu erstellen oder zu öffnen.',en:'Please reconnect with Google (button up top) to create or open boards.'},
-  toast_drive_signin_failed:{de:'Anmeldung bei Google ist fehlgeschlagen oder wurde abgebrochen.',en:'Google sign-in failed or was cancelled.'},
-  toast_drive_signin_blocked:{de:'Das Google-Anmeldefenster ist nicht aufgegangen — vermutlich hat dein Browser (z. B. Safari) das Pop-up blockiert. Bitte erlaube Pop-ups für notua.site und versuch\'s nochmal.',en:'The Google sign-in window never opened — your browser (e.g. Safari) likely blocked the pop-up. Please allow pop-ups for notua.site and try again.'},
-  toast_drive_no_client_id:{de:'Google Drive ist in dieser Version von NOTUA noch nicht eingerichtet (fehlende Client-ID).',en:'Google Drive isn\'t set up in this copy of NOTUA yet (missing client ID).'},
-  toast_drive_disconnected:{de:'Google Drive getrennt – deine Boards bleiben dort gespeichert, lokal siehst du sie erst nach dem nächsten Verbinden wieder.',en:'Google Drive disconnected – your boards stay saved there; locally you\'ll see them again once you reconnect.'},
-  confirm_migrate_drive_title:{de:'Vorhandene Boards zu Google Drive hochladen?',en:'Upload existing boards to Google Drive?'},
-  confirm_migrate_drive_body:{de:'Es gibt Boards, die bisher nur lokal gespeichert waren. Sollen sie in deinen Google-Drive-Ordner „NOTUA“ hochgeladen werden?',en:'Some boards were only stored locally so far. Should they be uploaded to your "NOTUA" folder on Google Drive?'},
-  drive_modal_title:{de:'Google Drive',en:'Google Drive'},
-  drive_modal_body:{de:'Verbunden als „{name}“. Deine Boards liegen im Ordner „NOTUA“ in deinem Google Drive – ein Board pro Unterordner, genau wie beim lokalen Speicherordner. Du kannst sie dort in Drive selbst ansehen oder z. B. mit einem anderen Gerät teilen.',en:'Connected as "{name}". Your boards live in the "NOTUA" folder in your Google Drive – one board per subfolder, just like the local storage folder. You can view them there in Drive itself, or share them with another device.'},
-  drive_disconnect_action:{de:'Trennen',en:'Disconnect'},
-  drive_switch_account_action:{de:'Konto wechseln',en:'Switch account'},
-  drive_syncing_label:{de:'Wird synchronisiert …',en:'Syncing…'},
   empty_trash_all_title:{de:'Papierkorb leeren',en:'Empty trash'},
   confirm_empty_trash_title:{de:'Papierkorb leeren?',en:'Empty trash?'},
   confirm_empty_trash_body:{de:'Alle {n} Boards im Papierkorb werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.',en:'All {n} boards in the trash will be permanently deleted. This can\'t be undone.'},
@@ -4311,22 +4320,18 @@ const I18N={
   folder_structure_filter_label:{de:'Welche Boards auf der Übersicht angezeigt werden',en:'Which boards show up on the overview'},
   folder_structure_filter_local:{de:'Lokal',en:'Local'},
   folder_structure_filter_all:{de:'Alle',en:'All'},
-  folder_structure_filter_drive:{de:'Drive',en:'Drive'},
   folder_structure_filter_hint:{de:'Wirkt nur auf die Ansicht – Boards werden dadurch nicht anders synchronisiert.',en:'Affects the view only – boards keep syncing exactly the same either way.'},
   folder_structure_filter_hint_disabled_fs:{de:'"Lokal" ist erst wählbar, sobald ein Ordner verbunden ist.',en:'"Local" only becomes selectable once a folder is connected.'},
-  folder_structure_filter_hint_disabled_drive:{de:'"Drive" ist erst wählbar, sobald Google Drive verbunden ist.',en:'"Drive" only becomes selectable once Google Drive is connected.'},
   folder_structure_icons_label:{de:'Speicherort-Icons auf den Kacheln anzeigen',en:'Show storage-location icons on tiles'},
-  folder_structure_icons_hint:{de:'Zeigt auf jeder Board-Kachel, wo diese Kopie gerade überall liegt (Ordner/DB/Drive) – verschwindet automatisch, sobald ein Board wirklich überall angekommen ist.',en:'Shows on every board tile where that copy currently exists (Folder/DB/Drive) – disappears automatically once a board has genuinely reached everywhere.'},
-  folder_structure_drive_sync_hint:{de:'Wird bei verbundenem Google Drive geräteübergreifend mitsynchronisiert, sonst nur lokal auf diesem Gerät gespeichert.',en:'Synced across your devices while Google Drive is connected, otherwise saved only on this device.'},
+  folder_structure_icons_hint:{de:'Zeigt auf jeder Board-Kachel, wo diese Kopie gerade überall liegt (Ordner/DB) – verschwindet automatisch, sobald ein Board wirklich überall angekommen ist.',en:'Shows on every board tile where that copy currently exists (Folder/DB) – disappears automatically once a board has genuinely reached everywhere.'},
   sync_btn_title:{de:'Synchronisieren',en:'Sync'},
   sync_popover_title:{de:'"{name}" synchronisieren',en:'Sync "{name}"'},
   sync_popover_sub:{de:'Befindet sich gerade in: {sources}. Wohin synchronisieren?',en:'Currently in: {sources}. Where do you want to sync it to?'},
   sync_target_all:{de:'Alle',en:'All'},
   sync_source_folder:{de:'Ordner',en:'Folder'},
-  sync_source_drive:{de:'Google Drive',en:'Google Drive'},
   sync_source_local:{de:'Lokaler Cache',en:'Local cache'},
   toast_sync_success:{de:'"{name}" wurde nach {target} synchronisiert',en:'"{name}" was synced to {target}'},
-  toast_sync_no_targets:{de:'Kein Ordner und kein Google Drive verbunden – verbinde zuerst einen Speicherort',en:'No folder and no Google Drive connected – connect a storage location first'},
+  toast_sync_no_targets:{de:'Kein Ordner verbunden – verbinde zuerst einen Speicherort',en:'No folder connected – connect a storage location first'},
   toast_sync_all_success:{de:'{n} Board(s) synchronisiert',en:'{n} board(s) synced'},
   toast_sync_all_nothing:{de:'Bereits alles synchron',en:'Everything is already in sync'},
   toast_export_select_one:{de:'Bitte genau ein Board auswählen',en:'Please select exactly one board'},
@@ -4420,7 +4425,7 @@ const I18N={
   impressum_contact_label:{de:'E-Mail',en:'Email'},
   impressum_legal_note:{de:'Angaben gemäß § 5 TMG. Verantwortlich für den Inhalt nach § 18 MStV: Tom Nüßer (Anschrift wie oben). Umsatzsteuer-Identifikationsnummer: nicht vorhanden.',en:'Information per § 5 TMG (German law). Responsible for content per § 18 MStV: Tom Nüßer (address as above). VAT ID: none.'},
   about_title:{de:'Über NOTUA',en:'About NOTUA'},
-  about_body_1:{de:'NOTUA ist eine kostenlose, moderne Notiz- und Board-App für deine Videoprojekte – keine Abos, keine Bezahlschranke, kein Kleingedrucktes.',en:'NOTUA is a free, modern note & board app for your video projects – no subscriptions, no paywall, no fine print.'},
+  about_body_1:{de:'NOTUA ist eine kostenlose, moderne Notiz- und Board-App für deine kreativen Projekte – keine Abos, keine Bezahlschranke, kein Kleingedrucktes.',en:'NOTUA is a free, modern note & board app for your creative projects – no subscriptions, no paywall, no fine print.'},
   about_body_2:{de:'Alles läuft lokal bei dir. Kein Account nötig, nichts hängt an fremden Servern – deine Boards bleiben deine, egal ob online oder offline.',en:'Everything runs locally on your machine. No account required, nothing depends on someone else\'s server – your boards stay yours, online or off.'},
   about_body_3:{de:'Komplett von mir allein programmiert, in meiner Freizeit. Wenn dir was fehlt oder kaputtgeht, sag Bescheid – ich freu mich über Feedback und Bug-Reports.',en:'Built entirely by me, solo, in my spare time. If something\'s missing or broken, let me know – I\'m always glad to get feedback and bug reports.'},
   // ---------- WHAT'S NEW ---------- (see showWhatsNewModal(), APP_VERSION/WHATSNEW_ITEMS)
@@ -4464,18 +4469,15 @@ function loadDynamicContent(){
   return true; // default: on
 }
 // "Ordnerstruktur" panel prefs (see showFolderStructureModal) — purely a Home-overview display
-// setting, never a sync control (see the comment on applyHomeSourceFilter). Local by default; when
-// Drive is connected, these two get mirrored into a small settings file in the NOTUA root and pulled
-// from there on every connect (see syncHomeSettingsWithDrive), so the same filter/icon choice follows
-// you across every device signed into that Drive account — exactly like every other piece of real
-// board data already does, just for this one small piece of UI state instead.
+// setting, never a sync control (see the comment on applyHomeSourceFilter). Local only (per device) —
+// this used to also mirror into a small settings file on Google Drive so it followed you across
+// devices; now that Drive sync is gone this is just a plain localStorage preference again.
 function loadHomeSourceFilter(){
-  try{ const saved=localStorage.getItem('notua-home-source-filter'); if(saved==='fs'||saved==='drive'||saved==='all') return saved; }catch(e){}
+  try{ const saved=localStorage.getItem('notua-home-source-filter'); if(saved==='fs'||saved==='all') return saved; }catch(e){}
   return 'all';
 }
 function saveHomeSourceFilter(val){
   try{ localStorage.setItem('notua-home-source-filter',val); }catch(e){}
-  syncHomeSettingsWithDrive();
 }
 function loadHomeSourceIconsEnabled(){
   try{ const saved=localStorage.getItem('notua-home-source-icons'); if(saved==='0') return false; }catch(e){}
@@ -4483,7 +4485,6 @@ function loadHomeSourceIconsEnabled(){
 }
 function saveHomeSourceIconsEnabled(val){
   try{ localStorage.setItem('notua-home-source-icons', val?'1':'0'); }catch(e){}
-  syncHomeSettingsWithDrive();
 }
 // Toolbar ("Werkzeugleiste") customization — which add-tools show in the dock/drawer and in what
 // order, plus whether the Strava widget kind shows in the Widgets submenu. Purely a per-device
@@ -4592,6 +4593,7 @@ function applyI18n(){
     ['#aboutBtn','text',t('about_label')],
     ['#datenschutzBtn','text',t('datenschutz_label')],
     ['#nutzungsbedingungenBtn','text',t('nutzungsbedingungen_label')],
+    ['#r2JoinDeviceBtn','text',t('r2_link_landing_label')],
     ['#toolsBtn','title',t('tools_btn_title')],
     ['#toolsTemplatesItem .tools-sheet-card-label','text',t('tools_templates_item')],
     ['#toolsImportItem .tools-sheet-card-label','text',t('tools_import_item')],
@@ -4663,9 +4665,6 @@ function applyI18n(){
     ['#folderReconnectTitle','text',t('folder_reconnect_banner_title')],
     ['#folderReconnectBody','text',t('folder_reconnect_banner_body')],
     ['#folderReconnectBtn','text',t('folder_reconnect_banner_btn')],
-    ['#driveReconnectTitle','text',t('drive_reconnect_banner_title')],
-    ['#driveReconnectBody','text',t('drive_reconnect_banner_body')],
-    ['#driveReconnectBtn','text',t('drive_reconnect_banner_btn')],
   ];
   const drawerLabels=document.querySelectorAll('.mobile-drawer .drawer-label');
   const labelKeys=['section_add','section_tool','section_view'];
@@ -4677,7 +4676,7 @@ function applyI18n(){
     else el.setAttribute(prop,val);
   });
   updateFolderStatusUI();
-  if(typeof updateDriveStatusUI==='function') updateDriveStatusUI();
+  updateLandingGoogleBtnUI();
   if(state.screen==='board') renderCrumbs(boardById(state.currentBoardId));
 }
 
@@ -5487,95 +5486,67 @@ async function fsRelocateBoardForProject(boardId){
 }
 
 /* ============================================================
-   GOOGLE DRIVE DATA LAYER (Google Identity Services + Drive REST API v3)
+   GOOGLE SIGN-IN (Google Identity Services) — identity only, no Drive access
    ============================================================
-   Mirrors FS_DB above as closely as possible: one subfolder per board inside a single "NOTUA" root
-   folder in the signed-in person's own Google Drive, each board folder holding a board.json file
-   (same {meta,cards,connectors} shape FS_DB writes) plus an "images" subfolder with one file per
-   image, named "<imageId><ext>" — identical layout, just addressed by Drive file IDs instead of
-   FileSystemHandle objects, since that's what the Drive REST API deals in.
-
-   Scope used is the narrow "drive.file" scope (this app can only ever see files/folders it created
-   itself — nothing else in the person's Drive), which is what keeps Google's app-verification
-   review realistic for a solo developer. See the separate setup guide for the full walkthrough.
+   NOTUA used to also sync board files through Google Drive; that whole data layer (Drive REST calls,
+   one folder per board, etc.) has been removed. What's left here is just the shared OAuth token
+   machinery (driveState/driveBuildTokenClient/driveRequestToken/ensureAccessToken below) — Google
+   sign-in now exists purely so R2 Cloud Sync (see further down) has a stable account identity to
+   attach to. Scope is the narrow "userinfo.email" (GOOGLE_AUTH_SCOPES below) — this app never
+   requests access to anyone's Drive files any more.
 
    IMPORTANT: this only works on the real deployed site (or the Android app) — never on a
    claude.ai Artifact preview link. That preview runs in a sandboxed origin whose Content-Security-
    Policy blocks every script/network host except a short CDN allowlist, and accounts.google.com /
-   googleapis.com are not on it — both the sign-in popup and every Drive API call are silently
-   blocked there. Nothing to fix in the code for that; it's a property of where the page is hosted. */
+   googleapis.com are not on it — the sign-in popup is silently blocked there. Nothing to fix in the
+   code for that; it's a property of where the page is hosted. */
 
 // Fill this in with the OAuth 2.0 "Web application" Client ID from your own Google Cloud project
-// (full step-by-step instructions in the separate setup guide) — until it's filled in, Drive sync
-// stays fully disabled everywhere (DRIVE_SUPPORTED below) and the Google-Drive button never shows
+// (full step-by-step instructions in the separate setup guide) — until it's filled in, Google sign-in
+// stays fully disabled everywhere (GOOGLE_SUPPORTED below) and the Google button never shows
 // at all, instead of showing up broken.
 const GOOGLE_CLIENT_ID = '928872575646-h8244hvb98n1l39tabgskhtjsak6aovh.apps.googleusercontent.com';
-const GOOGLE_DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
-const DRIVE_SUPPORTED = !!GOOGLE_CLIENT_ID;
-const DRIVE_API='https://www.googleapis.com/drive/v3/files';
+// Identity only — no Drive scope any more. NOTUA never requests access to anyone's Drive files; Google
+// sign-in exists purely so R2 Cloud Sync (see further down) has a stable account identity to attach to.
+const GOOGLE_AUTH_SCOPES = 'https://www.googleapis.com/auth/userinfo.email';
+const GOOGLE_SUPPORTED = !!GOOGLE_CLIENT_ID; // Google sign-in configured — used for identity now, no Drive access
 // Cloudflare R2 cloud sync — Tom's own 10GB-free-tier bucket ("notua-user-assets"), reached only
 // through a small Cloudflare Worker (delivered separately as notua-r2-worker.js) that holds no R2 API
 // key anywhere: the Worker talks to R2 through Cloudflare's native binding, not the S3-compatible API,
 // so there is nothing resembling a credential anywhere in THIS file for anyone to read out of the page
 // source — that's Tom's "es soll niemand über den Code die API fetchen können" requirement satisfied
-// structurally, not just by convention. Auth reuses the exact same Google sign-in/access token Drive
-// already uses (see r2Fetch below) — the Worker verifies that token against Google itself on every
-// request and derives a stable per-user id from it, so there's no separate NOTUA login to build.
+// structurally, not just by convention. Auth reuses the exact same Google sign-in/access token that
+// used to also power Drive sync (see r2Fetch below) — the Worker verifies that token against Google
+// itself on every request and derives a stable per-user id from it, so there's no separate NOTUA login
+// to build.
 // Left empty until Tom deploys the Worker and pastes its https://...workers.dev URL in here — until
 // then the whole feature stays completely inert (R2_SYNC_SUPPORTED below), same pattern as
-// DRIVE_SUPPORTED just above: nothing shows up broken, it simply doesn't show up yet.
+// GOOGLE_SUPPORTED just above: nothing shows up broken, it simply doesn't show up yet.
 const R2_SYNC_WORKER_URL = 'https://notua-r2-sync.tomxluna.workers.dev';
 const R2_SYNC_SUPPORTED = !!R2_SYNC_WORKER_URL;
-const DRIVE_UPLOAD_API='https://www.googleapis.com/upload/drive/v3/files';
 
+// Trimmed down to just the shared Google OAuth token machinery — Drive file/folder storage itself
+// (root, boardsRoot, dirs, cache, writers, etc.) is gone (see R2 CLOUD SYNC further down, which is the
+// only sync backend left besides the local folder). ensureAccessToken()/r2Fetch() still depend on this.
 const driveState={
   tokenClient:null,       // google.accounts.oauth2 token client, built lazily on first use
   accessToken:null,       // current bearer token — memory-only, NEVER persisted to disk
   tokenExpiresAt:0,       // ms epoch
-  email:'', name:'',
-  root:null,               // Drive folder id of the "NOTUA" root folder
-  boardsRoot:null,         // Drive folder id of the "notua-boards" subfolder (lazily created) — see BOARD FOLDER NESTING in the FS_DB section above, mirrored here
-  trashDir:null,           // Drive folder id of the "_Papierkorb" subfolder (lazily created), now nested under boardsRoot
-  dirs:new Map(),          // boardId -> board folder id (the board's OWN folder, wherever it's currently nested)
-  parentDirs:new Map(),    // boardId -> folder id of whatever directly CONTAINS that board's folder right now (its parent board's folder, boardsRoot, or trashDir) — driveMoveFile needs the CURRENT parent to move from, which isn't always driveState.root anymore
-  boardFileId:new Map(),   // boardId -> board.json file id
-  imagesDirId:new Map(),   // boardId -> images subfolder id
-  cache:new Map(),         // boardId -> {meta,cards,connectors}
-  cardOwner:new Map(),
-  connOwner:new Map(),
-  imageOwner:new Map(),    // imageId -> boardId
-  imageFileId:new Map(),   // imageId -> Drive file id
-  writers:new Map(),       // boardId -> debounced writer fn
-  pendingReconnect:false,  // true once we know Drive sync was active last session but the silent
-                            // token refresh on boot hasn't (yet) re-acquired an access token — this
-                            // means a real Google sign-in is needed (session expired/revoked), and
-                            // shows the harder "please reconnect" banner further down.
-  offline:false,           // true whenever the most recent Drive API call failed to even reach the
-                            // network (see driveFetch below, the single chokepoint every Drive call
-                            // goes through) — distinct from pendingReconnect: this is "just no
-                            // internet right now", not "your sign-in needs refreshing", so it never
-                            // shows that banner. Purely informational (driveBtn's "offline" pill) —
-                            // no background retry/reconcile is tied to it; see SYNC further down for
-                            // how a person actually pushes/pulls Drive's content now.
   authPromise:null,        // in-flight ensureAccessToken() promise, so concurrent calls share one
                             // popup/refresh instead of stacking several on top of each other
-  reconnectBannerDismissed:false, // true once the "bitte neu verbinden" banner has already auto-slid
-                            // away for the CURRENT pendingReconnect episode — "auftauchen, da stehen,
-                            // nach 30 Sekunden verschwinden": it gets one chance to be noticed per
-                            // episode, not a permanent fixture re-shown on every refreshHome() re-render
-                            // while pendingReconnect stays true. Reset to false wherever a new episode
-                            // starts (tryReconnectDrive, the silent-failure catch below) or ends
-                            // (confirmPendingDrive, disconnectDrive) — driveBtn's header pill stays the
-                            // standing, always-available way to reconnect either way.
-  reconnectBannerTimer:null, // the pending 30s auto-hide timeout for that banner, if one is armed
+  pendingReconnect:false, // true once a silent (interactive=false) token refresh has failed once —
+                           // see ensureAccessToken's own comment: this stops every subsequent
+                           // background call (R2 sync's r2Fetch runs on its own cadence) from each
+                           // independently retrying and potentially popping its own failing sign-in
+                           // window. Cleared again the next time an interactive sign-in succeeds.
 };
 
 function driveBuildTokenClient(){
-  if(driveState.tokenClient || !DRIVE_SUPPORTED) return driveState.tokenClient;
+  if(driveState.tokenClient || !GOOGLE_SUPPORTED) return driveState.tokenClient;
   if(!(window.google && google.accounts && google.accounts.oauth2)) return null;
   driveState.tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:GOOGLE_CLIENT_ID,
-    scope:GOOGLE_DRIVE_SCOPES,
+    scope:GOOGLE_AUTH_SCOPES,
     callback:()=>{}, // replaced per-call inside driveRequestToken() below
   });
   return driveState.tokenClient;
@@ -5651,855 +5622,81 @@ async function ensureAccessToken(interactive){
   if(driveState.authPromise) return driveState.authPromise;
   const opts=interactive ? {} : {prompt:'none'};
   driveState.authPromise=driveRequestToken(opts)
+    .then(token=>{ driveState.pendingReconnect=false; return token; })
     .catch(err=>{
-      if(!interactive){ driveState.pendingReconnect=true; driveState.reconnectBannerDismissed=false; updateDriveStatusUI(); }
+      if(!interactive){ driveState.pendingReconnect=true; }
       throw err;
     })
     .finally(()=>{ driveState.authPromise=null; });
   return driveState.authPromise;
 }
-// The single chokepoint every Drive REST call goes through — which makes it the one place that can
-// reliably know "did that just fail because we're offline" without every one of the 20-odd drive*()
-// helper functions above having to track it individually. driveState.offline (read by the driveBtn
-// status pill) is set here rather than by catching/interpreting exceptions from deep inside DRIVE_DB's
-// own defensive try/catches (most of which already swallow errors and return an empty/fallback value,
-// by design, same as FS_DB).
-async function driveFetch(url,opts){
-  opts=opts||{};
-  let token;
-  try{ token=await ensureAccessToken(false); }
-  catch(e){ token=driveState.accessToken; }
-  if(!token){
-    driveState.offline=true;
-    throw new Error('drive-not-signed-in');
-  }
-  let res;
-  try{
-    res=await fetch(url,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+token})}));
-  }catch(e){
-    // fetch() itself only throws for a genuine network-level failure (no connection, DNS, CORS) —
-    // never for an HTTP error status, which resolves normally with res.ok===false. That's exactly
-    // the "we're offline" signal the rest of the app needs.
-    driveState.offline=true;
-    throw e;
-  }
-  if(res.status===401){
-    // Token got rejected mid-flight (expired right on the edge, or revoked) — one silent-refresh
-    // retry, then give up and let the caller's own catch surface the "please reconnect" banner
-    // instead of looping forever.
-    driveState.accessToken=null;
-    const fresh=await ensureAccessToken(false).catch(()=>null);
-    if(fresh) res=await fetch(url,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+fresh})}));
-  }
-  driveState.offline=false;
-  return res;
-}
-
-async function driveFindChild(parentId,name,isFolder){
-  const mimeQ=isFolder ? " and mimeType='application/vnd.google-apps.folder'" : " and mimeType!='application/vnd.google-apps.folder'";
-  const q=encodeURIComponent(`'${parentId}' in parents and name='${name.replace(/'/g,"\\'")}' and trashed=false${mimeQ}`);
-  try{
-    const res=await driveFetch(`${DRIVE_API}?q=${q}&fields=files(id,name)&pageSize=1&spaces=drive`);
-    if(!res.ok) return null;
-    const data=await res.json();
-    return (data.files && data.files[0]) || null;
-  }catch(e){ return null; }
-}
-async function driveCreateFolder(parentId,name){
-  const res=await driveFetch(DRIVE_API+'?fields=id,name',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name, mimeType:'application/vnd.google-apps.folder', parents:[parentId]}),
-  });
-  if(!res.ok) throw new Error('drive-create-folder-failed');
-  return res.json();
-}
-async function driveFindOrCreateFolder(parentId,name){
-  const existing=await driveFindChild(parentId,name,true);
-  if(existing) return existing.id;
-  const created=await driveCreateFolder(parentId,name);
-  return created.id;
-}
-async function driveListFolderChildren(folderId){
-  const out=[]; let pageToken='';
-  do{
-    const q=encodeURIComponent(`'${folderId}' in parents and trashed=false`);
-    let res;
-    try{ res=await driveFetch(`${DRIVE_API}?q=${q}&fields=nextPageToken,files(id,name,mimeType)&pageSize=200&spaces=drive${pageToken?'&pageToken='+pageToken:''}`); }
-    catch(e){ break; }
-    if(!res.ok) break;
-    const data=await res.json();
-    (data.files||[]).forEach(f=>out.push(f));
-    pageToken=data.nextPageToken||'';
-  }while(pageToken);
-  return out;
-}
-async function driveGetJSON(fileId,fallback){
-  try{
-    const res=await driveFetch(`${DRIVE_API}/${fileId}?alt=media`);
-    if(!res.ok) return fallback;
-    const text=await res.text();
-    return text ? JSON.parse(text) : fallback;
-  }catch(e){ return fallback; }
-}
-async function driveGetBlob(fileId){
-  try{
-    const res=await driveFetch(`${DRIVE_API}/${fileId}?alt=media`);
-    if(!res.ok) return null;
-    return await res.blob();
-  }catch(e){ return null; }
-}
-async function driveMultipartCreate(parentId,name,mimeType,blob){
-  const boundary='notua-'+Math.random().toString(36).slice(2);
-  const metadata=JSON.stringify({name, parents:[parentId]});
-  const head=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
-  const tail=`\r\n--${boundary}--`;
-  const body=new Blob([head,blob,tail]);
-  const res=await driveFetch(`${DRIVE_UPLOAD_API}?uploadType=multipart&fields=id`,{
-    method:'POST', headers:{'Content-Type':`multipart/related; boundary=${boundary}`}, body,
-  });
-  if(!res.ok) throw new Error('drive-upload-failed');
-  const data=await res.json();
-  return data.id;
-}
-async function driveUpdateBlob(fileId,blob,mimeType){
-  const res=await driveFetch(`${DRIVE_UPLOAD_API}/${fileId}?uploadType=media`,{
-    method:'PATCH', headers:{'Content-Type':mimeType||'application/octet-stream'}, body:blob,
-  });
-  return res.ok;
-}
-async function driveWriteJSON(fileId,parentId,name,data){
-  const body=JSON.stringify(data);
-  if(fileId){
-    const ok=await driveUpdateBlob(fileId,new Blob([body],{type:'application/json'}),'application/json');
-    if(ok) return fileId;
-  }
-  // No existing file id (first save for this board, or the update above failed e.g. the file got
-  // deleted out from under us) — create it fresh via a multipart upload (metadata + content in one).
-  return driveMultipartCreate(parentId,name,'application/json',new Blob([body],{type:'application/json'}));
-}
-async function driveDeleteFile(fileId){
-  try{ await driveFetch(`${DRIVE_API}/${fileId}`,{method:'DELETE'}); }catch(e){}
-}
-// Small standalone JSON file directly in the NOTUA root (a sibling of notua-boards/, never inside it —
-// it isn't a board, so it must never end up looking like one to driveEnumerateBoards) holding
-// {homeSourceFilter, homeSourceIconsEnabled, updatedAt}: the "Ordnerstruktur" panel's two settings (see
-// showFolderStructureModal). Pulled once right after a Drive connection is established (see
-// activateDrive) so this device picks up whatever the setting was last changed to on any other device;
-// pushed (fire-and-forget, never blocks the UI) whenever the setting changes locally while Drive is
-// connected. With no Drive connected, saveHomeSourceFilter/saveHomeSourceIconsEnabled above already
-// wrote the value to localStorage regardless — that's still there and still works, this is purely an
-// extra mirror for when Drive is around to carry it between devices.
-const DRIVE_SETTINGS_FILE='notua-app-settings.json';
-async function syncHomeSettingsWithDrive(){
-  if(!driveState.root) return;
-  try{
-    const existing=await driveFindChild(driveState.root,DRIVE_SETTINGS_FILE,false);
-    await driveWriteJSON(existing?existing.id:null, driveState.root, DRIVE_SETTINGS_FILE, {
-      homeSourceFilter:state.homeSourceFilter,
-      homeSourceIconsEnabled:state.homeSourceIconsEnabled,
-      updatedAt:Date.now(),
-    });
-  }catch(e){} // best-effort — the local value (already in localStorage before this is ever called) works fine either way
-}
-// Called once from activateDrive() right after (re)connecting: adopts whatever this Drive account's
-// settings file already has — any other device's last change wins, since propagating that is the whole
-// point — or, first-ever connect for this account with nothing there yet, bootstraps the file from
-// whatever this device already has locally so it has somewhere to start from.
-async function pullHomeSettingsFromDrive(){
-  if(!driveState.root) return;
-  try{
-    const existing=await driveFindChild(driveState.root,DRIVE_SETTINGS_FILE,false);
-    if(!existing){ await syncHomeSettingsWithDrive(); return; }
-    const data=await driveGetJSON(existing.id,null);
-    if(!data) return;
-    if(data.homeSourceFilter==='fs'||data.homeSourceFilter==='drive'||data.homeSourceFilter==='all'){
-      state.homeSourceFilter=data.homeSourceFilter;
-      try{ localStorage.setItem('notua-home-source-filter',state.homeSourceFilter); }catch(e){}
-    }
-    if(typeof data.homeSourceIconsEnabled==='boolean'){
-      state.homeSourceIconsEnabled=data.homeSourceIconsEnabled;
-      try{ localStorage.setItem('notua-home-source-icons', state.homeSourceIconsEnabled?'1':'0'); }catch(e){}
-    }
-  }catch(e){}
-}
-async function driveMoveFile(fileId,fromParent,toParent){
-  try{ await driveFetch(`${DRIVE_API}/${fileId}?addParents=${toParent}&removeParents=${fromParent}&fields=id`,{method:'PATCH'}); }catch(e){}
-}
-
-async function driveGetRoot(){
-  if(driveState.root) return driveState.root;
-  const id=await driveFindOrCreateFolder('root','NOTUA');
-  driveState.root=id;
-  return id;
-}
-// See BOARD FOLDER NESTING in the FS_DB section above — mirrored here: every board folder now lives
-// under a single "notua-boards" subfolder of the NOTUA root instead of directly in it, and a
-// sub-board's folder is a real subfolder nested inside its parent board's own folder.
-async function driveGetBoardsRootDir(){
-  if(driveState.boardsRoot) return driveState.boardsRoot;
-  const root=await driveGetRoot(); if(!root) return null;
-  const id=await driveFindOrCreateFolder(root,'notua-boards');
-  driveState.boardsRoot=id;
-  return id;
-}
-async function driveGetTrashDir(){
-  if(driveState.trashDir) return driveState.trashDir;
-  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return null;
-  const id=await driveFindOrCreateFolder(boardsRoot,'_Papierkorb');
-  driveState.trashDir=id;
-  return id;
-}
-// Mirrors fsGetOpenDir()/fsGetProjectsDir() — see that comment. Not cached on driveState the way
-// boardsRoot/trashDir are (driveReorganizeByProjects() only calls these once per connect anyway; the
-// project-move path calls them at most once per drag), so a stale id can never survive a Drive folder
-// getting renamed/recreated out from under the app.
-function driveGetOpenDir(){ return driveGetBoardsRootDir().then(root=>root && driveFindOrCreateFolder(root,'open')); }
-function driveGetProjectsDir(){ return driveGetBoardsRootDir().then(root=>root && driveFindOrCreateFolder(root,'projects')); }
-async function driveEnsureBoardLoaded(boardId){
-  if(driveState.cache.has(boardId)) return driveState.cache.get(boardId);
-  const fileId=driveState.boardFileId.get(boardId);
-  if(!fileId) return null;
-  const data=await driveGetJSON(fileId,{meta:null,cards:[],connectors:[]});
-  data.cards=data.cards||[]; data.connectors=data.connectors||[];
-  driveState.cache.set(boardId,data);
-  data.cards.forEach(c=>{
-    driveState.cardOwner.set(c.id,boardId);
-    cardBlobRefs(c).forEach(bref=>driveState.imageOwner.set(bref,boardId));
-  });
-  data.connectors.forEach(cn=>driveState.connOwner.set(cn.id,boardId));
-  return data;
-}
-function driveWriteBoardSoon(boardId){
-  if(!driveState.writers.has(boardId)){
-    driveState.writers.set(boardId, debounce(async ()=>{
-      const parentId=driveState.dirs.get(boardId), data=driveState.cache.get(boardId);
-      if(!parentId||!data) return;
-      try{
-        const fileId=await driveWriteJSON(driveState.boardFileId.get(boardId), parentId, 'board.json', data);
-        driveState.boardFileId.set(boardId,fileId);
-      }catch(e){}
-    },300));
-  }
-  driveState.writers.get(boardId)();
-}
-async function driveEnsureImagesDir(boardId){
-  if(driveState.imagesDirId.has(boardId)) return driveState.imagesDirId.get(boardId);
-  const parentId=driveState.dirs.get(boardId); if(!parentId) return null;
-  const id=await driveFindOrCreateFolder(parentId,'images');
-  driveState.imagesDirId.set(boardId,id);
-  return id;
-}
-// Same job as FS_DB's fsWalkBoardChildren(): recursively walk every board folder nested inside a
-// given parent (the notua-boards root, or its _Papierkorb subfolder) — a folder counts as a board the
-// same way FS_DB decides it (it has its own board.json inside it; the images/ subfolder never does,
-// so it's skipped automatically) — and return each board's meta, recursing into every board found for
-// whatever sub-boards are nested inside IT in turn.
-// Unlike FS_DB, nothing here ever needs a post-move "repair" pass: Drive addresses every folder by a
-// permanent id, and moving a folder (driveMoveFile's addParents/removeParents) only ever changes THAT
-// folder's own parent — every folder nested inside it keeps the exact same id and the exact same
-// (still-valid) parent pointer to it, whether that folder itself just moved across Drive or not. FS_DB
-// needs the repair only because the File System Access API has no true move — a "move" there means
-// create-new-copy-then-delete-old, which really does invalidate every handle underneath.
-// Rewritten this round for real: this used to walk children.length folders one at a time — for EVERY
-// child it awaited a separate driveFindChild() (a filtered "does board.json exist here" query) before
-// even knowing whether that folder was a board at all, then, if it recursed into it, immediately
-// re-listed that same folder's children again from scratch via driveListFolderChildren at the top of
-// the recursive call. For an account with N board folders that's on the order of 2-3×N sequential,
-// AWAITED round trips to the Drive API just to find out what's there — with each round trip costing
-// somewhere in the 150-500ms range, an account with ~20 boards (not unusual — see the folder-structure
-// cleanup earlier this round) could easily spend several seconds, serially, on every single sync-engine
-// tick, every openBoard() cache-miss, every Home refresh's mergedAllBoards(). That's the concrete,
-// fixable half of "die sync time ist so gottlos lang" — the other half (Google's per-request latency
-// itself) isn't something this app controls, but doing those requests IN PARALLEL instead of one after
-// another, and only ONCE per folder instead of twice, is squarely within its control.
-// driveWalkBoards (the public entry point, same signature/behavior as before) now just lists parentId
-// once and hands off to driveProcessBoardChildren, which does two things differently: (1) it processes
-// every child folder of a level CONCURRENTLY (Promise.all) instead of one at a time — latency now scales
-// with the TREE'S DEPTH, not with how many boards exist at each level; (2) each child folder is listed
-// with driveListFolderChildren exactly ONCE, and that same listing is reused both to look for its own
-// board.json (replacing the old separate driveFindChild query) and, if it turns out to be a board, to
-// recurse into its own children — instead of listing the same folder twice like the old code did.
-async function driveWalkBoards(parentId,collect,seenIds){
-  const children=await driveListFolderChildren(parentId);
-  await driveProcessBoardChildren(children,parentId,collect,seenIds);
-}
-async function driveProcessBoardChildren(children,parentId,collect,seenIds){
-  // See BOARD_WALK_SKIP_NAMES (FS_DB section) — same reserved names, same reasoning, shared by both
-  // backends. "open"/"projects" are deliberately NOT in that set: they hold real board folders one
-  // level deeper without being boards themselves, and still get recursed into below.
-  const folders=children.filter(c=>c.mimeType==='application/vnd.google-apps.folder' && c.name!=='images' && !BOARD_WALK_SKIP_NAMES.has((c.name||'').toLowerCase()));
-  await Promise.all(folders.map(async (child)=>{
-    const innerChildren=await driveListFolderChildren(child.id);
-    const boardFile=innerChildren.find(f=>f.name==='board.json' && f.mimeType!=='application/vnd.google-apps.folder');
-    if(boardFile){
-      const data=await driveGetJSON(boardFile.id,null);
-      if(data && data.meta && data.meta.id){
-        const id=data.meta.id;
-        if(!seenIds.has(id)){
-          seenIds.add(id);
-          driveState.dirs.set(id,child.id);
-          driveState.parentDirs.set(id,parentId);
-          driveState.boardFileId.set(id,boardFile.id);
-          if(!driveState.cache.has(id)){
-            driveState.cache.set(id,{meta:data.meta, cards:data.cards||[], connectors:data.connectors||[]});
-            (data.cards||[]).forEach(c=>{
-              driveState.cardOwner.set(c.id,id);
-              cardBlobRefs(c).forEach(bref=>driveState.imageOwner.set(bref,id));
-            });
-            (data.connectors||[]).forEach(cn=>driveState.connOwner.set(cn.id,id));
-          }
-          if(collect) collect.push({...driveState.cache.get(id).meta});
-        }
-      }
-    }
-    // Recurse regardless of whether this folder itself turned out to be a board (had board.json just
-    // above) — a board's own sub-boards nest inside ITS folder, and a purely organizational folder
-    // (open/, projects/<Name>/) holds board folders inside it without being one itself. This used to
-    // be a plain early "return" on no-board.json, which — fine back when every direct child of
-    // notua-boards/ WAS a board — would have made every board inside open/projects invisible the
-    // moment those folders existed. Reuses the innerChildren listing already fetched above, so this
-    // never re-lists child.id's contents a second time.
-    await driveProcessBoardChildren(innerChildren,child.id,collect,seenIds);
-  }));
-}
-async function driveEnumerateBoards(parentId){ const out=[]; await driveWalkBoards(parentId,out,new Set()); return out; }
-
-const DRIVE_DB={
-  // Filters out b.trashed for the same reason as FS_DB.allBoards() above — the background sync engine
-  // only ever writes board.json's fields via putBoard(); the physical-relocate move below (via
-  // driveMoveFile) is only ever reached from setTrashed(), which DB.setTrashed no longer calls for
-  // this backend at all (see activeBackend() further up). A trashed board can easily still be sitting
-  // right here with trashed:true in its own meta, not actually moved into _Papierkorb/.
-  async allBoards(){
-    if(!driveState.root) return [];
-    const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return [];
-    return (await driveEnumerateBoards(boardsRoot)).filter(b=>!b.isTemplate && !b.trashed);
-  },
-  async allTemplates(){
-    if(!driveState.root) return [];
-    const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return [];
-    return (await driveEnumerateBoards(boardsRoot)).filter(b=>b.isTemplate);
-  },
-  // Mirrors allBoards() above: on top of whatever's actually relocated into _Papierkorb/, also picks
-  // up any board still sitting in the main boards tree but flagged trashed:true there — see the
-  // comment on allBoards() and on FS_DB's identical fix just above.
-  async allTrashedBoards(){
-    if(!driveState.root) return [];
-    const out=[]; const seen=new Set();
-    const trashDir=await driveGetTrashDir();
-    if(trashDir){ for(const b of await driveEnumerateBoards(trashDir)){ if(!seen.has(b.id)){ seen.add(b.id); out.push(b); } } }
-    const boardsRoot=await driveGetBoardsRootDir();
-    if(boardsRoot){
-      for(const b of await driveEnumerateBoards(boardsRoot)){ if(b.trashed && !seen.has(b.id)){ seen.add(b.id); out.push(b); } }
-    }
-    return out.filter(b=>!b.isTemplate);
-  },
-  // Mirrors FS_DB.setTrashed: physically relocates the board's whole folder between notua-boards/ and
-  // notua-boards/_Papierkorb — Drive's addParents/removeParents move (real move, not FS_DB's manual
-  // copy-then-delete dance, since Drive addresses everything by file id). Restoring always drops a
-  // board back at the top level of notua-boards/ rather than trying to re-nest it under its original
-  // parent — simplest, and matches how this already worked (flatly) before nesting existed at all.
-  async setTrashed(id,trashed){
-    const entry=await driveEnsureBoardLoaded(id); if(!entry) return;
-    entry.meta.trashed=trashed; entry.meta.trashedAt=trashed?Date.now():null;
-    const folderId=driveState.dirs.get(id);
-    const fromParent=driveState.parentDirs.get(id);
-    if(folderId && fromParent){
-      try{
-        const trashDir=await driveGetTrashDir();
-        const boardsRoot=await driveGetBoardsRootDir();
-        const toParent=trashed?trashDir:boardsRoot;
-        if(toParent){
-          await driveMoveFile(folderId, fromParent, toParent);
-          driveState.parentDirs.set(id,toParent);
-        }
-      }catch(e){ /* physical move failed (e.g. offline) — the trashed flag written below still keeps
-                    board.json itself correct, just without the folder actually having moved yet */ }
-    }
-    driveWriteBoardSoon(id);
-  },
-  async getBoard(id){ const e=await driveEnsureBoardLoaded(id); return e ? {...e.meta} : null; },
-  async putBoard(b){
-    if(!driveState.root) return;
-    let folderId=driveState.dirs.get(b.id);
-    if(!folderId){
-      // A sub-board's folder nests inside its parent's OWN folder; a top-level board (no
-      // parentBoardId) goes directly under notua-boards/. If the parent isn't known here yet, falling
-      // back to the boards root still creates the board somewhere findable rather than failing — see
-      // the identical fallback (and its reasoning) in FS_DB.putBoard above.
-      const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
-      // A top-level board defaults into open/ (see fsReorganizeByProjects()'s comment — same
-      // reasoning, mirrored here) rather than directly under notua-boards/.
-      const openDir=b.parentBoardId ? null : await driveGetOpenDir();
-      const container=(b.parentBoardId && driveState.dirs.get(b.parentBoardId)) || openDir || boardsRoot;
-      folderId=await driveFindOrCreateFolder(container, folderNameFor(b.id,b.name));
-      driveState.dirs.set(b.id,folderId);
-      driveState.parentDirs.set(b.id,container);
-      driveState.cache.set(b.id,{meta:{...b}, cards:[], connectors:[]});
-    }else{
-      const entry=await driveEnsureBoardLoaded(b.id);
-      entry.meta={...entry.meta, ...b};
-      // Unlike FS_DB, the on-disk folder name is never kept in sync with a board rename — Drive
-      // addresses everything by file id, never by path, so the folder's name was only ever a
-      // human-readable label at creation time, not something anything else depends on.
-    }
-    driveWriteBoardSoon(b.id);
-  },
-  async deleteBoard(id){
-    let folderId=driveState.dirs.get(id);
-    if(!folderId){
-      // Not cached — see FS_DB.deleteBoard's identical fallback and its full reasoning ("alte
-      // Boards nicht zuverlässig gelöscht"). One re-walk of the boards root, and of trash
-      // separately (excluded from the normal walk — BOARD_WALK_SKIP_NAMES), relocates it before
-      // giving up.
-      const boardsRoot=await driveGetBoardsRootDir().catch(()=>null);
-      if(boardsRoot){
-        await driveWalkBoards(boardsRoot,null,new Set()).catch(()=>{});
-        folderId=driveState.dirs.get(id);
-      }
-      if(!folderId){
-        const trashDir=await driveGetTrashDir().catch(()=>null);
-        if(trashDir) await driveWalkBoards(trashDir,null,new Set()).catch(()=>{});
-        folderId=driveState.dirs.get(id);
-      }
-    }
-    if(folderId) await driveDeleteFile(folderId);
-    driveState.dirs.delete(id); driveState.cache.delete(id); driveState.writers.delete(id);
-    driveState.boardFileId.delete(id); driveState.imagesDirId.delete(id); driveState.parentDirs.delete(id);
-  },
-
-  async cardsForBoard(boardId){ const e=await driveEnsureBoardLoaded(boardId); return e ? e.cards.slice() : []; },
-  async putCard(c){
-    const e=await driveEnsureBoardLoaded(c.boardId); if(!e) return;
-    const i=e.cards.findIndex(x=>x.id===c.id);
-    if(i>=0) e.cards[i]=c; else e.cards.push(c);
-    driveState.cardOwner.set(c.id,c.boardId);
-    cardBlobRefs(c).forEach(bref=>driveState.imageOwner.set(bref,c.boardId));
-    driveWriteBoardSoon(c.boardId);
-  },
-  async putCards(list){
-    const byBoard=new Map();
-    list.forEach(c=>{ if(!byBoard.has(c.boardId)) byBoard.set(c.boardId,[]); byBoard.get(c.boardId).push(c); });
-    for(const [bid,cs] of byBoard){
-      const e=await driveEnsureBoardLoaded(bid); if(!e) continue;
-      cs.forEach(c=>{
-        const i=e.cards.findIndex(x=>x.id===c.id);
-        if(i>=0) e.cards[i]=c; else e.cards.push(c);
-        driveState.cardOwner.set(c.id,bid);
-      });
-      driveWriteBoardSoon(bid);
-    }
-  },
-  async deleteCard(id){
-    const bid=driveState.cardOwner.get(id); if(!bid) return;
-    const e=driveState.cache.get(bid); if(!e) return;
-    e.cards=e.cards.filter(c=>c.id!==id);
-    driveState.cardOwner.delete(id);
-    driveWriteBoardSoon(bid);
-  },
-
-  async connectorsForBoard(boardId){ const e=await driveEnsureBoardLoaded(boardId); return e ? e.connectors.slice() : []; },
-  async putConnector(c){
-    const e=await driveEnsureBoardLoaded(c.boardId); if(!e) return;
-    const i=e.connectors.findIndex(x=>x.id===c.id);
-    if(i>=0) e.connectors[i]=c; else e.connectors.push(c);
-    driveState.connOwner.set(c.id,c.boardId);
-    driveWriteBoardSoon(c.boardId);
-  },
-  async deleteConnector(id){
-    const bid=driveState.connOwner.get(id); if(!bid) return;
-    const e=driveState.cache.get(bid); if(!e) return;
-    e.connectors=e.connectors.filter(c=>c.id!==id);
-    driveState.connOwner.delete(id);
-    driveWriteBoardSoon(bid);
-  },
-
-  async putImage(id,blob,boardIdOverride){
-    const bid=boardIdOverride || driveState.imageOwner.get(id) || state.currentBoardId;
-    if(!driveState.dirs.get(bid)) return;
-    try{
-      // "Bilder die in der Drive gespeichert werden sollen eine höchstmenge die sinnvoll ist an kb
-      // haben, runterskaliert wenn sie zu groß sind" — only for Drive (FS_DB/IDB keep the original,
-      // full-resolution blob; see downscaleImageForDrive's own comment for why only Drive and only
-      // here). ext is computed AFTER this so a png that got re-encoded as jpeg is saved with the
-      // right extension, not a stale/wrong one.
-      blob=await downscaleImageForDrive(blob);
-      const imagesDir=await driveEnsureImagesDir(bid); if(!imagesDir) return;
-      const ext=extForBlob(blob);
-      let fileId=driveState.imageFileId.get(id);
-      if(!fileId){
-        const existing=await driveFindChild(imagesDir,id+ext,false);
-        if(existing) fileId=existing.id;
-      }
-      if(fileId) await driveUpdateBlob(fileId,blob,blob.type||'application/octet-stream');
-      else fileId=await driveMultipartCreate(imagesDir, id+ext, blob.type||'application/octet-stream', blob);
-      driveState.imageFileId.set(id,fileId);
-      driveState.imageOwner.set(id,bid);
-    }catch(e){}
-  },
-  async getImage(id){
-    let fileId=driveState.imageFileId.get(id);
-    if(!fileId){
-      const bid=driveState.imageOwner.get(id) || state.currentBoardId;
-      const imagesDir=await driveEnsureImagesDir(bid); if(!imagesDir) return null;
-      // Image filenames carry an unknown extension (see extForBlob) — same "search by prefix" trick
-      // FS_DB's findImageExt uses, just via a Drive `name contains` query instead of directory keys().
-      try{
-        const q=encodeURIComponent(`'${imagesDir}' in parents and name contains '${id}' and trashed=false`);
-        const res=await driveFetch(`${DRIVE_API}?q=${q}&fields=files(id,name)&pageSize=1`);
-        if(res.ok){ const data=await res.json(); if(data.files && data.files[0]) fileId=data.files[0].id; }
-      }catch(e){}
-      if(!fileId) return null;
-      driveState.imageFileId.set(id,fileId);
-    }
-    const blob=await driveGetBlob(fileId);
-    return blob ? {id, blob} : null;
-  },
-  async deleteImage(id){
-    const fileId=driveState.imageFileId.get(id);
-    if(fileId) await driveDeleteFile(fileId);
-    driveState.imageFileId.delete(id); driveState.imageOwner.delete(id);
-  },
-};
-
-/* ---------- IMAGE DOWNSCALING FOR DRIVE ----------
-   "Bilder die in der Drive gespeichert werden am besten eine höchstmenge die sinnvoll ist an kb haben,
-   runterskaliert wenn sie zu groß sind" — a phone photo dropped onto a board can easily be 4-8MB;
-   nobody needs that at full resolution just to see it as a small reference image on a board, and it
-   eats into Drive's free storage fast. Deliberately scoped to Drive only (not FS_DB, not IndexedDB):
-   a connected LOCAL folder has no real storage-budget concern the way a Drive quota does, and
-   IndexedDB is the app's own working copy — shrinking either of those would just be lossy for no
-   reason. This only ever runs right before a Drive upload (DRIVE_DB.putImage above), so the
-   full-resolution original is exactly what's still shown on the board and stored everywhere else. */
-const IMAGE_DRIVE_MAX_DIM=1600;              // px, longest side — Tom's call: board images are viewed as cards/zoomed references, not full-res photo prints, and a lower cap keeps the average file noticeably smaller than the byte cap below, not right up against it
-const IMAGE_DRIVE_MAX_BYTES=1*1024*1024;      // ~1MB — below this, an image is left completely untouched. Budgeted so ~200 images (Tom's own sanity check) land around ~200MB, i.e. comfortably inside a ~1GB Drive budget with room to spare rather than filling it up fast
-async function downscaleImageForDrive(blob){
-  if(!blob || !blob.type || !blob.type.startsWith('image/')) return blob; // not a raster image (e.g. a "Datei einfügen" PDF/doc) — nothing to downscale
-  if(blob.type==='image/svg+xml' || blob.type==='image/gif') return blob; // vector (resizing via canvas would rasterize it) / possibly animated (canvas would flatten it to one frame) — leave both exactly as uploaded
-  if(blob.size<=IMAGE_DRIVE_MAX_BYTES) return blob; // already small enough
-  try{
-    const bitmap=await createImageBitmap(blob);
-    let{width,height}=bitmap;
-    const longest=Math.max(width,height);
-    if(longest>IMAGE_DRIVE_MAX_DIM){
-      const scale=IMAGE_DRIVE_MAX_DIM/longest;
-      width=Math.round(width*scale); height=Math.round(height*scale);
-    }
-    const canvas=document.createElement('canvas');
-    canvas.width=width; canvas.height=height;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(bitmap,0,0,width,height);
-    if(bitmap.close) bitmap.close();
-    // PNG stays PNG (so an image relying on transparency doesn't silently get a flattened background)
-    // — the resize alone already shrinks it plenty. Anything else becomes a quality-0.8 JPEG, by far
-    // the most effective single lever for a photo.
-    const outType=blob.type==='image/png' ? 'image/png' : 'image/jpeg';
-    const quality=outType==='image/jpeg' ? 0.8 : undefined;
-    let out=await new Promise(res=>canvas.toBlob(res,outType,quality));
-    if(!out) return blob; // canvas encoding failed for some reason — never lose the image over this, ship the original instead
-    // Still over budget (a very large/busy photo even after the resize above) — a couple of
-    // progressively-lower-quality JPEG passes, each only kept if it actually helped, so a very
-    // detailed photo still reliably lands under the (now tighter) byte cap instead of sneaking
-    // through close to it.
-    if(out.size>IMAGE_DRIVE_MAX_BYTES && outType==='image/jpeg'){
-      for(const q of [0.6,0.4]){
-        const attempt=await new Promise(res=>canvas.toBlob(res,'image/jpeg',q));
-        if(attempt && attempt.size<out.size) out=attempt;
-        if(out.size<=IMAGE_DRIVE_MAX_BYTES) break;
-      }
-    }
-    return out.size<blob.size ? out : blob; // only ever use the downscaled version if it actually came out smaller
-  }catch(e){ return blob; }
-}
-
-/* ---------- UNIVERSAL IMAGE COMPRESSION ("sorg dafür das Bilder höchstens 150kb groß sind") ----------
-   Tom's instruction alongside the new R2 cloud sync: every image that enters NOTUA — however it gets
-   in (image card, carousel, "Datei einfügen", a column's cover image, a board's own icon) — should be
-   capped at 150KB from the very start, everywhere it ends up stored (IndexedDB, a connected folder,
-   Drive, and now R2 alike), not just downscaled later for one specific backend the way
-   downscaleImageForDrive() above already does for Drive alone. Wired in at the one real choke point
-   every image write already goes through — DB.putImage, see the DB dispatcher below — so every
-   existing call site (there are close to a dozen) gets this for free, no call site touched.
-   WebP instead of JPEG: usually 25-35% smaller than JPEG at the same visual quality, which matters a
-   lot when 150KB is the WHOLE budget, not just "smaller is nicer". Resize first (longest side down to
-   IMAGE_MAX_DIM), then a quality ladder; if a very busy/detailed photo still doesn't fit even at the
-   lowest quality step, shrink the dimensions further and run the whole ladder again — a few rounds at
-   most, never long enough to freeze the UI on a huge phone photo. */
-const IMAGE_MAX_DIM=1600;
-const IMAGE_MAX_BYTES=150*1024;
-const IMAGE_WEBP_QUALITIES=[0.82,0.7,0.55,0.42,0.3];
-async function compressImageForStorage(blob){
-  if(!blob || !blob.type || !blob.type.startsWith('image/')) return blob; // not a raster image — nothing to compress (e.g. a "Datei einfügen" PDF/doc)
-  if(blob.type==='image/svg+xml' || blob.type==='image/gif') return blob; // vector (canvas would rasterize it) / possibly animated (canvas would flatten it) — leave both exactly as uploaded
-  if(blob.size<=IMAGE_MAX_BYTES) return blob; // already small enough
-  try{
-    const bitmap=await createImageBitmap(blob);
-    let{width,height}=bitmap;
-    let best=null; // smallest blob produced so far across every attempt, regardless of whether it hit the cap
-    for(let attempt=0; attempt<4; attempt++){
-      const longest=Math.max(width,height);
-      if(longest>IMAGE_MAX_DIM){ const scale=IMAGE_MAX_DIM/longest; width=Math.round(width*scale); height=Math.round(height*scale); }
-      const canvas=document.createElement('canvas');
-      canvas.width=Math.max(1,width); canvas.height=Math.max(1,height);
-      canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
-      let hit=null;
-      for(const q of IMAGE_WEBP_QUALITIES){
-        const attemptBlob=await new Promise(res=>canvas.toBlob(res,'image/webp',q));
-        if(!attemptBlob) continue;
-        if(!best || attemptBlob.size<best.size) best=attemptBlob;
-        if(attemptBlob.size<=IMAGE_MAX_BYTES){ hit=attemptBlob; break; }
-      }
-      if(hit){ best=hit; break; }
-      width=Math.round(width*0.75); height=Math.round(height*0.75); // still over budget — shrink further and try the whole quality ladder again
-    }
-    if(bitmap.close) bitmap.close();
-    return (best && best.size<blob.size) ? best : blob; // only ever use the compressed version if it actually came out smaller
-  }catch(e){ return blob; } // canvas/WebP encoding unsupported or failed for some reason — never lose the image over this, ship the original instead
-}
-
-// Sweeps a Drive account for board folders still sitting directly in the NOTUA root (flat) instead of
-// nested under notua-boards/ — the layout every board folder used to have before nesting existed.
-// Mirrors fsMigrateFlatToNested()'s logic, just using real Drive moves (driveMoveFile) instead of
-// FS_DB's copy-then-delete dance — Drive addresses everything by id, so nothing here ever re-uploads
-// any file content, it only relinks folders to new parents. Called from activateDrive() on every
-// connect.
-//
-// An earlier version of this function bailed out the instant notua-boards/ existed at all, treating
-// that as proof the sweep had already finished. It hadn't: notua-boards/ gets created the moment ANY
-// board write happens (driveGetBoardsRootDir(), called from all over the sync engine), completely
-// independent of whether a flat-folder scan ever ran to completion — and a single failed move used to
-// abort that whole scan silently (see the old catch below). So an account could get permanently stuck
-// with some boards migrated and others flat forever, and — worse — once notua-boards/ existed, any
-// later write for one of those still-flat boards (from a session that had never seen its flat folder,
-// since driveFindOrCreateFolder only searches inside the container it's given) would create a BRAND
-// NEW, correctly-nested folder for that same board id right next to its still-flat original. Drive
-// happily allows two folders with an identical name, so nothing ever complained — that's exactly how
-// a NOTUA root ends up with folders like "Shotlist-Visuals-4a60b9" appearing twice.
-//
-// This version always re-scans the NOTUA root for stray flat board folders on every connect (one cheap
-// folder listing when there's nothing left to find — the common case once an account is caught up) and
-// reconciles anything it finds by board id against what's already nested, rather than trusting a single
-// existence check. A flat folder whose id has no nested counterpart yet is genuinely unmigrated and
-// gets moved in, same as before. A flat folder whose id ALREADY has a nested counterpart is a leftover
-// duplicate from the bug above — its nested counterpart is what the app has actually been reading from
-// and writing to, so it stays authoritative; the flat leftover is relinked into a dedicated
-// "notua-boards/_Migrations-Duplikate/" holding folder instead. That's deliberately NOT the app's own
-// _Papierkorb/Trash: this app's trash is live, synced, restorable state the sync engine and Home's
-// Papierkorb view both reason about, and dropping a second copy of an id that's simultaneously active
-// elsewhere in there risks exactly the kind of "which one is real" confusion this fix exists to remove.
-// _Migrations-Duplikate/ is just an inert parking spot nothing in the app ever scans (driveEnumerateBoards
-// only ever recurses into a folder that itself has a board.json — a plain holding folder doesn't — so
-// its contents are invisible to Home, Trash and the sync engine alike) — nothing is ever deleted, it's
-// just out of the way, and still there in Drive itself for a manual look if anything ever seems off.
-async function driveMigrateFlatToNested(){
-  if(!driveState.root) return;
-  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
-  const children=await driveListFolderChildren(driveState.root);
-  const flatBoards=[]; // {folderId,meta}
-  let oldTrashId=null;
-  for(const child of children){
-    if(child.mimeType!=='application/vnd.google-apps.folder') continue;
-    if(child.id===boardsRoot) continue;
-    if(child.name==='_Papierkorb'){ oldTrashId=child.id; continue; }
-    const boardFile=await driveFindChild(child.id,'board.json',false);
-    if(!boardFile) continue;
-    const data=await driveGetJSON(boardFile.id,null);
-    if(data && data.meta && data.meta.id) flatBoards.push({folderId:child.id,meta:data.meta});
-  }
-  const trashedFlatBoards=[];
-  if(oldTrashId){
-    const trashChildren=await driveListFolderChildren(oldTrashId);
-    for(const child of trashChildren){
-      if(child.mimeType!=='application/vnd.google-apps.folder') continue;
-      const boardFile=await driveFindChild(child.id,'board.json',false);
-      if(!boardFile) continue;
-      const data=await driveGetJSON(boardFile.id,null);
-      if(data && data.meta && data.meta.id) trashedFlatBoards.push({folderId:child.id,meta:data.meta});
-    }
-  }
-  if(!flatBoards.length && !trashedFlatBoards.length) return; // nothing stray — the common case once an account is caught up
-  const nestedIds=new Set((await driveEnumerateBoards(boardsRoot)).map(b=>b.id));
-  let dupeFolder=null;
-  async function archiveDuplicate(folderId,fromParent){
-    if(!dupeFolder) dupeFolder=await driveFindOrCreateFolder(boardsRoot,'_Migrations-Duplikate');
-    await driveMoveFile(folderId,fromParent,dupeFolder);
-  }
-  try{
-    for(const item of flatBoards){ if(nestedIds.has(item.meta.id)) await archiveDuplicate(item.folderId,driveState.root); }
-    const freshFlat=flatBoards.filter(item=>!nestedIds.has(item.meta.id));
-    if(freshFlat.length) await driveMigrateGroupToNested(freshFlat,driveState.root,boardsRoot);
-    if(trashedFlatBoards.length){
-      const existingTrash=await driveFindChild(boardsRoot,'_Papierkorb',true);
-      const nestedTrashIds=existingTrash ? new Set((await driveEnumerateBoards(existingTrash.id)).map(b=>b.id)) : new Set();
-      for(const item of trashedFlatBoards){ if(nestedTrashIds.has(item.meta.id) || nestedIds.has(item.meta.id)) await archiveDuplicate(item.folderId,oldTrashId); }
-      const freshTrashed=trashedFlatBoards.filter(item=>!nestedTrashIds.has(item.meta.id) && !nestedIds.has(item.meta.id));
-      if(freshTrashed.length){
-        const newTrash=await driveFindOrCreateFolder(boardsRoot,'_Papierkorb');
-        await driveMigrateGroupToNested(freshTrashed,oldTrashId,newTrash);
-      }
-    }
-  }catch(e){ return; } // something failed mid-sweep — nothing was ever deleted (moves only relink, archiving only relinks too), so just retry the remaining strays next connect
-  // The old root-level _Papierkorb folder is now empty (everything inside it was either archived as a
-  // duplicate or relocated into notua-boards/_Papierkorb above) — tidy it away, same as before.
-  if(oldTrashId){
-    const stillThere=await driveListFolderChildren(oldTrashId);
-    if(!stillThere.length){ try{ await driveDeleteFile(oldTrashId); }catch(e){} }
-  }
-  // Everything scanned above still has driveState.dirs/parentDirs/cache pointing at pre-sweep parent
-  // ids for some entries — clear it all so the very next enumeration (allBoards() etc, called right
-  // after this from activateDrive) does a clean walk of the current nested layout instead.
-  driveState.dirs.clear(); driveState.parentDirs.clear(); driveState.cache.clear();
-  driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear();
-  driveState.boardFileId.clear(); driveState.imagesDirId.clear(); driveState.imageFileId.clear();
-}
-// Reparents a flat list of {folderId,meta} board folders (today all direct children of fromParent) to
-// nest under destRoot, mirroring their logical meta.parentBoardId relationships — real Drive moves, so
-// no content is ever copied or re-uploaded, just relinked. Mirrors fsMigrateBoardGroupToNested()
-// exactly; see that function's comment for the placement logic (top-level or orphaned -> destRoot,
-// otherwise nested inside the parent's own — possibly just-moved — folder, however deep that goes).
-async function driveMigrateGroupToNested(list,fromParent,destRoot){
-  const byId=new Map(list.map(x=>[x.meta.id,x]));
-  const placed=new Set(); // boardIds already (re)parented — memoized so a parent with several children only moves once
-  const placing=new Set(); // cycle guard
-  async function place(item){
-    if(placed.has(item.meta.id)) return item.folderId;
-    if(placing.has(item.meta.id)) return item.folderId;
-    placing.add(item.meta.id);
-    const parentItem=item.meta.parentBoardId ? byId.get(item.meta.parentBoardId) : null;
-    const container=parentItem ? await place(parentItem) : destRoot;
-    if(container!==fromParent) await driveMoveFile(item.folderId,fromParent,container);
-    placed.add(item.meta.id);
-    return item.folderId;
-  }
-  for(const item of list) await place(item);
-}
-// Mirrors fsReorganizeByProjects() exactly (see that function's full comment for the reasoning) —
-// real Drive moves via driveMoveFile, so nothing is ever re-uploaded, just relinked. Run once per
-// connect right after driveMigrateFlatToNested(), which by then guarantees every board folder is
-// already properly nested under notua-boards/, so the only folders left directly in it are exactly
-// what this sorts (or nothing — naturally idempotent, since a board already moved into open/ or
-// projects/<Name>/ is no longer a direct child of notua-boards/ itself).
-async function driveReorganizeByProjects(){
-  if(!driveState.root) return;
-  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
-  const children=await driveListFolderChildren(boardsRoot);
-  const stray=children.filter(c=>c.mimeType==='application/vnd.google-apps.folder'
-    && c.name!=='open' && c.name!=='projects' && !BOARD_WALK_SKIP_NAMES.has((c.name||'').toLowerCase()));
-  if(!stray.length) return;
-  const projectOf=new Map();
-  (state.projects||[]).forEach(p=>p.boardIds.forEach(id=>projectOf.set(id,p)));
-  let openDir=null, projectsDir=null, orphanDir=null;
-  const projectDirCache=new Map();
-  for(const folder of stray){
-    const boardFile=await driveFindChild(folder.id,'board.json',false).catch(()=>null);
-    const data=boardFile ? await driveGetJSON(boardFile.id,null) : null;
-    const metaId=data && data.meta && data.meta.id;
-    if(!metaId){
-      // No valid board.json in here at all — a genuinely broken/orphaned folder (e.g. one the old,
-      // less robust deleteBoard() used to leave behind, see DRIVE_DB.deleteBoard's fallback fix
-      // above). Never deleted outright; parked for a manual look instead, same pattern as
-      // _Migrations-Duplikate/ already uses for migration leftovers.
-      if(!orphanDir) orphanDir=await driveFindOrCreateFolder(boardsRoot,'_Verwaiste-Ordner');
-      await driveMoveFile(folder.id,boardsRoot,orphanDir).catch(()=>{});
-      continue;
-    }
-    const project=projectOf.get(metaId);
-    let target;
-    if(project){
-      if(!projectDirCache.has(project.id)){
-        if(!projectsDir) projectsDir=await driveFindOrCreateFolder(boardsRoot,'projects');
-        projectDirCache.set(project.id, await driveFindOrCreateFolder(projectsDir, projectFolderSlug(project)));
-      }
-      target=projectDirCache.get(project.id);
-    }else{
-      if(!openDir) openDir=await driveFindOrCreateFolder(boardsRoot,'open');
-      target=openDir;
-    }
-    await driveMoveFile(folder.id,boardsRoot,target).catch(()=>{});
-  }
-  driveState.dirs.clear(); driveState.parentDirs.clear(); driveState.cache.clear();
-  driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear();
-  driveState.boardFileId.clear(); driveState.imagesDirId.clear(); driveState.imageFileId.clear();
-}
-// Live counterpart to driveReorganizeByProjects() — moves ONE already-known board's folder right
-// after a drag actually changes its project membership, mirroring fsRelocateBoardForProject()
-// exactly (see that function's comment). A single atomic driveMoveFile call — Drive addresses
-// everything by id, so unlike the FS version this never needs to copy anything.
-async function driveRelocateBoardForProject(boardId){
-  if(!driveState.root) return;
-  const oldParent=driveState.parentDirs.get(boardId);
-  if(!oldParent) return; // never opened/synced into this account this session — nothing to relocate
-  const boardsRoot=await driveGetBoardsRootDir(); if(!boardsRoot) return;
-  const project=findProjectOf(boardId);
-  try{
-    let target;
-    if(project){
-      const projectsDir=await driveFindOrCreateFolder(boardsRoot,'projects');
-      target=await driveFindOrCreateFolder(projectsDir, projectFolderSlug(project));
-    }else{
-      target=await driveFindOrCreateFolder(boardsRoot,'open');
-    }
-    if(target===oldParent) return; // already exactly there
-    const folderId=driveState.dirs.get(boardId);
-    if(!folderId) return;
-    await driveMoveFile(folderId,oldParent,target);
-    driveState.parentDirs.set(boardId,target);
-  }catch(e){ /* left exactly where it was — safe, picked up again by the next full reorg sweep */ }
-}
-
 /* ============================================================
-   CLOUDFLARE R2 CLOUD SYNC — Tom's fast replacement/supplement for the slow Google Drive sync above.
-   Same DB.* backend shape as FS_DB/DRIVE_DB (so it slots straight into backendFor()/syncTargets() and
-   every bit of the sync engine below with zero special-casing), but much simpler than either of them
-   internally: R2 is a flat key-value object store, not a real filesystem, so there's no folder-move
-   dance for rename/trash/restore the way FS_DB/DRIVE_DB need — a board is just one JSON object
+   CLOUDFLARE R2 CLOUD SYNC — NOTUA's cloud sync backend, replacing the old Google Drive sync entirely.
+   Same DB.* backend shape as FS_DB (so it slots straight into backendFor()/syncTargets() and
+   every bit of the sync engine below with zero special-casing), but much simpler internally: R2 is a
+   flat key-value object store, not a real filesystem, so there's no folder-move dance for
+   rename/trash/restore the way FS_DB needs — a board is just one JSON object
    (its meta+cards+connectors together, mirroring FS_DB's own board.json idea) plus its images as their
    own individually-keyed blobs, all namespaced under this user's own "folder" (users/<uid>/...) by the
    Worker itself — the client here never even sees or chooses that prefix.
 
-   Auth: r2Fetch() below reuses the exact same Google OAuth access token Drive already obtains
-   (ensureAccessToken()) — R2 sync "just works" the moment Tom is signed in with Google, no separate
+   Auth: r2Fetch() below reuses the exact same Google OAuth access token that used to also power Drive
+   sync (ensureAccessToken()) — R2 sync "just works" the moment Tom is signed in with Google, no separate
    login. The Worker verifies that token against Google on every request and derives the per-user
    namespace from it, so nothing here needs its own session/identity handling.
 
    Quota + compression: the 100MB-per-user limit is enforced server-side, in the Worker, on every write
    (see notua-r2-worker.js) — never trust a client-side number for something a client could just lie
    about. A write that gets rejected for being over quota shows one toast (r2ReportQuotaExceeded) and
-   is otherwise swallowed exactly like a failed FS_DB/DRIVE_DB write already is — the rest of a board's
+   is otherwise swallowed exactly like a failed FS_DB write already is — the rest of a board's
    sync still goes through. Every image is already squeezed to <=150KB before it ever gets here (see
-   compressImageForStorage() near downscaleImageForDrive above), so ~640 images comfortably fit the
-   100MB budget even before the Worker's own check.
+   compressImageForStorage()), so ~640 images comfortably fit the 100MB budget even before the Worker's
+   own check.
    ============================================================ */
 const r2State={
-  cache:new Map(),        // boardId -> {meta,cards,connectors}, mirrors fsState.cache/driveState.cache
+  cache:new Map(),        // boardId -> {meta,cards,connectors}, mirrors fsState.cache
   writers:new Map(),      // boardId -> debounced flush fn
   cardOwner:new Map(), connOwner:new Map(), imageOwner:new Map(), imageExt:new Map(),
   boardIds:null, boardIdsAt:0, // short-lived cache of this user's board ids (see r2ListBoardIds)
   offline:false,
   quotaWarned:false,       // one toast per connected session, not one per rejected write — same idea as fsWriteFailureShown
-  encKey:null,             // this user's AES-GCM CryptoKey for this session, fetched once from the Worker (see r2GetKey) and kept in memory only — never written to localStorage
-  encKeyPromise:null,      // in-flight /key fetch, so two near-simultaneous callers (e.g. r2BootIfEnabled racing a sync tick) share one request instead of firing two
+  encKey:null,             // this account's AES-GCM CryptoKey — generated once on the very first device, then handed to every other device via QR/code linking (see r2GenerateFirstKey/r2JoinViaLinkCode below). Kept in memory here; a raw-bytes copy is separately cached per-device in localStorage (r2CacheKeyLocally), never here.
 };
-// The one chokepoint every R2 request goes through — mirrors driveFetch() property-for-property
-// (same silent-refresh-then-retry-once on a 401, same offline flag for a genuine network failure),
-// just pointed at Tom's own Worker instead of Google's API, and with no fallback token source since R2
-// sync has no other way to authenticate.
+// The one chokepoint every authenticated R2 request goes through — mirrors driveFetch()
+// property-for-property (same silent-refresh-then-retry-once on a 401, same offline flag for a
+// genuine network failure), just pointed at Tom's own Worker instead of Google's API. Prefers a
+// device token (see r2GetDeviceToken — set once this device has linked via QR/code, see
+// r2JoinViaLinkCode) over a Google OAuth token: a QR/code-linked device authenticates straight with
+// the Worker from then on and never needs its own Google sign-in for R2 sync at all. Only a device
+// that has never linked (or is setting up the very first key for this account) falls back to Google.
 async function r2Fetch(path,opts){
   opts=opts||{};
-  let token;
-  try{ token=await ensureAccessToken(false); }catch(e){ token=driveState.accessToken; }
+  let token=r2GetDeviceToken();
+  const usingDeviceToken=!!token;
+  if(!token){
+    try{ token=await ensureAccessToken(false); }catch(e){ token=driveState.accessToken; }
+  }
   if(!token){ r2State.offline=true; throw new Error('r2-not-signed-in'); }
   let res;
   try{
     res=await fetch(R2_SYNC_WORKER_URL+path,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+token})}));
   }catch(e){ r2State.offline=true; throw e; }
-  if(res.status===401){
+  if(res.status===401 && !usingDeviceToken){
     const fresh=await ensureAccessToken(false).catch(()=>null);
     if(fresh) res=await fetch(R2_SYNC_WORKER_URL+path,Object.assign({},opts,{headers:Object.assign({},opts.headers,{Authorization:'Bearer '+fresh})}));
   }
   r2State.offline=false;
   return res;
 }
+// A plain fetch with NO Authorization header at all — used only for the two relay slots a brand-new,
+// not-yet-linked device has to read/write before it has ANY credential (see the QR/CODE DEVICE
+// LINKING section below). Deliberately kept separate from r2Fetch so nothing here can ever
+// accidentally attach a half-signed-in Google token.
+function r2FetchPublic(path,opts){ return fetch(R2_SYNC_WORKER_URL+path,opts); }
+function r2GetDeviceToken(){ try{ return localStorage.getItem('notua-r2-device-token'); }catch(e){ return null; } }
+function r2SetDeviceToken(tok){ try{ localStorage.setItem('notua-r2-device-token',tok); }catch(e){} }
+function r2B64FromBytes(bytes){ let bin=''; for(const b of bytes) bin+=String.fromCharCode(b); return btoa(bin); }
+function r2BytesFromB64(b64){ return Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); }
 function r2ReportQuotaExceeded(){
   if(r2State.quotaWarned) return;
   r2State.quotaWarned=true;
@@ -6507,38 +5704,21 @@ function r2ReportQuotaExceeded(){
 }
 /* ---------- CLIENT-SIDE ENCRYPTION FOR R2 ----------
    Tom's clarification: local storage (IndexedDB, a connected folder) stays exactly as it always was —
-   plain, untouched — but the cloud copy (R2) is encrypted so that nobody without the Worker's own
-   secret (i.e. no other user, and nobody without access to Tom's Cloudflare account) can read it.
-   Everything below only ever runs on the R2 path (r2GetJSON/r2PutJSON, R2_DB.putImage/getImage) —
-   FS_DB/DRIVE_DB/IDB_DB are never touched by any of this.
+   plain, untouched — but the cloud copy (R2) has to be unreadable to EVERYONE except the user it
+   belongs to, Tom himself as the app's operator included. Everything below only ever runs on the R2
+   path (r2GetJSON/r2PutJSON, R2_DB.putImage/getImage) — FS_DB/DRIVE_DB/IDB_DB are never touched.
 
-   Tom's follow-up call after weighing the "own passphrase" version: the extra tap (typing a
-   password once per device) wasn't worth it to him, so this went back to fully automatic — the key is
-   derived server-side, in the Worker, from a secret only Tom's Cloudflare account holds
-   (ENCRYPTION_MASTER_SECRET) plus each user's Google id, and handed to the client once per session
-   (GET /key). Zero taps, works the instant someone signs in. The honest tradeoff, stated the same way
-   to Tom as in the code: because the Worker computes the key, whoever controls the Worker (Tom, as
-   operator) could in principle reconstruct any user's key — this protects every user's data from each
-   other and from anyone without Worker access, but it is NOT provably opaque to Tom himself the way a
-   passphrase-only scheme would be. Tom chose this tradeoff explicitly, in favor of a frictionless
-   sign-in-and-go experience. */
+   Final design (after two earlier attempts — a passphrase the user had to type, then a key the
+   Worker derived from a secret it held, neither of which was both zero-effort AND genuinely opaque
+   to Tom-as-operator): the AES-256-GCM key is generated entirely client-side, by whichever device
+   sets this account up first (r2GenerateFirstKey) — nothing the Worker could ever reconstruct, since
+   the Worker is never involved in creating it at all. Every OTHER device gets the very same key
+   purely by linking to an already-set-up device via a QR code or short typed code — see the QR/CODE
+   DEVICE LINKING section further down for exactly how that handoff stays just as opaque to the
+   Worker as the key's own creation was. */
 async function r2GetKey(){
-  if(r2State.encKey) return r2State.encKey;
-  if(!r2State.encKeyPromise) r2State.encKeyPromise=r2FetchEncryptionKey().finally(()=>{ r2State.encKeyPromise=null; });
-  return r2State.encKeyPromise;
-}
-// One round trip to the Worker's /key, which derives this account's AES-256-GCM key from its own
-// master secret + the caller's verified Google id (see deriveUserKey in notua-r2-worker.js) — nothing
-// to type, nothing to remember, just needs a valid Google sign-in (already required for every other R2
-// call via r2Fetch). Kept in memory only for the rest of this session (r2State.encKey).
-async function r2FetchEncryptionKey(){
-  const res=await r2Fetch('/key');
-  if(!res.ok) throw new Error('r2-key-fetch-failed');
-  const data=await res.json();
-  const raw=Uint8Array.from(atob(data.key),c=>c.charCodeAt(0));
-  const key=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']);
-  r2State.encKey=key;
-  return key;
+  if(!r2State.encKey) throw new Error('r2-encryption-not-ready');
+  return r2State.encKey;
 }
 // IV (12 random bytes, fresh every single encryption — AES-GCM's own requirement, never reuse an IV
 // with the same key) is simply prepended to the ciphertext, so the one stored object is everything
@@ -6558,12 +5738,58 @@ async function r2DecryptBytes(bytes){
   const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,cipher);
   return new Uint8Array(plain);
 }
-// Just resolves r2State.encKey (fetching it from the Worker the first time this session needs it) —
-// no prompt, no modal, nothing for the user to do beyond already being signed into Google. Returns
-// false only on a genuine failure (offline, sign-in problem, Worker unreachable).
+async function r2CacheKeyLocally(key){
+  try{
+    const raw=new Uint8Array(await crypto.subtle.exportKey('raw',key));
+    localStorage.setItem('notua-r2-enc-key',r2B64FromBytes(raw));
+  }catch(e){}
+}
+async function r2LoadCachedKey(){
+  try{
+    const b64=localStorage.getItem('notua-r2-enc-key');
+    if(!b64) return null;
+    return await crypto.subtle.importKey('raw',r2BytesFromB64(b64),{name:'AES-GCM'},true,['encrypt','decrypt']);
+  }catch(e){ return null; }
+}
+function r2ForgetLocalKey(){ try{ localStorage.removeItem('notua-r2-enc-key'); }catch(e){} }
+// A tiny, non-secret marker written once by whichever device sets this account's key up first — lets
+// every OTHER device tell "a key already exists somewhere, I need to link to get it" apart from
+// "genuinely nobody has ever set this account up, it's safe for me to generate the very first key".
+const R2_SETUP_MARKER_KEY='meta/setup.json';
+async function r2AccountAlreadySetUp(){
+  try{ const res=await r2Fetch('/object/'+R2_SETUP_MARKER_KEY,{method:'HEAD'}); return !!(res&&res.ok); }catch(e){ return false; }
+}
+async function r2GenerateFirstKey(){
+  try{
+    const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+    r2State.encKey=key;
+    await r2CacheKeyLocally(key);
+    await r2Fetch('/object/'+R2_SETUP_MARKER_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({createdAt:Date.now()})}).catch(()=>{});
+    return key;
+  }catch(e){ return null; }
+}
+// Wipes EVERYTHING this account has on R2 — every board, every image, and (server-side, see /reset in
+// notua-r2-worker.js) every device token ever issued to it — and forgets this device's own local copy
+// of the key. The only way out if the one device that ever held the key is lost for good, since by
+// design nobody, Tom included, can otherwise recover what's already encrypted with it.
+async function r2ResetCloudData(){
+  try{ await r2Fetch('/reset',{method:'DELETE'}); }catch(e){}
+  r2ForgetLocalKey();
+  try{ localStorage.removeItem('notua-r2-device-token'); }catch(e){}
+  r2State.encKey=null; r2State.cache.clear(); r2State.writers.clear(); r2State.boardIds=null;
+}
+// Silent-only: resolves from this device's own cached key, or (only for a genuinely brand-new
+// account) generates the very first one — never prompts, never touches the QR/code linking flow, so
+// it's safe to call from boot (r2BootIfEnabled) as well as the interactive toggle (setR2SyncEnabled).
+// Returns false when a key already exists elsewhere and this device just isn't linked to it yet —
+// callers that can prompt (setR2SyncEnabled) fall through to showR2JoinModal() in that case.
 async function r2EnsureEncryptionReady(){
   if(r2State.encKey) return true;
-  try{ await r2GetKey(); return true; }catch(e){ return false; }
+  const cached=await r2LoadCachedKey();
+  if(cached){ r2State.encKey=cached; return true; }
+  const alreadySetUp=await r2AccountAlreadySetUp();
+  if(!alreadySetUp){ const key=await r2GenerateFirstKey(); return !!key; }
+  return false;
 }
 function r2KeyForBoard(id){ return 'boards/'+id+'.json'; }
 async function r2GetJSON(key,fallback){
@@ -6587,6 +5813,136 @@ async function r2PutJSON(key,data){
   }catch(e){ return false; }
 }
 async function r2Delete(key){ try{ await r2Fetch('/object/'+key,{method:'DELETE'}); }catch(e){} }
+/* ---------- QR / CODE DEVICE LINKING ----------
+   "Könnten wir einbauen, dass man über einen QR-Code seinen Account autoverknüpfen kann... ohne
+   Google OAuth, direkt zum Server" — lets a brand-new device join an existing account two ways:
+   scanning a QR code shown on an already-linked device (with the phone's own camera app — no in-app
+   scanner needed, the QR just encodes a normal https://notua.site/?link=<code> URL that opens
+   straight into this flow, see the ?link= check in init() near the bottom of this file), or typing
+   the same short code by hand (the fallback for a desktop with no camera). Either way the new device
+   ends up with BOTH the real AES-GCM data key AND its own Worker bearer token, so from then on it
+   authenticates with Tom's Worker directly (r2Fetch prefers a cached device token over a Google OAuth
+   token) — no Google sign-in needed on that device at all, just for R2 sync.
+
+   How the two devices agree on a key that neither the Worker nor anyone reading its traffic could
+   ever derive: a 3-step ECDH handshake relayed through the Worker's own /relay/<code>/{a,b,r} (see
+   notua-r2-worker.js), which only ever stores opaque bytes addressed by the random code — it never
+   sees a private key from either side, so it can't compute the shared secret even with full read
+   access to everything it relays. This is the same trust model WhatsApp Web/Signal device linking
+   use. Step a: the ALREADY-LINKED device publishes an ephemeral ECDH public key. Step b: the NEW
+   device (after scanning/typing the code) publishes its own ephemeral public key. Step r: the
+   already-linked device — now holding both halves — derives the shared secret, uses it to encrypt
+   the real data key plus a freshly minted device token, and publishes that; the new device derives
+   the very same shared secret from its own private half and decrypts it. Whichever side finishes
+   last cleans up all three relay slots.
+
+   Honest tradeoff: a device token is a plain bearer credential with no built-in expiry — anyone who
+   got hold of one would have full read/write (not decrypt — the data itself stays separately
+   AES-encrypted) access to that account's R2 namespace, unlike a Google access token, which expires
+   in about an hour on its own. "Cloud-Daten zurücksetzen" (r2ResetCloudData) revokes every device
+   token this account ever issued as part of wiping everything — the only revocation path there is
+   right now. */
+const R2_LINK_CODE_ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I — easy to read/type by hand
+function r2RandomLinkCode(){
+  const rnd=crypto.getRandomValues(new Uint8Array(8));
+  let s=''; for(let i=0;i<8;i++) s+=R2_LINK_CODE_ALPHABET[rnd[i]%R2_LINK_CODE_ALPHABET.length];
+  return s;
+}
+function r2LinkUrl(code){ return location.origin+location.pathname+'?link='+code; }
+async function r2RelayGet(code,slot){
+  const res=await r2FetchPublic('/relay/'+code+'/'+slot);
+  if(res.status===404) return null;
+  if(!res.ok) throw new Error('r2-relay-get-failed');
+  return res.json();
+}
+async function r2RelayPut(code,slot,data,authed){
+  const opts={method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)};
+  const res=authed ? await r2Fetch('/relay/'+code+'/'+slot,opts) : await r2FetchPublic('/relay/'+code+'/'+slot,opts);
+  return res.ok;
+}
+function r2RelayDelete(code,slot,authed){
+  const opts={method:'DELETE'};
+  return (authed ? r2Fetch('/relay/'+code+'/'+slot,opts) : r2FetchPublic('/relay/'+code+'/'+slot,opts)).catch(()=>{});
+}
+async function r2GenEcdhKeyPair(){ return crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},false,['deriveKey']); }
+async function r2ExportEcdhPublicKey(publicKey){
+  // A CryptoKeyPair's public half is always extractable even when the pair as a whole was generated
+  // non-extractable (that flag only ever governs the private half) — 'raw' is the plain uncompressed
+  // EC point, the simplest possible wire format for a P-256 public key.
+  return r2B64FromBytes(new Uint8Array(await crypto.subtle.exportKey('raw',publicKey)));
+}
+async function r2ImportEcdhPublicKey(b64){
+  return crypto.subtle.importKey('raw',r2BytesFromB64(b64),{name:'ECDH',namedCurve:'P-256'},false,[]);
+}
+async function r2DeriveWrapKey(myPrivateKey,peerPublicKey,usage){
+  return crypto.subtle.deriveKey({name:'ECDH',public:peerPublicKey},myPrivateKey,{name:'AES-GCM',length:256},false,[usage]);
+}
+async function r2WrapEncrypt(wrapKey,plainBytes){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const cipher=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},wrapKey,plainBytes));
+  return {iv:r2B64FromBytes(iv), ciphertext:r2B64FromBytes(cipher)};
+}
+async function r2WrapDecrypt(wrapKey,ivB64,cipherB64){
+  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:r2BytesFromB64(ivB64)},wrapKey,r2BytesFromB64(cipherB64)));
+}
+// ----- Side A: an already-linked device offering to link a NEW one (shows the QR/code). -----
+// onCodeReady(code,url) fires once the code exists and can be displayed; shouldCancel() is polled
+// between waits so the modal's Cancel button can actually stop this. Resolves true on success, false
+// on cancel/timeout/error — cleans up all three relay slots itself either way.
+async function r2OfferDeviceLink(onCodeReady,shouldCancel){
+  const code=r2RandomLinkCode();
+  try{
+    const keyPair=await r2GenEcdhKeyPair();
+    const myPub=await r2ExportEcdhPublicKey(keyPair.publicKey);
+    if(!await r2RelayPut(code,'a',{publicKey:myPub},true)) return false;
+    onCodeReady && onCodeReady(code,r2LinkUrl(code));
+    let peerPub=null;
+    for(let i=0;i<150 && !peerPub;i++){ // ~150 * 2s = 5 minutes before giving up
+      if(shouldCancel && shouldCancel()) return false;
+      await new Promise(r=>setTimeout(r,2000));
+      const b=await r2RelayGet(code,'b').catch(()=>null);
+      if(b && b.publicKey) peerPub=b.publicKey;
+    }
+    if(!peerPub) return false;
+    const peerKey=await r2ImportEcdhPublicKey(peerPub);
+    const wrapKey=await r2DeriveWrapKey(keyPair.privateKey,peerKey,'encrypt');
+    const rawDataKey=new Uint8Array(await crypto.subtle.exportKey('raw',await r2GetKey()));
+    const tokenRes=await r2Fetch('/device-token',{method:'POST'});
+    if(!tokenRes.ok) return false;
+    const {token}=await tokenRes.json();
+    const payload=new TextEncoder().encode(JSON.stringify({key:r2B64FromBytes(rawDataKey),deviceToken:token}));
+    const wrapped=await r2WrapEncrypt(wrapKey,payload);
+    return await r2RelayPut(code,'r',wrapped,true);
+  }catch(e){ return false; }
+  finally{ r2RelayDelete(code,'a',true); r2RelayDelete(code,'b',false); r2RelayDelete(code,'r',true); }
+}
+// ----- Side B: the NEW, unlinked device joining via a scanned/typed code. -----
+async function r2JoinViaLinkCode(code){
+  try{
+    const a=await r2RelayGet(code,'a');
+    if(!a || !a.publicKey) return false; // code wrong, expired, or already claimed
+    const peerKey=await r2ImportEcdhPublicKey(a.publicKey);
+    const keyPair=await r2GenEcdhKeyPair();
+    const myPub=await r2ExportEcdhPublicKey(keyPair.publicKey);
+    if(!await r2RelayPut(code,'b',{publicKey:myPub},false)) return false;
+    let result=null;
+    for(let i=0;i<150 && !result;i++){
+      await new Promise(r=>setTimeout(r,2000));
+      result=await r2RelayGet(code,'r').catch(()=>null);
+    }
+    if(!result) return false;
+    const wrapKey=await r2DeriveWrapKey(keyPair.privateKey,peerKey,'decrypt');
+    const plainBytes=await r2WrapDecrypt(wrapKey,result.iv,result.ciphertext);
+    const payload=JSON.parse(new TextDecoder().decode(plainBytes));
+    const realKey=await crypto.subtle.importKey('raw',r2BytesFromB64(payload.key),{name:'AES-GCM'},true,['encrypt','decrypt']);
+    r2SetDeviceToken(payload.deviceToken);
+    r2State.encKey=realKey;
+    await r2CacheKeyLocally(realKey);
+    try{ localStorage.setItem('notua-r2-sync','1'); }catch(e){}
+    return true;
+  }catch(e){ return false; }
+  finally{ r2RelayDelete(code,'b',false); }
+}
 // Lists every "boards/*.json" key this user has on R2 right now — the R2 equivalent of FS_DB's folder
 // walk / DRIVE_DB's Drive query, just via the Worker's own /list route. Cached for a few seconds since
 // allBoards()/allTrashedBoards()/allTemplates() below each call this once per merge pass (see
@@ -6754,26 +6110,57 @@ function isR2SyncEnabled(){
 }
 async function setR2SyncEnabled(on){
   if(on){
-    try{ await ensureAccessToken(true); } // interactive — shows the Google sign-in popup if not already signed in
-    catch(e){ showToast(t('r2_signin_failed_toast')); return; }
-    const ready=await r2EnsureEncryptionReady();
-    if(!ready){ showToast(t('r2_signin_failed_toast')); return; } // Worker/key fetch failed — stays off, nothing half-configured
+    // A device with no device token yet has never linked before (see QR/CODE DEVICE LINKING) — it
+    // still needs SOME credential to even ask the Worker "does a key exist for this account yet?",
+    // so it falls back to interactive Google sign-in for that one check. A QR/code-linked device
+    // skips this entirely, exactly as intended ("ohne Google OAuth").
+    if(!r2GetDeviceToken()){
+      try{ await ensureAccessToken(true); }
+      catch(e){ showToast(t('r2_signin_failed_toast')); return; }
+    }
+    let ready=await r2EnsureEncryptionReady();
+    if(!ready){
+      // A key already exists for this account somewhere else — this device has to link to it, it can
+      // never safely generate its own (that would produce a second, different key that can't decrypt
+      // anything already on R2). showR2JoinModal walks the user through scanning/typing a code from
+      // an already-linked device.
+      ready=await showR2JoinModal();
+      if(!ready) return;
+    }
   }
   try{ localStorage.setItem('notua-r2-sync',on?'1':'0'); }catch(e){}
   if(!on){ r2State.cache.clear(); r2State.writers.clear(); r2State.boardIds=null; r2State.encKey=null; }
   refreshR2SyncToggleUI();
+  refreshR2LinkDeviceUI();
   showToast(on?t('r2_sync_on_toast'):t('r2_sync_off_toast'));
   if(on) scheduleSyncSoon(200);
 }
 // Fire-and-forget: if Cloud Sync was left on from a previous session, this quietly gets r2State.encKey
-// ready again in the background right after boot — no prompt, just a /key fetch once a Google session
-// exists. Called once at boot from applyDockCustomization().
+// ready again in the background right after boot — purely from this device's own cached key (or, for
+// a genuinely fresh account, generating the very first one), never a prompt. If this device turns out
+// to need linking (isn't the first device and has no cached key), this just leaves sync inactive with
+// a gentle nudge rather than popping a code-entry modal unprompted at boot — see r2_link_needed_toast.
 function r2BootIfEnabled(){
   if(isR2SyncEnabled() && !r2State.encKey){
-    r2EnsureEncryptionReady().then(ready=>{ if(ready) scheduleSyncSoon(200); });
+    r2EnsureEncryptionReady().then(ready=>{
+      refreshR2LinkDeviceUI();
+      updateLandingGoogleBtnUI();
+      if(ready) scheduleSyncSoon(200);
+      else showToast(t('r2_link_needed_toast'));
+    });
   }
 }
+// Separate small tools-sheet card ("Gerät verknüpfen") that only ever offers to LINK OTHER devices —
+// only makes sense once this device itself already has a working key to hand out.
+function refreshR2LinkDeviceUI(){
+  const item=document.getElementById('toolsR2LinkItem');
+  if(!item) return;
+  item.hidden=!(R2_SYNC_SUPPORTED && isR2SyncEnabled() && r2State.encKey);
+  const label=item.querySelector('.tools-sheet-card-label');
+  if(label) label.textContent=t('r2_link_item_label');
+}
 function refreshR2SyncToggleUI(){
+  updateLandingGoogleBtnUI();
   const item=document.getElementById('toolsR2SyncItem');
   if(!item) return;
   if(!R2_SYNC_SUPPORTED){ item.hidden=true; return; }
@@ -6784,12 +6171,115 @@ function refreshR2SyncToggleUI(){
   if(label) label.textContent=t('r2_sync_label');
   item.title=on?t('r2_sync_on_title'):t('r2_sync_off_title');
 }
+// Side A UI — opened from the new "Gerät verknüpfen" tools-sheet card, only ever visible on a device
+// that already has a working key (see refreshR2LinkDeviceUI). Shows the QR (via the qrcodejs script
+// tag in <head>) plus the same code as plain text, and quietly runs r2OfferDeviceLink in the
+// background while it's open.
+function showR2LinkDeviceModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('r2_link_offer_title')}</h4>
+    <p>${t('r2_link_offer_intro')}</p>
+    <div class="r2-link-qr" id="r2LinkQr"></div>
+    <p class="mono r2-link-code" id="r2LinkCodeText">…</p>
+    <p class="secret-error" id="r2LinkOfferStatus">${t('r2_link_waiting')}</p>
+    <div class="modal-actions">
+      <button data-a="cancel">${t('modal_cancel')}</button>
+    </div>
+  </div>`;
+  let cancelled=false;
+  function finish(){ if(cancelled) return; cancelled=true; scrim.remove(); }
+  bindScrimDismiss(scrim,finish);
+  scrim.querySelector('[data-a="cancel"]').addEventListener('click',finish);
+  document.body.appendChild(scrim);
+  r2OfferDeviceLink(
+    (code,url)=>{
+      if(cancelled) return;
+      const codeEl=scrim.querySelector('#r2LinkCodeText'); if(codeEl) codeEl.textContent=code;
+      const qrEl=scrim.querySelector('#r2LinkQr');
+      if(qrEl && window.QRCode){ try{ new QRCode(qrEl,{text:url,width:180,height:180,correctLevel:QRCode.CorrectLevel.M}); }catch(e){} }
+    },
+    ()=>cancelled
+  ).then(ok=>{
+    if(cancelled) return;
+    const statusEl=scrim.querySelector('#r2LinkOfferStatus');
+    if(statusEl) statusEl.textContent=ok?t('r2_link_success'):t('r2_link_failed');
+    if(ok) showToast(t('r2_link_success_toast'));
+    setTimeout(()=>{ if(!cancelled) finish(); },ok?1600:2600);
+  });
+}
+// Side B UI — resolves true/false. Opened either automatically (boot-time ?link=<code> in the URL,
+// see the check in init() near the bottom of this file — covers a QR scanned with the phone's OWN
+// camera app) or manually: from the landing page's "Gerät verknüpfen" link (a device with no
+// account/session at all yet) or from setR2SyncEnabled (a device that already has SOME Google
+// session for this account, via the tools sheet, but was never linked to the actual encryption key).
+function showR2JoinModal(prefillCode){
+  return new Promise((resolve)=>{
+    const scrim=document.createElement('div'); scrim.className='modal-scrim';
+    scrim.innerHTML=`<div class="modal">
+      <h4>${t('r2_link_join_title')}</h4>
+      <p>${t('r2_link_join_intro')}</p>
+      <div class="secret-password-form">
+        <input type="text" id="r2JoinCodeInput" placeholder="${t('r2_link_join_placeholder')}" autocomplete="off" style="text-transform:uppercase;" value="${prefillCode?String(prefillCode).toUpperCase():''}"/>
+        <p class="secret-error" id="r2JoinError"></p>
+      </div>
+      <div class="modal-actions">
+        <button data-a="cancel">${t('modal_cancel')}</button>
+        <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('r2_link_join_submit')}</button>
+      </div>
+      <button type="button" class="linklike r2-link-reset" data-a="reset">${t('r2_link_reset_link')}</button>
+    </div>`;
+    let settled=false;
+    function finish(v){ if(settled) return; settled=true; scrim.remove(); resolve(v); }
+    bindScrimDismiss(scrim,()=>finish(false));
+    const input=scrim.querySelector('#r2JoinCodeInput');
+    const errEl=scrim.querySelector('#r2JoinError');
+    const okBtn=scrim.querySelector('[data-a="ok"]');
+    scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>finish(false));
+    async function trySubmit(){
+      const code=(input.value||'').trim().toUpperCase();
+      if(code.length<4){ errEl.textContent=t('r2_link_join_invalid'); return; }
+      okBtn.disabled=true; errEl.textContent=t('r2_link_waiting');
+      const ok=await r2JoinViaLinkCode(code);
+      okBtn.disabled=false;
+      if(ok){ refreshR2SyncToggleUI(); refreshR2LinkDeviceUI(); finish(true); }
+      else{ errEl.textContent=t('r2_link_join_failed'); }
+    }
+    okBtn.addEventListener('click',trySubmit);
+    input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); trySubmit(); } });
+    // "Kein anderes Gerät mehr zur Hand?" — the only way out if the key is gone from every device
+    // that ever held it (true end-to-end encryption means it can't be recovered any other way, not
+    // even by Tom) — wipes this account's cloud data entirely (r2ResetCloudData, which also revokes
+    // every device token), then lets THIS device generate a fresh key and start over as if it were
+    // the very first one. Double-confirmed, same pattern as every other permanent-delete action here.
+    scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
+      scrim.querySelector('.modal > h4').textContent=t('r2_link_reset_confirm_title');
+      scrim.querySelector('.modal > p').textContent=t('r2_link_reset_confirm_body');
+      scrim.querySelector('.secret-password-form').remove();
+      scrim.querySelector('.r2-link-reset').remove();
+      const actions=scrim.querySelector('.modal-actions');
+      actions.innerHTML=`<button data-a="cancel2">${t('modal_cancel')}</button><button data-a="reset2" class="primary" style="background:var(--danger);border-color:var(--danger);">${t('r2_link_reset_confirm_submit')}</button>`;
+      actions.querySelector('[data-a="cancel2"]').addEventListener('click',()=>finish(false));
+      actions.querySelector('[data-a="reset2"]').addEventListener('click',async ()=>{
+        actions.querySelector('[data-a="reset2"]').disabled=true;
+        try{ await ensureAccessToken(true); }catch(e){ finish(false); return; } // must still prove ownership of the Google account before wiping it
+        await r2ResetCloudData();
+        const key=await r2GenerateFirstKey();
+        if(key){ try{ localStorage.setItem('notua-r2-sync','1'); }catch(e){} refreshR2SyncToggleUI(); refreshR2LinkDeviceUI(); showToast(t('r2_link_reset_done_toast')); finish(true); }
+        else finish(false);
+      });
+    });
+    document.body.appendChild(scrim);
+    setTimeout(()=>input.focus(),0);
+    if(prefillCode) trySubmit();
+  });
+}
 
 /* ============================================================
    MULTI-QUELLEN-SPEICHER — mehrere Speicherorte gleichzeitig, manueller Sync
    ============================================================
-   Replaces the old single-active-backend model (idb XOR fs XOR drive, auto-reconciled/polled) with
-   one where the browser cache (idb, always available), a local folder (fs) and Google Drive (drive)
+   Replaces the old single-active-backend model (idb XOR fs, auto-reconciled/polled) with
+   one where the browser cache (idb, always available), a local folder (fs) and R2 Cloud Sync (r2)
    can all be connected at the same time. Each board still lives in exactly one backend's storage at
    a time — there is no continuous background sync — but the Home screen shows boards merged across
    every connected source (see mergedAllBoards()/mergedAllTrashedBoards() near refreshHome/refreshTrash),
@@ -6806,18 +6296,16 @@ function refreshR2SyncToggleUI(){
    ============================================================ */
 function backendFor(src){
   if(src==='fs') return FS_DB;
-  if(src==='drive') return DRIVE_DB;
   if(src==='r2') return R2_DB;
   return IDB_DB;
 }
 // Which backends currently hold a given board, and which one should be treated as "the" copy to open
 // (the most recently updated one) — checks every backend that's actually reachable right now (idb is
-// always checked; fs/drive only if connected) in parallel. Returns null if no connected source has
+// always checked; fs/r2 only if connected) in parallel. Returns null if no connected source has
 // this board at all (deleted, or belongs to a source that was since disconnected).
 async function resolveBoardSources(boardId){
   const checks=[['idb',IDB_DB]];
   if(fsState.root) checks.push(['fs',FS_DB]);
-  if(driveState.root) checks.push(['drive',DRIVE_DB]);
   if(isR2SyncEnabled() && r2State.encKey) checks.push(['r2',R2_DB]);
   const results=await Promise.all(checks.map(async ([src,backend])=>{
     try{ const b=await backend.getBoard(boardId); return b ? {src,updatedAt:b.updatedAt||0} : null; }
@@ -6854,7 +6342,7 @@ async function withBoardBackend(boardId,fn){
 // folder/Google Drive in the background is the sync engine's job (see the "SYNC ENGINE" section
 // below), not something every one of the hundreds of call sites in this file needs to know about.
 // state.storageMode / backendFor() / withBoardBackend() still exist and are still set (the "welcher
-// Speicher"/connect UI, migration helpers, and the sync engine itself all still use FS_DB/DRIVE_DB
+// Speicher"/connect UI, migration helpers, and the sync engine itself all still use FS_DB/R2_DB
 // directly) — activeBackend() itself just no longer looks at any of that.
 function activeBackend(){ return IDB_DB; }
 // Marks a board as having a local change that hasn't been pushed to every connected sync target yet,
@@ -6897,7 +6385,7 @@ const DB={
 };
 // Copies one already-collected board bundle (collectBoardBundle()'s shape: {boards,cards,connectors,
 // images}) into a specific backend, overwriting whatever's already there under the same ids — the
-// same order collectBoardBundle/instantiateBundle/migrateIdbToFs/migrateIdbToDrive already use
+// same order collectBoardBundle/instantiateBundle/migrateIdbToFs already use
 // (boards first so each backend can create its own folder/directory, then images, then cards, then
 // connectors).
 async function pushBundleToBackend(bundle,backend){
@@ -6906,7 +6394,7 @@ async function pushBundleToBackend(bundle,backend){
   for(const c of bundle.cards) await backend.putCard(c);
   for(const cn of bundle.connectors) await backend.putConnector(cn);
 }
-// Merges board lists across every connected source (idb always, fs/drive when connected) into one
+// Merges board lists across every connected source (idb always, fs/r2 when connected) into one
 // deduped list by id — a board living in more than one source appears once, showing whichever copy
 // has the newest updatedAt, while state.boardSources remembers EVERY source that currently has it
 // (for the Sync popover's "befindet sich in: ...") and which one is "best" (for withBoardBackend()/
@@ -6914,7 +6402,6 @@ async function pushBundleToBackend(bundle,backend){
 async function mergedBoardsFrom(methodName){
   const checks=[['idb',IDB_DB]];
   if(fsState.root) checks.push(['fs',FS_DB]);
-  if(driveState.root) checks.push(['drive',DRIVE_DB]);
   if(isR2SyncEnabled() && r2State.encKey) checks.push(['r2',R2_DB]);
   const lists=await Promise.all(checks.map(async ([src,backend])=>{
     try{ return {src, boards:await backend[methodName]()}; }catch(e){ return {src, boards:[]}; }
@@ -6952,8 +6439,7 @@ function applyBoardOverrides(list){
 
 /* ============================================================
    SYNC ENGINE — automatic, silent background sync between IndexedDB (the only thing the UI itself
-   ever reads or writes — see activeBackend() above) and whichever of a connected local folder /
-   Google Drive are currently connected.
+   ever reads or writes — see activeBackend() above) and R2 Cloud Sync, whenever it's enabled.
 
    The whole flow in one paragraph: every DB.* write already lands in IndexedDB instantly (nothing
    in the UI ever waits on a network write anymore); the DB dispatcher also calls markBoardDirty()
@@ -6976,11 +6462,10 @@ function applyBoardOverrides(list){
 function syncTargets(){
   const targets=[];
   if(fsState.root) targets.push('fs');
-  if(driveState.root) targets.push('drive');
   if(isR2SyncEnabled() && r2State.encKey) targets.push('r2');
   return targets;
 }
-function syncTargetLabel(target){ return t(target==='drive' ? 'sync_target_drive' : target==='r2' ? 'sync_target_r2' : 'sync_target_fs'); }
+function syncTargetLabel(target){ return t(target==='r2' ? 'sync_target_r2' : 'sync_target_fs'); }
 let syncEngineRunning=false;
 let syncEngineTimer=null;
 // Debounced kickoff: called after every local write (via markBoardDirty) and by runSyncEngine's own
@@ -7307,7 +6792,7 @@ async function getImageUrl(imageId){
 const state={
   screen:'home',            // 'home' | 'board'
   lang:loadLang(),          // 'de' | 'en'
-  storageMode:'idb',         // 'idb' | 'fs' | 'drive'
+  storageMode:'idb',         // 'idb' | 'fs' | 'r2'
   boards:[],                 // all boards (cache)
   currentBoardId:null,
   blanketBoardCardId:null,   // set by applyBlanketBoardChrome() while the open board is a dedicated Blanket-Board (see addBlanketBoard())
@@ -7318,7 +6803,7 @@ const state={
   gridEnabled:true,
   snapEnabled:true,
   dynamicContent:loadDynamicContent(),
-  homeSourceFilter:loadHomeSourceFilter(),     // 'all' | 'fs' | 'drive' — Home-overview visibility filter, see applyHomeSourceFilter()
+  homeSourceFilter:loadHomeSourceFilter(),     // 'all' | 'fs' — Home-overview visibility filter, see applyHomeSourceFilter()
   homeSourceIconsEnabled:loadHomeSourceIconsEnabled(), // show/hide the small per-tile storage-location badges, see computeBoardSourceBadges()
   projects:loadProjects(),
   connectMode:false,
@@ -7960,6 +7445,7 @@ function applyDockCustomization(){
   refreshDockMagnify();
   refreshUiDynamicToggleUI();
   refreshR2SyncToggleUI();
+  refreshR2LinkDeviceUI();
   r2BootIfEnabled();
 }
 function wireDockCustomizeEyeToggle(eyeBtn,onToggled){
@@ -8347,28 +7833,6 @@ if(folderReconnectBtn){
     await refreshHome();
   });
 }
-const driveReconnectBanner=document.getElementById('driveReconnectBanner');
-const driveReconnectBtn=document.getElementById('driveReconnectBtn');
-if(driveReconnectBtn){
-  driveReconnectBtn.addEventListener('click',async ()=>{
-    await confirmPendingDrive();
-    await refreshHome();
-  });
-}
-// Shared by the 30s auto-hide (refreshHome()'s driveReconnectBanner block) and the manual X button
-// just below — same slide-away treatment, same reconnectBannerDismissed flag either way, so however
-// it closes, it stays closed for this pendingReconnect episode (driveBtn's header pill remains the
-// standing way to actually reconnect afterwards).
-function dismissDriveReconnectBanner(){
-  if(driveState.reconnectBannerTimer){ clearTimeout(driveState.reconnectBannerTimer); driveState.reconnectBannerTimer=null; }
-  driveState.reconnectBannerDismissed=true;
-  driveReconnectBanner.classList.add('banner-auto-hide');
-  driveReconnectBanner.addEventListener('transitionend',()=>{ driveReconnectBanner.hidden=true; },{once:true});
-}
-const driveReconnectCloseBtn=document.getElementById('driveReconnectCloseBtn');
-if(driveReconnectCloseBtn){
-  driveReconnectCloseBtn.addEventListener('click',dismissDriveReconnectBanner);
-}
 if(emptyTrashAllBtn){
   emptyTrashAllBtn.addEventListener('click',async ()=>{
     const all=await DB.allTrashedBoards();
@@ -8402,11 +7866,10 @@ function repaintHomeLocal(){
   if(state.screen==='home') paintHomeGrid(applyBoardOverrides(state.boards));
 }
 async function refreshHome(){
-  // A connected folder/Drive account that needs its access re-confirmed (see tryReconnectFolder/
-  // tryReconnectDrive) no longer blanks the whole board grid — boards from every OTHER connected
-  // source (idb always, plus whichever of fs/drive is still fine) keep showing normally; this banner
-  // is purely informational now, since the multi-source home merges across sources instead of one at
-  // a time. See MULTI-QUELLEN-SPEICHER above.
+  // A connected folder that needs its access re-confirmed (see tryReconnectFolder) no longer blanks
+  // the whole board grid — boards from every OTHER connected source (idb always, plus fs if still
+  // fine, plus r2 if signed in) keep showing normally; this banner is purely informational now, since
+  // the multi-source home merges across sources instead of one at a time. See MULTI-QUELLEN-SPEICHER above.
   if(folderReconnectBanner){
     const blocked=!!fsState.pendingHandle;
     folderReconnectBanner.hidden=!blocked;
@@ -8417,35 +7880,13 @@ async function refreshHome(){
         : t('folder_reconnect_banner_body');
     }
   }
-  if(driveReconnectBanner){
-    // "auftauchen, da stehen und nach 30 Sekunden über eine Slideanimation verschwinden" — shows once
-    // per pendingReconnect episode (reconnectBannerDismissed gates re-showing it on every subsequent
-    // refreshHome() re-render, e.g. after any board edit, while the person still hasn't reconnected),
-    // then auto-slides away on its own; driveBtn's header pill stays as the standing way to reconnect
-    // afterwards, so nothing about actually reconnecting depends on this banner still being visible.
-    const dBlocked=!!driveState.pendingReconnect && !driveState.reconnectBannerDismissed;
-    const wasHidden=driveReconnectBanner.hidden;
-    driveReconnectBanner.hidden=!dBlocked;
-    if(dBlocked){
-      driveReconnectBanner.classList.remove('banner-auto-hide');
-      document.getElementById('driveReconnectBody').textContent=driveState.email
-        ? t('drive_reconnect_banner_body')+' ("'+driveState.email+'")'
-        : t('drive_reconnect_banner_body');
-      if(wasHidden && !driveState.reconnectBannerTimer){
-        driveState.reconnectBannerTimer=setTimeout(dismissDriveReconnectBanner,30000);
-      }
-    }else if(driveState.reconnectBannerTimer){
-      clearTimeout(driveState.reconnectBannerTimer);
-      driveState.reconnectBannerTimer=null;
-    }
-  }
   // Render immediately from whatever's already cached in state.boards (applying any pending local
   // edit overlay — see state.boardOverrides) instead of waiting on a fresh fetch first. A connected
-  // FS/Drive source turns every Home visit into a real network round-trip; without this, something
+  // FS source turns every Home visit into a real network round-trip; without this, something
   // that already happened locally (a rename, a delete) wouldn't SHOW anywhere until that round-trip
   // finished, which is exactly what read as "jede Änderung dauert ultra lange". A plain idb-only
   // setup has nothing slow to hide behind, so it skips straight to the one fast render below.
-  const hasRemoteSource=!!(fsState.root || driveState.root || isR2SyncEnabled());
+  const hasRemoteSource=!!(fsState.root || isR2SyncEnabled());
   if(hasRemoteSource && state.boards.length) await paintHomeGrid(applyBoardOverrides(state.boards));
   const doMerge=async ()=>{
     const all=await mergedAllBoards();
@@ -8468,29 +7909,28 @@ async function refreshHome(){
 function applyHomeSourceFilter(list){
   const mode=state.homeSourceFilter;
   if(mode==='fs' && fsState.root) return list.filter(b=>{ const info=state.boardSources&&state.boardSources.get(b.id); return !!(info && info.sources.has('fs')); });
-  if(mode==='drive' && driveState.root) return list.filter(b=>{ const info=state.boardSources&&state.boardSources.get(b.id); return !!(info && info.sources.has('drive')); });
   return list;
 }
-// Which of the three physical locations (Local folder, IndexedDB, Google Drive) currently have a copy
+// Which of the physical locations (Local folder, IndexedDB) currently have a copy
 // of this board — the small, deliberately subtle per-tile hint (see buildBoardTile). Reuses
 // state.boardSources, already populated by every Home refresh's mergedAllBoards() call, so this never
 // costs an extra network round-trip just to paint a hint (same reasoning as openBoard()'s
-// state.boardSources cache-reuse elsewhere this round). Checked against the fixed set of all three
+// state.boardSources cache-reuse elsewhere this round). Checked against the fixed set of both
 // locations, not just whichever happen to be connected right now — a board that's only ever reached
-// two of the three (e.g. no folder ever connected on this account) keeps showing its badges
+// one of the two (e.g. no folder ever connected on this account) keeps showing its badges
 // permanently, which is accurate, not a bug: they disappear the moment you connect the missing
 // location and this specific board actually reaches it too.
 function computeBoardSourceBadges(boardId){
   if(!state.homeSourceIconsEnabled) return [];
   const info=state.boardSources && state.boardSources.get(boardId);
   const present=info ? info.sources : new Set(['idb']);
-  const have=['fs','idb','drive'].filter(src=>present.has(src));
-  return have.length>=3 ? [] : have;
+  const have=['fs','idb'].filter(src=>present.has(src));
+  return have.length>=2 ? [] : have;
 }
 function renderSourceBadges(container,boardId){
   if(!container) return;
   const have=computeBoardSourceBadges(boardId);
-  container.innerHTML=have.map(src=>`<span class="src-badge" title="${escapeHtml(syncSourceLabel(src))}">${src==='fs'?iconFolder():src==='drive'?'G':'DB'}</span>`).join('');
+  container.innerHTML=have.map(src=>`<span class="src-badge" title="${escapeHtml(syncSourceLabel(src))}">${src==='fs'?iconFolder():'DB'}</span>`).join('');
   container.hidden=!have.length;
 }
 // Re-paints just the badges on whatever tiles are already on screen, without going through
@@ -9034,8 +8474,8 @@ function findProjectOf(boardId){ return state.projects.find(p=>p.boardIds.includ
 // FIXED on the project record itself, never recomputed from the current name — renaming a project
 // in the app ("TEMPLATE-BUILDER" -> "Vorlagen") must not scatter its boards into a second,
 // differently-slugged projects/ folder the next time something relocates or reorganizes them. A
-// real on-disk rename isn't attempted (Drive doesn't address by path anyway — see DRIVE_DB.putBoard's
-// identical note about board folders never being renamed on disk either).
+// real on-disk rename isn't attempted (R2 doesn't address by path anyway — it's a flat key-value
+// store, not a filesystem).
 function projectFolderSlug(project){
   if(!project.folderSlug){
     project.folderSlug=folderNameFor(project.id,project.name||'Projekt');
@@ -9051,7 +8491,6 @@ function projectFolderSlug(project){
 // harmless — the next full reorg sweep (or the next drag) sorts it out, see those functions' comments.
 function relocateBoardFoldersForProject(boardId){
   if(fsState.root) fsRelocateBoardForProject(boardId).catch(()=>{});
-  if(driveState.root) driveRelocateBoardForProject(boardId).catch(()=>{});
 }
 function addBoardToProject(boardId,projectId){
   const project=state.projects.find(p=>p.id===projectId);
@@ -9634,12 +9073,67 @@ if(landingGoogleBtn){
   landingGoogleBtn.addEventListener('click',async (e)=>{
     landingGoogleBtn.disabled=true;
     try{
-      await connectDrive(); // same Drive connect as Werkzeuge's own Drive button
-      if(driveState.root) revealToHome(e.currentTarget); // only actually enter the app once sign-in succeeded — a cancelled/failed popup leaves you right here, free to just use the plain arrow instead
+      const proceed=await showCloudSecurityExplainerModal();
+      if(!proceed) return;
+      await setR2SyncEnabled(true); // handles Google sign-in, first-key generation / join-via-code, its own toasts
+      if(isR2SyncEnabled() && r2State.encKey) revealToHome(e.currentTarget); // only actually enter the app once sign-in + key setup succeeded — a cancelled/failed attempt leaves you right here, free to just use the plain arrow instead
     }finally{
       landingGoogleBtn.disabled=false;
+      updateLandingGoogleBtnUI();
     }
   });
+}
+// Shown once, the first time ever on this device, right before the landing page's Google button
+// actually does anything — a short, honest explanation of what "Mit Google anmelden" now sets up
+// (R2 Cloud Sync's end-to-end encryption + Google-for-identity-only), since that button used to mean
+// "connect Google Drive" and now means something meaningfully different. Resolves true to proceed,
+// false if dismissed/cancelled. Already-seen devices resolve true immediately with no modal at all.
+function cloudExplainerSeen(){ try{ return localStorage.getItem('notua-cloud-explainer-seen')==='1'; }catch(e){ return false; } }
+function markCloudExplainerSeen(){ try{ localStorage.setItem('notua-cloud-explainer-seen','1'); }catch(e){} }
+function showCloudSecurityExplainerModal(){
+  if(cloudExplainerSeen()) return Promise.resolve(true);
+  return new Promise((resolve)=>{
+    const scrim=document.createElement('div'); scrim.className='modal-scrim';
+    scrim.innerHTML=`<div class="modal">
+      <h4>${t('cloud_explainer_title')}</h4>
+      <p>${t('cloud_explainer_body_1')}</p>
+      <p>${t('cloud_explainer_body_2')}</p>
+      <p>${t('cloud_explainer_body_3')}</p>
+      <div class="modal-actions">
+        <button data-a="cancel">${t('modal_cancel')}</button>
+        <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('cloud_explainer_continue')}</button>
+      </div>
+    </div>`;
+    let settled=false;
+    function finish(v){ if(settled) return; settled=true; scrim.remove(); resolve(v); }
+    bindScrimDismiss(scrim,()=>finish(false));
+    scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>finish(false));
+    scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>{ markCloudExplainerSeen(); finish(true); });
+    document.body.appendChild(scrim);
+  });
+}
+// Landing page's "Mit Google anmelden" is just an earlier entry point into R2 Cloud Sync than the
+// Werkzeuge sheet's own sync toggle offers — once cloud sync is actually on and ready, showing it
+// again on landing would only look like "you're not signed in yet" when you already are, so it hides
+// itself the moment that's true, same as it hides outright when Google sign-in isn't configured at all.
+function updateLandingGoogleBtnUI(){
+  if(!landingGoogleBtn) return;
+  landingGoogleBtn.hidden = !GOOGLE_SUPPORTED || (isR2SyncEnabled() && !!r2State.encKey);
+}
+// Landing-page entry point for a device with no account/session at all — see the QR/CODE DEVICE
+// LINKING section in the JS and r2JoinDeviceBtn's own comment in the HTML above. Shown only once
+// R2_SYNC_SUPPORTED (Tom has deployed the Worker), same pattern as every other R2-gated element.
+if(R2_SYNC_SUPPORTED){
+  const r2JoinBtn=document.getElementById('r2JoinDeviceBtn');
+  const r2JoinSep=document.getElementById('r2JoinDeviceSep');
+  if(r2JoinBtn){
+    r2JoinBtn.hidden=false;
+    if(r2JoinSep) r2JoinSep.hidden=false;
+    r2JoinBtn.addEventListener('click',async ()=>{
+      const ok=await showR2JoinModal();
+      if(ok) revealToHome(r2JoinBtn);
+    });
+  }
 }
 const homeWordmark=document.getElementById('homeWordmark');
 homeWordmark.addEventListener('click',()=>{
@@ -9819,7 +9313,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.8';
+const APP_VERSION='2.4.10';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
@@ -11934,7 +11428,6 @@ function showFolderStructureModal(){
       <div class="segmented" id="fsFilterSegmented">
         <button type="button" data-val="fs" ${fsState.root?'':'disabled'}>${escapeHtml(t('folder_structure_filter_local'))}</button>
         <button type="button" data-val="all">${escapeHtml(t('folder_structure_filter_all'))}</button>
-        <button type="button" data-val="drive" ${driveState.root?'':'disabled'}>${escapeHtml(t('folder_structure_filter_drive'))}</button>
       </div>
       <p class="fs-modal-hint" id="fsFilterHint"></p>
     </div>
@@ -11945,7 +11438,6 @@ function showFolderStructureModal(){
       </label>
       <p class="fs-modal-hint">${escapeHtml(t('folder_structure_icons_hint'))}</p>
     </div>
-    ${driveState.root ? `<p class="fs-modal-hint fs-modal-drive-hint">${escapeHtml(t('folder_structure_drive_sync_hint'))}</p>` : ''}
     <div class="modal-actions">
       <button data-a="ok">${escapeHtml(t('close_title'))}</button>
     </div>
@@ -11957,7 +11449,6 @@ function showFolderStructureModal(){
       btn.classList.toggle('active', btn.dataset.val===state.homeSourceFilter);
     });
     hintEl.textContent = state.homeSourceFilter==='fs' && !fsState.root ? t('folder_structure_filter_hint_disabled_fs')
-      : state.homeSourceFilter==='drive' && !driveState.root ? t('folder_structure_filter_hint_disabled_drive')
       : t('folder_structure_filter_hint');
   }
   refreshFilterUI();
@@ -16704,7 +16195,7 @@ window.addEventListener('keydown',(e)=>{
    scope already needed; see the setup guide.
    ============================================================ */
 const GOOGLE_CALENDAR_SCOPES='https://www.googleapis.com/auth/calendar.events';
-const GCAL_SUPPORTED=DRIVE_SUPPORTED; // same OAuth client id, gated the same way
+const GCAL_SUPPORTED=GOOGLE_SUPPORTED; // same OAuth client id, gated the same way
 const GCAL_EVENTS_API='https://www.googleapis.com/calendar/v3/calendars/primary/events';
 const gcalState={ tokenClient:null, accessToken:null, tokenExpiresAt:0, authPromise:null };
 function gcalBuildTokenClient(){
@@ -18330,8 +17821,6 @@ window.addEventListener('paste',async (e)=>{
    ============================================================ */
 const folderBtn=document.getElementById('folderBtn');
 const folderLabel=document.getElementById('folderLabel');
-const driveBtn=document.getElementById('driveBtn');
-const driveLabel=document.getElementById('driveLabel');
 
 function updateFolderStatusUI(){
   if(!folderBtn) return;
@@ -18464,14 +17953,6 @@ async function ensureStorageReady(){
     if(fsStorageBlocked()){ showToast(t('toast_folder_reconnect_needed')); return false; }
     return true;
   }
-  // Same guard, for Drive: storageMode is 'drive' but the silent token refresh on boot hasn't (yet)
-  // re-acquired an access token — see driveStorageBlocked()/confirmPendingDrive() in the Google
-  // Drive section below.
-  if(driveStorageBlocked()){
-    await confirmPendingDrive();
-    if(driveStorageBlocked()){ showToast(t('toast_drive_reconnect_needed')); return false; }
-    return true;
-  }
   return true;
 }
 async function confirmPendingFolder(){
@@ -18554,225 +18035,6 @@ folderBtn.addEventListener('click',async ()=>{
   else if(fsState.pendingHandle){ await confirmPendingFolder(); }
   else{ await connectFolder(); }
 });
-
-/* ============================================================
-   GOOGLE DRIVE SYNC (sign-in + UI wiring)
-   The data layer itself (DRIVE_DB, driveState, all the driveXxx() REST helpers) lives up in the
-   GOOGLE DRIVE DATA LAYER section next to FS_DB — this part only handles signing in/out and the
-   driveBtn / reconnect-banner UI, mirroring the SPEICHERORDNER section above property-for-property.
-   ============================================================ */
-async function saveDriveRef(info){
-  try{ const t=await tx('handles','readwrite'); t.objectStore('handles').put(info,'driveAccount'); return new Promise(r=>t.oncomplete=r); }catch(e){}
-}
-async function loadDriveRef(){
-  try{ const t=await tx('handles','readonly'); return await reqp(t.objectStore('handles').get('driveAccount')); }catch(e){ return null; }
-}
-async function clearDriveRef(){
-  try{ const t=await tx('handles','readwrite'); t.objectStore('handles').delete('driveAccount'); return new Promise(r=>t.oncomplete=r); }catch(e){}
-}
-async function fetchDriveUserInfo(){
-  try{
-    const res=await driveFetch('https://www.googleapis.com/oauth2/v3/userinfo');
-    if(!res.ok) return;
-    const info=await res.json();
-    driveState.email=info.email||''; driveState.name=info.name||info.email||'';
-  }catch(e){}
-}
-async function activateDrive(rootId,opts){
-  opts=opts||{};
-  driveState.root=rootId;
-  driveState.boardsRoot=null; driveState.trashDir=null; driveState.parentDirs.clear();
-  driveState.dirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
-  driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
-  driveState.pendingReconnect=false;
-  await saveDriveRef({rootId, email:driveState.email, name:driveState.name});
-  // Move any pre-existing flat board-folder layout into the new notua-boards/ nested layout before
-  // anything below reads from this Drive account — see driveMigrateFlatToNested's own comment. A
-  // no-op (one cheap existence check) once it's already on the new layout, or a brand-new NOTUA folder.
-  await driveMigrateFlatToNested();
-  // Then sort every root-level board into open/ or projects/<Name>/, mirroring Home's own project
-  // grouping on disk — see driveReorganizeByProjects's own comment.
-  await driveReorganizeByProjects();
-  // Adopt whatever the "Ordnerstruktur" panel's settings were last changed to on any other device
-  // signed into this same Drive account (see pullHomeSettingsFromDrive's own comment) — before
-  // anything below paints Home with these settings' old, possibly-stale local values.
-  await pullHomeSettingsFromDrive();
-  // A local folder and Google Drive can now be connected at the same time (see MULTI-QUELLEN-SPEICHER
-  // above) — connecting one no longer disconnects the other the way it used to.
-  if(opts.offerMigration){
-    try{
-      const existing=await IDB_DB.allBoards();
-      const scanned=await DRIVE_DB.allBoards();
-      if(existing.length && scanned.length===0){
-        confirmModal(t('confirm_migrate_drive_title'),t('confirm_migrate_drive_body'),t('migrate_action'),async ()=>{
-          await migrateIdbToDrive(existing);
-          updateDriveStatusUI();
-          refreshHome();
-        });
-      }
-    }catch(e){}
-  }
-  updateDriveStatusUI();
-  // Newly (re)connected — let the sync engine pull in / push out to it right away instead of
-  // waiting for its next ~30s cadence (see the SYNC ENGINE section).
-  scheduleSyncSoon(1000);
-}
-// NOTE — a combined Drive+Calendar consent request (asking for both scopes in one popup) briefly lived
-// here this round, but got reverted once it became clear NOTUA is a genuinely public app, not a small
-// team-internal tool: bundling calendar.events (a scope Google classifies as sensitive, requiring
-// verification) into THIS button meant every single visitor connecting Drive — previously frictionless
-// and warning-free, since drive.file is exempt from Google's review — would now hit Google's "diese App
-// wurde nicht überprüft" warning too, just to use the core sync feature. Reverted to Drive's own scope
-// only, exactly as it was before this round; Calendar's own separate, on-demand request (further down,
-// see the big comment on the Calendar OAuth section) still asks for its scope only when someone actually
-// clicks "In Google Kalender übernehmen" — so only people who actually touch that feature ever see the
-// warning, not every visitor who just wants to sync boards. See this round's chat summary for the
-// current path to removing the warning entirely (Google OAuth verification for the sensitive scope).
-// Picks the right failure toast for a failed interactive Drive sign-in: driveRequestToken()'s own
-// watchdog (see there — "es passiert nix", a Safari-blocked popup Google's SDK never itself reports
-// as an error) surfaces here as message==='gis-popup-timeout', and gets the specific, actionable
-// "allow pop-ups" message instead of the generic catch-all, which was never going to explain THAT
-// particular failure to someone non-technical.
-function showDriveSigninFailToast(e){
-  showToast(e && e.message==='gis-popup-timeout' ? t('toast_drive_signin_blocked') : t('toast_drive_signin_failed'));
-}
-async function connectDrive(){
-  if(!DRIVE_SUPPORTED){ showToast(t('toast_drive_no_client_id')); return; }
-  if(!(window.google && google.accounts && google.accounts.oauth2)){ showToast(t('toast_drive_unsupported')); return; }
-  if(driveLabel) driveLabel.textContent=t('drive_connecting_label');
-  try{
-    await ensureAccessToken(true);
-    await fetchDriveUserInfo();
-    const rootId=await driveGetRoot();
-    await activateDrive(rootId,{offerMigration:true});
-    refreshHome();
-  }catch(e){
-    showDriveSigninFailToast(e);
-    updateDriveStatusUI();
-  }
-}
-// Runs once at boot (see init() at the bottom of the file). If Drive sync was active last session (a
-// driveAccount ref is on disk), this puts storageMode back to 'drive' — but, deliberately, no longer
-// attempts any automatic sign-in of its own. It used to: request a token with prompt:'none' ("silent",
-// meant to never show a popup) right here, which works fine as long as the browser still has a live,
-// cookie-backed Google session. With third-party cookies now widely blocked by default, that "silent"
-// request increasingly can't stay silent — Google's own popup-based token flow opens a real, visible
-// sign-in window anyway, and (for reasons on Google's end this app has no way to fix or even reliably
-// diagnose from here) that window can fail and reopen itself several times in a row right at page load,
-// each one asking to log in again — "4-5 mal das Gmail-Fenster beim Start, jedes Mal neu einloggen".
-// The only fix that's guaranteed to stop that outright is to never trigger it automatically at all, so
-// this now just shows the "bitte neu verbinden" banner/red driveBtn (pendingReconnect=true) and waits
-// for one deliberate click — confirmPendingDrive() does the exact same token request, but interactively
-// and only when the person actually asked for it right then, exactly like tryReconnectFolder()'s
-// pending-handle case above already does for a connected local folder.
-async function tryReconnectDrive(){
-  if(!DRIVE_SUPPORTED) return;
-  let ref=null;
-  try{ ref=await loadDriveRef(); }catch(e){}
-  if(!ref || !ref.rootId) return;
-  state.storageMode='drive';
-  driveState.root=ref.rootId; driveState.email=ref.email||''; driveState.name=ref.name||'';
-  // No network at all right now isn't "please sign in again" (pendingReconnect, the harder banner) —
-  // it's just a connectivity gap; idb and a connected folder keep working normally in the meantime, and
-  // the softer "offline" pill (driveState.offline) says so without implying a fresh login is needed.
-  if(navigator.onLine===false){
-    driveState.offline=true;
-    updateDriveStatusUI();
-    return;
-  }
-  driveState.pendingReconnect=true;
-  driveState.reconnectBannerDismissed=false;
-  updateDriveStatusUI();
-}
-function driveStorageBlocked(){ return state.storageMode==='drive' && driveState.pendingReconnect; }
-async function confirmPendingDrive(){
-  if(!driveState.pendingReconnect) return;
-  try{
-    await ensureAccessToken(true);
-    await fetchDriveUserInfo();
-    driveState.pendingReconnect=false;
-    driveState.reconnectBannerDismissed=false;
-    if(driveState.reconnectBannerTimer){ clearTimeout(driveState.reconnectBannerTimer); driveState.reconnectBannerTimer=null; }
-    await activateDrive(driveState.root,{offerMigration:false});
-    refreshHome();
-  }catch(e){ showDriveSigninFailToast(e); }
-}
-async function disconnectDrive(){
-  state.storageMode='idb';
-  driveState.accessToken=null; driveState.tokenExpiresAt=0;
-  driveState.root=null; driveState.boardsRoot=null; driveState.trashDir=null; driveState.email=''; driveState.name=''; driveState.pendingReconnect=false;
-  driveState.reconnectBannerDismissed=false;
-  if(driveState.reconnectBannerTimer){ clearTimeout(driveState.reconnectBannerTimer); driveState.reconnectBannerTimer=null; }
-  driveState.dirs.clear(); driveState.parentDirs.clear(); driveState.cache.clear(); driveState.boardFileId.clear(); driveState.imagesDirId.clear();
-  driveState.cardOwner.clear(); driveState.connOwner.clear(); driveState.imageOwner.clear(); driveState.imageFileId.clear();
-  await clearDriveRef();
-  updateDriveStatusUI();
-  showToast(t('toast_drive_disconnected'));
-  refreshHome();
-}
-function driveStatusModal(){
-  const scrim=document.createElement('div'); scrim.className='modal-scrim';
-  scrim.innerHTML=`<div class="modal">
-    <h4>${t('drive_modal_title')}</h4>
-    <p>${t('drive_modal_body',{name:escapeHtml(driveState.name||driveState.email||'')})}</p>
-    <div class="modal-actions" style="justify-content:space-between;">
-      <button data-a="disconnect">${t('drive_disconnect_action')}</button>
-      <button data-a="switch" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('drive_switch_account_action')}</button>
-    </div></div>`;
-  bindScrimDismiss(scrim,()=>scrim.remove());
-  scrim.querySelector('[data-a="disconnect"]').addEventListener('click',async ()=>{ scrim.remove(); await disconnectDrive(); });
-  scrim.querySelector('[data-a="switch"]').addEventListener('click',async ()=>{ scrim.remove(); await connectDrive(); });
-  document.body.appendChild(scrim);
-}
-async function migrateIdbToDrive(idbBoards){
-  for(const b of migrationRootBoards(idbBoards)){
-    const bundle=await collectBoardBundle(b.id); // reads via DB.* → IndexedDB, regardless of state.storageMode
-    await pushBundleToBackend(bundle, DRIVE_DB);
-  }
-}
-// driveState.root/pendingReconnect describe the Drive CONNECTION itself, independent of which board
-// (if any) is currently open in a different backend — so this no longer gates on state.storageMode
-// at all, unlike the old single-active-backend model. driveState.offline is set by driveFetch() on a
-// genuine network-level failure and is purely informational here (no auto-retry/reconcile behind it
-// any more — Sync, further down, is how a person actually pushes/pulls now).
-function updateDriveStatusUI(){
-  // Landing page's "Mit Google anmelden" is just an earlier entry point into the same connectDrive()
-  // flow the Werkzeuge sheet's Drive button already offers — once actually connected, showing it again
-  // on landing would only look like "you're not signed in yet" when you already are, so it hides itself
-  // the moment driveState.root is set, same as it hides outright when Drive isn't configured at all.
-  const landingGoogleBtn=document.getElementById('landingGoogleBtn');
-  if(landingGoogleBtn) landingGoogleBtn.hidden = !DRIVE_SUPPORTED || !!driveState.root;
-  if(!driveBtn) return;
-  if(!DRIVE_SUPPORTED){ driveBtn.hidden=true; return; }
-  driveBtn.hidden=false;
-  driveBtn.classList.remove('connected','pending','offline');
-  if(driveState.pendingReconnect){
-    // Needs an actual click-through sign-in (session expired/revoked) — takes priority over
-    // everything else since it's the one state that needs a person to do something.
-    driveBtn.classList.add('pending');
-    if(driveLabel) driveLabel.textContent=t('drive_pending_label');
-    driveBtn.title=t('drive_pending_title');
-  }else if(driveState.root && driveState.offline){
-    driveBtn.classList.add('offline');
-    if(driveLabel) driveLabel.textContent=t('drive_offline_label');
-    driveBtn.title=t('drive_offline_title');
-  }else if(driveState.root){
-    driveBtn.classList.add('connected');
-    if(driveLabel) driveLabel.textContent=driveState.name||driveState.email||t('drive_connect_label');
-    driveBtn.title=t('drive_connected_title',{name:driveState.name||driveState.email||''});
-  }else{
-    if(driveLabel) driveLabel.textContent=t('drive_connect_label');
-    driveBtn.title=t('drive_connect_title');
-  }
-}
-if(driveBtn){
-  driveBtn.addEventListener('click',async ()=>{
-    if(driveState.pendingReconnect){ await confirmPendingDrive(); }
-    else if(driveState.root && driveState.offline){ showToast(t('toast_drive_offline_working')); }
-    else if(driveState.root){ driveStatusModal(); }
-    else{ await connectDrive(); }
-  });
-}
 
 /* ============================================================
    BOARD IMPORT / EXPORT
@@ -19218,7 +18480,7 @@ function openToolsSheet(){
   const exportItem=document.getElementById('toolsExportItem');
   if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
   const syncAllItem=document.getElementById('toolsSyncAllItem');
-  if(syncAllItem) syncAllItem.disabled = !(fsState.root || driveState.root || isR2SyncEnabled());
+  if(syncAllItem) syncAllItem.disabled = !(fsState.root || isR2SyncEnabled());
   positionToolsSheetForDesktop();
   toolsSheet.hidden=false; toolsSheetBackdrop.hidden=false;
   // Force layout before adding .show so the transform transition actually plays from its start state.
@@ -19264,6 +18526,10 @@ if(toolsBtn){
   document.getElementById('toolsR2SyncItem').addEventListener('click',()=>{
     closeToolsSheet();
     setR2SyncEnabled(!isR2SyncEnabled());
+  });
+  document.getElementById('toolsR2LinkItem').addEventListener('click',()=>{
+    closeToolsSheet();
+    showR2LinkDeviceModal();
   });
   document.getElementById('toolsAnimControlItem').addEventListener('click',()=>{
     closeToolsSheet();
@@ -19372,7 +18638,7 @@ async function importBundle(payload){
    per "immer die gerade offene Version übernehmen").
    ============================================================ */
 // Pushes boardId (+ every nested sub-board it links to, same reach as export) to each backend named
-// in targets ('fs' and/or 'drive' — idb is never a pickable Sync target, it's the always-on default).
+// in targets ('fs' and/or 'r2' — idb is never a pickable Sync target, it's the always-on default).
 async function syncBoardToTargets(boardId,targets){
   if(!targets || !targets.length) return false;
   const bundle=await withBoardBackend(boardId, ()=>collectBoardBundle(boardId));
@@ -19386,7 +18652,7 @@ async function syncBoardToTargets(boardId,targets){
   }
   return true;
 }
-function syncSourceLabel(k){ return k==='fs' ? t('sync_source_folder') : k==='drive' ? t('sync_source_drive') : t('sync_source_local'); }
+function syncSourceLabel(k){ return k==='fs' ? t('sync_source_folder') : t('sync_source_local'); }
 let syncPopoverEl=null;
 function ensureSyncPopover(){
   if(syncPopoverEl) return syncPopoverEl;
@@ -19404,7 +18670,6 @@ function hideSyncPopover(){ if(syncPopoverEl) syncPopoverEl.classList.remove('sh
 async function openSyncPopover(clientX,clientY,boardId,boardName,onDone){
   const targets=[];
   if(fsState.root) targets.push('fs');
-  if(driveState.root) targets.push('drive');
   if(!targets.length){ showToast(t('toast_sync_no_targets')); return; }
   if(targets.length===1){
     const ok=await syncBoardToTargets(boardId,targets);
@@ -19457,7 +18722,6 @@ window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') hideSyncPopover();
 async function syncAllBoards(){
   const targets=[];
   if(fsState.root) targets.push('fs');
-  if(driveState.root) targets.push('drive');
   if(!targets.length){ showToast(t('toast_sync_no_targets')); return; }
   const all=await mergedAllBoards();
   let count=0;
@@ -19809,11 +19073,20 @@ if(window.visualViewport){
   document.documentElement.lang=state.lang;
   applyI18n();
   syncLangUI();
+  // "das Gerät was den QR-Code gescannt hat automatisch mit dem passenden Account verknüpft" —
+  // scanning the QR with the phone's own camera app just opens this plain URL; catching ?link=<code>
+  // here (before anything else) is the whole "scanner", no in-app camera needed at all. Scrubbed from
+  // the URL/history immediately since the code is single-use.
+  try{
+    const linkCode=new URLSearchParams(location.search).get('link');
+    if(linkCode && R2_SYNC_SUPPORTED){
+      history.replaceState({},'',location.pathname);
+      showR2JoinModal(linkCode).then(ok=>{ if(ok) revealToHome(document.getElementById('landingCircle')); });
+    }
+  }catch(e){}
   document.addEventListener('contextmenu',(e)=>{ if(e.target.closest('#app')) e.preventDefault(); });
-  // A local folder and Google Drive can both be connected at once now (see MULTI-QUELLEN-SPEICHER
-  // above) — reconnect to both at boot, independently, instead of the first one claiming the app.
   await tryReconnectFolder();
-  await tryReconnectDrive();
+  updateLandingGoogleBtnUI();
   await refreshHome();
   // state.screen's own default is 'home', but the landing view is what's actually visible on a
   // fresh load (it's the only view not [hidden] in the markup) — seed history with what's really
