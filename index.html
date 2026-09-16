@@ -5907,8 +5907,18 @@ async function r2OfferDeviceLink(onCodeReady,shouldCancel){
     const peerKey=await r2ImportEcdhPublicKey(peerPub);
     const wrapKey=await r2DeriveWrapKey(keyPair.privateKey,peerKey,'encrypt');
     const rawDataKey=new Uint8Array(await crypto.subtle.exportKey('raw',await r2GetKey()));
-    const tokenRes=await r2Fetch('/device-token',{method:'POST'});
-    if(!tokenRes.ok) return false;
+    let tokenRes=await r2Fetch('/device-token',{method:'POST'}).catch(()=>null);
+    if((!tokenRes || !tokenRes.ok) && !r2GetDeviceToken()){
+      // This device's own Google session can go stale while it sat here showing the QR — the very
+      // same silent-refresh failure behind driveState.pendingReconnect (see ensureAccessToken above).
+      // A silent retry would just hit that same gate again, but this modal is open on Tom's OWN
+      // device, in his own hands, so an INTERACTIVE popup here is fair game and gives him a real
+      // chance to fix it on the spot — the alternative is a failure that only ever shows up as an
+      // endless, unexplained "Warte auf Verbindung" on the OTHER device.
+      try{ await ensureAccessToken(true); tokenRes=await r2Fetch('/device-token',{method:'POST'}); }
+      catch(e){ tokenRes=null; }
+    }
+    if(!tokenRes || !tokenRes.ok) return false;
     const {token}=await tokenRes.json();
     const payload=new TextEncoder().encode(JSON.stringify({key:r2B64FromBytes(rawDataKey),deviceToken:token}));
     const wrapped=await r2WrapEncrypt(wrapKey,payload);
@@ -5929,6 +5939,16 @@ async function r2JoinViaLinkCode(code){
     for(let i=0;i<150 && !result;i++){
       await new Promise(r=>setTimeout(r,2000));
       result=await r2RelayGet(code,'r').catch(()=>null);
+      if(!result && i>=3){
+        // Give the other device a few seconds' grace, then check whether it's even still there.
+        // r2OfferDeviceLink always deletes slot 'a' in its own finally block the moment IT resolves
+        // (success or failure) — so a confirmed-gone 'a' with still no 'r' means the other side has
+        // already given up (or hit an error) and nothing more is ever coming. Bailing out here turns
+        // what used to be a silent, unexplained 5-minute "Warte auf Verbindung" into a prompt failure
+        // message instead. A network hiccup while checking just means "couldn't tell" — that keeps
+        // the normal poll going rather than risking a false bail-out.
+        try{ if(await r2RelayGet(code,'a')===null) break; }catch(e){}
+      }
     }
     if(!result) return false;
     const wrapKey=await r2DeriveWrapKey(keyPair.privateKey,peerKey,'decrypt');
@@ -9326,7 +9346,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.11';
+const APP_VERSION='2.4.12';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
