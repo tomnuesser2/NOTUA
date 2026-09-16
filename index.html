@@ -4100,6 +4100,7 @@ const I18N={
   r2_link_join_submit:{de:'Verknüpfen',en:'Link'},
   r2_link_join_invalid:{de:'Bitte den vollständigen Code eingeben',en:'Please enter the full code'},
   r2_link_join_failed:{de:'Code ungültig oder abgelaufen',en:'Code invalid or expired'},
+  r2_link_join_slow:{de:'Kann noch etwas dauern …',en:'This can take a little longer …'},
   r2_link_reset_link:{de:'Kein anderes Gerät mehr zur Hand?',en:'No other device on hand anymore?'},
   r2_link_reset_confirm_title:{de:'Cloud-Daten wirklich zurücksetzen?',en:'Really reset your cloud data?'},
   r2_link_reset_confirm_body:{de:'Ohne ein Gerät, das den Schlüssel schon kennt, lassen sich die bisherigen Cloud-Daten nicht mehr entschlüsseln — das gilt auch für uns. Zurücksetzen löscht sie endgültig und lässt dieses Gerät frisch starten. Lokal gespeicherte Boards sind davon nicht betroffen.',en:'Without a device that already knows the key, the existing cloud data can no longer be decrypted — by anyone, us included. Resetting deletes it permanently and lets this device start fresh. Locally stored boards are unaffected either way.'},
@@ -5936,38 +5937,40 @@ async function r2OfferDeviceLink(onCodeReady,shouldCancel){
   finally{ r2RelayDelete(code,'a',true); r2RelayDelete(code,'b',false); }
 }
 // ----- Side B: the NEW, unlinked device joining via a scanned/typed code. -----
-async function r2JoinViaLinkCode(code){
+// onSlowProgress() (optional) fires once, after a while, purely so the modal can swap "Warte auf
+// Verbindung" for a more reassuring "kann noch etwas dauern" — it's a UI nicety, not a correctness
+// signal (see the comment on the removed early-exit check below for why this function no longer ever
+// gives up before its real timeout).
+async function r2JoinViaLinkCode(code,onSlowProgress){
   try{
-    const a=await r2RelayGet(code,'a');
+    // A code scanned/typed within a second of being generated can occasionally race the relay
+    // storage's own write still propagating (Cloudflare's backing store here isn't guaranteed
+    // instantly consistent across edge locations — the phone and the offering device are very often
+    // on completely different networks/edges) — a couple of quick retries absorbs that without the
+    // user ever noticing, rather than failing outright on what would have succeeded one second later.
+    let a=null;
+    for(let i=0;i<3 && !a;i++){
+      a=await r2RelayGet(code,'a').catch(()=>null);
+      if(!a) await new Promise(r=>setTimeout(r,1500));
+    }
     if(!a || !a.publicKey) return false; // code wrong, expired, or already claimed
     const peerKey=await r2ImportEcdhPublicKey(a.publicKey);
     const keyPair=await r2GenEcdhKeyPair();
     const myPub=await r2ExportEcdhPublicKey(keyPair.publicKey);
     if(!await r2RelayPut(code,'b',{publicKey:myPub},false)) return false;
     let result=null;
+    // Deliberately just keeps polling for the full ~5 minutes without any "the other side looks gone,
+    // let's give up early" shortcut — an earlier version tried exactly that (checking whether slot 'a'
+    // had already been deleted by the other side finishing), but that's genuinely ambiguous on
+    // eventually-consistent storage: "not found yet" can mean "really gone" OR just "this read hasn't
+    // caught up with a very recent write from a different edge location", and Tom's own report (one
+    // device showing a clean success, the other immediately saying "Code ungültig oder abgelaufen")
+    // is exactly what that ambiguity produces — a real, completed link reported as a failure. A slower
+    // but always-correct wait beats a fast, occasionally-wrong "failed".
     for(let i=0;i<150 && !result;i++){
       await new Promise(r=>setTimeout(r,2000));
       result=await r2RelayGet(code,'r').catch(()=>null);
-      if(!result && i>=3){
-        // Give the other device a few seconds' grace, then check whether it's even still there.
-        // r2OfferDeviceLink always deletes slot 'a' in its own finally block the moment IT resolves
-        // (success or failure) — so a confirmed-gone 'a' with still no 'r' means the other side has
-        // already given up (or hit an error) and nothing more is ever coming. Bailing out here turns
-        // what used to be a silent, unexplained 5-minute "Warte auf Verbindung" into a prompt failure
-        // message instead. A network hiccup while checking just means "couldn't tell" — that keeps
-        // the normal poll going rather than risking a false bail-out.
-        try{
-          if(await r2RelayGet(code,'a')===null){
-            // 'a' is only ever deleted AFTER r2OfferDeviceLink's own `return await r2RelayPut(code,'r',...)`
-            // has already resolved (success or not) — so if the other side succeeded, 'r' was written
-            // before 'a' could possibly be gone. One more direct check here closes the small gap between
-            // that write landing and this exact poll tick seeing it, so a genuine last-second success
-            // doesn't get reported as a failure just because of unlucky timing against the 2s poll cadence.
-            result=await r2RelayGet(code,'r').catch(()=>null);
-            if(!result) break;
-          }
-        }catch(e){}
-      }
+      if(!result && i===10 && onSlowProgress){ try{ onSlowProgress(); }catch(e){} }
     }
     if(!result) return false;
     const wrapKey=await r2DeriveWrapKey(keyPair.privateKey,peerKey,'decrypt');
@@ -6287,7 +6290,7 @@ function showR2JoinModal(prefillCode){
       const code=(input.value||'').trim().toUpperCase();
       if(code.length<4){ errEl.textContent=t('r2_link_join_invalid'); return; }
       okBtn.disabled=true; errEl.textContent=t('r2_link_waiting');
-      const ok=await r2JoinViaLinkCode(code);
+      const ok=await r2JoinViaLinkCode(code,()=>{ if(!settled) errEl.textContent=t('r2_link_join_slow'); });
       okBtn.disabled=false;
       if(ok){ refreshR2SyncToggleUI(); refreshR2LinkDeviceUI(); finish(true); }
       else{ errEl.textContent=t('r2_link_join_failed'); }
@@ -9373,7 +9376,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.13';
+const APP_VERSION='2.4.14';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
