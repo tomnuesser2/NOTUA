@@ -605,10 +605,6 @@ try{
      "on" look instead of just hover feedback. */
   .tools-sheet-card.active{background:var(--accent-soft); color:var(--accent);}
   .tools-sheet-card.active .tools-sheet-card-icon{color:var(--accent);}
-  /* Cloud Sync's own "Anmeldung abgelaufen, bitte neu anmelden" state (see r2NeedsReconnect()) — a
-     distinct danger-colored look so it reads as "needs attention", not just its normal on/off toggle. */
-  .tools-sheet-card.needs-reconnect{background:color-mix(in srgb, var(--danger) 14%, var(--surface-2)); color:var(--danger);}
-  .tools-sheet-card.needs-reconnect .tools-sheet-card-icon{color:var(--danger);}
   @media (min-width:641px){
     /* Desktop/PC: a small anchored dropdown under the gear button instead of a full-width sheet
        sliding up from the bottom of the whole screen — positioned by JS (positionToolsSheetForDesktop,
@@ -3064,32 +3060,16 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
-      <button type="button" class="tools-sheet-card" id="toolsSyncAllItem">
-        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3M4 20v-5h5"/></svg></span>
-        <span class="tools-sheet-card-label"></span>
-      </button>
       <button type="button" class="tools-sheet-card" id="toolsFolderStructureItem">
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M8 20v-6a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6" stroke-dasharray="1.6 1.8"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
-      <!-- Cloudflare R2 cloud sync ("Syncsystem über die 10gb free storage von Cloudflare") — public
-           toggle, but stays hidden entirely until Tom deploys notua-r2-worker.js and fills in
-           R2_SYNC_WORKER_URL (see R2_SYNC_SUPPORTED in the JS) — same inert-until-configured pattern
-           GOOGLE_SUPPORTED already uses for the Google sign-in button. Piggybacks on the same Google
-           sign-in (see r2Fetch/ensureAccessToken) — no separate connect flow, and no
-           API keys anywhere in this file; everything goes through the Worker. -->
-      <button type="button" class="tools-sheet-card" id="toolsR2SyncItem" hidden>
-        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span>
-        <span class="tools-sheet-card-label"></span>
-      </button>
-      <!-- "über einen QR-Code seinen Account autoverknüpfen... ohne Google OAuth" — opens
-           showR2LinkDeviceModal() (a QR/code this device generates for ANOTHER device to join with,
-           see the QR/CODE DEVICE LINKING section in the JS). Only ever visible once THIS device
-           already has a working key of its own to hand out — see refreshR2LinkDeviceUI(). -->
-      <button type="button" class="tools-sheet-card" id="toolsR2LinkItem" hidden>
-        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 20h.01M17 20h.01M14 20v.01M20 17h.01"/></svg></span>
-        <span class="tools-sheet-card-label"></span>
-      </button>
+      <!-- Cloud Sync / Gerät verknüpfen / Alle synchronisieren used to live here as three cards among
+           everything else — "das Menü besser sortiert... Cloud Sync, Gerät verknüpfen und Alle
+           Synchronisieren einen eigenen Button im Boardübersicht bekommen, damit man das ordentlich
+           machen kann". They're now their own permanent buttons in the Home header's toolbar (see
+           #homeR2SyncBtn/#homeR2LinkBtn/#homeSyncAllBtn next to #folderBtn), so this sheet only holds
+           one-off actions and settings now — nothing sync-related left to sort in here. -->
       <!-- "die Animationen sollen im normalen Theme ohne functioncontrol Code an sein, nicht aus — nur
            steuern soll man sie mit dem Code können, es soll Static UI/Dynamic UI heißen, ein Knopf der
            beim Drücken umschaltet, in den Einstellungen im Boardübersicht" — PUBLIC, no secret code, no
@@ -3214,6 +3194,27 @@ try{
           <button class="folder-btn" id="folderBtn" title="Speicherordner verbinden">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
             <span id="folderLabel">Ordner wählen</span>
+          </button>
+          <!-- Cloud Sync, Gerät verknüpfen und Alle synchronisieren used to be three cards buried inside
+               the Werkzeuge sheet, mixed in among Vorlagen/Import/Export/Papierkorb/etc. — "das Menü
+               besser sortiert... einen eigenen Button im Boardübersicht bekommen, damit man das
+               ordentlich machen kann". They now live here instead, right next to the folder button they
+               conceptually belong with (another storage/sync target), same on/off + "needs reconnect"
+               styling as folderBtn's own connected/pending pill (see refreshR2SyncToggleUI()). -->
+          <button class="folder-btn" id="homeR2SyncBtn" title="Cloud Sync" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>
+            <span id="homeR2SyncLabel">Cloud Sync</span>
+          </button>
+          <!-- "über einen QR-Code seinen Account autoverknüpfen... ohne Google OAuth" — opens
+               showR2LinkDeviceModal() (a QR/code this device generates for ANOTHER device to join with,
+               see the QR/CODE DEVICE LINKING section in the JS). Only ever visible once THIS device
+               already has a working key of its own to hand out — see refreshR2LinkDeviceUI(). -->
+          <button class="icon-btn import-btn" id="homeR2LinkBtn" title="Gerät verknüpfen" hidden>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 20h.01M17 20h.01M14 20v.01M20 17h.01"/></svg>
+          </button>
+          <!-- "Alle synchronisieren" own button too — same reasoning as the two above. -->
+          <button class="icon-btn import-btn" id="homeSyncAllBtn" title="Alle synchronisieren">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3M4 20v-5h5"/></svg>
           </button>
           <!-- Board-independent calendar (see the CALENDAR section in the script) is reachable from
                here too, not just from inside a board — same panel, same button behavior as the one in
@@ -4606,7 +4607,8 @@ function applyI18n(){
     ['#toolsTemplatesItem .tools-sheet-card-label','text',t('tools_templates_item')],
     ['#toolsImportItem .tools-sheet-card-label','text',t('tools_import_item')],
     ['#toolsExportItem .tools-sheet-card-label','text',t('tools_export_item')],
-    ['#toolsSyncAllItem .tools-sheet-card-label','text',t('tools_sync_all_item')],
+    ['#homeSyncAllBtn','title',t('tools_sync_all_item')],
+    ['#homeR2LinkBtn','title',t('r2_link_item_label')],
     ['#toolsFolderStructureItem .tools-sheet-card-label','text',t('tools_folder_structure_item')],
     ['#toolsTrashItem .tools-sheet-card-label','text',t('trash_btn_title')],
     ['#menuBtn','title',t('menu_title')],
@@ -6207,14 +6209,24 @@ function r2BootIfEnabled(){
     });
   }
 }
-// Separate small tools-sheet card ("Gerät verknüpfen") that only ever offers to LINK OTHER devices —
-// only makes sense once this device itself already has a working key to hand out.
+// Separate small header button ("Gerät verknüpfen", now living next to folderBtn in the Home toolbar
+// instead of the Werkzeuge sheet) that only ever offers to LINK OTHER devices — only makes sense once
+// this device itself already has a working key to hand out.
 function refreshR2LinkDeviceUI(){
-  const item=document.getElementById('toolsR2LinkItem');
+  const item=document.getElementById('homeR2LinkBtn');
   if(!item) return;
   item.hidden=!(R2_SYNC_SUPPORTED && isR2SyncEnabled() && r2State.encKey);
-  const label=item.querySelector('.tools-sheet-card-label');
-  if(label) label.textContent=t('r2_link_item_label');
+  item.title=t('r2_link_item_label');
+}
+// "Alle synchronisieren" button's own enabled state — needs at least one connected sync target
+// (a folder or Cloud Sync) to have anything to do. Lives here (rather than only being computed once
+// when the Werkzeuge sheet used to open) so it stays accurate now that the button is always visible
+// in the Home header — called from both updateFolderStatusUI() and refreshR2SyncToggleUI() since
+// either one connecting/disconnecting can flip it.
+function refreshHomeSyncAllBtn(){
+  const btn=document.getElementById('homeSyncAllBtn');
+  if(!btn) return;
+  btn.disabled=!(fsState.root || isR2SyncEnabled());
 }
 // True while this device's Google session has gone stale (ensureAccessToken's own pendingReconnect
 // gate — see its comment) AND there's no device token to fall back on, meaning EVERY background sync
@@ -6243,15 +6255,19 @@ async function r2Reconnect(){
 }
 function refreshR2SyncToggleUI(){
   updateLandingGoogleBtnUI();
-  const item=document.getElementById('toolsR2SyncItem');
+  refreshHomeSyncAllBtn();
+  const item=document.getElementById('homeR2SyncBtn');
   if(!item) return;
   if(!R2_SYNC_SUPPORTED){ item.hidden=true; return; }
   item.hidden=false;
   const on=isR2SyncEnabled();
   const needsReconnect=on && r2NeedsReconnect();
-  item.classList.toggle('active',on);
-  item.classList.toggle('needs-reconnect',needsReconnect);
-  const label=item.querySelector('.tools-sheet-card-label');
+  // Reuses folderBtn's own connected/pending pill look (see its CSS) instead of a separate style —
+  // .pending is already exactly the "danger-colored, needs your attention" treatment this wants for
+  // "needs reconnect", and .connected is already the calm "this is active" look for plain on.
+  item.classList.toggle('connected', on && !needsReconnect);
+  item.classList.toggle('pending', needsReconnect);
+  const label=document.getElementById('homeR2SyncLabel');
   if(label) label.textContent=needsReconnect ? t('r2_sync_reconnect_label') : t('r2_sync_label');
   item.title=needsReconnect ? t('r2_sync_reconnect_title') : (on?t('r2_sync_on_title'):t('r2_sync_off_title'));
 }
@@ -9168,7 +9184,11 @@ if(landingGoogleBtn){
       const proceed=await showCloudSecurityExplainerModal();
       if(!proceed) return;
       await setR2SyncEnabled(true); // handles Google sign-in, first-key generation / join-via-code, its own toasts
-      if(isR2SyncEnabled() && r2State.encKey) revealToHome(e.currentTarget); // only actually enter the app once sign-in + key setup succeeded — a cancelled/failed attempt leaves you right here, free to just use the plain arrow instead
+      // Refresh the board grid BEFORE revealing Home — otherwise, on a device that just joined an
+      // existing account, Home would show whatever refreshHome() found at boot (nothing, for a brand
+      // new device) instead of the boards that now exist on Cloud Sync, looking like linking silently
+      // failed even though it worked.
+      if(isR2SyncEnabled() && r2State.encKey){ await refreshHome(); revealToHome(e.currentTarget); } // only actually enter the app once sign-in + key setup succeeded — a cancelled/failed attempt leaves you right here, free to just use the plain arrow instead
     }finally{
       landingGoogleBtn.disabled=false;
       updateLandingGoogleBtnUI();
@@ -9236,7 +9256,7 @@ if(R2_SYNC_SUPPORTED){
     if(r2JoinSep) r2JoinSep.hidden=false;
     r2JoinBtn.addEventListener('click',async ()=>{
       const ok=await showR2JoinModal();
-      if(ok) revealToHome(r2JoinBtn);
+      if(ok){ await refreshHome(); revealToHome(r2JoinBtn); } // see the landingGoogleBtn handler's own comment on why this refresh has to happen first
     });
   }
 }
@@ -9263,6 +9283,41 @@ function irisTransition(fromEl, swapViews, toAnchor){
   overlay.className='reveal-overlay';
   overlay.style.clipPath=`circle(${Math.max(rect.width,rect.height)/2}px at ${cx}px ${cy}px)`;
   document.body.appendChild(overlay);
+  // "die Webapp auf handy lädt nach dem verknüpfen neu und bleibt in der orangenen animation der
+  // landingpage hängen" — this accent-coloured (orange) overlay used to only ever shrink back down
+  // again inside the 'transitionend' handler below. A mobile browser can drop that event entirely —
+  // most commonly right here, since scanning the QR code hands off to another app for a moment and
+  // the tab gets backgrounded/throttled mid-transition — and whatever swapViews() callback runs here
+  // (revealToHome's own view-swap) could in principle throw too. Either way, the old code never
+  // reached the shrink-back setTimeout below it, leaving this overlay permanently covering the whole
+  // screen in solid accent orange. The done-flags + setTimeout fallbacks here mean both phases now
+  // always complete — via the real transitionend when it fires, or via the fallback timer when it
+  // doesn't — so this can no longer get stuck no matter what interrupted it.
+  let expandDone=false;
+  function afterExpand(){
+    if(expandDone) return;
+    expandDone=true;
+    try{ swapViews(); }catch(e){ try{ console.warn('irisTransition swapViews failed', e); }catch(e2){} }
+    const anchor=toAnchor ? toAnchor() : null;
+    let tx=cx, ty=cy;
+    if(anchor){ const r2=anchor.getBoundingClientRect(); tx=r2.left+r2.width/2; ty=r2.top+r2.height/2; }
+    let contractDone=false;
+    function afterContract(){
+      if(contractDone) return;
+      contractDone=true;
+      overlay.remove();
+    }
+    setTimeout(()=>{
+      overlay.style.transition='clip-path .5s cubic-bezier(.55,0,.2,1)';
+      overlay.style.clipPath=`circle(0px at ${tx}px ${ty}px)`;
+      overlay.addEventListener('transitionend',function onContract(ev2){
+        if(ev2.propertyName!=='clip-path') return;
+        overlay.removeEventListener('transitionend',onContract);
+        afterContract();
+      });
+      setTimeout(afterContract,900); // fallback: force-remove even if transitionend never arrives
+    },90); // tiny playful hold at full coverage before it irises away
+  }
   // one frame to let the small starting circle paint, then animate it out to cover the screen —
   // forcing the transition across two frames like this is what makes it reliably animate instead
   // of the browser collapsing the start+end state into a single, instant jump.
@@ -9273,20 +9328,9 @@ function irisTransition(fromEl, swapViews, toAnchor){
   overlay.addEventListener('transitionend',function onExpand(ev){
     if(ev.propertyName!=='clip-path') return;
     overlay.removeEventListener('transitionend',onExpand);
-    swapViews();
-    const anchor=toAnchor ? toAnchor() : null;
-    let tx=cx, ty=cy;
-    if(anchor){ const r2=anchor.getBoundingClientRect(); tx=r2.left+r2.width/2; ty=r2.top+r2.height/2; }
-    setTimeout(()=>{
-      overlay.style.transition='clip-path .5s cubic-bezier(.55,0,.2,1)';
-      overlay.style.clipPath=`circle(0px at ${tx}px ${ty}px)`;
-    },90); // tiny playful hold at full coverage before it irises away
-    overlay.addEventListener('transitionend',function onContract(ev2){
-      if(ev2.propertyName!=='clip-path') return;
-      overlay.removeEventListener('transitionend',onContract);
-      overlay.remove();
-    },{once:true});
-  },{once:true});
+    afterExpand();
+  });
+  setTimeout(afterExpand,1200); // fallback: force the swap even if the expand transitionend never arrives
 }
 function revealToHome(originEl){
   irisTransition(originEl, ()=>{
@@ -9418,7 +9462,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.15';
+const APP_VERSION='2.4.16';
 const WHATSNEW_ITEMS=[
   {demo:'blanket',  demoHtml:'<svg class="wn-blanket-svg" viewBox="0 0 56 56" width="34" height="34"><path d="M8 40 C14 20 24 44 30 24 S44 14 48 16"/></svg>'},
   {demo:'carousel', demoHtml:'<span></span><span></span><span></span>'},
@@ -18009,6 +18053,7 @@ function updateFolderStatusUI(){
     folderLabel.textContent=t('folder_choose_label');
     folderBtn.title=t('folder_choose_title');
   }
+  refreshHomeSyncAllBtn();
 }
 
 async function activateFolder(handle,opts){
@@ -18200,6 +18245,20 @@ folderBtn.addEventListener('click',async ()=>{
   else if(fsState.pendingHandle){ await confirmPendingFolder(); }
   else{ await connectFolder(); }
 });
+// Cloud Sync / Gerät verknüpfen / Alle synchronisieren's own Home-header buttons (moved out of the
+// Werkzeuge sheet — see their comment in the HTML above) wire up right here next to folderBtn's own
+// handler, so they work independent of whether that sheet is ever opened at all.
+const homeR2SyncBtn=document.getElementById('homeR2SyncBtn');
+if(homeR2SyncBtn){
+  homeR2SyncBtn.addEventListener('click',()=>{
+    if(r2NeedsReconnect()){ r2Reconnect(); return; } // see r2NeedsReconnect()'s own comment
+    setR2SyncEnabled(!isR2SyncEnabled());
+  });
+}
+const homeR2LinkBtn=document.getElementById('homeR2LinkBtn');
+if(homeR2LinkBtn) homeR2LinkBtn.addEventListener('click',()=>showR2LinkDeviceModal());
+const homeSyncAllBtn=document.getElementById('homeSyncAllBtn');
+if(homeSyncAllBtn) homeSyncAllBtn.addEventListener('click',()=>syncAllBoards());
 
 /* ============================================================
    BOARD IMPORT / EXPORT
@@ -18644,13 +18703,12 @@ function closeToolsSheet(){
 function openToolsSheet(){
   const exportItem=document.getElementById('toolsExportItem');
   if(exportItem) exportItem.disabled = state.homeSelection.size!==1;
-  const syncAllItem=document.getElementById('toolsSyncAllItem');
-  if(syncAllItem) syncAllItem.disabled = !(fsState.root || isR2SyncEnabled());
-  // Picks up a "needs reconnect" state (see r2NeedsReconnect()) the moment it happens to be true —
-  // pendingReconnect can flip on in the background (a failed silent token refresh during an ordinary
-  // sync pass), so this is the one reliable place to catch it and show it, rather than only ever
-  // refreshing right after the user's own last toggle/link action.
+  // Cloud Sync / Gerät verknüpfen / Alle synchronisieren moved out of this sheet into their own Home
+  // header buttons (see #homeR2SyncBtn etc.) — still worth refreshing here too, since opening this
+  // sheet is a reasonable moment to also pick up a "needs reconnect" state (see r2NeedsReconnect())
+  // that flipped on in the background (a failed silent token refresh during an ordinary sync pass).
   refreshR2SyncToggleUI();
+  refreshR2LinkDeviceUI();
   positionToolsSheetForDesktop();
   toolsSheet.hidden=false; toolsSheetBackdrop.hidden=false;
   // Force layout before adding .show so the transform transition actually plays from its start state.
@@ -18677,10 +18735,6 @@ if(toolsBtn){
     const [onlyId]=state.homeSelection;
     exportBoard(onlyId);
   });
-  document.getElementById('toolsSyncAllItem').addEventListener('click',()=>{
-    closeToolsSheet();
-    syncAllBoards();
-  });
   document.getElementById('toolsFolderStructureItem').addEventListener('click',()=>{
     closeToolsSheet();
     showFolderStructureModal();
@@ -18692,15 +18746,6 @@ if(toolsBtn){
   document.getElementById('toolsUiDynamicItem').addEventListener('click',()=>{
     closeToolsSheet();
     setUiDynamicEnabled(!isUiDynamicEnabled());
-  });
-  document.getElementById('toolsR2SyncItem').addEventListener('click',()=>{
-    closeToolsSheet();
-    if(r2NeedsReconnect()){ r2Reconnect(); return; } // see r2NeedsReconnect()'s own comment
-    setR2SyncEnabled(!isR2SyncEnabled());
-  });
-  document.getElementById('toolsR2LinkItem').addEventListener('click',()=>{
-    closeToolsSheet();
-    showR2LinkDeviceModal();
   });
   document.getElementById('toolsAnimControlItem').addEventListener('click',()=>{
     closeToolsSheet();
@@ -19274,7 +19319,7 @@ if(window.visualViewport){
     const linkCode=new URLSearchParams(location.search).get('link');
     if(linkCode && R2_SYNC_SUPPORTED){
       history.replaceState({},'',location.pathname);
-      showR2JoinModal(linkCode).then(ok=>{ if(ok) revealToHome(document.getElementById('landingCircle')); });
+      showR2JoinModal(linkCode).then(async ok=>{ if(ok){ await refreshHome(); revealToHome(document.getElementById('landingCircle')); } }); // see the landingGoogleBtn handler's own comment on why this refresh has to happen first
     }
   }catch(e){}
   document.addEventListener('contextmenu',(e)=>{ if(e.target.closest('#app')) e.preventDefault(); });
