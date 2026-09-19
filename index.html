@@ -3525,11 +3525,15 @@ try{
       <button class="icon-btn" id="calendarBtn" title="Kalender">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
       </button>
-      <button class="icon-btn" id="templateBtn" title="Vorlagen">
+      <!-- "das Menü fühlt sich überladen an" — the manual board-sync button is gone entirely: syncing
+           already happens automatically (the same steady-cadence engine the home screen's own "Alle
+           synchronisieren" button was removed in favor of, see that section's comment), so a manual
+           per-board nudge button here was one icon too many. "Templates soll erstmal raus, bau dafür
+           einen Secretcode ein mit functiontemplate" — Vorlagen stays fully working under the hood,
+           just gated behind the same secret-code beta-unlock pattern as WoW/Strava/Control (see
+           BETA_FEATURE_KEYS/isBetaFeatureUnlocked/trySubmit()) instead of always being visible. -->
+      <button class="icon-btn" id="templateBtn" title="Vorlagen" data-beta="template" hidden>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.5"/></svg>
-      </button>
-      <button class="icon-btn sync-btn" id="boardSyncBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0 1 14-5.3M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3M4 20v-5h5"/></svg>
       </button>
       <button class="icon-btn" id="homeBtn" title="Zur Übersicht">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9h12v-9"/></svg>
@@ -4117,6 +4121,7 @@ const I18N={
   beta_dockmagnify_unlocked_toast:{de:'Dynamisches Werkzeugmenü freigeschaltet — aktiv, sobald Dynamic UI (Einstellungen) an ist',en:'Dynamic dock unlocked — active whenever Dynamic UI (Settings) is on',es:'Menú de herramientas dinámico desbloqueado — activo en cuanto Dynamic UI (Ajustes) esté encendido',da:'Dynamisk værktøjsmenu låst op — aktiv når Dynamic UI (Indstillinger) er slået til'},
   beta_mobiledock_unlocked_toast:{de:'Kompaktes Mobil-Menü freigeschaltet — Schalter im Werkzeuge-Menü der Boardübersicht',en:'Compact mobile menu unlocked — switch in the overview\'s Tools menu',es:'Menú móvil compacto desbloqueado — interruptor en el menú Herramientas del resumen de tableros',da:'Kompakt mobilmenu låst op — kontakt findes i menuen Værktøjer på tavleoversigten'},
   beta_control_unlocked_toast:{de:'Einzelsteuerung für Animationen freigeschaltet — zu finden im Werkzeuge-Menü der Boardübersicht',en:'Per-animation controls unlocked — find them in the overview\'s Tools menu',es:'Control individual de animaciones desbloqueado — lo encuentras en el menú Herramientas del resumen de tableros',da:'Individuel styring af animationer låst op — findes i menuen Værktøjer på tavleoversigten'},
+  beta_template_unlocked_toast:{de:'Vorlagen freigeschaltet — zu finden oben im Board',en:'Templates unlocked — find it in the board topbar',es:'Plantillas desbloqueadas — las encuentras arriba en el tablero',da:'Skabeloner låst op — findes øverst på tavlen'},
   add_column_title:{de:'Karte hinzufügen',en:'Add card',es:'Añadir tarjeta',da:'Tilføj kort'},
   add_column_label:{de:'Karte',en:'Card',es:'Tarjeta',da:'Kort'},
   column_add_left_title:{de:'Karte links hinzufügen',en:'Add card to the left',es:'Añadir tarjeta a la izquierda',da:'Tilføj kort til venstre'},
@@ -7977,7 +7982,7 @@ function applyBetaFeatureVisibility(){
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -8421,6 +8426,10 @@ function showSecretPasswordModal(){
     // unlock code at all (see isDockMagnifyEnabled()); typing the old code now just falls through to
     // "wrong password" like any other unrecognized input.
     else if(v==='functioncontrol'){ scrim.remove(); unlockBetaFeature('control'); showToast(t('beta_control_unlocked_toast')); }
+    // "Templates soll erstmal raus, bau dafür einen Secretcode ein mit functiontemplate" — Vorlagen
+    // (#templateBtn in the board topbar) stays gated behind this from now on, same unlock-forever-on-
+    // this-device pattern as strava/wow/control above.
+    else if(v==='functiontemplate'){ scrim.remove(); unlockBetaFeature('template'); showToast(t('beta_template_unlocked_toast')); }
     else{ errEl.textContent=t('secret_password_wrong'); input.value=''; input.focus(); }
   }
   scrim.querySelector('[data-a="ok"]').addEventListener('click',trySubmit);
@@ -9994,7 +10003,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.29';
+const APP_VERSION='2.4.30';
 const WHATSNEW_ITEMS=[
   // The exact nib silhouette from iconBlanketPenFountain() at demo size, so this literally shows the
   // new Füller icon rather than a generic pen glyph.
@@ -20318,15 +20327,11 @@ async function r2RunFullCheckupOnce(){
    ============================================================ */
 const templateBtn=document.getElementById('templateBtn');
 if(templateBtn) templateBtn.addEventListener('click',showTemplatePickerModal);
-const boardSyncBtn=document.getElementById('boardSyncBtn');
-if(boardSyncBtn){
-  boardSyncBtn.title=t('sync_btn_title');
-  boardSyncBtn.addEventListener('click',(e)=>{
-    if(!state.currentBoardId) return;
-    const board=boardById(state.currentBoardId);
-    openSyncPopover(e.clientX, e.clientY, state.currentBoardId, board?board.name:'');
-  });
-}
+// #boardSyncBtn (manual "sync this board now" button in the topbar) removed — "Synchronisieren des
+// Boards kann weg, das soll ja eh automatisch passieren". openSyncPopover() itself stays fully intact
+// and wired up: the home screen's per-tile sync button (see the .sync-btn wiring on board tiles,
+// around ensureBoardTile()) still opens the exact same popover, this only removes the redundant
+// second entry point that lived inside an open board.
 
 /* ============================================================
    BUILT-IN TEMPLATES — the template picker (above) only ever showed templates the user had
