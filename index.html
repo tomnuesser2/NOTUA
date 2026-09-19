@@ -1891,8 +1891,19 @@ try{
     box-shadow:0 10px 24px -10px var(--shadow-lg); padding:10px 12px; display:flex; align-items:center; gap:9px;
     width:150px;
   }
-  .blanket-thickness-dot{width:14px; height:14px; border-radius:50%; background:var(--ink); flex:none;}
+  /* "am besten mit einer schicken Animation daneben ... die einen Kreis von der Dicke anzeigt für
+     Stärke" — a spring-flavored overshoot easing on the resize itself (rather than an instant snap)
+     is the whole "schicke Animation" here; the JS side already recomputes width/height on every
+     slider `input` event (see syncDot() in ensureBlanketThicknessPop()), this just makes that change
+     actually glide instead of jumping. */
+  .blanket-thickness-dot{
+    width:14px; height:14px; border-radius:50%; background:var(--ink); flex:none;
+    transition:width .28s cubic-bezier(.34,1.56,.64,1), height .28s cubic-bezier(.34,1.56,.64,1);
+  }
   .blanket-thickness-pop input[type=range]{flex:1; accent-color:var(--accent); cursor:var(--custom-pointer-cursor,pointer);}
+  /* "eine Zickzack Kurve abrundet für Glätten" — see buildBlanketSmoothIndicatorPath()/
+     animateBlanketSmoothIndicatorTo() for how the path itself morphs from zigzag to a rounded wave. */
+  .blanket-smooth-indicator{color:var(--ink); flex:none;}
   /* "Man soll auch einen farbigen Hintergrund setzen können" — a native <input type="color"> (the
      browser's own picker, no custom wheel needed) styled down to a small round swatch, paired with a
      "clear" button that goes .active (matching every other toggled tool-btn in this toolbar) whenever
@@ -1940,39 +1951,56 @@ try{
      von der Länge sein mit Logo und Text darunter" — a horizontally-elongated rounded rectangle (not a
      circle, not a full capsule/pill either — a clearly rectangular shape with softened corners) holding
      the icon on top and a short label underneath it, rather than the plain 28px square icon buttons
-     .viewctl uses for zoom/grid/theme/etc. */
+     .viewctl uses for zoom/grid/theme/etc. "der orangene Button soll von der Höhe kürzer sein" — height
+     brought down from the original 52px to 38px (icon/label/gaps all tightened to match) now that the
+     panel it opens carries much more information of its own (see .bsm-panel below), so the toggle itself
+     reads as a compact tab rather than a whole standalone control. */
   .bsm-toggle{
-    width:auto; min-width:88px; height:52px; padding:6px 18px; border-radius:14px; border:none;
+    width:auto; min-width:88px; height:38px; padding:4px 16px; border-radius:11px; border:none;
     background:var(--surface); color:var(--muted); flex:none;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
     cursor:var(--custom-pointer-cursor,pointer);
     box-shadow:0 14px 30px -10px var(--shadow-lg); transition:background .16s ease, color .16s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
   }
-  .bsm-toggle svg{width:19px; height:19px;}
-  .bsm-toggle-label{font-size:0.62rem; font-weight:600; letter-spacing:.01em; white-space:nowrap;}
+  .bsm-toggle svg{width:15px; height:15px;}
+  .bsm-toggle-label{font-size:0.56rem; font-weight:600; letter-spacing:.01em; white-space:nowrap;}
   .bsm-toggle:hover{background:var(--surface-2); color:var(--ink);}
   .bsm-toggle:active{transform:scale(.95);}
   .bsm-toggle.toggled{background:var(--accent); color:#fff; box-shadow:0 14px 30px -8px var(--accent);}
-  .bsm-frame-group{
-    display:flex; flex-direction:column; align-items:center; gap:2px;
-    background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:6px;
+  /* "das Menü soll umgebaut werden und nun so aussehen wie die Eigenschaftsfelder in einem normalen
+     Board" + "beim anklicken per Animation nach unten das Menü auffächern" — rebuilt from a flat column
+     of bare icon buttons into labeled FRAME/WIEDERGABE/AKTIONEN sections styled exactly like the normal
+     card inspector's own grouped fields (.insp-label's small uppercase caption over a row of controls —
+     see .bsm-section-label below, deliberately the same look), and the whole thing now fans open/closed
+     with an actual height animation (see setBlanketStopMotionPanelOpen()) instead of an instant
+     hidden-attribute flip. max-height is set inline by JS (the CSS transition here is what animates
+     between the two inline values); opacity fades alongside it as a bit of extra polish. */
+  .bsm-panel{
+    display:flex; flex-direction:column; gap:11px;
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 13px;
     box-shadow:0 10px 26px -10px var(--shadow-lg);
-    max-height:calc(100vh - 160px); overflow-y:auto;
+    width:196px; box-sizing:border-box; overflow:hidden; opacity:0;
+    transition:max-height .34s cubic-bezier(.34,1.56,.64,1), opacity .22s ease;
   }
-  .bsm-frame-group[hidden]{display:none;}
-  .bsm-frame-group button{
-    width:30px; height:30px; border:none; background:transparent; color:var(--muted); border-radius:7px; flex:none;
+  .bsm-panel[hidden]{display:none;}
+  .bsm-panel.bsm-panel-open{opacity:1;}
+  .bsm-section{display:flex; flex-direction:column; gap:6px;}
+  /* Same visual language as .insp-label (the on-card inspector's own section captions) on purpose —
+     "wie die Eigenschaftsfelder in einem normalen Board". */
+  .bsm-section-label{font-size:0.62rem; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); font-weight:600;}
+  .bsm-section-row{display:flex; align-items:center; gap:6px;}
+  .bsm-section-row button{
+    width:32px; height:32px; border:none; background:transparent; color:var(--muted); border-radius:8px; flex:none;
     cursor:var(--custom-pointer-cursor,pointer); display:flex; align-items:center; justify-content:center;
     transition:background .14s ease, color .14s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
   }
-  .bsm-frame-group button:hover{background:var(--surface-2); color:var(--ink);}
-  .bsm-frame-group button:active{transform:scale(.88);}
-  .bsm-frame-group button.toggled{background:var(--accent-soft); color:var(--accent);}
-  .bsm-frame-group button.armed, .bsm-frame-group button.armed:hover{background:var(--accent); color:#fff;}
-  .bsm-frame-group button:disabled{opacity:.35; cursor:default; pointer-events:none;}
-  .bsm-hsep{width:22px; height:1px; background:var(--border); margin:3px 0; flex:none;}
-  .bsm-frame-label{font-size:0.68rem; color:var(--muted); text-align:center; padding:2px 0; font-variant-numeric:tabular-nums;}
-  .vbf-fps-btn{width:30px !important; height:30px; font-size:0.6rem; font-weight:600; font-family:inherit;}
+  .bsm-section-row button:hover{background:var(--surface-2); color:var(--ink);}
+  .bsm-section-row button:active{transform:scale(.88);}
+  .bsm-section-row button.toggled{background:var(--accent-soft); color:var(--accent);}
+  .bsm-section-row button.armed, .bsm-section-row button.armed:hover{background:var(--accent); color:#fff;}
+  .bsm-section-row button:disabled{opacity:.35; cursor:default; pointer-events:none;}
+  .bsm-frame-label{flex:1; font-size:0.72rem; color:var(--ink); text-align:center; padding:2px 0; font-variant-numeric:tabular-nums;}
+  .vbf-fps-btn{width:auto !important; min-width:46px; padding:0 8px; height:32px; font-size:0.62rem; font-weight:600; font-family:inherit;}
   /* "das ganze Ansichtboard soll kleiner sein [während des Drawboards]" — applied to .viewctl only
      while a dedicated Blanket-Board is open (see applyBlanketBoardChrome()); the bar already carries
      fewer buttons there (Einpassen/Dynamische Inhalte/Werkzeugleiste anpassen are hidden, see the same
@@ -2250,6 +2278,13 @@ try{
   .create-menu-item:hover{background:var(--surface-2);}
   .create-menu-item.dragging{opacity:0.35;}
   .create-menu-item svg{flex:none; color:var(--muted);}
+  /* "transparent ist nur eine Exportfunktion" — the format menu's own transparent-export checkbox row
+     (see openFormatMenu()), only shown when it would actually do something. */
+  .export-transparent-row{
+    display:flex; align-items:center; gap:8px; padding:6px 10px 4px; margin-top:2px; border-top:1px solid var(--border);
+    font-size:0.78rem; color:var(--muted); cursor:var(--custom-pointer-cursor,pointer); user-select:none;
+  }
+  .export-transparent-row input[type=checkbox]{accent-color:var(--accent); cursor:var(--custom-pointer-cursor,pointer); flex:none;}
   .create-ghost{
     position:fixed; z-index:200; pointer-events:none; display:flex; align-items:center; gap:6px;
     background:var(--surface); border:1px solid var(--accent); border-radius:8px; padding:6px 10px; font-size:0.8rem;
@@ -2290,9 +2325,14 @@ try{
   .dock-btn:hover{background:var(--surface-2); color:var(--ink);}
   .dock-btn:active{transform:scale(.92);}
   .dock-btn.active{background:var(--accent); color:var(--accent-ink);}
+  /* "anzeigen, dass sie geöffnet ist" — a ring, independent of .active's solid fill, so a button whose
+     popover is currently open reads as open whether or not it's also .active (e.g. Farbe with a custom
+     color already selected AND its wheel open right now). */
+  .dock-btn.pop-open{box-shadow:inset 0 0 0 2px var(--accent);}
   .dock-sep{width:1px; height:30px; background:var(--border); margin:0 4px; flex:none;}
-  /* Dock-magnify (beta, unlocked via 'functiondock' — plays automatically whenever the public Dynamic
-     UI switch is on, see refreshDockMagnify()): the spring loop below grows each .dock-btn's real
+  /* Dock-magnify ("der code functiondock soll raus" — no longer secret-code-gated, now always
+     available and plays automatically whenever the public Dynamic UI switch is on, see
+     refreshDockMagnify()/isDockMagnifyEnabled()): the spring loop below grows each .dock-btn's real
      width (and its icon's real size) every frame,
      exactly like the previews/dock-concept.html demo this is modeled on — no CSS transition fights
      it here on purpose. align-items:flex-end (instead of the dock's normal centered row) is what
@@ -3224,10 +3264,11 @@ try{
         <span class="tools-sheet-card-label"></span>
       </button>
       <!-- "dann kann der Dynamisch Button weg wenn es static und dynamic ui gibt" — the old separate
-           manual on/off toggle card for the dock-magnify hover-zoom effect is gone; unlocking
-           'functiondock' now just makes the effect play automatically whenever the public "Dynamic UI"
-           switch above is on, same as every other animation group. Nothing left to show here, so no
-           button/card at all for this beta feature. -->
+           manual on/off toggle card for the dock-magnify hover-zoom effect is gone, and ("der code
+           functiondock soll raus") so is the secret-code unlock step itself — the effect now just
+           always plays automatically whenever the public "Dynamic UI" switch above is on, same as
+           every other animation group. Nothing left to show here, so no button/card at all for this
+           feature. -->
       <!-- Hidden-code-gated (password 'functioncontrol', see showSecretPasswordModal()/trySubmit()) —
            unlocking reveals this card, which opens showAnimControlModal(): a panel listing every new
            animation group added this round individually, each with its own on/off switch (still gated
@@ -4108,6 +4149,11 @@ const I18N={
   export_format_png:{de:'Als PNG',en:'As PNG',es:'Como PNG',da:'Som PNG'},
   export_format_jpeg:{de:'Als JPEG',en:'As JPEG',es:'Como JPEG',da:'Som JPEG'},
   export_format_pdf:{de:'Als PDF',en:'As PDF',es:'Como PDF',da:'Som PDF'},
+  // "der Button sollte lieber nur die Farbwahl sein und transparent ist nur eine Exportfunktion" —
+  // shown in the export format menu only when at least one selected card has a Zeichenboard/Blanket
+  // background color set (see openFormatMenu()); only ever applies to the PNG format (JPEG/PDF have no
+  // alpha channel).
+  export_transparent_bg_label:{de:'Transparent exportieren (PNG)',en:'Export transparent (PNG)',es:'Exportar transparente (PNG)',da:'Eksportér transparent (PNG)'},
   insp_export_title:{de:'Auswahl als PNG/JPEG/PDF exportieren',en:'Export selection as PNG/JPEG/PDF',es:'Exportar selección como PNG/JPEG/PDF',da:'Eksportér markering som PNG/JPEG/PDF'},
   cluster_create_title:{de:'Cluster erstellen (gemeinsam verschieben)',en:'Create cluster (move together)',es:'Crear grupo (se mueve todo junto)',da:'Opret klynge (flyt sammen)'},
   cluster_dissolve_title:{de:'Cluster auflösen',en:'Dissolve cluster',es:'Disolver grupo',da:'Opløs klynge'},
@@ -4416,8 +4462,8 @@ const I18N={
   blanket_pentype_label:{de:'Stiftart',en:'Pen type',es:'Tipo de lápiz',da:'Pentype'},
   blanket_pentype_fountain_title:{de:'Füller (spitz zulaufende Enden)',en:'Fountain pen (tapered ends)',es:'Pluma estilográfica (extremos afinados)',da:'Fyldepen (spidse ender)'},
   blanket_pentype_fountain_label:{de:'Füller',en:'Fountain',es:'Pluma',da:'Fyldepen'},
-  blanket_pentype_normal_title:{de:'Stift (normal)',en:'Pen (normal)',es:'Lápiz (normal)',da:'Pen (normal)'},
-  blanket_pentype_normal_label:{de:'Stift',en:'Pen',es:'Lápiz',da:'Pen'},
+  blanket_pentype_normal_title:{de:'Bleistift (normal)',en:'Pencil (normal)',es:'Lápiz (normal)',da:'Blyant (normal)'},
+  blanket_pentype_normal_label:{de:'Bleistift',en:'Pencil',es:'Lápiz',da:'Blyant'},
   blanket_pentype_marker_title:{de:'Textmarker (transparent)',en:'Highlighter (transparent)',es:'Marcador (transparente)',da:'Tekstmarker (transparent)'},
   blanket_pentype_marker_label:{de:'Marker',en:'Marker',es:'Marcador',da:'Marker'},
   blanket_pentype_fineliner_title:{de:'Feinliner (gleichmäßig dünn, für präzise Notizen)',en:'Fineliner (uniform thin line, for precise notes)',es:'Rotulador fino (trazo fino uniforme, para notas precisas)',da:'Fineliner (ensartet tynd streg, til præcise noter)'},
@@ -4437,6 +4483,11 @@ const I18N={
   // "mit Logo und Text darunter" — distinct from the (longer) tooltip title above, which stays on the
   // title attribute for anyone hovering.
   blanket_stopmotion_toggle_label:{de:'Stop-Motion',en:'Stop-motion',es:'Stop-Motion',da:'Stop-motion'},
+  // "das Menü soll umgebaut werden ... Sektionen: FRAME / WIEDERGABE / AKTIONEN" — the fixed
+  // Drawboard stop-motion panel's three grouped-section captions (see .bsm-section-label).
+  blanket_stopmotion_section_frame:{de:'Bild',en:'Frame',es:'Fotograma',da:'Billede'},
+  blanket_stopmotion_section_playback:{de:'Wiedergabe',en:'Playback',es:'Reproducción',da:'Afspilning'},
+  blanket_stopmotion_section_actions:{de:'Aktionen',en:'Actions',es:'Acciones',da:'Handlinger'},
   blanket_onionskin_toggle_title:{de:'Vorheriges Bild durchscheinen lassen',en:'Show previous frame as ghost',es:'Mostrar el fotograma anterior en transparencia',da:'Vis forrige billede som spøgelse'},
   blanket_fps_label:{de:'Abspieltempo',en:'Playback speed',es:'Velocidad de reproducción',da:'Afspilningshastighed'},
   blanket_frame_prev_title:{de:'Vorheriges Bild',en:'Previous frame',es:'Fotograma anterior',da:'Forrige billede'},
@@ -4651,6 +4702,14 @@ const I18N={
   whatsnew_item_framecopy_desc:{de:'Ein Bild aus der Bildreihe kopieren und an einer anderen Stelle wieder einfügen — perfekt, um Stop-Motion-Animationen schneller aufzubauen.',en:'Copy one frame from the sequence and paste it back in somewhere else — perfect for building stop-motion animations faster.',es:'Copia un fotograma de la secuencia y pégalo en otro punto — perfecto para montar animaciones stop-motion más rápido.',da:'Kopiér ét billede fra billedserien, og sæt det ind et andet sted — perfekt til hurtigere at bygge stop-motion-animationer.'},
   whatsnew_item_bgcolor_title:{de:'Farbiger Hintergrund fürs Zeichnen',en:'Colored background for drawing',es:'Fondo de color para dibujar',da:'Farvet baggrund til tegning'},
   whatsnew_item_bgcolor_desc:{de:'Leinwand und Leinwand-Board können jetzt eine eigene Hintergrundfarbe bekommen, statt nur transparent zu sein — direkt in der Werkzeugleiste.',en:'A Blanket card and drawing-canvas board can now get their own background color instead of staying transparent — right in the toolbar.',es:'Un lienzo y un tablero de lienzo ahora pueden tener su propio color de fondo en lugar de quedar solo transparentes — directamente en la barra de herramientas.',da:'Et lærred og en lærredstavle kan nu få deres egen baggrundsfarve i stedet for kun at være transparente — direkte i værktøjslinjen.'},
+  whatsnew_item_penicons_title:{de:'Neue Stift-Icons',en:'New pen icons',es:'Nuevos iconos de bolígrafo',da:'Nye pen-ikoner'},
+  whatsnew_item_penicons_desc:{de:'Füller, Bleistift und Textmarker haben jetzt jeweils ein eigenes, klar erkennbares Icon in der Werkzeugleiste.',en:'Fountain pen, pencil and marker now each have their own, clearly recognizable icon in the toolbar.',es:'La pluma, el lápiz y el marcador tienen ahora su propio icono, fácilmente reconocible, en la barra de herramientas.',da:'Fyldepen, blyant og tekstmarkør har nu hver sit eget, tydeligt genkendeligt ikon i værktøjslinjen.'},
+  whatsnew_item_transparentexport_title:{de:'Transparenter Export',en:'Transparent export',es:'Exportación transparente',da:'Transparent eksport'},
+  whatsnew_item_transparentexport_desc:{de:'Der Hintergrund-Button wählt jetzt nur noch die Farbe — beim Exportieren als PNG kann der Hintergrund stattdessen transparent gemacht werden.',en:'The background button now only picks the color — when exporting as PNG, the background can instead be made transparent.',es:'El botón de fondo ahora solo elige el color — al exportar como PNG, el fondo puede hacerse transparente en su lugar.',da:'Baggrundsknappen vælger nu kun farven — ved eksport som PNG kan baggrunden i stedet gøres transparent.'},
+  whatsnew_item_stopmotionredesign_title:{de:'Überarbeitetes Stop-Motion-Menü',en:'Redesigned stop-motion menu',es:'Menú de stop-motion renovado',da:'Nyt stop-motion-menu'},
+  whatsnew_item_stopmotionredesign_desc:{de:'Bild, Wiedergabe und Aktionen sind jetzt übersichtlich in eigenen Bereichen sortiert, und das Menü fährt beim Öffnen elegant aus.',en:'Frame, playback and actions are now neatly grouped into their own sections, and the menu now fans open elegantly.',es:'Fotograma, reproducción y acciones están ahora ordenados en secciones propias, y el menú se despliega ahora con elegancia.',da:'Billede, afspilning og handlinger er nu overskueligt grupperet i egne afsnit, og menuen folder sig nu elegant ud.'},
+  whatsnew_item_sliderpos_title:{de:'Feste Regler für Glätten & Stärke',en:'Fixed sliders for smoothing & thickness',es:'Controles fijos para suavizado y grosor',da:'Faste skydere til udjævning & tykkelse'},
+  whatsnew_item_sliderpos_desc:{de:'Die Regler für Kantenglättung und Strichstärke öffnen sich jetzt immer an fester Position über dem jeweiligen Knopf — mit eigener kleiner Animation.',en:'The smoothing and thickness sliders now always open in a fixed position above their own button — with their own small animation.',es:'Los controles de suavizado y grosor ahora siempre se abren en una posición fija sobre su propio botón — con su propia pequeña animación.',da:'Skyderne til kantudjævning og stregtykkelse åbner nu altid på en fast plads over deres egen knap — med sin egen lille animation.'},
   whatsnew_item_blanket_title:{de:'Neu: Leinwand zum Zeichnen',en:'New: Blanket drawing canvas',es:'Nuevo: lienzo para dibujar',da:'Nyt: Lærred til tegning'},
   whatsnew_item_blanket_desc:{de:'Freihand zeichnen mit 5 Stiften, Druckempfindlichkeit, Stiftdicke und Kantenglättung — als Karte oder als eigenes Leinwand-Board über das neue Zeichnen-Menü. Mit Stop-Motion-Modus für kleine Animationen.',en:'Freehand drawing with 5 pens, pressure sensitivity, pen thickness and edge smoothing — as a card or its own drawing-canvas board, both from the new Draw menu. Includes a stop-motion mode for little animations.',es:'Dibuja a mano alzada con 5 lápices, sensibilidad a la presión, grosor de trazo y suavizado de bordes — como tarjeta o como su propio tablero de lienzo, ambos desde el nuevo menú Dibujar. Incluye un modo stop-motion para pequeñas animaciones.',da:'Tegn frihånd med 5 penne, trykfølsomhed, pennetykkelse og kantudjævning — som kort eller som sin egen lærredstavle via den nye Tegn-menu. Med stop-motion-tilstand til små animationer.'},
   // Datenschutz/Nutzungsbedingungen body text itself lives only in datenschutz.html /
@@ -6006,8 +6065,8 @@ async function ensureAccessToken(interactive){
    (see notua-r2-worker.js) — never trust a client-side number for something a client could just lie
    about. A write that gets rejected for being over quota shows one toast (r2ReportQuotaExceeded) and
    is otherwise swallowed exactly like a failed FS_DB write already is — the rest of a board's
-   sync still goes through. Every image is already squeezed to <=150KB before it ever gets here (see
-   compressImageForStorage()), so ~640 images comfortably fit the 100MB budget even before the Worker's
+   sync still goes through. Every image is already squeezed to <=100KB before it ever gets here (see
+   compressImageForStorage()), so ~1000 images comfortably fit the 100MB budget even before the Worker's
    own check.
    ============================================================ */
 const r2State={
@@ -6801,7 +6860,7 @@ function markBoardDirty(boardId){
 // is not defined" the moment it tried to actually store the blob (visible e.g. as: drag an image onto
 // the canvas, it lands in the Family Button tray just fine since that step never touches DB.putImage,
 // but dragging it back out to actually place it on the board silently does nothing at all).
-const IMAGE_STORAGE_MAX_BYTES=150*1024;
+const IMAGE_STORAGE_MAX_BYTES=100*1024;
 const IMAGE_STORAGE_MAX_DIM=1600; // longest edge, px — also bounds how much canvas work a huge photo costs
 function compressImageForStorage(blob){
   return new Promise((resolve)=>{
@@ -6878,7 +6937,7 @@ const DB={
   // putImage/deleteImage deliberately don't mark anything dirty here: every real call site pairs an
   // image write with a putCard for the card that owns it, and that putCard already marks the right
   // board dirty — the image record itself has no boardId to mark with.
-  // Every image, wherever it enters the app, gets squeezed to <=150KB right here before it ever
+  // Every image, wherever it enters the app, gets squeezed to <=100KB right here before it ever
   // reaches a backend — see compressImageForStorage()'s own comment for why this is the one chokepoint
   // that covers every call site for free.
   putImage:async(id,blob,...rest)=>{ const b=await compressImageForStorage(blob); return activeBackend().putImage(id,b,...rest); },
@@ -7916,7 +7975,9 @@ function applyBetaFeatureVisibility(){
 // Whether ANY secret code has ever been entered on this device — decides whether the Werkzeuge
 // sheet even shows a "Secret Settings" second tab at all. Kept genuinely secret for anyone who's
 // found nothing: no tab, no hint one exists, same single plain list as always.
-const BETA_FEATURE_KEYS=['strava','wow','dockmagnify','control'];
+// 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
+// so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
+const BETA_FEATURE_KEYS=['strava','wow','control'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -8071,15 +8132,16 @@ if(dockCustomizeBtnEl) dockCustomizeBtnEl.addEventListener('click',(e)=>{ e.stop
 const drawerCustomizeBtnEl=document.getElementById('drawerCustomizeBtn');
 if(drawerCustomizeBtnEl) drawerCustomizeBtnEl.addEventListener('click',()=>{ closeDrawer(); showDockCustomizeModal(); });
 
-// ---------- DOCK MAGNIFY (beta) ----------
-// Hidden-code-gated (password 'functiondock', see trySubmit() below) macOS-dock-style magnify-on-hover
-// effect for the desktop toolbar. "dann kann der Dynamisch Button weg wenn es static und dynamic ui
-// gibt" — this used to have its own separate manual on/off toggle card in the Werkzeuge sheet
-// (#toolsDockMagnifyItem), remembered independently of the unlock flag itself. That card is gone now:
-// unlocking 'functiondock' is the only step left — the effect simply plays automatically whenever the
-// public "Dynamic UI" switch (isUiDynamicEnabled(), see #toolsUiDynamicItem) is on, same as every other
-// animation group, and goes quiet under Static UI like all the others too. isDockMagnifyEnabled() below
-// now IS the unlock flag, nothing more.
+// ---------- DOCK MAGNIFY ----------
+// macOS-dock-style magnify-on-hover effect for the desktop toolbar. Used to be hidden behind the
+// secret password 'functiondock' (see the now-removed branch in trySubmit() below) — "das dock dingen
+// soll bitte ab jetzt immer mit drin sein der code functiondock soll raus": no code needed anymore,
+// isDockMagnifyEnabled() is now an unconditional true. Before that, this also used to have its own
+// separate manual on/off toggle card in the Werkzeuge sheet (#toolsDockMagnifyItem), remembered
+// independently of the unlock flag itself — that card is long gone too: the effect simply plays
+// automatically whenever the public "Dynamic UI" switch (isUiDynamicEnabled(), see
+// #toolsUiDynamicItem) is on, same as every other animation group, and goes quiet under Static UI
+// like all the others too.
 //
 // The spring loop below reproduces the one-off previews/dock-concept.html demo as closely as
 // possible on the REAL, already customization-aware .dock-btn children of #dock (so it automatically
@@ -8102,7 +8164,7 @@ const VIEWCTL_MAGNIFY_BASE=28, VIEWCTL_MAGNIFY_MAX=42, VIEWCTL_MAGNIFY_DISTANCE=
 // while sharing the exact same spring physics/on-off toggle (see refreshDockMagnify()/DYNAMIC_ANIM_KEYS'
 // own comment on why one switch covers every animation group added since, this one included).
 let dockMagnifyStates=[]; // {containerEl,raf,items:[{el,svg,iconBase,size,vel,target}],onMove,onLeave}[]
-function isDockMagnifyEnabled(){ return isBetaFeatureUnlocked('dockmagnify'); }
+function isDockMagnifyEnabled(){ return true; } // no secret code needed anymore — see section comment above
 function dockMagnifyEligible(){
   try{ return window.matchMedia('(hover:hover) and (pointer:fine)').matches; }catch(e){ return false; }
 }
@@ -8198,12 +8260,12 @@ function startDockMagnify(){
 // [fein]steuern soll man sie mit dem Code können, es soll Static UI/Dynamic UI heißen, ein Knopf der
 // beim Drücken umschaltet, in den Einstellungen im Boardübersicht" — the PUBLIC master switch for
 // DYNAMIC_ANIM_KEYS below (board-zoom transitions, card drag/drop effects, edit-focus auto-fit, grid
-// parallax, empty-board pulse, menu stagger). No secret code needed to see or flip this one, unlike
-// isDockMagnifyEnabled() right below (still 'functiondock'-gated, still OFF by default) — that flag now
-// covers ONLY the literal toolbar-icon hover-zoom effect specifically, layered on top of this one (see
-// refreshDockMagnify()): Static UI always means "nothing moves", beta-tester or not, while Dynamic UI
-// (the default) plays the normal set of animations for everyone, with 'functioncontrol' still there for
-// a beta tester who wants to fine-tune which of the six groups play individually.
+// parallax, empty-board pulse, menu stagger). No secret code needed to see or flip this one — and, as
+// of "der code functiondock soll raus", isDockMagnifyEnabled() right below is no longer secret-code-
+// gated either: it's now unconditionally true, layered on top of this one (see refreshDockMagnify()):
+// Static UI always means "nothing moves", while Dynamic UI (the default) plays the normal set of
+// animations for everyone, with 'functioncontrol' still there for a beta tester who wants to
+// fine-tune which of the six DYNAMIC_ANIM_KEYS groups play individually.
 // "bei mir ist das alles irgendwie inzwischen ausgeschaltet zu beginn obwohl dynamic UI an ist" — this
 // one function/localStorage key is meant to be THE single source of truth for whether any of this
 // plays at all (that's the whole point of collapsing it into "ein Knopf der beim Drücken umschaltet"
@@ -8355,7 +8417,9 @@ function showSecretPasswordModal(){
     if(v==='tomistcool'){ scrim.remove(); showThemeMenuModal(); }
     else if(v==='functionstrava'){ scrim.remove(); unlockBetaFeature('strava'); showToast(t('beta_strava_unlocked_toast')); }
     else if(v==='functionwow'){ scrim.remove(); unlockBetaFeature('wow'); showToast(t('beta_wow_unlocked_toast')); }
-    else if(v==='functiondock'){ scrim.remove(); unlockBetaFeature('dockmagnify'); showToast(t('beta_dockmagnify_unlocked_toast')); }
+    // 'functiondock' removed — "der code functiondock soll raus", dock-magnify no longer needs an
+    // unlock code at all (see isDockMagnifyEnabled()); typing the old code now just falls through to
+    // "wrong password" like any other unrecognized input.
     else if(v==='functioncontrol'){ scrim.remove(); unlockBetaFeature('control'); showToast(t('beta_control_unlocked_toast')); }
     else{ errEl.textContent=t('secret_password_wrong'); input.value=''; input.focus(); }
   }
@@ -9930,12 +9994,14 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.26';
+const APP_VERSION='2.4.29';
 const WHATSNEW_ITEMS=[
-  {demo:'lang', demoHtml:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'},
-  {demo:'infinitecanvas', demoHtml:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/><path d="M9 12c1-2 2-2 3 0s2 2 3 0"/></svg>'},
-  {demo:'framecopy', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg>'},
-  {demo:'bgcolor', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><path d="M12 3c-4 4-7 7.5-7 11a7 7 0 0 0 14 0c0-3.5-3-7-7-11z"/></svg>'},
+  // The exact nib silhouette from iconBlanketPenFountain() at demo size, so this literally shows the
+  // new Füller icon rather than a generic pen glyph.
+  {demo:'penicons', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.3 2.6c2.9 1.6 4.1 3.9 3.1 6.2"/><path d="M8.3 21.4l1.9-7.9a2.1 2.1 0 0 1 1-1.3l7.2-4.3-4.3 7.2a2.1 2.1 0 0 1-1.3 1z"/><path d="M11.2 12.8l-2.9 8.6"/><circle cx="13.6" cy="9.2" r="0.95" fill="var(--accent)" stroke="none"/></svg>'},
+  {demo:'transparentexport', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.7"/><rect x="3" y="3" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="15" y="3" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="9" y="9" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="3" y="15" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="15" y="15" width="6" height="6" fill="var(--accent)" opacity=".22"/></svg>'},
+  {demo:'stopmotionredesign', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M3 15h18M8 5v4M8 15v4M16 5v4M16 15v4"/></svg>'},
+  {demo:'sliderpos', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round"><path d="M4 12h16"/><circle cx="9" cy="12" r="2.6" fill="var(--accent)" stroke="none"/><path d="M4 6h16" opacity=".4"/><path d="M4 18h16" opacity=".4"/></svg>'},
 ];
 function showWhatsNewModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
@@ -10419,9 +10485,20 @@ async function openBoard(id, skipCrumbAnim){
   if(!state.boards.length) state.boards=await mergedAllBoards();
 
   homeView.hidden=true; boardView.hidden=false; state.screen='board';
+  // "immer noch keine hover Animation" auf der Werkzeugleiste: #dock/.viewctl live inside #boardView,
+  // which starts `hidden` and stays that way until the very first board is ever opened — so
+  // refreshDockMagnify()'s one-time-per-hover-session position snapshot (see startDockMagnifyBar's own
+  // "BUGFIX (crash)" comment on why positions are frozen once, not re-measured live) was always taken
+  // while boardView was still `hidden`, i.e. against a 0×0 rect, the very first time it ran at boot.
+  // Nothing ever re-measured it after boardView actually became visible, so the magnet's reference
+  // position never matched the toolbar's real on-screen position and the hover effect silently never
+  // engaged no matter where the mouse was — indistinguishable from "not working at all". Re-running it
+  // here, every time a board is (re-)entered (this also covers navigating from one board straight into
+  // another), re-measures against the toolbar's actual current layout.
+  refreshDockMagnify();
   syncGridSnapUI();
   syncDynamicUI();
-  gridLayer.classList.toggle('hidden-grid',!state.gridEnabled);
+  syncGridLayerVisibility();
 
   // "beim klicken ins Board soll der sichtbare Bereich immer da starten wo auch Notizen sind und
   // nicht im leeren" — a saved pan/zoom can drift to showing nothing (cards moved/added since it was
@@ -10897,10 +10974,25 @@ function syncGridSnapUI(){
   document.getElementById('drawerGridToggle').classList.toggle('toggled',state.gridEnabled);
   document.getElementById('drawerSnapToggle').classList.toggle('toggled',state.snapEnabled);
 }
+// "das Drawboard ist immer noch nicht unendlich wie das Grid... man sieht das Ende praktisch nicht" —
+// a dedicated Blanket-Board's drawing surface is really one big-but-finite (BOARD_CANVAS_SIZE, see
+// addBlanketBoard()) canvas card; panning/zooming far enough used to reveal the normal dot-grid
+// pattern in the empty space past its edges, which is exactly what gave away that boundary. Rather
+// than trying to make the canvas itself literally infinite (a real architecture change — the card's
+// canvas backing-store resolution is deliberately capped for memory/sharpness reasons, see
+// BLANKET_MAX_BACKING_DIM's own comment — Tom's call was "lass die Größe so, sorg nur dafür dass man
+// das Grid darunter nicht sieht"), the dot grid is simply forced off entirely while a Blanket-Board is
+// open (state.blanketBoardCardId, set by applyBlanketBoardChrome()), regardless of this board's own
+// Grid on/off preference: Snap still works exactly the same whether or not the dots are drawn, so
+// nothing functional is lost, and panning past the card's edge now just shows plain empty background —
+// same as a normal board's own far-flung, practically-never-reached edges look from the inside.
+function syncGridLayerVisibility(){
+  gridLayer.classList.toggle('hidden-grid', !state.gridEnabled || !!state.blanketBoardCardId);
+}
 function toggleGrid(){
   state.gridEnabled=!state.gridEnabled;
   syncGridSnapUI();
-  gridLayer.classList.toggle('hidden-grid',!state.gridEnabled);
+  syncGridLayerVisibility();
   persistView();
 }
 function toggleSnap(){
@@ -15188,16 +15280,15 @@ function iconBlanketThickness(){return `<svg width="14" height="14" viewBox="0 0
 // .penType is stamped on at creation and drawBlanketStroke() for where each type actually renders
 // differently). 'normal' keeps today's exact stroke unchanged — every existing board's strokes have no
 // .penType at all and fall back to it (see drawBlanketStroke), so nothing already drawn changes. The
-// fourth ("practical") pen is a Feinliner (fineliner): a fixed-width technical pen with no pressure
-// taper at all — Tom left this one up to me ("am besten irgendwas sinnvolles"); a NOTUA board's other
-// three pens (fountain, normal, marker) all vary in width as you draw, which is exactly wrong for
-// underlining a line of text or boxing off part of a note precisely — a fineliner's whole point is a
-// perfectly uniform, predictable line for that kind of precise, practical annotation.
+// The fourth ("practical") pen used to be a Feinliner (fineliner): a fixed-width technical pen with no
+// pressure taper at all. "Feinliner brauchen wir nicht mehr" — removed from this picker entirely, so it
+// can no longer be newly selected. drawBlanketStroke() still renders penType==='fineliner' exactly as
+// before (see its own comment) — any stroke someone already drew with it keeps looking the same;
+// nothing here touches strokes that already exist, only what's offered going forward.
 const BLANKET_PEN_TYPES=[
   {key:'fountain',  icon:()=>iconBlanketPenFountain(),  titleKey:'blanket_pentype_fountain_title',  labelKey:'blanket_pentype_fountain_label'},
   {key:'normal',    icon:()=>iconBlanketPenNormal(),    titleKey:'blanket_pentype_normal_title',    labelKey:'blanket_pentype_normal_label'},
   {key:'marker',    icon:()=>iconBlanketPenMarker(),    titleKey:'blanket_pentype_marker_title',    labelKey:'blanket_pentype_marker_label'},
-  {key:'fineliner', icon:()=>iconBlanketPenFineliner(), titleKey:'blanket_pentype_fineliner_title', labelKey:'blanket_pentype_fineliner_label'},
 ];
 // Shared builder for the pen-type button group — used by both ensureBlanketDock() (desktop) and
 // ensureDrawerBlanketSection() (mobile drawer), so the 4 buttons/handlers exist in exactly one place
@@ -15228,14 +15319,23 @@ function refreshBlanketPenTypes(root,card){
   });
 }
 // Nib-shaped teardrop with a center slit + breather hole — the classic fountain-pen-nib silhouette.
-function iconBlanketPenFountain(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4L18 9l-4.6 11.1a1.5 1.5 0 0 1-2.8 0L6 9z"/><path d="M12 10.6v7.2"/><circle cx="12" cy="8.8" r="0.9" fill="currentColor" stroke="none"/></svg>`;}
+// "neues Icon für Füller" — a fountain-pen NIB now (kite-shaped nib plate, breather hole, split tip,
+// curled feed/flourish above it) instead of the old plain tapered-drop silhouette, closer to how a
+// fountain pen's nib is actually drawn in most icon sets.
+function iconBlanketPenFountain(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.3 2.6c2.9 1.6 4.1 3.9 3.1 6.2"/><path d="M8.3 21.4l1.9-7.9a2.1 2.1 0 0 1 1-1.3l7.2-4.3-4.3 7.2a2.1 2.1 0 0 1-1.3 1z"/><path d="M11.2 12.8l-2.9 8.6"/><circle cx="13.6" cy="9.2" r="0.95" fill="currentColor" stroke="none"/></svg>`;}
 // Same silhouette as the existing "Draw" dock/drawer button's own pen icon — reused here (at the
 // smaller 14×14 toolbar size) so "normal" reads as exactly the pen Tom already knows, not a new shape.
-function iconBlanketPenNormal(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.6L15.2 5.2a1.8 1.8 0 0 1 2.6 0l1 1a1.8 1.8 0 0 1 0 2.6L8.6 19 4 20z"/><path d="M13.6 6.8l3.6 3.6"/></svg>`;}
+// "neues Icon für Bleistift" — this is now a literal pencil (sharpened graphite cone, a hatch line
+// marking where the wood barrel ends and the tip begins) rather than the old generic angled-pen
+// outline, so it reads as "pencil" specifically instead of "any pen" at a glance.
+function iconBlanketPenNormal(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 20.4l1.5-5.3L15.9 4.3a1.7 1.7 0 0 1 2.4 0l1.4 1.4a1.7 1.7 0 0 1 0 2.4L8.9 18.9z"/><path d="M5.1 15.1l3.8 3.8"/><path d="M14.3 5.9l3.8 3.8"/><path d="M3.6 20.4l1.9-1.9"/></svg>`;}
 // Chisel-tip highlighter: an angled body plus a small solid ink-mark at the tip (same solid-fill
 // convention iconBlanketPlay() already uses elsewhere in this file for "this bit is filled, not
 // stroked"), reading as a highlighter rather than a fountain pen at a glance.
-function iconBlanketPenMarker(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.2 15.3L15.7 7.8l3 3-7.5 7.5H8.2z"/><path d="M13.2 5.3l3 3"/><path d="M8.2 15.3l-2.7 5.4 5.4-2.7z" fill="currentColor" stroke="none"/></svg>`;}
+// "neues Icon für Textmarker" — a solid chisel-tip highlighter silhouette (fully filled, like the
+// screenshot) instead of the old thin stroked outline, so it reads as a highlighter's blocky body at
+// a glance rather than another line-art pen.
+function iconBlanketPenMarker(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6.6 17.4L16.1 4.9a1.5 1.5 0 0 1 2.2-.25l1.55 1.3a1.5 1.5 0 0 1 .25 2.1L9.6 20.3z"/><path d="M5.7 18.3l2.85.95-.95 2.85-3.8-.95z"/></svg>`;}
 // A plain thin diagonal line ending in a small solid point — "uniform, precise" is the whole idea, so
 // the glyph itself stays as plain/undecorated as the pen's own actual line output.
 function iconBlanketPenFineliner(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5.5 18.5L17 7"/><circle cx="18.3" cy="5.7" r="1.15" fill="currentColor" stroke="none"/></svg>`;}
@@ -15251,6 +15351,79 @@ function iconBlanketPenFineliner(){return `<svg width="14" height="14" viewBox="
 // buildBlanketCard()). Stays populated across frame navigation and even across switching cards/boards,
 // exactly like a normal clipboard would.
 let blanketFrameClipboard=null;
+// Shared positioning for BOTH the thickness and smoothing popovers — "Fest über dem jeweiligen
+// Button" (fixed above the respective button, not centered over the whole toolbar): on a real
+// desktop/mouse setup (dockMagnifyEligible()) the popover always opens directly above its own
+// anchor button, clamped against the Blanket card's own on-screen box so it never drifts past the
+// card's edges or over neighboring cards (see the older per-popover comment this used to live under
+// on openBlanketThicknessPop alone — now both popovers share exactly the same math instead of the
+// smoothing one only ever clamping against the whole browser window). Touch/tablet keeps the old
+// below-first, flip-if-no-room behavior, since Tom's own wording specifically said "auf PC".
+function positionBlanketToolPopover(el,anchor,card){
+  const r=anchor.getBoundingClientRect();
+  const mw=el.offsetWidth||150;
+  const mh=el.offsetHeight||40;
+  const cardEl=card ? document.querySelector(`.card[data-id="${card.id}"]`) : null;
+  const bounds=cardEl ? cardEl.getBoundingClientRect() : {left:0,right:window.innerWidth,top:0,bottom:window.innerHeight};
+  let left=Math.max(bounds.left+4, Math.min(r.left+r.width/2-mw/2, bounds.right-mw-4));
+  let top;
+  if(dockMagnifyEligible()){
+    top=r.top-mh-6;
+    if(top<bounds.top+4) top=bounds.top+4; // degrade gracefully if there's truly no room above at all
+  }else{
+    top=r.bottom+6;
+    if(top+mh>bounds.bottom-4){ top=Math.max(bounds.top+4, r.top-mh-6); }
+  }
+  // Final safety clamp against the viewport too, in case the card itself runs partly off-screen.
+  left=Math.max(6, Math.min(left, window.innerWidth-mw-6));
+  top=Math.max(6, Math.min(top, window.innerHeight-mh-6));
+  el.style.left=left+'px'; el.style.top=top+'px';
+}
+// "am besten mit einer schicken Animation daneben die eine Zickzack Kurve abrundet für Glätten" —
+// a small SVG wave that reads as a sharp zigzag at smoothIntensity 0 and rounds into a smooth curve
+// as it rises to 2. Built with the standard "rounded polyline" trick: at each interior corner point,
+// two "shoulder" points are pulled in from the corner towards the midpoints of its neighboring
+// segments by fraction t, and a quadratic curve (using the original corner as control point) connects
+// the shoulders — at t=0 the shoulders collapse back onto the corner itself (straight lines through
+// every point, i.e. the zigzag), and at t=1 they sit exactly on the segment midpoints (a fully
+// rounded wave). Purely geometric — no icon library or extra assets needed.
+const BLANKET_SMOOTH_INDICATOR_POINTS=[[4,20],[18,6],[32,20],[46,6],[60,20]];
+function buildBlanketSmoothIndicatorPath(t){
+  const pts=BLANKET_SMOOTH_INDICATOR_POINTS;
+  let d=`M ${pts[0][0]} ${pts[0][1]}`;
+  for(let i=1;i<pts.length-1;i++){
+    const prev=pts[i-1], cur=pts[i], next=pts[i+1];
+    const midPrev=[(prev[0]+cur[0])/2, (prev[1]+cur[1])/2];
+    const midNext=[(cur[0]+next[0])/2, (cur[1]+next[1])/2];
+    const a=[cur[0]+(midPrev[0]-cur[0])*t, cur[1]+(midPrev[1]-cur[1])*t];
+    const b=[cur[0]+(midNext[0]-cur[0])*t, cur[1]+(midNext[1]-cur[1])*t];
+    d+=` L ${a[0]} ${a[1]} Q ${cur[0]} ${cur[1]} ${b[0]} ${b[1]}`;
+  }
+  const last=pts[pts.length-1];
+  d+=` L ${last[0]} ${last[1]}`;
+  return d;
+}
+// Animates the indicator smoothly between values as the slider is dragged (same easing-towards-
+// target rAF-loop shape as the rest of this file's spring-driven animations, e.g.
+// startDockMagnifyBar()) rather than just snapping the path on every input event.
+let blanketSmoothIndicatorT=0;
+let blanketSmoothIndicatorRaf=null;
+function animateBlanketSmoothIndicatorTo(pathEl,targetT){
+  if(blanketSmoothIndicatorRaf) cancelAnimationFrame(blanketSmoothIndicatorRaf);
+  function step(){
+    const diff=targetT-blanketSmoothIndicatorT;
+    if(Math.abs(diff)<0.004){
+      blanketSmoothIndicatorT=targetT;
+      pathEl.setAttribute('d',buildBlanketSmoothIndicatorPath(blanketSmoothIndicatorT));
+      blanketSmoothIndicatorRaf=null;
+      return;
+    }
+    blanketSmoothIndicatorT+=diff*0.25;
+    pathEl.setAttribute('d',buildBlanketSmoothIndicatorPath(blanketSmoothIndicatorT));
+    blanketSmoothIndicatorRaf=requestAnimationFrame(step);
+  }
+  step();
+}
 let blanketThicknessPopEl=null;
 let blanketThicknessPopCard=null;
 function ensureBlanketThicknessPop(){
@@ -15291,13 +15464,15 @@ function ensureBlanketSmoothPop(){
   if(blanketSmoothPopEl) return blanketSmoothPopEl;
   const el=document.createElement('div');
   el.className='blanket-thickness-pop'; el.hidden=true;
-  el.innerHTML=`<input type="range" id="blanketSmoothPopRange" min="0" max="2" step="0.1">`;
+  el.innerHTML=`<svg class="blanket-smooth-indicator" id="blanketSmoothIndicatorSvg" width="46" height="22" viewBox="0 0 64 26" aria-hidden="true"><path id="blanketSmoothIndicatorPath" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><input type="range" id="blanketSmoothPopRange" min="0" max="2" step="0.1">`;
   document.body.appendChild(el);
   el.addEventListener('pointerdown',e=>e.stopPropagation());
   const range=el.querySelector('#blanketSmoothPopRange');
+  const pathEl=el.querySelector('#blanketSmoothIndicatorPath');
   range.addEventListener('input',()=>{
     if(!blanketSmoothPopCard) return;
     blanketSmoothPopCard.data.smoothIntensity=parseFloat(range.value);
+    animateBlanketSmoothIndicatorTo(pathEl, parseFloat(range.value)/2);
     redrawBlanketBoardCanvas(blanketSmoothPopCard);
   });
   range.addEventListener('change',()=>{ if(blanketSmoothPopCard) DB.putCard(blanketSmoothPopCard); });
@@ -15311,21 +15486,16 @@ function closeBlanketSmoothPop(){
 function openBlanketSmoothPop(anchor,card){
   const el=ensureBlanketSmoothPop();
   blanketSmoothPopCard=card;
-  el.querySelector('#blanketSmoothPopRange').value=blanketSmoothIntensity(card);
+  const v=blanketSmoothIntensity(card);
+  el.querySelector('#blanketSmoothPopRange').value=v;
+  // Snap the indicator straight to the current value on open (no animate-in from zero) — the
+  // animation is reserved for actually dragging the slider, per animateBlanketSmoothIndicatorTo().
+  if(blanketSmoothIndicatorRaf){ cancelAnimationFrame(blanketSmoothIndicatorRaf); blanketSmoothIndicatorRaf=null; }
+  blanketSmoothIndicatorT=v/2;
+  const pathEl=el.querySelector('#blanketSmoothIndicatorPath');
+  if(pathEl) pathEl.setAttribute('d', buildBlanketSmoothIndicatorPath(blanketSmoothIndicatorT));
   el.hidden=false;
-  const r=anchor.getBoundingClientRect();
-  const mw=el.offsetWidth||150;
-  const mh=el.offsetHeight||40;
-  let top;
-  if(dockMagnifyEligible()){
-    top=r.top-mh-6;
-    if(top<6) top=6;
-  }else{
-    top=r.bottom+6;
-    if(top+mh>window.innerHeight-4) top=Math.max(6, r.top-mh-6);
-  }
-  let left=Math.max(6, Math.min(r.left+r.width/2-mw/2, window.innerWidth-mw-6));
-  el.style.left=left+'px'; el.style.top=top+'px';
+  positionBlanketToolPopover(el,anchor,card);
 }
 document.addEventListener('pointerdown',(e)=>{
   if(!blanketSmoothPopEl || blanketSmoothPopEl.hidden) return;
@@ -15348,30 +15518,7 @@ function openBlanketThicknessPop(anchor,card){
   range.value=card.data.thickness||1;
   el._syncDot();
   el.hidden=false;
-  const r=anchor.getBoundingClientRect();
-  const mw=el.offsetWidth||150;
-  const mh=el.offsetHeight||40;
-  const cardEl=document.querySelector(`.card[data-id="${card.id}"]`);
-  const bounds=cardEl ? cardEl.getBoundingClientRect() : {left:0,right:window.innerWidth,top:0,bottom:window.innerHeight};
-  let left=Math.max(bounds.left+4, Math.min(r.left+r.width/2-mw/2, bounds.right-mw-4));
-  // "bei Stärke soll die Auswahl für Dicke über der Leiste angezeigt werden auf PC" — on a real desktop/
-  // mouse setup (dockMagnifyEligible(), the same hover:hover+pointer:fine check used elsewhere in this
-  // file to tell a mouse apart from touch) the popover always opens ABOVE its anchor now, never below-
-  // by-default-with-flip — the toolbar/dock sits at the bottom of the screen, so "below" routinely meant
-  // half off-screen anyway. Touch (mobile drawer, tablet) keeps the old below-first-flip-if-no-room
-  // logic, since Tom's own wording specifically says "auf PC".
-  let top;
-  if(dockMagnifyEligible()){
-    top=r.top-mh-6;
-    if(top<bounds.top+4) top=bounds.top+4; // degrade gracefully if there's truly no room above at all
-  }else{
-    top=r.bottom+6;
-    if(top+mh>bounds.bottom-4){ top=Math.max(bounds.top+4, r.top-mh-6); }
-  }
-  // Final safety clamp against the viewport too, in case the card itself runs partly off-screen.
-  left=Math.max(6, Math.min(left, window.innerWidth-mw-6));
-  top=Math.max(6, Math.min(top, window.innerHeight-mh-6));
-  el.style.left=left+'px'; el.style.top=top+'px';
+  positionBlanketToolPopover(el,anchor,card);
 }
 document.addEventListener('pointerdown',(e)=>{
   if(!blanketThicknessPopEl || blanketThicknessPopEl.hidden) return;
@@ -15693,10 +15840,13 @@ function redrawBlanketCanvas(canvas,card,opts){
     const cw=card.w, ch=card.h;
     ctx.clearRect(0,0,cw,ch);
     // "Man soll auch einen farbigen Hintergrund setzen können" — painted first, underneath everything
-    // else (onion-skin ghost, strokes), and left out entirely (fully transparent) when bgColor is null
-    // — the PNG/MP4 export choice between transparent and "with background" (task #143/144) reads this
-    // exact same field, so setting it here is also what makes that choice meaningful later.
-    if(card.data.bgColor){ ctx.save(); ctx.fillStyle=card.data.bgColor; ctx.fillRect(0,0,cw,ch); ctx.restore(); }
+    // else (onion-skin ghost, strokes), and left out entirely (fully transparent) when bgColor is null.
+    // "der Button sollte lieber nur die Farbwahl sein und transparent ist nur eine Exportfunktion" —
+    // the live board always shows whatever bgColor is actually set (there's no more live "make it
+    // transparent" toggle, see ensureBlanketDock()'s bg group), but a PNG export can still choose to
+    // leave it out just for that one snapshot via opts.forceTransparentBg (see renderCardsToCanvas()'s
+    // own transparentBlanketBg option) — without ever touching the card's own stored bgColor.
+    if(card.data.bgColor && !(opts && opts.forceTransparentBg)){ ctx.save(); ctx.fillStyle=card.data.bgColor; ctx.fillRect(0,0,cw,ch); ctx.restore(); }
     if(card.data.stopMotion){
       const frames=card.data.frames||[];
       const idx=Math.min(card.data.frameIndex||0, Math.max(0,frames.length-1));
@@ -15779,7 +15929,6 @@ function buildBlanketCard(card){
       <button type="button" class="blanket-tool-btn" id="blanketUndoBtn" title="${t('blanket_undo_title')}">${iconBlanketUndo()}</button>
       <div class="blanket-bg-group" title="${t('blanket_bg_title')}">
         <input type="color" class="blanket-bg-input" id="blanketBgColor" value="${card.data.bgColor||'#ffffff'}">
-        <button type="button" class="blanket-tool-btn blanket-bg-clear${card.data.bgColor?'':' active'}" id="blanketBgClearBtn" title="${t('blanket_bg_clear_title')}">${iconBlanketBgClear()}</button>
       </div>
     </div>
     <div class="blanket-canvas-wrap"><canvas class="blanket-canvas"></canvas></div>
@@ -15941,6 +16090,13 @@ function buildBlanketCard(card){
       }
     });
   }
+  // "der Button sollte lieber nur die Farbwahl sein und transparent ist nur eine Exportfunktion" —
+  // the old clear/transparent button (blanketBgClearBtn) is gone; Hintergrund is now just this one
+  // color picker, always painting a real color (see buildBlanketCard()'s/addBlanketBoard()'s
+  // '#ffffff' default for a brand-new card — an existing card someone never touched keeps rendering
+  // exactly as it always did, transparent, until they open this picker themselves). Making one specific
+  // export transparent again, without changing the card itself, is exportTransparentBgChk's job now
+  // (see openFormatMenu()).
   const bgColorInput=el.querySelector('#blanketBgColor');
   if(bgColorInput){
     bgColorInput.addEventListener('pointerdown',e=>e.stopPropagation());
@@ -15948,18 +16104,6 @@ function buildBlanketCard(card){
       card.data.bgColor=bgColorInput.value;
       DB.putCard(card);
       redraw();
-      const clearBtn=el.querySelector('#blanketBgClearBtn');
-      if(clearBtn) clearBtn.classList.remove('active');
-    });
-  }
-  const bgClearBtn=el.querySelector('#blanketBgClearBtn');
-  if(bgClearBtn){
-    bgClearBtn.addEventListener('pointerdown',e=>e.stopPropagation());
-    bgClearBtn.addEventListener('click',()=>{
-      card.data.bgColor=null;
-      DB.putCard(card);
-      redraw();
-      bgClearBtn.classList.add('active');
     });
   }
 
@@ -17523,7 +17667,12 @@ async function addCard(type, extra){
   // redrawBlanketCanvas() below, which is what lets a resize just rescale the drawing instead of
   // cropping or distorting it. pen/smooth/eraser/stopMotion are the persisted toolbar state; frames
   // stays null until stopMotion is switched on for the first time (see buildBlanketCard's lazy init).
-  if(type==='blanket'){ w=320; h=260; data={strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, bgColor:null, absCoords:true}; }
+  // "der Button sollte lieber nur die Farbwahl sein und transparent ist nur eine Exportfunktion" —
+  // a brand-new card starts with a real background color (matching the color picker's own '#ffffff'
+  // default) rather than null/transparent, now that there's no live "clear" toggle left to ever set
+  // one explicitly; an already-existing card with bgColor:null keeps rendering exactly as it always
+  // did until someone opens its color picker.
+  if(type==='blanket'){ w=320; h=260; data={strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, bgColor:'#ffffff', absCoords:true}; }
   if(type==='wowpvp'){
     w=300; h=280;
     data={region:'EU', server:'', name:'', status:'idle', errorMsg:'', result:null};
@@ -17634,7 +17783,10 @@ async function addBlanketBoard(at){
   const canvasCard={
     id:canvasCardId, boardId:nb.id, type:'blanket', color:'none',
     x:-BOARD_CANVAS_SIZE/2, y:-BOARD_CANVAS_SIZE/2, w:BOARD_CANVAS_SIZE, h:BOARD_CANVAS_SIZE, z:1,
-    data:{strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, customColor:null, bgColor:null, absCoords:true},
+    // Same reasoning as the plain blanket-card creation path above: a dedicated Blanket-Board's canvas
+    // card now starts with a real background color instead of null, since there's no live "clear"
+    // toggle left — transparency is export-time only now.
+    data:{strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, customColor:null, bgColor:'#ffffff', absCoords:true},
     createdAt:Date.now(), updatedAt:Date.now()
   };
   await DB.putCard(canvasCard);
@@ -17803,6 +17955,17 @@ function ensureBlanketColorWheelPop(){
 function closeBlanketColorWheelPop(){
   if(blanketColorWheelEl) blanketColorWheelEl.hidden=true;
   blanketColorWheelCard=null;
+  syncBlanketColorWheelOpenIndicator();
+}
+// "anzeigen, dass sie geöffnet ist" — the Farbe/colorwheel dock button had no visual sign at all of
+// whether its own popover was currently showing (unlike, say, .active reflecting "custom color is the
+// selected pen" — a different thing entirely: that stays lit even while the popover is closed). A
+// dedicated .pop-open ring, independent of .active, makes "this popover is open right now" visible on
+// its own, on top of whatever selection-state highlighting the button already has.
+function syncBlanketColorWheelOpenIndicator(){
+  const isOpen=!!(blanketColorWheelEl && !blanketColorWheelEl.hidden);
+  const dockBtn=document.getElementById('blanketDockColorWheelBtn');
+  if(dockBtn) dockBtn.classList.toggle('pop-open', isOpen);
 }
 function openBlanketColorWheelPop(anchor,card){
   const el=ensureBlanketColorWheelPop();
@@ -17830,6 +17993,7 @@ function openBlanketColorWheelPop(anchor,card){
   let left=Math.max(6, Math.min(r.left+r.width/2-mw/2, window.innerWidth-mw-6));
   let top=r.top-mh-8; if(top<6) top=r.bottom+6;
   el.style.left=left+'px'; el.style.top=top+'px';
+  syncBlanketColorWheelOpenIndicator();
 }
 document.addEventListener('pointerdown',(e)=>{
   if(!blanketColorWheelEl || blanketColorWheelEl.hidden) return;
@@ -17862,7 +18026,6 @@ function ensureBlanketDock(){
     <div class="dock-sep"></div>
     <div class="dock-btn blanket-bg-group" title="${t('blanket_bg_title')}">
       <input type="color" class="blanket-bg-input" id="blanketDockBgColor" value="#ffffff">
-      <button type="button" class="blanket-tool-btn blanket-bg-clear active" id="blanketDockBgClearBtn" title="${t('blanket_bg_clear_title')}">${iconBlanketBgClear()}</button>
       <span>${t('blanket_bg_label')}</span>
     </div>
   `;
@@ -17881,7 +18044,17 @@ function ensureBlanketDock(){
   });
   const wheelBtn=dock.querySelector('#blanketDockColorWheelBtn');
   wheelBtn.addEventListener('pointerdown',e=>e.stopPropagation());
-  wheelBtn.addEventListener('click',()=>{ withCard(c=>openBlanketColorWheelPop(wheelBtn,c)); });
+  // BUGFIX ("wenn man im Zeichenboard auf Farbe drückt soll sie sich öffnen und wieder schließen...
+  // gerade öffnet sie sich nur und das schließen geht nicht") — this used to unconditionally call
+  // openBlanketColorWheelPop() on every click, never checking whether it was already open for this
+  // exact card, unlike its Stärke/Glätten siblings just below (which already toggle correctly). A
+  // second click just re-opened the same popover instead of closing it.
+  wheelBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      if(blanketColorWheelEl && !blanketColorWheelEl.hidden && blanketColorWheelCard===c) closeBlanketColorWheelPop();
+      else openBlanketColorWheelPop(wheelBtn,c);
+    });
+  });
   const eraserBtn=dock.querySelector('#blanketDockEraserBtn');
   eraserBtn.addEventListener('pointerdown',e=>e.stopPropagation());
   eraserBtn.addEventListener('click',()=>{ withCard(c=>{ c.data.eraser=!c.data.eraser; DB.putCard(c); refreshBlanketDock(c); }); });
@@ -17919,16 +18092,6 @@ function ensureBlanketDock(){
       refreshBlanketDock(c);
     });
   });
-  const bgClearBtn=dock.querySelector('#blanketDockBgClearBtn');
-  bgClearBtn.addEventListener('pointerdown',e=>e.stopPropagation());
-  bgClearBtn.addEventListener('click',()=>{
-    withCard(c=>{
-      c.data.bgColor=null;
-      DB.putCard(c);
-      redrawBlanketBoardCanvas(c);
-      refreshBlanketDock(c);
-    });
-  });
   return dock;
 }
 function refreshBlanketDock(card){
@@ -17957,8 +18120,6 @@ function refreshBlanketDock(card){
   }
   const bgColorInput=dock.querySelector('#blanketDockBgColor');
   if(bgColorInput && card.data.bgColor) bgColorInput.value=card.data.bgColor;
-  const bgClearBtn=dock.querySelector('#blanketDockBgClearBtn');
-  if(bgClearBtn) bgClearBtn.classList.toggle('active', !card.data.bgColor);
   refreshDrawerBlanketSection(card);
 }
 
@@ -17990,7 +18151,6 @@ function ensureDrawerBlanketSection(){
       <input type="color" class="blanket-bg-input" id="drawerBlanketBgColor" value="#ffffff">
       <span>${t('blanket_bg_label')}</span>
     </div>
-    <button type="button" class="drawer-btn" id="drawerBlanketBgClearBtn">${iconBlanketBgClear()}<span>${t('blanket_bg_clear_title')}</span></button>
   `);
   wireBlanketPenTypes(section, closeDrawer);
   function withCard(fn){ const c=currentBlanketBoardCard(); if(c) fn(c); }
@@ -18025,10 +18185,6 @@ function ensureDrawerBlanketSection(){
   bgColorInput.addEventListener('input',()=>{
     withCard(c=>{ c.data.bgColor=bgColorInput.value; DB.putCard(c); redrawBlanketBoardCanvas(c); refreshBlanketDock(c); });
   });
-  const bgClearBtn=section.querySelector('#drawerBlanketBgClearBtn');
-  bgClearBtn.addEventListener('click',()=>{
-    withCard(c=>{ c.data.bgColor=null; DB.putCard(c); redrawBlanketBoardCanvas(c); refreshBlanketDock(c); closeDrawer(); });
-  });
   return section;
 }
 function refreshDrawerBlanketSection(card){
@@ -18053,8 +18209,6 @@ function refreshDrawerBlanketSection(card){
   if(smoothBtn) smoothBtn.classList.toggle('active', blanketSmoothIntensity(card)>0);
   const bgColorInput=section.querySelector('#drawerBlanketBgColor');
   if(bgColorInput && card.data.bgColor) bgColorInput.value=card.data.bgColor;
-  const bgClearBtn=section.querySelector('#drawerBlanketBgClearBtn');
-  if(bgClearBtn) bgClearBtn.classList.toggle('active', !card.data.bgColor);
 }
 
 // ---- fixed stop-motion controls (right bar, alongside zoom/dark-mode) ----
@@ -18072,21 +18226,39 @@ function ensureViewctlBlanketGroup(){
   if(!group || group.dataset.built) return group;
   group.dataset.built='1';
   // "soll der Stopmodus einen größeren presenteren Button bekommen... mit Logo und Text darunter" —
-  // #vbfStopMotionToggle is now the bigger rounded-rectangle .bsm-toggle (see CSS) with its own visible
-  // label under the icon, not a plain viewctl-sized icon-only button.
+  // #vbfStopMotionToggle is the rounded-rectangle .bsm-toggle (see CSS, now shortened per "soll von der
+  // Höhe kürzer sein") with its own visible label under the icon, not a plain viewctl-sized icon-only
+  // button. "das Menü soll ... nun so aussehen wie die Eigenschaftsfelder in einem normalen Board" —
+  // #vbfFrameGroup is now a .bsm-panel of labeled FRAME/WIEDERGABE/AKTIONEN .bsm-section blocks (same
+  // .insp-label-style captions the card inspector itself uses), replacing the old flat column of bare
+  // icon buttons.
   group.innerHTML=`
     <button type="button" id="vbfStopMotionToggle" class="bsm-toggle" title="${t('blanket_stopmotion_toggle_title')}">${iconBlanketStopMotionMode()}<span class="bsm-toggle-label">${t('blanket_stopmotion_toggle_label')}</span></button>
-    <span id="vbfFrameGroup" class="bsm-frame-group" hidden>
-      <button type="button" id="vbfPrev" title="${t('blanket_frame_prev_title')}">${iconChevronLeft()}</button>
-      <div class="bsm-frame-label" id="vbfLabel"></div>
-      <button type="button" id="vbfNext" title="${t('blanket_frame_next_title')}">${iconChevronRight()}</button>
-      <button type="button" id="vbfPlay" title="${t('blanket_frame_play_title')}">${iconBlanketPlay()}</button>
-      <button type="button" id="vbfCopyPaste" class="${blanketCopyPasteBtnState().armed?'armed':''}" title="${blanketCopyPasteBtnState().title}">${blanketCopyPasteBtnState().icon}</button>
-      <button type="button" id="vbfDelete" title="${t('blanket_frame_delete_title')}">${iconTrash()}</button>
-      <div class="bsm-hsep"></div>
-      <button type="button" id="vbfOnionToggle" title="${t('blanket_onionskin_toggle_title')}">${iconBlanketOnionSkin()}</button>
-      <button type="button" id="vbfFpsBtn" class="vbf-fps-btn" title="${t('blanket_fps_label')}"></button>
-    </span>
+    <div id="vbfFrameGroup" class="bsm-panel" hidden>
+      <div class="bsm-section">
+        <div class="bsm-section-label">${t('blanket_stopmotion_section_frame')}</div>
+        <div class="bsm-section-row">
+          <button type="button" id="vbfPrev" title="${t('blanket_frame_prev_title')}">${iconChevronLeft()}</button>
+          <div class="bsm-frame-label" id="vbfLabel"></div>
+          <button type="button" id="vbfNext" title="${t('blanket_frame_next_title')}">${iconChevronRight()}</button>
+        </div>
+      </div>
+      <div class="bsm-section">
+        <div class="bsm-section-label">${t('blanket_stopmotion_section_playback')}</div>
+        <div class="bsm-section-row">
+          <button type="button" id="vbfPlay" title="${t('blanket_frame_play_title')}">${iconBlanketPlay()}</button>
+          <button type="button" id="vbfOnionToggle" title="${t('blanket_onionskin_toggle_title')}">${iconBlanketOnionSkin()}</button>
+          <button type="button" id="vbfFpsBtn" class="vbf-fps-btn" title="${t('blanket_fps_label')}"></button>
+        </div>
+      </div>
+      <div class="bsm-section">
+        <div class="bsm-section-label">${t('blanket_stopmotion_section_actions')}</div>
+        <div class="bsm-section-row">
+          <button type="button" id="vbfCopyPaste" class="${blanketCopyPasteBtnState().armed?'armed':''}" title="${blanketCopyPasteBtnState().title}">${blanketCopyPasteBtnState().icon}</button>
+          <button type="button" id="vbfDelete" title="${t('blanket_frame_delete_title')}">${iconTrash()}</button>
+        </div>
+      </div>
+    </div>
   `;
   function withCard(fn){ const c=currentBlanketBoardCard(); if(c) fn(c); }
   const stopMotionToggle=group.querySelector('#vbfStopMotionToggle');
@@ -18100,7 +18272,10 @@ function ensureViewctlBlanketGroup(){
       }
       DB.putCard(c);
       redrawBlanketBoardCanvas(c);
-      refreshViewctlBlanketGroup(c);
+      // "beim anklicken per Animation nach unten das Menü auffächern" — animate=true only fires from
+      // this direct click, not from the other refreshViewctlBlanketGroup() calls below (next/prev/play/
+      // etc.) which merely refresh an already-open panel's contents.
+      refreshViewctlBlanketGroup(c,true);
     });
   });
   const prevBtn=group.querySelector('#vbfPrev');
@@ -18179,24 +18354,61 @@ function ensureViewctlBlanketGroup(){
   });
   return group;
 }
-function refreshViewctlBlanketGroup(card){
+// "beim anklicken per Animation nach unten das Menü auffächern" — measures the panel's real content
+// height (scrollHeight, unaffected by the max-height/overflow:hidden this animates between — the
+// standard height-unknown-in-advance accordion trick) and transitions .bsm-panel's inline max-height
+// between 0 and that value, instead of the old instant hidden-attribute flip. `animate` is only ever
+// true when passed explicitly from the toggle button's own click handler — every other caller here
+// just keeps an already-open panel in sync (new frame count, fps label, etc.), so passing nothing
+// there simply snaps to the (unchanged) open/closed state with no visible jump.
+function setBlanketStopMotionPanelOpen(panelEl,open,animate){
+  if(!panelEl) return;
+  if(panelEl._bsmCloseHandler){ panelEl.removeEventListener('transitionend',panelEl._bsmCloseHandler); panelEl._bsmCloseHandler=null; }
+  if(open){
+    panelEl.hidden=false;
+    panelEl.classList.add('bsm-panel-open');
+    const target=panelEl.scrollHeight;
+    if(animate){
+      panelEl.style.maxHeight='0px';
+      void panelEl.offsetHeight; // force a reflow so the 0px starting point is committed before animating
+      requestAnimationFrame(()=>{ panelEl.style.maxHeight=target+'px'; });
+    }else{
+      panelEl.style.maxHeight=target+'px';
+    }
+  }else{
+    panelEl.classList.remove('bsm-panel-open');
+    if(animate){
+      panelEl.style.maxHeight=panelEl.scrollHeight+'px';
+      void panelEl.offsetHeight;
+      requestAnimationFrame(()=>{ panelEl.style.maxHeight='0px'; });
+      const onEnd=(e)=>{ if(e.propertyName==='max-height'){ panelEl.hidden=true; panelEl.removeEventListener('transitionend',onEnd); } };
+      panelEl._bsmCloseHandler=onEnd;
+      panelEl.addEventListener('transitionend',onEnd);
+    }else{
+      panelEl.style.maxHeight='0px';
+      panelEl.hidden=true;
+    }
+  }
+}
+function refreshViewctlBlanketGroup(card,animate){
   const group=document.getElementById('viewctlBlanketGroup');
   if(!group || group.hidden || !card) return;
   const stopMotionToggle=group.querySelector('#vbfStopMotionToggle');
   if(stopMotionToggle) stopMotionToggle.classList.toggle('toggled', !!card.data.stopMotion);
   const frameGroup=group.querySelector('#vbfFrameGroup');
-  if(frameGroup) frameGroup.hidden=!card.data.stopMotion;
-  if(!card.data.stopMotion) return;
-  const frames=card.data.frames||[];
-  const label=group.querySelector('#vbfLabel');
-  if(label) label.textContent=t('blanket_frame_label',{i:(card.data.frameIndex+1), n:frames.length});
-  const prevBtn=group.querySelector('#vbfPrev');
-  if(prevBtn) prevBtn.disabled=card.data.frameIndex<=0;
-  refreshBlanketCopyPasteBtn(group.querySelector('#vbfCopyPaste'));
-  const onionBtn=group.querySelector('#vbfOnionToggle');
-  if(onionBtn) onionBtn.classList.toggle('toggled', card.data.onionSkin!==false);
-  const fpsBtn=group.querySelector('#vbfFpsBtn');
-  if(fpsBtn) fpsBtn.textContent=(card.data.fps||BLANKET_DEFAULT_FPS)+' fps';
+  if(card.data.stopMotion){
+    const frames=card.data.frames||[];
+    const label=group.querySelector('#vbfLabel');
+    if(label) label.textContent=t('blanket_frame_label',{i:(card.data.frameIndex+1), n:frames.length});
+    const prevBtn=group.querySelector('#vbfPrev');
+    if(prevBtn) prevBtn.disabled=card.data.frameIndex<=0;
+    refreshBlanketCopyPasteBtn(group.querySelector('#vbfCopyPaste'));
+    const onionBtn=group.querySelector('#vbfOnionToggle');
+    if(onionBtn) onionBtn.classList.toggle('toggled', card.data.onionSkin!==false);
+    const fpsBtn=group.querySelector('#vbfFpsBtn');
+    if(fpsBtn) fpsBtn.textContent=(card.data.fps||BLANKET_DEFAULT_FPS)+' fps';
+  }
+  setBlanketStopMotionPanelOpen(frameGroup, !!card.data.stopMotion, !!animate);
 }
 
 // ---- master switch, called from openBoard()/goHome() ----
@@ -18229,6 +18441,12 @@ function applyBlanketBoardChrome(canvasCard){
   closeBlanketColorWheelPop();
   closeBlanketThicknessPop();
   state.blanketBoardCardId=canvasCard?canvasCard.id:null;
+  // Re-evaluate the dot-grid now that blanketBoardCardId is current — see syncGridLayerVisibility()'s
+  // own comment: it's forced off entirely while a Blanket-Board is open, restored to the board's own
+  // Grid preference on the way back out. openBoard()'s own earlier call happens before this function
+  // runs, so it can't yet know whether the board it's opening is a Blanket-Board — this is the call
+  // that actually settles it, either way.
+  syncGridLayerVisibility();
   if(canvasCard){
     if(dockEl) dockEl.hidden=true;
     if(blanketDockEl) blanketDockEl.hidden=false;
@@ -19370,7 +19588,8 @@ async function getEmbeddedFontFaceCSS(){
   }
   return cachedFontFaceCSS;
 }
-async function renderCardsToCanvas(cards){
+async function renderCardsToCanvas(cards,opts){
+  const transparentBlanketBg=!!(opts && opts.transparentBlanketBg);
   const bounds=contentBoundsOf(cards);
   if(!bounds) return null;
   const pad=48;
@@ -19495,9 +19714,21 @@ async function renderCardsToCanvas(cards){
     const cloneCanvas=clone.querySelector('.blanket-canvas');
     if(liveCanvas && cloneCanvas){
       try{
+        // "transparent ist nur eine Exportfunktion" — the live canvas always paints its real bgColor
+        // (see redrawBlanketCanvas), so a transparent PNG export needs its own throwaway re-render
+        // with that one layer skipped (forceTransparentBg), rather than just snapshotting the live
+        // canvas as-is. Never touches the live canvas or the card's own stored bgColor.
+        let dataUrl;
+        if(transparentBlanketBg && c.data.bgColor && c.type==='blanket'){
+          const tmpCanvas=document.createElement('canvas');
+          redrawBlanketCanvas(tmpCanvas,c,{forceTransparentBg:true});
+          dataUrl=tmpCanvas.toDataURL('image/png');
+        }else{
+          dataUrl=liveCanvas.toDataURL('image/png');
+        }
         const snap=document.createElementNS(xhtmlNS,'img');
         snap.setAttribute('xmlns',xhtmlNS);
-        snap.setAttribute('src',liveCanvas.toDataURL('image/png'));
+        snap.setAttribute('src',dataUrl);
         snap.setAttribute('style',cloneCanvas.getAttribute('style')||'');
         snap.setAttribute('class',cloneCanvas.getAttribute('class')||'');
         cloneCanvas.replaceWith(snap);
@@ -19582,10 +19813,15 @@ function buildPdfFromJpeg(jpegBytes,imgW,imgH){
   let o=0; parts.forEach(p=>{ out.set(p,o); o+=p.length; });
   return out;
 }
-async function exportCardsAsFile(cards,format){
+async function exportCardsAsFile(cards,format,transparentBg){
   if(!cards || !cards.length){ showToast(t('toast_export_impossible')); return; }
+  // JPEG/PDF have no alpha channel — a transparent canvas encoded as either just fills the empty
+  // areas solid black (a JPEG/canvas spec quirk, not a bug here), so the "transparent exportieren"
+  // choice only ever actually applies to PNG; silently ignored for the other two rather than
+  // producing a surprise black background.
+  const effectiveTransparent=format==='png' && !!transparentBg;
   let canvas;
-  try{ canvas=await renderCardsToCanvas(cards); }
+  try{ canvas=await renderCardsToCanvas(cards,{transparentBlanketBg:effectiveTransparent}); }
   catch(e){ showToast(t('toast_export_failed')); return; }
   if(!canvas){ showToast(t('toast_export_failed')); return; }
   const board=boardById(state.currentBoardId);
@@ -19614,9 +19850,15 @@ formatMenuEl.hidden=true;
 document.getElementById('boardView').appendChild(formatMenuEl);
 const EXPORT_FORMATS=['png','jpeg','pdf'];
 function openFormatMenu(clientX,clientY,cards){
+  // "der Button sollte lieber nur die Farbwahl sein und transparent ist nur eine Exportfunktion" —
+  // the checkbox row only makes sense (and only appears) when at least one card being exported
+  // actually has a Zeichenboard/Blanket background color set — otherwise there's nothing for it to do.
+  const hasBlanketBg=cards.some(c=>c.type==='blanket' && c.data && c.data.bgColor);
   formatMenuEl.innerHTML=EXPORT_FORMATS.map(fmt=>
     `<button type="button" class="create-menu-item" data-format="${fmt}">${iconExport()}<span>${t('export_format_'+fmt)}</span></button>`
-  ).join('');
+  ).join('') + (hasBlanketBg
+    ? `<label class="export-transparent-row"><input type="checkbox" id="exportTransparentBgChk"><span>${t('export_transparent_bg_label')}</span></label>`
+    : '');
   formatMenuEl.hidden=false;
   const vw=window.innerWidth, vh=window.innerHeight;
   const r=formatMenuEl.getBoundingClientRect();
@@ -19626,11 +19868,14 @@ function openFormatMenu(clientX,clientY,cards){
   left=Math.max(8,left); top=Math.max(8,top);
   formatMenuEl.style.left=left+'px';
   formatMenuEl.style.top=top+'px';
+  const transparentChk=formatMenuEl.querySelector('#exportTransparentBgChk');
+  if(transparentChk) transparentChk.addEventListener('pointerdown',e=>e.stopPropagation());
   formatMenuEl.querySelectorAll('.create-menu-item').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const fmt=btn.dataset.format;
+      const transparentBg=!!(transparentChk && transparentChk.checked);
       closeFormatMenu();
-      exportCardsAsFile(cards,fmt);
+      exportCardsAsFile(cards,fmt,transparentBg);
     });
   });
 }
