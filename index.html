@@ -6791,6 +6791,70 @@ function markBoardDirty(boardId){
   state.dirtyBoards.set(boardId, Date.now());
   scheduleSyncSoon();
 }
+// Squeezes any image blob down to IMAGE_STORAGE_MAX_BYTES before it's ever handed to a backend — the
+// single chokepoint DB.putImage() below calls for every image, wherever it enters the app (drag&drop
+// straight onto the canvas, the Family Button tray, the dock's image/media picker, paste, a board's
+// cover/logo upload, a column's cover image, …), so every one of those call sites gets the R2-quota
+// budget documented above (see "Quota + compression") for free. This function itself went missing at
+// some point — every call site and comment referencing it survived, but the implementation itself
+// never made it into the file, so every single image upload in the app threw "compressImageForStorage
+// is not defined" the moment it tried to actually store the blob (visible e.g. as: drag an image onto
+// the canvas, it lands in the Family Button tray just fine since that step never touches DB.putImage,
+// but dragging it back out to actually place it on the board silently does nothing at all).
+const IMAGE_STORAGE_MAX_BYTES=150*1024;
+const IMAGE_STORAGE_MAX_DIM=1600; // longest edge, px — also bounds how much canvas work a huge photo costs
+function compressImageForStorage(blob){
+  return new Promise((resolve)=>{
+    // Already small enough, or not something a <canvas> can safely re-encode (SVG is vector text —
+    // rasterizing it would only bloat or break it) — store as-is, nothing to do.
+    if(!blob || !blob.type || !blob.type.startsWith('image/') || blob.size<=IMAGE_STORAGE_MAX_BYTES || blob.type==='image/svg+xml'){
+      resolve(blob); return;
+    }
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=img.naturalWidth, h=img.naturalHeight;
+      if(!w || !h){ resolve(blob); return; } // can't read real dimensions — safer to keep the original than to store a 0×0 canvas
+      const scaleToFit=(maxDim)=>{
+        if(Math.max(w,h)<=maxDim) return {w,h};
+        const s=maxDim/Math.max(w,h);
+        return {w:Math.max(1,Math.round(w*s)), h:Math.max(1,Math.round(h*s))};
+      };
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d');
+      // WebP (not JPEG) so a transparent PNG dropped onto the board doesn't silently lose its alpha
+      // channel — quality-adjustable like JPEG, but keeps alpha like PNG; broadly supported everywhere
+      // this app already targets (see LANG_LOCALE's own browsers). Tries shrinking dimensions first,
+      // then quality, at each step re-encoding until it fits the budget or we run out of steps to try.
+      const dimSteps=[IMAGE_STORAGE_MAX_DIM, 1200, 900, 640, 400];
+      let dimIdx=0;
+      const tryDim=()=>{
+        const size=scaleToFit(dimSteps[dimIdx]);
+        canvas.width=size.w; canvas.height=size.h;
+        ctx.clearRect(0,0,size.w,size.h);
+        ctx.drawImage(img,0,0,size.w,size.h);
+        const qualitySteps=[0.85,0.7,0.55,0.4];
+        let qIdx=0;
+        const tryQuality=()=>{
+          canvas.toBlob(out=>{
+            if(!out){ resolve(blob); return; } // canvas export unsupported/failed here — keep the original rather than lose the image
+            if(out.size<=IMAGE_STORAGE_MAX_BYTES){ resolve(out); return; }
+            qIdx++;
+            if(qIdx<qualitySteps.length){ tryQuality(); return; }
+            dimIdx++;
+            if(dimIdx<dimSteps.length){ tryDim(); return; }
+            resolve(out); // ran out of steps — hand back the smallest version we managed, still better than the original
+          }, 'image/webp', qualitySteps[qIdx]);
+        };
+        tryQuality();
+      };
+      tryDim();
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); resolve(blob); }; // couldn't even decode it here — store as-is rather than fail the whole upload
+    img.src=url;
+  });
+}
 const DB={
   allBoards:(...a)=>activeBackend().allBoards(...a),
   allTrashedBoards:(...a)=>activeBackend().allTrashedBoards(...a),
@@ -8140,8 +8204,26 @@ function startDockMagnify(){
 // refreshDockMagnify()): Static UI always means "nothing moves", beta-tester or not, while Dynamic UI
 // (the default) plays the normal set of animations for everyone, with 'functioncontrol' still there for
 // a beta tester who wants to fine-tune which of the six groups play individually.
+// "bei mir ist das alles irgendwie inzwischen ausgeschaltet zu beginn obwohl dynamic UI an ist" — this
+// one function/localStorage key is meant to be THE single source of truth for whether any of this
+// plays at all (that's the whole point of collapsing it into "ein Knopf der beim Drücken umschaltet"
+// above). Several call sites had ALSO been separately re-checking the OS's own prefers-reduced-motion
+// media query on top of isAnimGroupEnabled()/this function (see e.g. openBoardWithFlyTransition,
+// navigateBackWithZoom) — so on a machine where that OS setting happens to be on (Windows' own
+// "Animationseffekte" toggle, a battery saver mode, etc.), those specific animations silently never
+// played no matter what "Dynamic UI" showed in the Werkzeuge sheet, since that OS check could veto
+// them independently of the one switch that was supposed to be authoritative. Fixed by making that OS
+// preference feed ONLY the very first default here (someone who's never touched the switch, and whose
+// OS already asks for less motion, starts on Static UI rather than Dynamic) — once notua-ui-dynamic is
+// actually set (by that seeding or by an explicit toggle), it alone governs from then on, and every
+// other call site's own separate prefersReducedMotion() check was removed as redundant/harmful.
 function isUiDynamicEnabled(){
-  try{ return localStorage.getItem('notua-ui-dynamic')!=='0'; }catch(e){ return true; }
+  try{
+    const v=localStorage.getItem('notua-ui-dynamic');
+    if(v==='0') return false;
+    if(v==='1') return true;
+    return !prefersReducedMotion(); // no explicit choice yet — seed the default from the OS hint, once
+  }catch(e){ return true; }
 }
 function refreshUiDynamicToggleUI(){
   const item=document.getElementById('toolsUiDynamicItem');
@@ -9848,7 +9930,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.25';
+const APP_VERSION='2.4.26';
 const WHATSNEW_ITEMS=[
   {demo:'lang', demoHtml:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'},
   {demo:'infinitecanvas', demoHtml:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/><path d="M9 12c1-2 2-2 3 0s2 2 3 0"/></svg>'},
@@ -10175,7 +10257,11 @@ function prefersReducedMotion(){
   return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 function openBoardWithFlyTransition(id, tileEl){
-  if(!tileEl || prefersReducedMotion() || boardOpenFlyActive) return openBoard(id);
+  // Same "boardzoom" group as navigateBackWithZoom()'s own exit transition — this is the enter
+  // direction of the same animation, so it follows the identical gate (isAnimGroupEnabled() already
+  // folds in Dynamic UI's own OS-preference default, see isUiDynamicEnabled()'s comment) rather than
+  // a bare, separate prefersReducedMotion() check that could silently disable only this half of it.
+  if(!tileEl || !isAnimGroupEnabled('boardzoom') || boardOpenFlyActive) return openBoard(id);
   let rect;
   try{ rect=tileEl.getBoundingClientRect(); }catch(e){ return openBoard(id); }
   if(!rect || rect.width<1 || rect.height<1) return openBoard(id);
@@ -10241,9 +10327,12 @@ function openBoardWithFlyTransition(id, tileEl){
 // it with a shrink-and-fade-out BEFORE it runs and a scale-in-and-fade-in AFTER it resolves, so the
 // old board's content is safely gone (and the new one fully rendered) before either animation half
 // is actually looking at it. Falls back to calling navigateFn() straight through, no animation, if
-// motion is reduced or there's simply no board on screen to animate away from.
+// motion is reduced or there's simply no board on screen to animate away from. isAnimGroupEnabled()
+// already covers reduced motion as Dynamic UI's own default (see isUiDynamicEnabled()) — no separate
+// prefersReducedMotion() check here on top of it, or an OS-level preference could silently override
+// Tom's own explicit Dynamic UI choice.
 async function navigateBackWithZoom(navigateFn){
-  if(state.screen!=='board' || prefersReducedMotion() || !isAnimGroupEnabled('boardzoom')){ await navigateFn(); return; }
+  if(state.screen!=='board' || !isAnimGroupEnabled('boardzoom')){ await navigateFn(); return; }
   const outgoing=boardView;
   outgoing.classList.add('board-exit-zoom-prep');
   void outgoing.offsetWidth; // commit the transition before the class below changes what it's transitioning
@@ -11286,7 +11375,9 @@ function closeInspector(){ if(inspectorEl){ inspectorEl.remove(); inspectorEl=nu
 function staggerInspectorRows(skip){
   const body=inspectorEl && inspectorEl.querySelector('.insp-body');
   if(!body) return;
-  if(skip || prefersReducedMotion() || !isAnimGroupEnabled('menustagger')){ body.classList.add('no-entrance'); return; }
+  // isAnimGroupEnabled() already folds in reduced-motion as Dynamic UI's own default — see
+  // isUiDynamicEnabled()'s comment on why a separate prefersReducedMotion() check was removed here.
+  if(skip || !isAnimGroupEnabled('menustagger')){ body.classList.add('no-entrance'); return; }
   [...body.children].forEach((el,i)=>{
     el.style.animationDelay=(40+i*35)+'ms';
     el.classList.add('insp-row-pop');
@@ -11864,7 +11955,9 @@ async function duplicateCards(cards){
 // is pressed. Purely cosmetic and best-effort: cards not currently rendered (nothing to find in the
 // DOM for) just skip straight through with no delay.
 function animateCardsOutBeforeDelete(ids){
-  if(prefersReducedMotion() || !isAnimGroupEnabled('carddrag')) return Promise.resolve();
+  // isAnimGroupEnabled() already folds in reduced-motion as Dynamic UI's own default (see
+  // isUiDynamicEnabled()) — no separate prefersReducedMotion() check on top of it here.
+  if(!isAnimGroupEnabled('carddrag')) return Promise.resolve();
   const els=ids.map(id=>cardsLayer.querySelector(`.card[data-id="${id}"]`)).filter(Boolean);
   if(!els.length) return Promise.resolve();
   els.forEach(el=>el.classList.add('card-deleting'));
@@ -16054,8 +16147,10 @@ function attachDragAndSelect(el,card){
     const wasCleanClick=!dragState.moved && !dragState.multiKey;
     // "leichtes Überschwingen beim Loslassen" — only for an actual drag (never a plain click/tap that
     // never moved anything), and only once the drag's own lift transform has something to hand off
-    // from — see .card-drop-settle's own comment on the base .card transition, above.
-    const playDropSettle=dragState.moved && !prefersReducedMotion() && isAnimGroupEnabled('carddrag');
+    // from — see .card-drop-settle's own comment on the base .card transition, above. isAnimGroupEnabled()
+    // already folds in reduced-motion as Dynamic UI's own default (see isUiDynamicEnabled()) — no
+    // separate prefersReducedMotion() check on top of it here.
+    const playDropSettle=dragState.moved && isAnimGroupEnabled('carddrag');
     dragState.movers.forEach(m=>{
       const domEl=cardsLayer.querySelector(`.card[data-id="${m.card.id}"]`);
       if(!domEl) return;
@@ -18494,7 +18589,9 @@ const mobileScrim=document.getElementById('mobileScrim');
 // another as the panel itself slides open. See .drawer-item-pop's own CSS comment for why the class
 // is removed again (via 'animationend') rather than just left on once each item's animation finishes.
 function staggerDrawerItems(){
-  if(prefersReducedMotion() || !isAnimGroupEnabled('menustagger')) return;
+  // isAnimGroupEnabled() already folds in reduced-motion as Dynamic UI's own default (see
+  // isUiDynamicEnabled()) — no separate prefersReducedMotion() check on top of it here.
+  if(!isAnimGroupEnabled('menustagger')) return;
   const items=[...mobileDrawer.querySelectorAll('.drawer-label, .drawer-btn')].filter(el=>!el.hidden);
   items.forEach((el,i)=>{
     el.classList.remove('drawer-item-pop');
