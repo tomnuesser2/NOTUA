@@ -2702,12 +2702,44 @@ try{
      else on the row (the label, the row's own padding) stays plain scrollable/tappable content. */
   .drawer-btn.dragging{opacity:0.35;}
   .drawer-btn[data-add] svg{touch-action:none;}
-  /* Tom, 22.09 (5. Nachricht, mit Screenshot): "das sieht noch irgendwie random aus ... die Balken
-     sollen gern außerhalb des UIs sein ... rechts daneben im freien Feld ... immer auf der Höhe
-     zentriert vom UI Element was man angeklickt hat" — the in-place flip-card (Stärke/Glätten) and
-     accordion (Farbe) reveal that used to live here (.drawer-blanket-flip/.drawer-blanket-expand) is
-     gone again: the popovers now always float from <body>, docked just past the drawer's own right
-     edge and vertically centered on the row that was tapped — see positionBlanketPopoverBesideDrawer(). */
+  /* Tom, 22.09 (5. Nachricht): the floating popover docked beside the drawer (see
+     positionBlanketPopoverBesideDrawer()) replaced an earlier in-place flip/accordion reveal.
+     Tom, 23.09: "das sieht noch irgendwie random aus" — back to in-place, but specified precisely
+     this time: Stärke/Glätten become an animated flip-switch right on the same row (see
+     .blanket-flip-wrap/.blanket-flip-inner below — flips the row itself, same footprint, no floating
+     box), while Farbe/Colorwheel pushes every row below it downward as it opens (see
+     .blanket-inline-expand-wrap/.blanket-inline-expand below) — "alles soll immer im Format des
+     Hamburgermenü bleiben". Both reuse the EXACT SAME shared-singleton popover elements
+     (blanketThicknessPopEl/blanketSmoothPopEl/blanketColorWheelEl) the desktop dock still floats from
+     — see homeBlanketThicknessPop()/homeBlanketSmoothPop()/homeBlanketColorWheelPop(), which now
+     reparent that one shared element into the drawer's own flow instead of <body> whenever the anchor
+     that was tapped lives inside the mobile drawer (blanketAnchorIsInMobileDrawer()), and reparent it
+     straight back out again the moment it's opened from the desktop dock instead. Desktop's own
+     floating-popover behavior (positionBlanketToolPopover()) is completely untouched. */
+  .blanket-flip-wrap{position:relative; perspective:900px;}
+  .blanket-flip-inner{
+    display:grid; transition:transform .5s cubic-bezier(.65,0,.35,1); transform-style:preserve-3d;
+  }
+  .blanket-flip-wrap.flipped .blanket-flip-inner{transform:rotateX(180deg);}
+  .blanket-flip-front, .blanket-flip-back{grid-area:1/1; backface-visibility:hidden; -webkit-backface-visibility:hidden;}
+  .blanket-flip-back{transform:rotateX(180deg);}
+  /* Reduced motion: the flip becomes a plain instant swap instead of a 3D rotation nobody asked to see
+     spin — same reasoning as every other spring/rAF animation in this file respecting the OS setting. */
+  @media (prefers-reduced-motion: reduce){
+    .blanket-flip-inner{transition:none;}
+  }
+  .blanket-inline-expand-wrap{display:flex; flex-direction:column;}
+  .blanket-inline-expand{max-height:0; overflow:hidden; transition:max-height .38s cubic-bezier(.4,0,.2,1);}
+  @media (prefers-reduced-motion: reduce){
+    .blanket-inline-expand{transition:none;}
+  }
+  /* Both popovers read as floating cards of their own (border/shadow/fixed width) when body-appended
+     for the desktop dock — inline-mode strips exactly that chrome so the SAME element instead reads as
+     a plain continuation of the drawer's own row list once reparented into it. */
+  .blanket-thickness-pop.inline-mode, .blanket-colorwheel-pop.inline-mode{
+    position:static; width:100%; box-shadow:none; border:none; border-radius:0; padding:9px 10px;
+  }
+  .blanket-thickness-pop.inline-mode{background:var(--surface-2); border-radius:8px;}
   .drawer-zoom-row{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 10px 10px;}
   .drawer-zoom-row button{
     width:38px; height:38px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink);
@@ -9362,8 +9394,20 @@ async function trashBoard(boardId){
     // operation failing — the trash itself already landed in IndexedDB either way, and the regular
     // background pass (the dirty flag is still set) retries the push on its own.
     try{ const targets=syncTargets(); if(targets.length) await syncBoardToTargets(boardId,targets); }catch(e){}
-    state.optimisticHidden.delete(boardId);
+    // Clear the optimistic-hide flag only AFTER refreshHome() has already run and landed its merge —
+    // not before. refreshHome() paints TWICE (see its own comment): first instantly from the OLD,
+    // still-cached state.boards (which still contains this board, since nothing above ever touched
+    // that in-memory array — only IndexedDB/the sync targets were written to), then again once the
+    // real mergedAllBoards() fetch replaces state.boards with the true, post-trash list. Dropping the
+    // flag BEFORE calling refreshHome() meant that very first, stale-cache paint could no longer filter
+    // this board out (the guard was already gone) — so the tile flashed back into the grid for one
+    // frame, then vanished again a moment later once the slower merge paint landed. That flash-then-gone
+    // was exactly the reported "boards die man löscht sind direkt wieder einen ganz kurzen moment da".
+    // Keeping the flag in place through the whole refreshHome() call means both paints stay correctly
+    // filtered, and by the time it's safe to drop the flag, state.boards has already been replaced with
+    // the merged list that genuinely no longer includes this board — so no later repaint can revive it.
     if(state.screen==='home') await refreshHome();
+    state.optimisticHidden.delete(boardId);
     if(!trashView.hidden) await refreshTrash();
   }));
 }
@@ -10345,7 +10389,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.48';
+const APP_VERSION='2.4.50';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
@@ -11293,13 +11337,23 @@ viewport.addEventListener('focusout',()=>{
   },30);
 });
 
+// Tom, 23.09: "tausch das, strg soll hoch runter und ohne strg rein raus" — swapped from the
+// original mapping. Plain wheel (no modifier) is now the zoom gesture, always straight to the
+// cursor position (zoomAt already does that math); Ctrl/Cmd+wheel is now the pan gesture — exactly
+// the reverse of what each one did before. A real mouse wheel is what most people reach for to zoom
+// a whiteboard-style canvas (Miro does the same by default), so needing to hold Ctrl for THAT was
+// the wrong way around. Note: a trackpad pinch gesture is reported by the browser as a wheel event
+// with ctrlKey force-set to true (there's no way to tell that apart from a real held Ctrl key from
+// inside JS), so a trackpad pinch now pans instead of zooming — an accepted trade-off here since
+// this was specifically about the plain mouse-wheel-on-PC case.
 viewport.addEventListener('wheel',(e)=>{
   // Let the wheel event fall through to native scrolling when it started over content that can
   // scroll itself (a non-dynamic note whose text overflows its box, a checklist's item list, a
   // table's own scroll area) — without this, preventDefault() below fired unconditionally and ate
   // the scroll before the browser ever got to move that inner content, even though its scrollbar
   // chrome was only ever hidden visually (scrollbar-width:none), never functionally disabled.
-  // Ctrl/Meta+wheel is always zoom regardless (that gesture never means "scroll this box").
+  // Ctrl/Meta+wheel (now the pan gesture) is always taken over regardless — panning the whole board
+  // is never what's meant while the cursor is sitting over a scrollable note/checklist/table.
   if(!(e.ctrlKey||e.metaKey)){
     const scrollTarget=e.target.closest && e.target.closest('.note-body, .checklist-items, .table-scroll');
     if(scrollTarget && scrollTarget.scrollHeight>scrollTarget.clientHeight+1){
@@ -11308,10 +11362,10 @@ viewport.addEventListener('wheel',(e)=>{
   }
   e.preventDefault();
   if(e.ctrlKey||e.metaKey){
-    zoomAt(e.clientX,e.clientY, e.deltaY<0 ? 1.08 : 0.92);
-  }else{
     state.view.x-=e.deltaX; state.view.y-=e.deltaY;
     applyView(); persistView();
+  }else{
+    zoomAt(e.clientX,e.clientY, e.deltaY<0 ? 1.08 : 0.92);
   }
 },{passive:false});
 
@@ -14189,7 +14243,16 @@ function buildWidgetCard(card){
         }
       }else if(kind==='pinterest'){
         const board=extractPinterestBoard(input.value);
-        if(board){ card.data.pinterestUrl=board; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
+        if(board){
+          card.data.pinterestUrl=board; card.data.url=input.value;
+          // Same reasoning as Spotify's height snap just above: the card was sitting at the compact
+          // empty-link row height (see addCard's 'youtube' branch) until now — a Pinterest board
+          // widget is a scrollable list of pin thumbnails, not a fixed-ratio player, so it just needs
+          // enough starting room to actually show something instead of staying pinned to one input row's
+          // worth of height; the corner handle still resizes it freely on both axes from here.
+          card.h=220;
+          DB.putCard(card); renderAllCards(); applySelectionClasses();
+        }
       }else if(kind==='strava'){
         const se=extractStravaEmbed(input.value);
         if(se){
@@ -14200,7 +14263,14 @@ function buildWidgetCard(card){
         }
       }else{
         const vid=extractYouTubeId(input.value);
-        if(vid){ card.data.videoId=vid; card.data.url=input.value; DB.putCard(card); renderAllCards(); applySelectionClasses(); }
+        if(vid){
+          card.data.videoId=vid; card.data.url=input.value;
+          // Same reasoning as Spotify/Pinterest just above — the card was sitting at the compact
+          // empty-link row height until now; a real video wants its proper 16:9 box, the same math
+          // attachResize() already uses whenever the corner handle is dragged.
+          card.h=clamp(Math.round(card.w/WIDGET_ASPECT.youtube),120,2000);
+          DB.putCard(card); renderAllCards(); applySelectionClasses();
+        }
       }
     }
     input.addEventListener('keydown',(e)=>{ if(e.key==='Enter') commit(); });
@@ -16058,14 +16128,25 @@ function ensureBlanketThicknessPop(){
   blanketThicknessPopEl=el;
   return el;
 }
-function homeBlanketThicknessPop(){
+// target: the .blanket-flip-inner to reparent into for the mobile in-place flip, or null/undefined
+// for the desktop dock's own floating popover (reparents straight back to <body> in that case) — see
+// the big comment on .blanket-flip-wrap above for why this is the same element either way.
+function homeBlanketThicknessPop(target){
   const el=ensureBlanketThicknessPop();
-  if(el.parentElement!==document.body) document.body.appendChild(el);
+  if(target){
+    el.classList.add('inline-mode','blanket-flip-back');
+    if(el.parentElement!==target) target.appendChild(el);
+  }else{
+    el.classList.remove('inline-mode','blanket-flip-back');
+    if(el.parentElement!==document.body) document.body.appendChild(el);
+  }
   el.hidden=false;
   return el;
 }
 function closeBlanketThicknessPop(){
-  if(blanketThicknessPopEl) blanketThicknessPopEl.hidden=true;
+  const flipWrap=document.getElementById('drawerBlanketThicknessFlip');
+  if(flipWrap && flipWrap.classList.contains('flipped')) flipWrap.classList.remove('flipped');
+  else if(blanketThicknessPopEl) blanketThicknessPopEl.hidden=true;
   blanketThicknessPopCard=null;
 }
 // "das Glätten soll einen Slider bekommen" — same popover pattern as thickness just above, for the
@@ -16092,14 +16173,22 @@ function ensureBlanketSmoothPop(){
   blanketSmoothPopEl=el;
   return el;
 }
-function homeBlanketSmoothPop(){
+function homeBlanketSmoothPop(target){
   const el=ensureBlanketSmoothPop();
-  if(el.parentElement!==document.body) document.body.appendChild(el);
+  if(target){
+    el.classList.add('inline-mode','blanket-flip-back');
+    if(el.parentElement!==target) target.appendChild(el);
+  }else{
+    el.classList.remove('inline-mode','blanket-flip-back');
+    if(el.parentElement!==document.body) document.body.appendChild(el);
+  }
   el.hidden=false;
   return el;
 }
 function closeBlanketSmoothPop(){
-  if(blanketSmoothPopEl) blanketSmoothPopEl.hidden=true;
+  const flipWrap=document.getElementById('drawerBlanketSmoothFlip');
+  if(flipWrap && flipWrap.classList.contains('flipped')) flipWrap.classList.remove('flipped');
+  else if(blanketSmoothPopEl) blanketSmoothPopEl.hidden=true;
   blanketSmoothPopCard=null;
 }
 // Tom, 22.09: "die können sich überlappen es soll aber so sein, dass sich ein regler schließt wenn man
@@ -16122,7 +16211,8 @@ function blanketAnchorIsInMobileDrawer(anchor){
 function openBlanketSmoothPop(anchor,card){
   closeOtherBlanketToolPopovers('smooth');
   const inline=blanketAnchorIsInMobileDrawer(anchor);
-  const el=homeBlanketSmoothPop();
+  const flipWrap=inline ? document.getElementById('drawerBlanketSmoothFlip') : null;
+  const el=homeBlanketSmoothPop(flipWrap ? flipWrap.querySelector('.blanket-flip-inner') : null);
   blanketSmoothPopCard=card;
   const v=blanketSmoothIntensity(card);
   el.querySelector('#blanketSmoothPopRange').value=v;
@@ -16132,7 +16222,8 @@ function openBlanketSmoothPop(anchor,card){
   blanketSmoothIndicatorT=v/2;
   const pathEl=el.querySelector('#blanketSmoothIndicatorPath');
   if(pathEl) pathEl.setAttribute('d', buildBlanketSmoothIndicatorPath(blanketSmoothIndicatorT));
-  if(inline) positionBlanketPopoverBesideDrawer(el,anchor);
+  if(flipWrap) flipWrap.classList.add('flipped');
+  else if(inline) positionBlanketPopoverBesideDrawer(el,anchor);
   else positionBlanketToolPopover(el,anchor,card);
 }
 document.addEventListener('pointerdown',(e)=>{
@@ -16152,12 +16243,14 @@ window.addEventListener('keydown',(e)=>{
 function openBlanketThicknessPop(anchor,card){
   closeOtherBlanketToolPopovers('thickness');
   const inline=blanketAnchorIsInMobileDrawer(anchor);
-  const el=homeBlanketThicknessPop();
+  const flipWrap=inline ? document.getElementById('drawerBlanketThicknessFlip') : null;
+  const el=homeBlanketThicknessPop(flipWrap ? flipWrap.querySelector('.blanket-flip-inner') : null);
   blanketThicknessPopCard=card;
   const range=el.querySelector('#blanketThicknessRange');
   range.value=card.data.thickness||1;
   el._syncDot();
-  if(inline) positionBlanketPopoverBesideDrawer(el,anchor);
+  if(flipWrap) flipWrap.classList.add('flipped');
+  else if(inline) positionBlanketPopoverBesideDrawer(el,anchor);
   else positionBlanketToolPopover(el,anchor,card);
 }
 document.addEventListener('pointerdown',(e)=>{
@@ -18645,6 +18738,21 @@ async function addCard(type, extra){
       data.stravaId=extra&&extra.stravaId?extra.stravaId:null;
       data.stravaAttrs=extra&&extra.stravaAttrs?extra.stravaAttrs:{};
       h=260; // Strava's own activity/route cards read a bit taller by default than a 16:9 video
+    }else if(kind==='youtube' && data.videoId){
+      // Pasted straight onto the canvas as an already-resolved video id (see the board-wide paste
+      // handler) — comes into being already-embedded, so it should already read as a real video box,
+      // not the compact empty-link row below. Same 16:9 math attachResize() uses on a manual drag.
+      h=clamp(Math.round(w/WIDGET_ASPECT.youtube),120,2000);
+    }else{
+      // "Youtube/Spotify und Pinterest sollen nur noch die Zeile sein bis ein embed eingebettet
+      // wurde, nicht der Schnickschnack oben und unten" — before any link is actually pasted in,
+      // this card is just its header row plus one input row (see buildWidgetCard()'s non-embedded
+      // branch), so the old fixed 200px left a lot of dead padding above/below that single input.
+      // The moment a real link lands, commit() (in buildWidgetCard) sets the height back to whatever
+      // that kind's embedded view actually needs (16:9 for a video, Spotify's fixed compact height,
+      // a roomier browsing height for a Pinterest board) — this compact height is only ever the
+      // pre-embed placeholder state.
+      h=104;
     }
   }
   if(type==='boardlink'){
@@ -18892,14 +19000,41 @@ function ensureBlanketColorWheelPop(){
   blanketColorWheelEl=el;
   return el;
 }
-function homeBlanketColorWheelPop(){
+// target: the .blanket-inline-expand panel to reparent into for the mobile accordion reveal, or
+// null/undefined for the desktop dock's own floating popover — same shared element either way, see
+// the big comment on .blanket-flip-wrap/.blanket-inline-expand-wrap above.
+function homeBlanketColorWheelPop(target){
   const el=ensureBlanketColorWheelPop();
-  if(el.parentElement!==document.body) document.body.appendChild(el);
+  if(target){
+    el.classList.add('inline-mode');
+    if(el.parentElement!==target) target.appendChild(el);
+  }else{
+    el.classList.remove('inline-mode');
+    if(el.parentElement!==document.body) document.body.appendChild(el);
+  }
   el.hidden=false;
   return el;
 }
+// Animates a .blanket-inline-expand panel open/closed by transitioning max-height between 0 and its
+// own measured content height — plain CSS can't transition to/from `height:auto`, and the content
+// (colorwheel canvas + slider + hex row) has a fixed, known size anyway, so measuring scrollHeight on
+// every open (rather than hardcoding a number) stays correct across font-size/locale/DPI differences.
+function blanketExpandAnimateOpen(panel){
+  panel.style.maxHeight='none';
+  const h=panel.scrollHeight;
+  panel.style.maxHeight='0px';
+  void panel.offsetHeight; // force the 0px to actually land before animating away from it
+  requestAnimationFrame(()=>{ panel.style.maxHeight=h+'px'; });
+}
+function blanketExpandAnimateClose(panel){
+  panel.style.maxHeight=panel.scrollHeight+'px';
+  void panel.offsetHeight;
+  requestAnimationFrame(()=>{ panel.style.maxHeight='0px'; });
+}
 function closeBlanketColorWheelPop(){
-  if(blanketColorWheelEl) blanketColorWheelEl.hidden=true;
+  const expandPanel=document.getElementById('drawerBlanketColorExpand');
+  if(expandPanel && expandPanel.contains(blanketColorWheelEl)) blanketExpandAnimateClose(expandPanel);
+  else if(blanketColorWheelEl) blanketColorWheelEl.hidden=true;
   blanketColorWheelCard=null;
   syncBlanketColorWheelOpenIndicator();
 }
@@ -18916,7 +19051,8 @@ function syncBlanketColorWheelOpenIndicator(){
 function openBlanketColorWheelPop(anchor,card){
   closeOtherBlanketToolPopovers('colorwheel');
   const inline=blanketAnchorIsInMobileDrawer(anchor);
-  const el=homeBlanketColorWheelPop();
+  const expandPanel=inline ? document.getElementById('drawerBlanketColorExpand') : null;
+  const el=homeBlanketColorWheelPop(expandPanel);
   blanketColorWheelCard=card;
   // Seed the wheel from whatever custom color (if any) is already active, so reopening it doesn't
   // silently jump back to red every time.
@@ -18935,7 +19071,9 @@ function openBlanketColorWheelPop(anchor,card){
   }
   el.querySelector('#bcwValueRange').value=Math.round(bcwVal*100);
   el._paint(); el._syncOutputs();
-  if(inline){
+  if(expandPanel){
+    blanketExpandAnimateOpen(expandPanel);
+  }else if(inline){
     positionBlanketPopoverBesideDrawer(el,anchor);
   }else{
     const r=anchor.getBoundingClientRect();
@@ -19095,13 +19233,24 @@ function ensureDrawerBlanketSection(){
       ${blanketPenTypesHtml('drawerBlanket')}
       <div class="blanket-pens" id="drawerBlanketPens">${pensHtml}</div>
     </div>
-    <button type="button" class="drawer-btn" id="drawerBlanketColorWheelBtn">
-      <span class="blanket-dock-wheel-swatch" id="drawerBlanketWheelSwatch">${iconColorWheel()}</span>
-      <span>${t('blanket_colorwheel_label')}</span>
-    </button>
+    <div class="blanket-inline-expand-wrap">
+      <button type="button" class="drawer-btn" id="drawerBlanketColorWheelBtn">
+        <span class="blanket-dock-wheel-swatch" id="drawerBlanketWheelSwatch">${iconColorWheel()}</span>
+        <span>${t('blanket_colorwheel_label')}</span>
+      </button>
+      <div class="blanket-inline-expand" id="drawerBlanketColorExpand"></div>
+    </div>
     <button type="button" class="drawer-btn" id="drawerBlanketEraserBtn">${iconBlanketEraser()}<span>${t('blanket_eraser_label')}</span></button>
-    <button type="button" class="drawer-btn" id="drawerBlanketThicknessBtn">${iconBlanketThickness()}<span>${t('blanket_thickness_label')}</span></button>
-    <button type="button" class="drawer-btn" id="drawerBlanketSmoothBtn">${iconBlanketSmooth()}<span>${t('blanket_smooth_label')}</span></button>
+    <div class="blanket-flip-wrap" id="drawerBlanketThicknessFlip">
+      <div class="blanket-flip-inner">
+        <button type="button" class="drawer-btn blanket-flip-front" id="drawerBlanketThicknessBtn">${iconBlanketThickness()}<span>${t('blanket_thickness_label')}</span></button>
+      </div>
+    </div>
+    <div class="blanket-flip-wrap" id="drawerBlanketSmoothFlip">
+      <div class="blanket-flip-inner">
+        <button type="button" class="drawer-btn blanket-flip-front" id="drawerBlanketSmoothBtn">${iconBlanketSmooth()}<span>${t('blanket_smooth_label')}</span></button>
+      </div>
+    </div>
     <button type="button" class="drawer-btn" id="drawerBlanketUndoBtn">${iconBlanketUndo()}<span>${t('blanket_undo_title')}</span></button>
     <div class="drawer-btn blanket-bg-group">
       <input type="color" class="blanket-bg-input" id="drawerBlanketBgColor" value="#ffffff">
