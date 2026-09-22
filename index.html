@@ -919,8 +919,14 @@ try{
   }
   .mobile-crumb-menu-item:hover{background:var(--surface-2);}
   /* The last row — the board you're already on — is a plain highlighted label, not a button (tapping
-     it wouldn't do anything anyway); everything else navigates on tap. */
-  .mobile-crumb-menu-item.current{font-weight:700; color:var(--accent); background:var(--accent-soft); cursor:default;}
+     it opens an inline rename field instead — see renderCrumbs' tap-to-edit handler — rather than
+     navigating, since you're already there). */
+  .mobile-crumb-menu-item.current{font-weight:700; color:var(--accent); background:var(--accent-soft); cursor:var(--custom-pointer-cursor,pointer);}
+  .mobile-crumb-menu-item.current.editing{background:var(--surface); cursor:default; padding:5px 6px;}
+  .mobile-crumb-rename-input{
+    width:100%; border:1px solid var(--accent); border-radius:6px; background:var(--surface);
+    color:var(--ink); font:inherit; font-size:0.86rem; font-weight:700; padding:6px 8px; outline:none;
+  }
   @media (max-width:640px){
     .crumbs{display:none !important;}
     .mobile-crumb-btn{display:flex;}
@@ -968,26 +974,43 @@ try{
      browser to anti-alias the entire dot rather than rendering a real solid core with just a thin
      anti-aliased rim — on a large, non-Retina external monitor (1 device px per CSS px) that whole-
      dot softness reads as "low resolution"/fuzzy. Giving the dot an actual solid center and only a
-     narrow falloff band renders a visibly crisper, better-defined dot at the same physical size. */
-  /* "dezente Parallax im Punktraster beim Verschieben" — applyView() (JS) still sets
-     background-position/-size to the exact, correctly-aligned target on every single pan/zoom tick,
-     same as always; what's new is that this element now eases toward each new value instead of
-     snapping to it instantly. Since panning fires many of those ticks a second, the grid ends up
-     perpetually chasing a slightly-moving target — a cheap, purely-CSS way to make it read as a
-     background layer with its own (slight) inertia, rather than rigidly locked to the cards in front
-     of it — without ever actually being out of alignment once movement stops and it catches up. */
+     narrow falloff band renders a visibly crisper, better-defined dot at the same physical size.
+     "die GridPunkte ... auch bisschen zu groß und zu niedrig auflösend" — tightened again: a smaller
+     solid core (1.3px -> 1px) and an even narrower falloff band (0.6px -> 0.3px) reads as a visibly
+     smaller, crisper dot at the same grid spacing, closer to a real printed dot-grid pad than a soft
+     blob. */
+  /* "dezente Parallax im Punktraster beim Verschieben" used to ease background-position/-size toward
+     applyView()'s target with a short CSS transition instead of snapping instantly — but
+     background-position/-size are NOT compositor properties the way `transform` is: animating them
+     forces the browser to actually re-rasterize this element's background on every single transition
+     frame, on top of the real update applyView() already does on every pan/zoom tick. On an element
+     this large (see the inset below) that repaint is expensive — "Rein und Rauszoomen ... zu laggy
+     ... ruckelt nach" is exactly that cost, including the "nachruckeln": that .11s transition keeps
+     replaying (and repainting) for a moment after the input itself stops, which is what reads as
+     stuttering AFTER a zoom/pan already ended. Removed outright rather than swapped for a cheaper
+     equivalent — the grid now snaps to applyView()'s target exactly like the cards themselves do,
+     trading the subtle inertia flourish for actually keeping up on slower hardware (a convertible's
+     integrated GPU especially).
+     Also shrank the covering margin (inset -4000px -> -1000px): the element is only ever as big as
+     "viewport + this margin on every side", and every extra pixel of margin is extra background area
+     the browser has to rasterize on every single applyView() call — 1000px is still far more slack
+     than one input event's worth of pointer travel ever needs before the very next applyView() call
+     catches up, but it's a fraction of the repaint area -4000px was costing on every pan/zoom tick. */
   .grid-layer{
-    position:absolute; inset:-4000px; background-image:radial-gradient(circle, var(--canvas-dot) 0, var(--canvas-dot) 1.3px, transparent 1.9px); pointer-events:none;
-    transition:background-position .11s ease-out, background-size .11s ease-out;
+    /* Tom, 22.09 (Runde 3): "im normalen Board die Großpunkte kleiner und hochauflösender" — this
+       static rule is only the very first paint's fallback (before applyView()'s own JS below has run
+       even once); applyView() immediately overrides background-image itself on every view change,
+       with the dot's own radius scaled down together with background-size/zoom (see its own comment) —
+       kept in sync here mainly so nothing flashes an oversized dot for one frame before JS takes over. */
+    position:absolute; inset:-1000px; background-image:radial-gradient(circle, var(--canvas-dot) 0, var(--canvas-dot) 0.8px, transparent 1.1px); pointer-events:none;
   }
+  /* Mirrors .canvas-inner.smooth-view exactly (same duration/easing) so the grid still glides in sync
+     with the cards during a discrete, one-shot view change (zoom buttons, "An Inhalt anpassen", the
+     board-switch fly transition) — smoothViewJump() (JS) toggles this class on gridLayer alongside
+     canvasInner's own — while staying transition-free the rest of the time, exactly like
+     .canvas-inner's own comment says it must for continuous gestures. */
+  .grid-layer.smooth-view{transition:background-position .3s cubic-bezier(.22,1,.36,1), background-size .3s cubic-bezier(.22,1,.36,1);}
   .grid-layer.hidden-grid{display:none;}
-  @media (prefers-reduced-motion: reduce){
-    .grid-layer{transition:none;}
-  }
-  /* Mirrors the reduced-motion override above — same effect, just toggled from the "Dynamisch"
-     switch (or, once unlocked via the secret code, this one group alone) instead of the OS setting.
-     See applyDynamicAnimSettings() in the JS. */
-  :root.anim-off-gridparallax .grid-layer{transition:none;}
   #connectorSvg{position:absolute; overflow:visible; left:0; top:0; pointer-events:none;}
   /* Bumped from 2px to 3px — connectors were hard to spot against the dotted canvas background. */
   #connectorSvg line{stroke:var(--faint); stroke-width:3.5; stroke-linecap:round; marker-end:url(#arrowhead); transition:stroke .15s ease, stroke-width .15s ease;}
@@ -1887,7 +1910,9 @@ try{
      pattern as .widget-submenu/openDrawSubmenu above: one body-appended element, positioned via JS
      under whichever card's thickness button was clicked — see openBlanketThicknessPop()). */
   .blanket-thickness-pop{
-    position:fixed; z-index:60; background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    /* z-index 62 — see .blanket-colorwheel-pop's own comment just above: has to clear .mobile-drawer's
+       61 now that the drawer stays open behind it on mobile. */
+    position:fixed; z-index:62; background:var(--surface); border:1px solid var(--border); border-radius:10px;
     box-shadow:0 10px 24px -10px var(--shadow-lg); padding:10px 12px; display:flex; align-items:center; gap:9px;
     width:150px;
   }
@@ -1917,6 +1942,90 @@ try{
   .blanket-bg-input::-webkit-color-swatch{border:none; border-radius:50%;}
   .blanket-bg-input::-moz-color-swatch{border:none; border-radius:50%;}
   .blanket-dock .blanket-bg-group, #drawerBlanketSection .blanket-bg-group{margin-left:0;}
+  /* ---------- MOBILE DRAWBOARD DRAWER — cleanup pass (Tom, 22.09: "das Menü vom drawboard für
+     Smartphone noch cleaner machen die Größenverhältnisse passen irgendwie nicht auf Smartphone von
+     Stift und Farben zum Rest und das Stop Motion menü sieht man nicht bzw wird nicht angezeigt") ----
+     Root cause of "Stop-Motion menü sieht man nicht": .blanket-stopmotion-panel (#viewctlBlanketGroup)
+     is CSS-hidden below 640px (see that rule above) and #drawerBlanketSection never got a Stop-Motion/
+     Ebenen equivalent of its own — only the drawing tools did. This block adds one, styled to fit the
+     drawer's own compact-pill-list look (see .mobile-drawer.compact-style .drawer-btn) rather than
+     reusing the desktop panel's fixed-width floating-card look as-is.
+     "Größenverhältnisse ... von Stift und Farben zum Rest" — the pen-type icons + color-swatch row used
+     to sit as two loose, tiny icon clusters directly above the big bordered .drawer-btn pill rows
+     (Farbe/Radierer/...), reading as visually mismatched. Wrapped into one bordered pill box of its own
+     (same recipe as .mobile-drawer.compact-style .drawer-btn), with the buttons/swatches themselves
+     sized up a notch — scoped to #drawerBlanketSection only, so the desktop dock's own compact sizing
+     is untouched. */
+  #drawerBlanketSection .drawer-blanket-pen-panel{
+    display:flex; flex-direction:column; gap:10px; width:172px; max-width:100%; box-sizing:border-box;
+    padding:12px 10px; border-radius:14px; border:1px solid var(--border); background:var(--surface-2);
+  }
+  /* Tom, 22.09: "die Farben... klein genug dass die ins Feld passen und die Stiftsymbole sollen so
+     groß sein, dass sie gut abschließen mit dem Rechteck... schön eingefasst" — the panel's content
+     area (172px wide, minus its own 10px side padding + 1px border each side) is exactly 150px, so
+     both rows below are sized/gapped to add up to that same 150px: previously 5 color swatches at
+     28px+8px-gap totalled 172px — wider than the 150px available — which is exactly why the last
+     (yellow, now removed) swatch visibly overflowed past the box's right edge in Tom's screenshot.
+     3 pen-type icons now run bigger (40px) to fill the row edge-to-edge instead of sitting small and
+     left-aligned with empty space next to them; 4 color swatches (yellow dropped, see BLANKET_PENS)
+     at 30px do the same underneath, so both rows line up flush with the same framed width. */
+  #drawerBlanketSection .blanket-pentypes{gap:15px; justify-content:center;}
+  #drawerBlanketSection .blanket-pentype-btn{width:40px; height:40px; border-radius:10px;}
+  #drawerBlanketSection .blanket-pentype-icon svg{width:19px; height:19px;}
+  #drawerBlanketSection .blanket-pens{gap:10px; justify-content:center;}
+  #drawerBlanketSection .blanket-pen{width:30px; height:30px;}
+  /* Point 8 ("Ebenen") was desktop-only — this is its mobile counterpart, folded into the same drawer
+     stack as more pill rows/boxes instead of a floating side panel. Per Tom's own answer when asked,
+     the Ebenen list here is the simplified variant (tap-to-select + up/down arrow buttons, no drag, no
+     live thumbnails) rather than full desktop parity — pointer-drag reordering is fiddly on a phone. */
+  #drawerBlanketSection .drawer-blanket-stopmotion-body{
+    display:flex; flex-direction:column; gap:10px; width:172px; max-width:100%; box-sizing:border-box;
+    padding:12px 10px; margin-top:2px; border-radius:14px; border:1px solid var(--border); background:var(--surface-2);
+  }
+  #drawerBlanketSection .drawer-blanket-stopmotion-body[hidden]{display:none;}
+  #drawerBlanketSection .dsm-section{display:flex; flex-direction:column; gap:6px;}
+  #drawerBlanketSection .dsm-section-label{font-size:0.62rem; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); font-weight:600;}
+  #drawerBlanketSection .dsm-row{display:flex; align-items:center; gap:8px;}
+  #drawerBlanketSection .dsm-row button{
+    width:36px; height:36px; border:none; background:var(--surface); color:var(--muted); border-radius:9px; flex:none;
+    display:flex; align-items:center; justify-content:center; cursor:var(--custom-pointer-cursor,pointer);
+    transition:background .14s ease, color .14s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
+  }
+  #drawerBlanketSection .dsm-row button:active{transform:scale(.9);}
+  #drawerBlanketSection .dsm-row button.toggled{background:var(--accent-soft); color:var(--accent);}
+  #drawerBlanketSection .dsm-row button.armed{background:var(--accent); color:#fff;}
+  #drawerBlanketSection .dsm-row button:disabled{opacity:.35; cursor:default; pointer-events:none;}
+  #drawerBlanketSection .dsm-frame-label{flex:1; font-size:0.78rem; color:var(--ink); text-align:center; font-variant-numeric:tabular-nums;}
+  #drawerBlanketSection .dsm-fps-btn{width:auto !important; min-width:54px; padding:0 10px; font-size:0.68rem; font-weight:600; font-family:inherit;}
+  #drawerBlanketSection .dsm-divider{height:1px; background:var(--border); margin:2px 0;}
+  #drawerBlanketSection .dsm-layers-list{display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;}
+  #drawerBlanketSection .dsm-layer-row{
+    display:flex; align-items:center; gap:5px; padding:6px; border-radius:9px; background:var(--surface);
+    border:1px solid transparent;
+  }
+  #drawerBlanketSection .dsm-layer-row.active{border-color:var(--accent); background:var(--accent-soft);}
+  #drawerBlanketSection .dsm-layer-name{
+    flex:1; min-width:0; font-size:0.78rem; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    border-radius:5px; padding:2px 4px; cursor:text;
+  }
+  #drawerBlanketSection .dsm-layer-name.editing{background:var(--surface-2); outline:1px solid var(--accent); white-space:normal; overflow:visible; text-overflow:clip;}
+  #drawerBlanketSection .dsm-layer-btn{
+    flex:none; width:28px; height:28px; border:none; background:none; color:var(--muted);
+    display:flex; align-items:center; justify-content:center; border-radius:7px;
+    cursor:var(--custom-pointer-cursor,pointer);
+  }
+  #drawerBlanketSection .dsm-layer-btn svg{width:13px; height:13px;}
+  #drawerBlanketSection .dsm-layer-btn:active{background:var(--surface-2);}
+  #drawerBlanketSection .dsm-layer-btn.off{color:var(--faint);}
+  #drawerBlanketSection .dsm-layer-btn:disabled{opacity:.3; cursor:default; pointer-events:none;}
+  #drawerBlanketSection .dsm-layer-bg-color{
+    flex:none; width:22px; height:22px; -webkit-appearance:none; appearance:none;
+    border:1.5px solid var(--border); border-radius:50%; background:none; padding:0;
+  }
+  #drawerBlanketSection .dsm-layer-bg-color::-webkit-color-swatch-wrapper{padding:0;}
+  #drawerBlanketSection .dsm-layer-bg-color::-webkit-color-swatch{border:none; border-radius:50%;}
+  #drawerVbfLayersBody{display:flex; flex-direction:column; gap:8px;}
+  #drawerVbfLayersBody[hidden]{display:none;}
   /* ---------- BLANKET-BOARD FIXED TOOLBAR ----------
      "unten in der Werkzeugleiste sollen die Werkzeuge fürs Zeichnen da sein" — #blanketDock reuses the
      plain .dock look (class="dock blanket-dock"), just with .blanket-pens (same swatches as the
@@ -1968,26 +2077,37 @@ try{
   .bsm-toggle:active{transform:scale(.95);}
   .bsm-toggle.toggled{background:var(--accent); color:#fff; box-shadow:0 14px 30px -8px var(--accent);}
   /* "das Menü soll umgebaut werden und nun so aussehen wie die Eigenschaftsfelder in einem normalen
-     Board" + "beim anklicken per Animation nach unten das Menü auffächern" — rebuilt from a flat column
-     of bare icon buttons into labeled FRAME/WIEDERGABE/AKTIONEN sections styled exactly like the normal
-     card inspector's own grouped fields (.insp-label's small uppercase caption over a row of controls —
-     see .bsm-section-label below, deliberately the same look), and the whole thing now fans open/closed
-     with an actual height animation (see setBlanketStopMotionPanelOpen()) instead of an instant
-     hidden-attribute flip. max-height is set inline by JS (the CSS transition here is what animates
-     between the two inline values); opacity fades alongside it as a bit of extra polish. */
+     Board" — rebuilt from a flat column of bare icon buttons into labeled sections styled exactly like
+     the normal card inspector's own grouped fields (.insp-label's small uppercase caption over a row of
+     controls — see .bsm-section-label below, deliberately the same look).
+     Point 8 ("Ebenen") — "Das Menü soll ab jetzt immer offen sein und im offenen Menü einen Stop-Motion
+     Bereich und den Ebenen Bereich": this panel is now permanently visible whenever the Drawboard's own
+     #viewctlBlanketGroup is (no more open/close accordion, no more animated max-height — see
+     refreshViewctlBlanketGroup()'s own comment), holding a Stop-Motion section and, below the divider,
+     an Ebenen section. */
   .bsm-panel{
     display:flex; flex-direction:column; gap:11px;
     background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 13px;
     box-shadow:0 10px 26px -10px var(--shadow-lg);
-    width:196px; box-sizing:border-box; overflow:hidden; opacity:0;
-    transition:max-height .34s cubic-bezier(.34,1.56,.64,1), opacity .22s ease;
+    width:196px; box-sizing:border-box;
   }
   .bsm-panel[hidden]{display:none;}
-  .bsm-panel.bsm-panel-open{opacity:1;}
   .bsm-section{display:flex; flex-direction:column; gap:6px;}
   /* Same visual language as .insp-label (the on-card inspector's own section captions) on purpose —
      "wie die Eigenschaftsfelder in einem normalen Board". */
   .bsm-section-label{font-size:0.62rem; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); font-weight:600;}
+  /* Ebenen section header + its collapse chevron ("man soll das Ebenen Menü außerdem auch einklappen
+     können", Tom 22.09) — the label keeps its usual look, the chevron is a small standalone button on
+     the same row, right-aligned. */
+  .bsm-section-label-row{display:flex; align-items:center; justify-content:space-between; gap:6px;}
+  .bsm-collapse-btn{
+    flex:none; width:20px; height:20px; border:none; background:none; color:var(--faint); border-radius:5px;
+    display:flex; align-items:center; justify-content:center; cursor:var(--custom-pointer-cursor,pointer);
+    transition:background .12s ease, color .12s ease;
+  }
+  .bsm-collapse-btn svg{width:11px; height:11px;}
+  .bsm-collapse-btn:hover{background:var(--surface-2); color:var(--ink);}
+  #vbfLayersBody[hidden]{display:none;}
   .bsm-section-row{display:flex; align-items:center; gap:6px;}
   .bsm-section-row button{
     width:32px; height:32px; border:none; background:transparent; color:var(--muted); border-radius:8px; flex:none;
@@ -2001,6 +2121,35 @@ try{
   .bsm-section-row button:disabled{opacity:.35; cursor:default; pointer-events:none;}
   .bsm-frame-label{flex:1; font-size:0.72rem; color:var(--ink); text-align:center; padding:2px 0; font-variant-numeric:tabular-nums;}
   .vbf-fps-btn{width:auto !important; min-width:46px; padding:0 8px; height:32px; font-size:0.62rem; font-weight:600; font-family:inherit;}
+  /* Point 8 ("Ebenen") — the thin rule between the Stop-Motion and Ebenen sections inside the now
+     permanently-open panel. */
+  .bsm-divider{height:1px; background:var(--border); margin:0 -13px;}
+  .bsm-layers-list{display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto;}
+  .bsm-layer-row{
+    display:flex; align-items:center; gap:5px; padding:4px 5px; border-radius:8px; background:var(--surface-2);
+    border:1px solid transparent; transition:opacity .15s ease, background .12s ease, border-color .12s ease;
+  }
+  .bsm-layer-row.active{border-color:var(--accent); background:var(--accent-soft);}
+  .bsm-layer-row.dragging{opacity:.4;}
+  .bsm-layer-handle{flex:none; width:14px; height:14px; display:flex; align-items:center; justify-content:center; color:var(--faint); cursor:grab; touch-action:none;}
+  .bsm-layer-handle svg{width:12px; height:12px;}
+  .bsm-layer-handle:active{cursor:grabbing;}
+  .bsm-layer-handle-fixed{visibility:hidden; cursor:default;}
+  .bsm-layer-thumb{flex:none; width:32px; height:22px; border-radius:4px; border:1px solid var(--border);}
+  .bsm-layer-name{
+    flex:1; min-width:0; font-size:0.68rem; color:var(--ink); white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; border-radius:4px; padding:1px 3px; cursor:text;
+  }
+  .bsm-layer-name.editing{background:var(--surface); outline:1px solid var(--accent); white-space:normal; overflow:visible; text-overflow:clip;}
+  .bsm-layer-eye, .bsm-layer-del{
+    flex:none; width:20px; height:20px; border:none; background:none; color:var(--muted); cursor:var(--custom-pointer-cursor,pointer);
+    display:flex; align-items:center; justify-content:center; border-radius:5px; transition:background .12s ease, color .12s ease;
+  }
+  .bsm-layer-eye svg, .bsm-layer-del svg{width:12px; height:12px;}
+  .bsm-layer-eye:hover, .bsm-layer-del:hover{background:var(--surface); color:var(--ink);}
+  .bsm-layer-eye.off{color:var(--faint);}
+  .bsm-layer-del:disabled{opacity:.3; cursor:default; pointer-events:none;}
+  .bsm-layer-bg-color{flex:none; width:18px; height:18px;}
   /* "das ganze Ansichtboard soll kleiner sein [während des Drawboards]" — applied to .viewctl only
      while a dedicated Blanket-Board is open (see applyBlanketBoardChrome()); the bar already carries
      fewer buttons there (Einpassen/Dynamische Inhalte/Werkzeugleiste anpassen are hidden, see the same
@@ -2017,7 +2166,12 @@ try{
      above, just holding a small canvas-drawn HSV wheel (hue=angle, saturation=radius, see
      ensureBlanketColorWheelPop()) plus a brightness slider and a hex fallback. */
   .blanket-colorwheel-pop{
-    position:fixed; z-index:60; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    /* z-index 62, not the old 60: this popover (and .blanket-thickness-pop's, same reasoning) now has
+       to render on top of .mobile-drawer (z-index 61) too, since the mobile Werkzeuge-Schublade no
+       longer closes itself before opening one of these (see the drawer's own click-handler comment,
+       "Werkzeugleiste beim anklicken stehen bleiben") — at the old 60 it would've opened invisibly,
+       tucked directly behind the now-still-open drawer panel. */
+    position:fixed; z-index:62; background:var(--surface); border:1px solid var(--border); border-radius:12px;
     box-shadow:0 10px 24px -10px var(--shadow-lg); padding:12px; width:144px;
     display:flex; flex-direction:column; align-items:center; gap:10px;
   }
@@ -2031,6 +2185,36 @@ try{
   }
   .blanket-canvas-wrap{flex:1; min-height:0; position:relative; overflow:hidden; border-radius:0 0 6px 6px;}
   .blanket-canvas{display:block; width:100%; height:100%; cursor:crosshair;}
+  /* Tom, 22.09 (Runde 3): "das unendlich große drawboard hat immer noch ränder... wäre gut wenn die
+     ränder seamless sind und man nicht erkennt wo es aufhört" — the dot-grid underneath was already
+     force-hidden while a Blanket-Board is open (see syncGridLayerVisibility()'s own long-standing
+     comment on that earlier round), but panning/zooming out still hits two dead giveaways this alone
+     never touched: (1) this card is still a completely normal `.card` underneath (see baseCardShell) —
+     it keeps the same 1px border, drop shadow, rounded corners and even the desktop hover-lift as any
+     small note card, all of which draw a crisp little frame right at the edge of an otherwise blank
+     6000×6000 canvas; and (2) buildBlanketCard()'s own on-card `.card-head` title bar + `.blanket-
+     toolbar` pens/eraser/thickness/undo/bg row are still there too, sitting at the canvas's actual
+     top-left corner (-3000,-3000) — redundant with the dock/drawer's own copies of every one of those
+     controls, and one more obvious "this is a bounded object" visual anchor. `.card-blanket-canvas`
+     (added in buildBlanketCard() only for the Drawboard's own giant canvas card, never a normal small
+     Blanket card) strips all of that: no border/shadow/radius in any state (including hover/drag/
+     select), and the on-card head+toolbar are hidden outright since the dock/drawer already cover them
+     completely. Combined with syncBlanketBoardSeamlessBg() (matches the surrounding board background
+     to this card's own bgColor while it's open — see that function's own comment), the only remaining
+     "edge" is the literal, honest, documented BOARD_CANVAS_SIZE boundary itself — reaching it now shows
+     plain uninterrupted color on both sides instead of a framed rectangle sitting in a different-
+     colored void. */
+  .card.card-blanket-canvas,
+  .card.card-blanket-canvas.dragging,
+  .card.card-blanket-canvas.card-drop-settle,
+  .card.card-blanket-canvas.selected{ border:none; box-shadow:none; border-radius:0; }
+  .card-blanket-canvas .card-head, .card-blanket-canvas .blanket-toolbar{ display:none; }
+  .card-blanket-canvas .blanket-canvas-wrap{ border-radius:0; }
+  @media (hover:hover) and (pointer:fine){
+    .canvas-viewport:not(.connect-mode) .card.card-blanket-canvas:hover:not(.dragging):not(.card-drop-settle):not(.selected){
+      box-shadow:none; transform:none;
+    }
+  }
   /* "man kann noch abspielen, frames löschen und alles resetten" — Prev/Next/Play/Delete only; the
      destructive "reset everything" action lives in the inspector instead (see resetBlanketCard's own
      comment on why). */
@@ -2518,6 +2702,12 @@ try{
      else on the row (the label, the row's own padding) stays plain scrollable/tappable content. */
   .drawer-btn.dragging{opacity:0.35;}
   .drawer-btn[data-add] svg{touch-action:none;}
+  /* Tom, 22.09 (5. Nachricht, mit Screenshot): "das sieht noch irgendwie random aus ... die Balken
+     sollen gern außerhalb des UIs sein ... rechts daneben im freien Feld ... immer auf der Höhe
+     zentriert vom UI Element was man angeklickt hat" — the in-place flip-card (Stärke/Glätten) and
+     accordion (Farbe) reveal that used to live here (.drawer-blanket-flip/.drawer-blanket-expand) is
+     gone again: the popovers now always float from <body>, docked just past the drawer's own right
+     edge and vertically centered on the row that was tapped — see positionBlanketPopoverBesideDrawer(). */
   .drawer-zoom-row{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 10px 10px;}
   .drawer-zoom-row button{
     width:38px; height:38px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink);
@@ -2728,6 +2918,17 @@ try{
   .insp-trash-btn:hover{background:var(--danger-soft);}
   .insp-trash-btn:active{transform:scale(.93);}
   .insp-trash-btn svg{width:19px; height:19px;}
+  /* "der Papierkorb ist über dem Eigenschaftensymbol soll aber auf Pc mit drin sitzen nur beim
+     Smartphone" — on desktop, .insp-float-bar's bottom:100% against a panel whose own top sits at
+     just 64px leaves only ~7px of headroom for this 48px button + its 9px margin, so it collided with
+     the app's own top bar icons instead of floating cleanly above the panel. Fix: the trash button now
+     has two homes and only one is ever shown per breakpoint — on desktop it moves INSIDE the panel, as
+     an ordinary .insp-actions button (#delBtnDesktop, see updateInspector) right alongside
+     duplicate/front/export, so it can never again land on top of the top bar; .insp-float-bar keeps
+     only the close button there. This rule hides that desktop copy's floating twin (#delBtn) — the
+     mobile override below restores it and hides #delBtnDesktop instead, since the phone bottom sheet
+     has nothing above it for the floating button to collide with. */
+  .insp-float-bar .insp-trash-btn{display:none;}
   /* Wraps two independent insp-row blocks (each with its own insp-label) side by side on one line,
      rather than sharing a single label — used for Opacity + the small calendar/date button
      ("Kalender soll neben Opacity", but "das Datumsfeld... soll trotzdem eine eigene Kategorie
@@ -3173,6 +3374,12 @@ try{
     /* .insp-float-bar no longer needs a mobile-only override here — position:absolute + bottom:100%
        against .inspector (see its base rule) already tracks the panel's real top edge on any
        breakpoint, floating top-right box or full-width bottom sheet alike, with no extra CSS needed. */
+    /* Mirrors .insp-float-bar .insp-trash-btn's desktop-default rule above, the other way round: the
+       phone bottom sheet has nothing sitting above it to collide with, so the original always-floating
+       trash button (#delBtn) is restored here, and its desktop-only in-panel twin (#delBtnDesktop) is
+       hidden instead — exactly one of the two is ever visible on a given breakpoint. */
+    .insp-float-bar .insp-trash-btn{display:flex;}
+    #delBtnDesktop{display:none;}
     .home-header, .home-main{padding-left:20px; padding-right:20px;}
     /* A long connected-Drive email address could still be the one thing wide enough to force its own
        overflow even after the wrap above — capping it tighter than the desktop 220px keeps it (and
@@ -3752,9 +3959,7 @@ try{
            ensureDrawerBlanketSection(), kept in sync by refreshDrawerBlanketSection() — folded into
            the existing refreshBlanketDock(card) call sites so every place that already refreshes the
            desktop dock refreshes this for free, no new call sites needed. -->
-      <div class="drawer-section" id="drawerBlanketSection" hidden>
-        <div class="drawer-label">Zeichnen</div>
-      </div>
+      <div class="drawer-section" id="drawerBlanketSection" hidden></div>
       <div class="drawer-section" id="drawerAddSection">
         <div class="drawer-label">Hinzufügen</div>
         <button class="drawer-btn" data-add="note">
@@ -3805,7 +4010,7 @@ try{
           <span>Verbinden</span>
         </button>
       </div>
-      <div class="drawer-section">
+      <div class="drawer-section" id="drawerViewSection">
         <div class="drawer-label">Ansicht</div>
         <!-- "Anpassen der Werkzeugleiste soll bitte im Ansichttab sein nicht in der Leiste selbst" —
              moved here from the "Werkzeug" section above (same as #dockCustomizeBtn on desktop). Same
@@ -4515,6 +4720,18 @@ const I18N={
   confirm_reset_blanket_title:{de:'Leinwand zurücksetzen?',en:'Reset blanket?',es:'¿Restablecer lienzo?',da:'Nulstil lærred?'},
   confirm_reset_blanket_body:{de:'Die komplette Zeichnung (bzw. alle Bilder der Stop-Motion) wird gelöscht. Das kann nicht rückgängig gemacht werden.',en:'The entire drawing (or, in stop-motion, every frame) will be deleted. This can\'t be undone.',es:'Se eliminará todo el dibujo (o, en modo stop-motion, todos los fotogramas). Esto no se puede deshacer.',da:'Hele tegningen (eller alle billeder i stop-motion-serien) slettes. Dette kan ikke fortrydes.'},
   blanketboard_created_toast:{de:'Leinwand-Board erstellt',en:'Drawing-canvas board created',es:'Tablero de lienzo creado',da:'Lærredstavle oprettet'},
+  // Point 8 ("Photoshop-artiges Ebenen-System fürs Drawboard") — the always-open panel's second area
+  // (see ensureViewctlBlanketGroup()'s own comment on the panel redesign).
+  blanket_layers_section_label:{de:'Ebenen',en:'Layers',es:'Capas',da:'Lag'},
+  blanket_layers_collapse_title:{de:'Ebenen-Liste ein-/ausklappen',en:'Collapse/expand layers list',es:'Contraer/expandir lista de capas',da:'Fold lag-liste ind/ud'},
+  blanket_layer_default_name:{de:'Ebene {n}',en:'Layer {n}',es:'Capa {n}',da:'Lag {n}'},
+  blanket_layer_add_title:{de:'Neue Ebene hinzufügen',en:'Add new layer',es:'Añadir nueva capa',da:'Tilføj nyt lag'},
+  blanket_layer_delete_title:{de:'Ebene löschen',en:'Delete layer',es:'Eliminar capa',da:'Slet lag'},
+  blanket_layer_move_up_title:{de:'Ebene nach oben verschieben',en:'Move layer up',es:'Subir capa',da:'Flyt lag op'},
+  blanket_layer_move_down_title:{de:'Ebene nach unten verschieben',en:'Move layer down',es:'Bajar capa',da:'Flyt lag ned'},
+  blanket_drawer_section_label:{de:'Zeichnen',en:'Draw',es:'Dibujar',da:'Tegn'},
+  confirm_delete_layer_title:{de:'Ebene löschen?',en:'Delete layer?',es:'¿Eliminar capa?',da:'Slet lag?'},
+  confirm_delete_layer_body:{de:'Diese Ebene und alles, was darauf gezeichnet wurde, wird gelöscht. Das kann nicht rückgängig gemacht werden.',en:'This layer and everything drawn on it will be deleted. This can\'t be undone.',es:'Esta capa y todo lo dibujado en ella se eliminará. Esto no se puede deshacer.',da:'Dette lag og alt, der er tegnet på det, slettes. Dette kan ikke fortrydes.'},
   placeholder_table_title:{de:'Tabelle benennen…',en:'Name this table…',es:'Nombra esta tabla…',da:'Navngiv tabellen…'},
   table_ampel_toggle_title:{de:'Ampelsystem ein/aus',en:'Toggle traffic-light status',es:'Activar/desactivar sistema de semáforo',da:'Status-lys til/fra'},
   image_lock_aspect_toggle_title:{de:'Seitenverhältnis sperren',en:'Lock aspect ratio',es:'Bloquear relación de aspecto',da:'Lås billedformat'},
@@ -5087,9 +5304,22 @@ function applyI18n(){
     ['#folderReconnectBody','text',t('folder_reconnect_banner_body')],
     ['#folderReconnectBtn','text',t('folder_reconnect_banner_btn')],
   ];
-  const drawerLabels=document.querySelectorAll('.mobile-drawer .drawer-label');
-  const labelKeys=['section_add','section_tool','section_view'];
-  drawerLabels.forEach((el,i)=>{ if(labelKeys[i]) el.textContent=t(labelKeys[i]); });
+  // Tom, 22.09 (found while cleaning up the Drawboard's own mobile drawer section): this used to grab
+  // the mobile drawer's section captions by plain NodeList POSITION and assume exactly 3 of them in a
+  // fixed order — which quietly broke the moment #drawerBlanketSection (the Drawboard's own tools
+  // section) got a caption of its own too: every section's label landed one slot off ("Hinzufügen"
+  // showing over the Drawboard's tools, "Werkzeug" over the add-a-card tiles, "Ansicht" over the
+  // "Verbinden" tool section), while the real "Ansicht" section silently kept its hardcoded static
+  // German fallback text forever (untouched by this loop, and never actually translated in EN/ES/DA).
+  // Targeting each section by its own id instead — #drawerBlanketSection's own label is intentionally
+  // left out here, since ensureDrawerBlanketSection()/refreshBlanketChromeI18n() already build and
+  // relabel it correctly (that section's whole content, captions included, is built lazily via t()
+  // rather than living in static markup).
+  [['drawerAddSection','section_add'],['drawerToolSection','section_tool'],['drawerViewSection','section_view']].forEach(([id,key])=>{
+    const sec=document.getElementById(id);
+    const label=sec && sec.querySelector(':scope > .drawer-label');
+    if(label) label.textContent=t(key);
+  });
   map.forEach(([sel,prop,val])=>{
     const el=document.querySelector(sel);
     if(!el) return;
@@ -8168,7 +8398,7 @@ const VIEWCTL_MAGNIFY_BASE=28, VIEWCTL_MAGNIFY_MAX=42, VIEWCTL_MAGNIFY_DISTANCE=
 // on #dock; now a small list so #dock and .viewctl can each run (and get cleanly stopped) independently
 // while sharing the exact same spring physics/on-off toggle (see refreshDockMagnify()/DYNAMIC_ANIM_KEYS'
 // own comment on why one switch covers every animation group added since, this one included).
-let dockMagnifyStates=[]; // {containerEl,raf,items:[{el,svg,iconBase,size,vel,target}],onMove,onLeave}[]
+let dockMagnifyStates=[]; // {containerEl,raf,items:[{el,svg,iconBase,size,vel,target}],onMove}[]
 function isDockMagnifyEnabled(){ return true; } // no secret code needed anymore — see section comment above
 function dockMagnifyEligible(){
   try{ return window.matchMedia('(hover:hover) and (pointer:fine)').matches; }catch(e){ return false; }
@@ -8183,8 +8413,7 @@ function stopDockMagnifyBar(containerEl){
       it.el.style.width=''; it.el.style.height='';
       if(it.svg){ it.svg.setAttribute('width',it.iconBase); it.svg.setAttribute('height',it.iconBase); }
     });
-    containerEl.removeEventListener('pointermove',state.onMove);
-    containerEl.removeEventListener('pointerleave',state.onLeave);
+    document.removeEventListener('pointermove',state.onMove);
     dockMagnifyStates.splice(idx,1);
   }
   containerEl.classList.remove('dock-magnify-on');
@@ -8217,16 +8446,76 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
   });
   if(!items.length) return;
   containerEl.classList.add('dock-magnify-on');
+  // BUGFIX (flicker): "die wird immer noch zwischendurch verbuiggt größer und stuckt dann und flackert
+  // und wird groß klein groß klein" — the crash-fix above froze each ITEM's reference position, but the
+  // hover on/off decision itself was still driven by pointermove/pointerleave on containerEl — and
+  // containerEl is exactly the element this whole effect keeps resizing (that's the intentional "dock
+  // visibly widens/makes room" effect from the section comment above). The moment a button grows, the
+  // bar's own box — and, via .bottom-bars' width:max-content centering, its on-screen position — shifts
+  // under a cursor that never actually moved. Browsers re-run hit-testing for hover/pointer boundaries
+  // on every layout change, not just on real input, so a growing bar could shift its own edge out from
+  // under a perfectly still cursor, fire a real pointerleave, shrink back, land back under the cursor,
+  // fire pointerenter, grow again — a self-inflicted grow/shrink loop with no actual mouse movement
+  // involved at all.
+  // Fix: stop hit-testing against the bar's own (constantly resizing) box entirely. Track the real
+  // cursor from a single always-on document-level pointermove, and compare it against a hover zone
+  // measured ONCE, right here, off the bar's resting/unmagnified footprint — the same "freeze it before
+  // anything grows" idea as the item positions above, just applied to the on/off decision too. padY is
+  // generous since buttons here only ever grow upward (align-items:flex-end); padX is kept to half of
+  // .bottom-bars' 10px gap so #dock's and .viewctl's zones can never overlap each other.
+  const rect0=containerEl.getBoundingClientRect();
+  const padX=5, padY=(max-base)+20;
+  const zone={left:rect0.left-padX,right:rect0.right+padX,top:rect0.top-padY,bottom:rect0.bottom+padY};
   let mouseX=null;
-  function onMove(e){ mouseX=e.clientX; }
-  function onLeave(){ mouseX=null; }
-  containerEl.addEventListener('pointermove',onMove);
-  containerEl.addEventListener('pointerleave',onLeave);
-  const state={containerEl,raf:0,items,onMove,onLeave};
+  // "auf convertible flackert die werkzeugleiste zwischen diesen beiden ultra schnell hin und her" —
+  // dockMagnifyEligible()'s (hover:hover)+(pointer:fine) check above only gates whether the effect
+  // ever STARTS, based on whatever the browser reports as the PRIMARY pointer (a real mouse/trackpad,
+  // which a convertible genuinely has, so this legitimately starts there) — but this document-level
+  // pointermove listens for EVERY pointer, not just that primary mouse. A convertible's touchscreen
+  // (and any pen) still dispatches real 'pointermove' events while the effect is running, and those
+  // fire during totally unrelated touch gestures anywhere on the whole page (dragging a card, drawing
+  // on a Blanket card, panning the board with a finger) — not just over the toolbar. Any of those whose
+  // clientX/clientY happens to sweep through this bar's hover zone (padY alone reaches (max-base)+20px
+  // above it) fed a real coordinate into `mouseX` exactly like a mouse would, growing/shrinking buttons
+  // in response to a finger that was never anywhere near this toolbar; a fast drag sweeping in and out
+  // of the zone many times a second is exactly the "flackert ultra schnell hin und her" Tom describes.
+  // A plain desktop mouse never has this problem (it's the only pointer a mouse-only machine ever
+  // dispatches), and a touch-only phone/tablet never even starts the effect at all (dockMagnifyEligible
+  // is false there) — it's specifically the convertible's mix of a real mouse AND a touchscreen on the
+  // SAME page that this was missing. Ignoring anything but an actual mouse here fixes it without
+  // touching the eligibility check at all (a real mouse is still required to ever turn this on).
+  function onMove(e){
+    if(e.pointerType && e.pointerType!=='mouse') return;
+    const inZone=e.clientX>=zone.left && e.clientX<=zone.right && e.clientY>=zone.top && e.clientY<=zone.bottom;
+    mouseX=inZone?e.clientX:null;
+  }
+  document.addEventListener('pointermove',onMove);
+  const state={containerEl,raf:0,items,onMove};
   dockMagnifyStates.push(state);
   let last=performance.now();
+  // BUGFIX (flicker/oscillation, the actual root cause of "wird groß klein groß klein"): this spring
+  // is integrated with semi-implicit ("symplectic") Euler — vel updated from the current error, size
+  // updated from the new vel — which is normally a stable, standard choice, but only up to a frame-rate
+  // ceiling that depends on the constants above: the damping term alone recurs as
+  // vel_(n+1) = vel_n * (1 - damping*dt/mass), and that stops decaying and starts GROWING (flipping
+  // sign and getting bigger every frame, forever, with no further input needed) the moment
+  // damping*dt/mass reaches 2. With damping=12 and mass=0.1 here, that threshold is dt = 2*mass/damping
+  // = 1/60s EXACTLY — meaning a plain, ordinary 60fps display (dt≈16.7ms) already sits right on the
+  // edge, and any real-world frame hitch (a loaded machine, a background tab briefly throttled, a
+  // slower tablet, even normal scheduler jitter) tips a single frame's dt just over 1/60s and the whole
+  // thing runs away: it.size bounces between the hard safety clamps below every single frame, forever,
+  // with the cursor not moving at all — exactly the "verbuiggt größer, stuckt, flackert, groß klein groß
+  // klein" Tom described. Confirmed by instrumenting a still cursor: zero further pointer events, yet
+  // width kept slamming between the min/max clamp on a ~33ms cadence indefinitely.
+  // Fix: integrate in fixed, small sub-steps instead of one big step per frame. This is the standard fix
+  // for a numerically-stiff spring — it does not change the spring's feel/tuning at all (same constants,
+  // same continuous-time physics), it just computes that same physics accurately regardless of how long
+  // the real frame took. MAX_SUBSTEP is comfortably under the 1/60s instability threshold above.
+  const MAX_SUBSTEP=0.008;
   function frame(now){
-    const dt=Math.min(.032,(now-last)/1000)||0.016; last=now;
+    const dt=Math.min(.05,(now-last)/1000)||0.016; last=now;
+    const steps=Math.max(1,Math.ceil(dt/MAX_SUBSTEP));
+    const subDt=dt/steps;
     items.forEach(it=>{
       let target=base;
       if(mouseX!=null){
@@ -8235,11 +8524,13 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
         target=base+(max-base)*falloff;
       }
       it.target=target;
-      const force=DOCK_MAGNIFY_SPRING.stiffness*(it.target-it.size)-DOCK_MAGNIFY_SPRING.damping*it.vel;
-      it.vel+=force/DOCK_MAGNIFY_SPRING.mass*dt;
-      it.size+=it.vel*dt;
-      // Hard safety clamp — independent of the feedback-loop fix above, so a single stray frame can
-      // never again balloon a button past its intended max (or shrink it below something reasonable).
+      for(let s=0;s<steps;s++){
+        const force=DOCK_MAGNIFY_SPRING.stiffness*(it.target-it.size)-DOCK_MAGNIFY_SPRING.damping*it.vel;
+        it.vel+=force/DOCK_MAGNIFY_SPRING.mass*subDt;
+        it.size+=it.vel*subDt;
+      }
+      // Hard safety clamp — independent of the fixes above, so a single stray frame can never again
+      // balloon a button past its intended max (or shrink it below something reasonable).
       it.size=Math.min(Math.max(it.size,base*0.5),max*1.15);
       it.el.style.width=it.size+'px';
       if(growHeight) it.el.style.height=it.size+'px';
@@ -8677,7 +8968,21 @@ function setHomePeek(id){
   state.homePeek=id;
   refreshHomeSelectionUI();
 }
+// Delays the actual setHomePeek() call when the triggering click landed on a tile's title text — see
+// buildBoardTile's title-click handling below for why (short version: the "Zum Board" button renders
+// close enough to the title that revealing it instantly can put it right under a dblclick's second
+// click, silently opening the board instead of the rename the dblclick meant). Shared/module-level
+// rather than per-tile since only one tile's peek can ever be pending at once, which is also exactly
+// why clearHomePeek() below cancels it too — otherwise dismissing a peek (click elsewhere, open a
+// different board, …) within that delay window could get silently "undone" by the stale timer still
+// firing a moment later.
+let homePeekRevealTimer=null;
+function scheduleHomePeek(id,delayMs){
+  clearTimeout(homePeekRevealTimer);
+  homePeekRevealTimer=setTimeout(()=>setHomePeek(id),delayMs);
+}
 function clearHomePeek(){
+  clearTimeout(homePeekRevealTimer);
   if(!state.homePeek) return;
   state.homePeek=null;
   refreshHomeSelectionUI();
@@ -8720,7 +9025,11 @@ function updateHomeBulkBar(){
 // tap resets it" convention already used for the touch drag-to-merge mark (see the markedTileBoardId
 // listener further below). "man klickt ins nichts" — this is that click-into-nothing.
 document.addEventListener('pointerdown',(e)=>{
-  if(!state.homeSelection.size && !state.homePeek) return;
+  // Also fires while a peek is only SCHEDULED (homePeekRevealTimer pending, see scheduleHomePeek)
+  // but hasn't actually landed in state.homePeek yet — otherwise clicking away inside that ~300ms
+  // grace window bailed out here before ever reaching clearHomePeek() below, and the stale timer
+  // would still fire a moment later and reveal the button anyway, undoing the click-away.
+  if(!state.homeSelection.size && !state.homePeek && !homePeekRevealTimer) return;
   if(e.target.closest('.board-tile, .project-tile, .project-panel, .home-bulk-bar, #toolsBtn, .tools-sheet')) return;
   clearHomeSelection();
   clearHomePeek();
@@ -8845,16 +9154,42 @@ async function buildBoardTile(b,opts){
   // way a completed drag always has here.
   let justDragged=false;
   let justLongPressedSelect=false;
-  const tileExcluded=(e)=>e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')||e.target.closest('.tile-go-btn');
+  // "in der Übersicht soll Zum Board nur dann auftauchen wenn man nicht auf die Schrift klickt" — a
+  // plain click anywhere on the (block-level, up-to-2-line) h3 used to still count as "click the
+  // tile" and reveal the peek button, since only an ALREADY-editing h3 was excluded. Tom's own
+  // follow-up refined this further: excluding the WHOLE h3 box made almost the entire top of the tile
+  // a dead zone (h3 spans the tile's full width/height regardless of how short the actual title text
+  // is), so a "nur der Beginn vom Text und bisschen schmaler" small zone at the very start of the
+  // title (not the whole heading) is what's actually excluded here — small and deliberately hard to
+  // hit by accident, so almost the whole tile (including most of a longer title) still peeks normally,
+  // while there's still just enough room to reliably land a dblclick there to rename (dblclick stays
+  // bound to the whole h3 below, unaffected by this).
+  const titleStartZoneHit=(e)=>{
+    const h3El=e.target.closest && e.target.closest('h3');
+    if(!h3El || h3El.isContentEditable) return false;
+    const r=h3El.getBoundingClientRect();
+    const zoneW=Math.min(46,r.width*0.5), zoneH=Math.min(20,r.height);
+    return e.clientX>=r.left && e.clientX<=r.left+zoneW && e.clientY>=r.top && e.clientY<=r.top+zoneH;
+  };
+  const tileExcluded=(e)=>e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')||e.target.closest('.tile-go-btn')||titleStartZoneHit(e);
   tile.addEventListener('click',(e)=>{
     if(tileExcluded(e)) return;
     if(justDragged){ justDragged=false; return; }
     if(justLongPressedSelect){ justLongPressedSelect=false; return; }
     if(e.detail>=2) return; // the second half of a dblclick — let the dblclick handler below open it
-    if(state.homeSelection.size) toggleHomeSelect(b.id);
-    else setHomePeek(b.id);
+    if(state.homeSelection.size){ toggleHomeSelect(b.id); return; }
+    if(e.target.closest('h3')){
+      // See scheduleHomePeek's own comment: delay the reveal by the usual double-click window instead
+      // of showing it instantly. A real single click still peeks, just a beat later; an actual
+      // double-click cancels this (h3's own dblclick handler below clears it) before the button ever
+      // appears, so there's nothing for the second click to accidentally land on.
+      scheduleHomePeek(b.id,300);
+    }else{
+      setHomePeek(b.id);
+    }
   });
   tile.addEventListener('dblclick',(e)=>{
+    clearTimeout(homePeekRevealTimer);
     if(tileExcluded(e)) return;
     openBoardWithFlyTransition(b.id,tile);
   });
@@ -8901,7 +9236,14 @@ async function buildBoardTile(b,opts){
     });
   }
   const h3=tile.querySelector('h3');
-  h3.addEventListener('dblclick',(e)=>{e.stopPropagation(); h3.contentEditable='true'; h3.focus(); document.execCommand('selectAll',false,null);});
+  h3.addEventListener('dblclick',(e)=>{
+    // This handler stops propagation below, so the tile-level dblclick listener above (where the
+    // OTHER clearTimeout(homePeekRevealTimer) lives) never even runs for a dblclick landing directly
+    // on the title — clear it here too, otherwise the delayed peek from this same double-click's
+    // first click could still pop up a moment into the rename.
+    clearTimeout(homePeekRevealTimer);
+    e.stopPropagation(); h3.contentEditable='true'; h3.focus(); document.execCommand('selectAll',false,null);
+  });
   h3.addEventListener('click',(e)=>{if(h3.isContentEditable) e.stopPropagation();});
   h3.addEventListener('blur',async ()=>{
     h3.contentEditable='false';
@@ -10003,11 +10345,12 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.30';
+const APP_VERSION='2.4.48';
 const WHATSNEW_ITEMS=[
-  // The exact nib silhouette from iconBlanketPenFountain() at demo size, so this literally shows the
+  // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
+  // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
   // new Füller icon rather than a generic pen glyph.
-  {demo:'penicons', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.3 2.6c2.9 1.6 4.1 3.9 3.1 6.2"/><path d="M8.3 21.4l1.9-7.9a2.1 2.1 0 0 1 1-1.3l7.2-4.3-4.3 7.2a2.1 2.1 0 0 1-1.3 1z"/><path d="M11.2 12.8l-2.9 8.6"/><circle cx="13.6" cy="9.2" r="0.95" fill="var(--accent)" stroke="none"/></svg>'},
+  {demo:'penicons', demoHtml:'<svg width="28" height="28" viewBox="0 0 96 96" fill="var(--accent)" stroke="none"><g transform="translate(0,96) scale(0.1,-0.1)"><path d="M556 801 c-77 -78 -78 -78 -177 -106 -85 -24 -104 -33 -133 -66 -38\n-41 -37 -39 -91 -267 -42 -174 -39 -201 20 -229 31 -15 42 -13 211 27 99 23\n190 48 204 55 52 27 78 68 105 165 27 93 28 96 106 175 43 44 79 87 79 95 0\n20 -211 230 -230 230 -9 0 -51 -35 -94 -79z m174 -76 l75 -75 -28 -27 -27 -28\n-77 77 -77 77 24 26 c13 14 26 25 29 25 4 0 40 -34 81 -75z m-100 -100 c71\n-71 73 -75 57 -93 -10 -11 -29 -61 -42 -111 -29 -107 -38 -126 -68 -145 -18\n-12 -307 -86 -334 -86 -16 0 201 209 223 214 25 7 39 36 29 65 -13 41 -80 38\n-91 -3 -5 -22 -214 -239 -214 -223 0 18 73 313 82 330 15 28 48 45 147 71 52\n14 102 32 110 41 8 8 18 15 21 15 3 0 39 -34 80 -75z"/></g></svg>'},
   {demo:'transparentexport', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.7"/><rect x="3" y="3" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="15" y="3" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="9" y="9" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="3" y="15" width="6" height="6" fill="var(--accent)" opacity=".22"/><rect x="15" y="15" width="6" height="6" fill="var(--accent)" opacity=".22"/></svg>'},
   {demo:'stopmotionredesign', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M3 15h18M8 5v4M8 15v4M16 5v4M16 15v4"/></svg>'},
   {demo:'sliderpos', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round"><path d="M4 12h16"/><circle cx="9" cy="12" r="2.6" fill="var(--accent)" stroke="none"/><path d="M4 6h16" opacity=".4"/><path d="M4 18h16" opacity=".4"/></svg>'},
@@ -10567,6 +10910,42 @@ async function openBoard(id, skipCrumbAnim){
   }
 }
 
+// Shared commit for "rename this board", used by both the desktop crumb (dblclick the current
+// segment) and the mobile crumb-menu's tap-to-edit row (see renderCrumbs below). Trims/falls back to
+// Untitled, writes the new name to the backend, and — importantly — also patches the matching entry
+// in state.boards directly, not just the transient state.boardOverrides overlay. DB.getBoard() and
+// mergedAllBoards() always hand back a FRESH object per fetch (see their own implementations further
+// up), never the same object reference sitting in state.boards, so the `b` renamed here is already a
+// detached copy the moment it's mutated. Without this direct patch, anything that reads state.boards
+// without going through applyBoardOverrides — e.g. boardById(), used by applyI18n()'s crumb re-render
+// on a language switch — could show the OLD name again once the overlay below is cleared after the
+// write succeeds: "der Name eines Boards wird nicht immer übernommen wenn man innerhalb des Boards
+// den Namen ändert". Returns true/false so callers know whether anything actually changed.
+function commitBoardRename(b, rawName){
+  const name=(rawName||'').trim()||t('untitled_board');
+  if(name===b.name) return false; // no actual change — skip the write entirely
+  b.name=name; b.updatedAt=Date.now();
+  const idx=state.boards.findIndex(x=>x.id===b.id);
+  if(idx!==-1 && state.boards[idx]!==b) Object.assign(state.boards[idx],{name:b.name, updatedAt:b.updatedAt});
+  // Local edit overlay (see state.boardOverrides / applyBoardOverrides): the new name is
+  // correct everywhere right away — e.g. the Home tile, once you navigate back — even before
+  // the write below has actually reached a connected FS/Drive backend. Without this, renaming
+  // a board while synced read as "jede Änderung dauert ultra lange": the input itself was
+  // never slow, but nothing else reflected the rename until that write finished.
+  state.boardOverrides.set(b.id,{name:b.name, updatedAt:b.updatedAt});
+  chainBoardOp(b.id, ()=>withBusy(t('busy_syncing'), async ()=>{
+    try{
+      await withBoardBackend(b.id, ()=>DB.putBoard(b));
+      state.boardOverrides.delete(b.id);
+    }catch(e){
+      console.error('board rename: background write failed',e);
+      // Leave the overlay in place — the name the user set keeps showing everywhere even
+      // though the write failed; it'll simply retry to look the same on the next save.
+    }
+    refreshBoardLinkCardsFor(b.id);
+  }));
+  return true;
+}
 async function renderCrumbs(board){
   const chain=[]; let cur=board;
   const seen=new Set();
@@ -10590,27 +10969,8 @@ async function renderCrumbs(board){
       cur.addEventListener('dblclick',()=>{cur.contentEditable='true'; cur.focus(); document.execCommand('selectAll',false,null);});
       cur.addEventListener('blur',()=>{
         cur.contentEditable='false';
-        const name=cur.textContent.trim()||t('untitled_board');
-        cur.textContent=name;
-        if(name===b.name) return; // no actual change — skip the write entirely
-        b.name=name; b.updatedAt=Date.now();
-        // Local edit overlay (see state.boardOverrides / applyBoardOverrides): the new name is
-        // correct everywhere right away — e.g. the Home tile, once you navigate back — even before
-        // the write below has actually reached a connected FS/Drive backend. Without this, renaming
-        // a board while synced read as "jede Änderung dauert ultra lange": the input itself was
-        // never slow, but nothing else reflected the rename until that write finished.
-        state.boardOverrides.set(b.id,{name:b.name, updatedAt:b.updatedAt});
-        chainBoardOp(b.id, ()=>withBusy(t('busy_syncing'), async ()=>{
-          try{
-            await withBoardBackend(b.id, ()=>DB.putBoard(b));
-            state.boardOverrides.delete(b.id);
-          }catch(e){
-            console.error('board rename: background write failed',e);
-            // Leave the overlay in place — the name the user set keeps showing everywhere even
-            // though the write failed; it'll simply retry to look the same on the next save.
-          }
-          refreshBoardLinkCardsFor(b.id);
-        }));
+        commitBoardRename(b, cur.textContent);
+        cur.textContent=b.name; // reflect the committed (trimmed/fallback-to-Untitled) name either way
       });
       wireEnterConfirms(cur);
       crumbsEl.appendChild(cur);
@@ -10637,9 +10997,42 @@ async function renderCrumbs(board){
   menu.appendChild(homeRow);
   chain.forEach((b,i)=>{
     if(i===chain.length-1){
+      // "der Name eines Boards wird nicht immer übernommen wenn man innerhalb des Boards den Namen
+      // ändert" — turned out to be a missing feature, not a save bug: below 640px the desktop crumb
+      // (dblclick-to-rename) is hidden entirely (.crumbs{display:none}) and this mobile menu was the
+      // ONLY way to see the current board path, but its rows were plain non-interactive text — there
+      // was no way at all to rename from inside a board on a phone. A tap on this one row (the
+      // current board, last in the chain) now turns it into a text field pre-filled with the current
+      // name — Enter or tapping away (blur) commits via the same commitBoardRename() the desktop
+      // crumb uses; Escape cancels without saving.
       const row=document.createElement('div');
       row.className='mobile-crumb-menu-item current';
       row.textContent=b.name;
+      row.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        if(row.querySelector('input')) return; // already editing — ignore a second tap
+        row.classList.add('editing');
+        row.textContent='';
+        const input=document.createElement('input');
+        input.type='text'; input.className='mobile-crumb-rename-input';
+        input.value=b.name; input.spellcheck=false;
+        input.addEventListener('pointerdown',ev=>ev.stopPropagation());
+        input.addEventListener('click',ev=>ev.stopPropagation());
+        row.appendChild(input);
+        input.focus(); input.select();
+        let settled=false;
+        const finish=(commit)=>{
+          if(settled) return; settled=true;
+          if(commit) commitBoardRename(b, input.value);
+          row.classList.remove('editing');
+          row.textContent=b.name;
+        };
+        input.addEventListener('keydown',(ev)=>{
+          if(ev.key==='Enter'){ ev.preventDefault(); finish(true); input.blur(); }
+          else if(ev.key==='Escape'){ ev.preventDefault(); finish(false); }
+        });
+        input.addEventListener('blur',()=>finish(true));
+      });
       menu.appendChild(row);
     }else{
       const row=document.createElement('button');
@@ -10712,9 +11105,10 @@ function updateEmptyHint(){
 let smoothViewTimer=null;
 function smoothViewJump(fn){
   canvasInner.classList.add('smooth-view');
+  gridLayer.classList.add('smooth-view'); // see .grid-layer.smooth-view's own CSS comment
   clearTimeout(smoothViewTimer);
   fn();
-  smoothViewTimer=setTimeout(()=>canvasInner.classList.remove('smooth-view'),300);
+  smoothViewTimer=setTimeout(()=>{ canvasInner.classList.remove('smooth-view'); gridLayer.classList.remove('smooth-view'); },300);
 }
 let viewInteractingTimer=null;
 // Matches the .inspector/.mobile-drawer mobile breakpoint (640px) exactly, so "phone-sized" means the
@@ -10740,6 +11134,22 @@ function applyView(){
   canvasInner.style.transform=`translate(${state.view.x}px, ${state.view.y}px) scale(${state.view.zoom})`;
   gridLayer.style.backgroundSize=`${GRID_SIZE*state.view.zoom}px ${GRID_SIZE*state.view.zoom}px`;
   gridLayer.style.backgroundPosition=`${state.view.x}px ${state.view.y}px`;
+  // Tom, 22.09 (Runde 3): "im normalen Board die Großpunkte kleiner und hochauflösender" — a CSS
+  // radial-gradient's own absolute-length color stops (the "0.8px"/"1.1px" in the static rule above)
+  // are literal screen pixels, NOT relative to background-size the way a percentage stop would be —
+  // so as background-size shrunk with zoom-out (the line above), the grid SPACING correctly shrank
+  // right along with it, but the dot drawn inside each tile stayed exactly the same fixed absolute
+  // size regardless of zoom. Zoomed out to see a whole board (very common — that's the normal working
+  // view for anything but zoomed-in detail work), the unchanged dot size relative to the now-much-
+  // tighter spacing is exactly what read as "Großpunkte": a coarse, slightly fuzzy haze instead of a
+  // fine, unobtrusive grid. Recomputing background-image here too, scaling the dot's own radius by the
+  // same zoom factor as the spacing, keeps a dot's size proportional to the grid at every zoom level —
+  // small and crisp zoomed out, normal-sized at 100%, a little bigger zoomed in — the same way a real,
+  // fixed-size marker drawn "on" the board would behave. Clamped at a small minimum so it never
+  // anti-aliases into invisibility at extreme zoom-out.
+  const dotR=Math.max(0.35, 0.8*state.view.zoom).toFixed(2);
+  const dotFeather=Math.max(0.55, 1.1*state.view.zoom).toFixed(2);
+  gridLayer.style.backgroundImage=`radial-gradient(circle, var(--canvas-dot) 0, var(--canvas-dot) ${dotR}px, transparent ${dotFeather}px)`;
   const pct=Math.round(state.view.zoom*100)+'%';
   document.getElementById('zoomPct').textContent=pct;
   const dz=document.getElementById('drawerZoomPct'); if(dz) dz.textContent=pct;
@@ -11059,6 +11469,40 @@ function currentThemeIsDark(){
   if(attr==='light') return false;
   return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 }
+// "der Hintergrund fängt jetzt immer auf weiß an, er soll aber im Dunkelmodus dunkel anfangen und im
+// Lightmodus hell anfangen passend zum UI. Dementsprechend soll auch die Stiftfarbe bei Dunkelmodus
+// auf hell anfangen und bei Lightmodus auf dunkel anfangen" — a brand-new Blanket/Drawboard card used
+// to always start with a hardcoded white bg + the first (black) preset pen, regardless of which theme
+// was active, so a dark-mode board opened to a jarring white square with a barely-visible black pen.
+// This only ever runs once, AT CREATION — it deliberately never touches a card that already exists
+// (not even on a later theme switch), same as every other "what does a new X start as" default in
+// this file; someone can still always repaint bg/pen by hand afterward exactly as before. Returns a
+// spreadable partial of the card's `data` — dark mode picks a custom (not one of the 5 fixed-color
+// BLANKET_PENS) light pen, since none of those presets read as "light" on a dark background; light
+// mode keeps the original bgColor:'#ffffff'/pen:0 (black) exactly as it always was.
+// Tom, 22.09 (mit Screenshot): "ein *NEU* erstelltes Board soll dann die Farbe übernehmen die der
+// Hintergrund hat von dem neuen color schema" — this used to hardcode its two possible answers
+// (plain white, or the one fixed #1E222A dark-mode panel color) based only on light/dark, with no
+// awareness at all of a custom "tomistcool" palette (see applyCustomTheme()) laid on top of either
+// mode. Reading the LIVE --surface/--ink custom properties instead (rather than fixed hex values)
+// means a fresh Drawboard always matches whatever's actually active right now — plain light, plain
+// dark, or a custom scheme in either — with zero change in behavior for the two plain cases, since
+// --surface/--ink already resolve to exactly those same fixed values there.
+function blanketDefaultThemeSeed(){
+  const cs=getComputedStyle(document.documentElement);
+  const liveSurface=(cs.getPropertyValue('--surface')||'').trim();
+  const liveInk=(cs.getPropertyValue('--ink')||'').trim();
+  const isPlainWhite = !liveSurface || liveSurface.toLowerCase()==='#ffffff' || liveSurface.toLowerCase()==='#fff';
+  if(!currentThemeIsDark() && isPlainWhite){
+    // Plain default light mode with no custom palette overriding it — unchanged from before.
+    return {bgColor:'#ffffff', pen:0, customColor:null};
+  }
+  // Dark mode, or ANY custom theme (light- or dark-based) — --surface matches the same panel color
+  // cards/toolbars already use, so a fresh Drawboard reads as "part of the UI" instead of a random
+  // square; --ink is that same theme's own already-chosen contrast color, so the default pen is
+  // always legible against it, whatever the actual scheme.
+  return {bgColor:liveSurface||'#1E222A', pen:'custom', customColor:liveInk||'#ECEEF2'};
+}
 // "Kannst du machen dass es immer Dunkelmodus oben integriert" — this used to read --surface-2 off
 // whichever theme was actually live and, via syncManifestTheme() (removed), rewrite manifest.json's
 // baked theme_color to match on every toggle. Chasing that live parity was pointless anyway: an
@@ -11246,27 +11690,80 @@ function cancelTouchCardOwner(){
   return owner;
 }
 const activeTouches=new Map();
-let touchPanState=null, pinchLastDist=null;
+let touchPanState=null, pinchLastDist=null, pinchLastMid=null;
 let touchLongPressTimer=null, touchLongPressArmed=false, touchMarqueeState=null, touchLastTap=null;
 function clearTouchLongPress(){ clearTimeout(touchLongPressTimer); touchLongPressTimer=null; touchLongPressArmed=false; }
-viewport.addEventListener('pointerdown',(e)=>{
-  if(e.pointerType!=='touch') return;
-  if(e.target.closest('.card') || e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
-  // A different finger is already down on a card (touchCardOwner, set by attachDragAndSelect) and
-  // hasn't committed to a tap/drag yet — this new one isn't on a card itself, so it's the second
-  // finger of a pinch. Cancel that card touch (undoes any selection it already caused) and seed its
-  // last known point in here so it immediately counts as finger #1 of the pinch below, instead of
-  // that finger's own card-touch machinery fighting this one for the gesture.
+// "Zoomen ist ... nicht funktionabel auf Smartphone" — a phone board is usually covered edge-to-edge
+// with cards, so a real 2-finger pinch very often has one OR BOTH fingers land on top of a card
+// rather than on genuinely empty canvas. Only the "one finger on a card, second finger on empty
+// canvas" hand-off existed before (via touchCardOwner, cancelled below the instant viewport itself
+// sees a second touch) — if the second finger ALSO landed on a card (its own, independent
+// attachDragAndSelect touch-tracking, never registered here), neither side ever noticed a pinch had
+// started at all, and the gesture silently did nothing. Shared by both entry points now: viewport's
+// own pointerdown just below (a touch starting on empty canvas) and attachDragAndSelect's per-card
+// touch handler further down (a touch starting on a card while another finger is already down
+// somewhere, card or canvas) — either way this new touch is joining a pinch/pan gesture, wherever it
+// physically landed, so it always gets the exact same bookkeeping: captured onto the viewport itself
+// (not whatever element it actually touched) so all the pinch/pan math below keeps receiving its
+// move/up events, then either arms single-finger panning (first finger) or starts the real 2-finger
+// pinch (second finger onward) — see pinchLastMid's own comment on why BOTH distance AND midpoint are
+// captured now, not just distance.
+function beginPinchTouch(pointerId,x,y){
+  activeTouches.set(pointerId,{x,y});
+  try{ viewport.setPointerCapture(pointerId); }catch(err){}
+  if(activeTouches.size>=2){
+    touchPanState=null;
+    clearTouchLongPress();
+    touchMarqueeState=null; marqueeEl.hidden=true;
+    touchLastTap=null; // a pinch starting mid-tap-sequence isn't a double-tap either
+    const pts=[...activeTouches.values()];
+    pinchLastDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    pinchLastMid={x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2};
+  }
+}
+// If a different finger is already down on a card (touchCardOwner, set by attachDragAndSelect) and
+// hasn't committed to a tap/drag yet, this cancels that card touch (undoing any selection it already
+// caused) and folds IT into the shared pinch tracker too — not just cancelling it — since that finger
+// is still physically down and about to become one half of a two-finger gesture. Without re-capturing
+// it onto the viewport here, the pointermove/pointerup events the pinch math needs would keep going to
+// the card wherever that finger happens to be, never reaching these viewport listeners at all (a
+// pointer can be captured onto a different element than the one its pointerdown actually started on,
+// as long as it's still active — which this one still is, only ever released from the CARD's capture
+// inside cancel(), never lifted).
+function foldTouchCardOwnerIntoPinch(){
   const owner=cancelTouchCardOwner();
   if(owner){
     activeTouches.set(owner.pointerId,{x:owner.x,y:owner.y});
-    // That finger is still physically down on the card, not on this viewport element — without its
-    // own capture, the pointermove/pointerup events the pinch math below needs would keep going to the
-    // card (wherever that finger happens to be), never reaching these viewport listeners at all. A
-    // pointer can be captured onto a different element than the one its pointerdown actually started
-    // on as long as it's still active, which this one still is (it was only ever released from the
-    // CARD's capture inside cancel(), never lifted).
     try{ viewport.setPointerCapture(owner.pointerId); }catch(err){}
+  }
+}
+// "Zoomen ist ... nicht funktionabel auf Smartphone" — a per-card touch handler excludes its own
+// editable text/buttons/handles from ever starting a tap/drag on THAT touch (so placing a cursor in a
+// note doesn't also select/drag the card) — reasonable for a single, deliberate first touch, but it
+// meant a SECOND finger landing on a note's own (usually card-filling) contenteditable text — which,
+// on a real board, is most of the touchable area — never even reached the per-card hand-off checks
+// added there, since that exclusion bailed out first. A capture-phase listener on the document runs
+// before any of those per-element bubble-phase handlers ever see the event at all, so it can catch
+// this SECOND finger no matter what element (editable text, a button, anything) it happens to land on
+// — while leaving the FIRST finger of any gesture (touchCardOwner still null, activeTouches still
+// empty) completely untouched, falling through to whatever that element would normally do.
+document.addEventListener('pointerdown',(e)=>{
+  if(e.pointerType!=='touch') return;
+  if(!touchCardOwner && !activeTouches.size) return; // no gesture pending yet — this is a first finger
+  foldTouchCardOwnerIntoPinch();
+  beginPinchTouch(e.pointerId,e.clientX,e.clientY);
+  e.stopPropagation();
+  e.preventDefault();
+},true);
+viewport.addEventListener('pointerdown',(e)=>{
+  if(e.pointerType!=='touch') return;
+  if(e.target.closest('.card') || e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
+  foldTouchCardOwnerIntoPinch();
+  if(activeTouches.size>0){
+    // A pinch is already under way (or another card touch is already waiting above) — this new touch
+    // is joining it, not starting its own single-finger pan.
+    beginPinchTouch(e.pointerId,e.clientX,e.clientY);
+    return;
   }
   activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
   try{ viewport.setPointerCapture(e.pointerId); }catch(err){}
@@ -11289,14 +11786,11 @@ viewport.addEventListener('pointerdown',(e)=>{
       touchLastTap=null; // a long-press is never half of a double-tap
       if(!isMultiSelectKey(e)) clearSelection();
     },420);
-  }else if(activeTouches.size>=2){
-    touchPanState=null;
-    clearTouchLongPress();
-    touchMarqueeState=null; marqueeEl.hidden=true;
-    touchLastTap=null; // a pinch starting mid-tap-sequence isn't a double-tap either
-    const pts=[...activeTouches.values()];
-    pinchLastDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
   }
+  // No "else if(activeTouches.size>=2)" here anymore — by construction, reaching this point (past the
+  // beginPinchTouch()/return above) only ever happens when activeTouches was empty before the .set()
+  // just above, so it's always exactly 1 here; a genuine second finger, wherever it lands, now always
+  // goes through beginPinchTouch() instead (see its own comment).
 });
 viewport.addEventListener('pointermove',(e)=>{
   if(e.pointerType!=='touch' || !activeTouches.has(e.pointerId)) return;
@@ -11305,8 +11799,26 @@ viewport.addEventListener('pointermove',(e)=>{
     const pts=[...activeTouches.values()];
     const dist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
     const midX=(pts[0].x+pts[1].x)/2, midY=(pts[0].y+pts[1].y)/2;
-    if(pinchLastDist) zoomAt(midX, midY, dist/pinchLastDist);
+    // "soll mit 2 Finger Geste ... auch das Grid bewegt werden können also zoom und move" — this used
+    // to ONLY zoom: zoomAt(midX,midY,...) re-derives "before" from the CURRENT midpoint against the
+    // OLD view every single call, so pivoting there and re-anchoring to that very same point cancels
+    // out any translation the two fingers' shared movement would otherwise cause — a two-finger drag
+    // with barely-changing spacing computed a factor of ~1 and, doing the algebra through, always
+    // landed back on the SAME view.x/y no matter how far the midpoint itself had moved. Real two-finger
+    // pan never worked at all, only the pinch-distance part did. Fix: pivot the zoom at the OLD
+    // (previous-frame) midpoint instead — that keeps whatever canvas point was under the fingers a
+    // moment ago exactly where it was, same as before — and then separately slide the view by exactly
+    // how far the midpoint itself moved since then. Together that's the standard combined pinch-zoom-
+    // and-pan every native photo/map app does; a pure pinch (still fingers, just squeezing) still has
+    // midX/midY≈pinchLastMid so the added slide is ~0, so existing in-place pinch-zoom feel is unchanged.
+    if(pinchLastDist && pinchLastMid){
+      zoomAt(pinchLastMid.x, pinchLastMid.y, dist/pinchLastDist);
+      state.view.x+=midX-pinchLastMid.x;
+      state.view.y+=midY-pinchLastMid.y;
+      applyView();
+    }
     pinchLastDist=dist;
+    pinchLastMid={x:midX,y:midY};
   }else if(touchMarqueeState){
     const x1=Math.min(touchMarqueeState.sx,e.clientX), x2=Math.max(touchMarqueeState.sx,e.clientX);
     const y1=Math.min(touchMarqueeState.sy,e.clientY), y2=Math.max(touchMarqueeState.sy,e.clientY);
@@ -11333,7 +11845,7 @@ viewport.addEventListener('pointermove',(e)=>{
 function endTouchPointer(e){
   if(e.pointerType!=='touch') return;
   activeTouches.delete(e.pointerId);
-  if(activeTouches.size<2) pinchLastDist=null;
+  if(activeTouches.size<2){ pinchLastDist=null; pinchLastMid=null; }
   if(activeTouches.size===0){
     if(touchMarqueeState){
       // Long-press armed (marquee mode) but the box never actually grew past its starting point — a
@@ -11368,7 +11880,7 @@ viewport.addEventListener('pointerup',endTouchPointer);
 // activeTouches/touchPanState/pinchLastDist could otherwise stay stuck "mid-gesture" forever and
 // make the board feel frozen — reset on any of these interruption signals.
 function resetTouchState(){
-  activeTouches.clear(); touchPanState=null; pinchLastDist=null;
+  activeTouches.clear(); touchPanState=null; pinchLastDist=null; pinchLastMid=null;
   clearTouchLongPress(); touchMarqueeState=null; marqueeEl.hidden=true; touchLastTap=null;
 }
 viewport.addEventListener('lostpointercapture',(e)=>{ if(e.pointerType==='touch') endTouchPointer(e); });
@@ -11638,6 +12150,7 @@ function updateInspector(){
     <button id="frontBtn" title="${t('front_title')}">${iconFront()}</button>
     ${clusterButtonsHtml}
     <button id="inspExportBtn" title="${t('insp_export_title')}">${iconExport()}</button>
+    <button id="delBtnDesktop" class="danger" title="${t('delete_title')}">${iconTrash()}</button>
   </div>`;
   html+=`</div>`; // closes .insp-body opened right after .insp-float-bar above
   inspectorEl.innerHTML=html;
@@ -11831,7 +12344,7 @@ function updateInspector(){
   if(blanketStopMotionBtn){
     blanketStopMotionBtn.addEventListener('click',()=>{
       const c=cards[0];
-      c.data.stopMotion=!c.data.stopMotion;
+      blanketToggleStopMotion(c); // Runde 2 — keeps frame 0 and the flat store synced both ways, see its own comment (same fix as the dedicated Drawboard's own toggle, just for a plain Blanket card placed on a normal board)
       DB.putCard(c);
       renderAllCards();
       applySelectionClasses();
@@ -11872,17 +12385,22 @@ function updateInspector(){
 
   inspectorEl.querySelector('#dupBtn').addEventListener('click',()=>duplicateCards(cards));
   inspectorEl.querySelector('#frontBtn').addEventListener('click',()=>bringToFront(cards));
-  // Floats permanently in .insp-float-bar (see its CSS comment) instead of sitting inside the ordinary
-  // .insp-actions row — an always-exposed, always-visible button is much more reachable by an
-  // accidental tap, so unlike an in-row version this asks first via the app's usual confirmModal. The
-  // type name that used to sit in the header (now removed) resurfaces here instead, in the one moment
-  // it's actually decision-relevant.
-  inspectorEl.querySelector('#delBtn').addEventListener('click',()=>{
+  // On mobile, still floats permanently in .insp-float-bar (see its CSS comment) instead of sitting
+  // inside the ordinary .insp-actions row — an always-exposed, always-visible button is much more
+  // reachable by an accidental tap there, so unlike an in-row version this asks first via the app's
+  // usual confirmModal. On desktop the very same handler is wired to #delBtnDesktop instead (see
+  // .insp-float-bar's CSS comment for why: it now lives inside .insp-actions there) — exactly one of
+  // the two buttons is ever visible per breakpoint, but only one shared handler either way. The type
+  // name that used to sit in the header (now removed) resurfaces here instead, in the one moment it's
+  // actually decision-relevant.
+  const deleteSelectedCards=()=>{
     const title = cards.length>1
       ? t('confirm_delete_elements_title',{n:cards.length})
       : t('confirm_delete_element_title',{type:typeLabel(cards[0].type)});
     confirmModal(title, t('confirm_delete_elements_body'), t('delete_action'), ()=>deleteCards(ids));
-  });
+  };
+  inspectorEl.querySelector('#delBtn').addEventListener('click',deleteSelectedCards);
+  inspectorEl.querySelector('#delBtnDesktop').addEventListener('click',deleteSelectedCards);
 }
 // Wires the boardlink card's icon+color row (see updateInspector above) to the LINKED board object,
 // not the card itself — the badge and its color are properties of the sub-board being pointed at,
@@ -12348,6 +12866,7 @@ function iconFolder(){return `<svg width="14" height="14" viewBox="0 0 24 24" fi
 // Google Drive as the cloud sync backend (see that function's own comment for the full story).
 function iconCloudSync(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/></svg>`;}
 function iconChevronUp(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 15l6-6 6 6"/></svg>`;}
+function iconChevronDown(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>`;}
 function iconChevronLeft(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>`;}
 function iconChevronRight(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>`;}
 function iconCalendarSmall(){return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>`;}
@@ -12381,7 +12900,17 @@ function computeCardBuildTokens(){
   return{ tagRgb, surfaceRgb:rootStyle.getPropertyValue('--surface-rgb').trim(), canvasHex:rootStyle.getPropertyValue('--canvas').trim() };
 }
 function renderAllCards(){
-  reconcileColumnMesh();
+  // reconcileColumnMesh() used to run here on every render — that was the earlier, explicit request
+  // ("die Spalten sollen alle immer verbunden sein und zu einem Geflecht werden") behind every "Card"
+  // (type:'column') on a board silently joining one shared cluster the moment it appeared, dashed
+  // group outline and drag-together included. Tom later reversed that decision ("es sollen aber nie
+  // welche einen Merge bekommen") — no new Card should auto-join anything, whether added from the
+  // dock or via the left/right "+" on an existing one (see addAdjacentColumn below, which no longer
+  // stamps a shared clusterId either). The function itself is left in place, unused, rather than
+  // deleted — cards already carrying an old mesh clusterId from before this change keep behaving
+  // exactly as they did (still groupable/dissolvable via the manual Cluster erstellen/auflösen
+  // buttons, which are untouched and stay available for anyone who wants to group specific cards on
+  // purpose).
   cardsLayer.innerHTML='';
   // Drop widgetFrameCache entries for any card that no longer exists on the CURRENT board (deleted,
   // or simply a different board than whatever last rendered) — otherwise a long session that opens
@@ -13174,7 +13703,10 @@ async function addAdjacentColumn(card,side){
     // exact (like y, w and h already are) guarantees the same `gap` on both sides every time instead
     // of only when the rounding happens to fall the right way.
     x, y:card.y, w, h:card.h, z:Math.min(0,...state.cards.map(c=>c.z||0))-1,
-    clusterId:columnMeshId(state.currentBoardId),
+    // No clusterId here on purpose — see renderAllCards()'s own comment on reconcileColumnMesh():
+    // a Card added via the left/right "+" no longer auto-joins any shared mesh, even when the
+    // clicked neighbor happens to belong to one. Grouping is now only ever the deliberate, manual
+    // "Cluster erstellen" action (see the inspector's cluster buttons).
     data:{title:''}, createdAt:Date.now(), updatedAt:Date.now()
   };
   if(neighbor){
@@ -15207,12 +15739,19 @@ const BLANKET_THICKNESS_SCALE_CAP=2000;
 // fps cycle button (see updateInspector()'s blanket block / #blanketFpsBtn).
 const BLANKET_DEFAULT_FPS=6;
 const BLANKET_FPS_STEPS=[2,4,6,8,12,16,24];
+// Tom, 22.09: "vielleicht nimmst du bei Farben gelb weg damit es weniger sind und sie besser
+// klickbar sind auf kleinen geräten" — yellow dropped to bring this down to 4 swatches, mainly so
+// they're comfortably tappable on a phone (see the mobile pen-panel CSS below, sized to fit exactly
+// 4). Shared by both the desktop dock and the mobile drawer (same array, same indices), so this
+// isn't a mobile-only list — one consistent palette everywhere. BLANKET_PENS[card.data.pen] falls
+// back to BLANKET_PENS[0] wherever it's read (see e.g. newBlanketStroke()), so a card that still has
+// an old index-4 (yellow) selection just quietly draws as pen 0 on its next stroke — no crash, no
+// migration needed.
 const BLANKET_PENS=[
   {color:'#1D1D1F', w:3.2},  // fein, schwarz
   {color:'#E1372B', w:4.4},  // rot
   {color:'#2F6FED', w:4.4},  // blau
   {color:'#22A55A', w:4.4},  // grün
-  {color:'#F2A70B', w:7.5},  // dicker marker, gelb
 ];
 const BLANKET_ERASER_W=22;
 function iconBlanketEraser(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 4.5 21 8l-9.5 9.5H7L3.5 14z"/><path d="M7 17.5h14"/><path d="M13 6l5 5"/></svg>`;}
@@ -15254,13 +15793,23 @@ function handleBlanketCopyPasteClick(card,btn,callbacks){
   if(!card.data.frames) return;
   if(!blanketFrameClipboard){
     const frame=card.data.frames[card.data.frameIndex];
-    blanketFrameClipboard=((frame&&frame.strokes)||[]).map(s=>({...s, points:(s.points||[]).map(p=>({...p}))}));
+    // Point 8 — the clipboard now carries the frame's own layer structure along with its strokes (both
+    // stay tagged/consistent with each other), so pasting a copy elsewhere keeps its layers intact too;
+    // stays undefined outside the Drawboard, exactly like the frame itself has no layers there either.
+    ensureBlanketLayers(card);
+    blanketFrameClipboard={
+      strokes:((frame&&frame.strokes)||[]).map(s=>({...s, points:(s.points||[]).map(p=>({...p}))})),
+      layers:(blanketCardIsDrawboard(card) && frame && Array.isArray(frame.layers))?frame.layers.map(l=>({...l})):null,
+      activeLayerId:(blanketCardIsDrawboard(card) && frame)?frame.activeLayerId:null,
+    };
     showToast(t('blanket_frame_copied_toast'));
     refreshBlanketCopyPasteBtn(btn);
     if(callbacks && callbacks.onCopy) callbacks.onCopy();
   }else{
-    const copy=blanketFrameClipboard.map(s=>({...s, points:(s.points||[]).map(p=>({...p}))}));
-    card.data.frames.splice(card.data.frameIndex+1,0,{strokes:copy});
+    const copy=blanketFrameClipboard.strokes.map(s=>({...s, points:(s.points||[]).map(p=>({...p}))}));
+    const newFrame={strokes:copy};
+    if(blanketFrameClipboard.layers){ newFrame.layers=blanketFrameClipboard.layers.map(l=>({...l})); newFrame.activeLayerId=blanketFrameClipboard.activeLayerId; }
+    card.data.frames.splice(card.data.frameIndex+1,0,newFrame);
     card.data.frameIndex++;
     DB.putCard(card);
     // "der button für copy frame im stop motion menü muss nach dem abspeichern wieder zurück zum
@@ -15327,11 +15876,21 @@ function refreshBlanketPenTypes(root,card){
     btn.classList.toggle('active', btn.dataset.pentype===active);
   });
 }
-// Nib-shaped teardrop with a center slit + breather hole — the classic fountain-pen-nib silhouette.
-// "neues Icon für Füller" — a fountain-pen NIB now (kite-shaped nib plate, breather hole, split tip,
-// curled feed/flourish above it) instead of the old plain tapered-drop silhouette, closer to how a
-// fountain pen's nib is actually drawn in most icon sets.
-function iconBlanketPenFountain(){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.3 2.6c2.9 1.6 4.1 3.9 3.1 6.2"/><path d="M8.3 21.4l1.9-7.9a2.1 2.1 0 0 1 1-1.3l7.2-4.3-4.3 7.2a2.1 2.1 0 0 1-1.3 1z"/><path d="M11.2 12.8l-2.9 8.6"/><circle cx="13.6" cy="9.2" r="0.95" fill="currentColor" stroke="none"/></svg>`;}
+// "es handelt sich aber um das Füller symbol" — Tom's own icons8 "Füller" (icons8-füller-96.svg),
+// dropped in 1:1: a solid silhouette (fill, no stroke — unlike this file's own hand-drawn stroke
+// icons), so it's embedded exactly as icons8 exported it (same path data, same viewBox/transform —
+// icons8's own scale(0.1,-0.1) Y-flip, the standard trace-to-vector artifact for their icon set)
+// with only fill="#000000" swapped for fill="currentColor" so it still recolors with the accent like
+// every other icon here (dock/drawer active state, WHATSNEW demo, etc.) instead of staying pinned black.
+function iconBlanketPenFountain(){return `<svg width="14" height="14" viewBox="0 0 96 96" fill="currentColor" stroke="none"><g transform="translate(0,96) scale(0.1,-0.1)"><path d="M556 801 c-77 -78 -78 -78 -177 -106 -85 -24 -104 -33 -133 -66 -38
+-41 -37 -39 -91 -267 -42 -174 -39 -201 20 -229 31 -15 42 -13 211 27 99 23
+190 48 204 55 52 27 78 68 105 165 27 93 28 96 106 175 43 44 79 87 79 95 0
+20 -211 230 -230 230 -9 0 -51 -35 -94 -79z m174 -76 l75 -75 -28 -27 -27 -28
+-77 77 -77 77 24 26 c13 14 26 25 29 25 4 0 40 -34 81 -75z m-100 -100 c71
+-71 73 -75 57 -93 -10 -11 -29 -61 -42 -111 -29 -107 -38 -126 -68 -145 -18
+-12 -307 -86 -334 -86 -16 0 201 209 223 214 25 7 39 36 29 65 -13 41 -80 38
+-91 -3 -5 -22 -214 -239 -214 -223 0 18 73 313 82 330 15 28 48 45 147 71 52
+14 102 32 110 41 8 8 18 15 21 15 3 0 39 -34 80 -75z"/></g></svg>`;}
 // Same silhouette as the existing "Draw" dock/drawer button's own pen icon — reused here (at the
 // smaller 14×14 toolbar size) so "normal" reads as exactly the pen Tom already knows, not a new shape.
 // "neues Icon für Bleistift" — this is now a literal pencil (sharpened graphite cone, a hatch line
@@ -15355,8 +15914,9 @@ function iconBlanketPenFineliner(){return `<svg width="14" height="14" viewBox="
 // "man soll frames kopieren und dann an einer anderen Stelle einfügen können also Bild 1 wird
 // kopiert, und bei 10 eingefügt Bild 11 ist nun eine Kopie von Bild 1 vor allem für Stop-Motion" — a
 // single, session-wide clipboard (deliberately not per-card/per-board, same as any normal
-// copy/paste): holds a deep copy of one frame's strokes, ready to be inserted as a brand-new frame
-// right after whichever frame is current when "paste" is pressed (see the frame bar wiring in
+// copy/paste): holds a deep copy of one frame's strokes (plus, since Point 8, its own layers/
+// activeLayerId — see handleBlanketCopyPasteClick()), ready to be inserted as a brand-new frame right
+// after whichever frame is current when "paste" is pressed (see the frame bar wiring in
 // buildBlanketCard()). Stays populated across frame navigation and even across switching cards/boards,
 // exactly like a normal clipboard would.
 let blanketFrameClipboard=null;
@@ -15368,6 +15928,23 @@ let blanketFrameClipboard=null;
 // on openBlanketThicknessPop alone — now both popovers share exactly the same math instead of the
 // smoothing one only ever clamping against the whole browser window). Touch/tablet keeps the old
 // below-first, flip-if-no-room behavior, since Tom's own wording specifically said "auf PC".
+// Tom, 22.09 (2. Nachricht): "wird er auf Smartphone gerade noch über dem UI angezeigt aber am
+// besten sollte es sein, dass es unter der oberen Leiste vom UI angezeigt wird" — on a phone, this
+// popover's anchor (now the actual drawer button that was tapped — see the drawer wiring's own
+// comment) can sit close enough to the top of the screen that "6px below/above the anchor" alone
+// still lands a few px INTO .topbar (the Start/Board-name header row, z-index 30 — the popover's own
+// z-index of 62 then just draws right over its bottom edge instead of clearing it). Shared by both
+// popover-positioning functions below so the fix applies to Farbe/Stärke/Glätten alike.
+function blanketPopoverTopFloor(){
+  const topbar=document.querySelector('.topbar');
+  if(!topbar || topbar.hidden) return 0;
+  const r=topbar.getBoundingClientRect();
+  return r.height>0 ? r.bottom+8 : 0;
+}
+// Only ever reached for the desktop dock's floating popovers — a mobile-drawer-anchored open uses
+// positionBlanketPopoverBesideDrawer() instead (see openBlanketThicknessPop() and friends), since it
+// has no card element on-screen to clamp against (the drawer floats above the whole board, not one
+// particular card).
 function positionBlanketToolPopover(el,anchor,card){
   const r=anchor.getBoundingClientRect();
   const mw=el.offsetWidth||150;
@@ -15383,9 +15960,30 @@ function positionBlanketToolPopover(el,anchor,card){
     top=r.bottom+6;
     if(top+mh>bounds.bottom-4){ top=Math.max(bounds.top+4, r.top-mh-6); }
   }
+  top=Math.max(top, blanketPopoverTopFloor());
   // Final safety clamp against the viewport too, in case the card itself runs partly off-screen.
   left=Math.max(6, Math.min(left, window.innerWidth-mw-6));
   top=Math.max(6, Math.min(top, window.innerHeight-mh-6));
+  el.style.left=left+'px'; el.style.top=top+'px';
+}
+// Tom, 22.09 (5. Nachricht, mit Screenshot): "die Balken sollen gern außerhalb des UIs sein ... rechts
+// daneben im freien Feld ... immer auf der Höhe zentriert vom UI Element was man angeklickt hat ...
+// bei Farbe soll zentriert rechts angedockt am Hamburgermenü das Colorwheel auftauchen, bei Stärke ...
+// angedockt am Hamburgermenü die Strichstärke" — replaces the in-place flip/accordion reveal from the
+// previous round with a floating popover again, but pinned precisely instead of "random": always
+// docked just past the mobile drawer's own right edge, vertically centered on whichever row was
+// actually tapped (not the drawer as a whole), clamped to stay fully on-screen top/bottom/right.
+function positionBlanketPopoverBesideDrawer(el,anchor){
+  const drawer=document.getElementById('mobileDrawer');
+  const dRect=drawer ? drawer.getBoundingClientRect() : {right:0};
+  const aRect=anchor.getBoundingClientRect();
+  const mw=el.offsetWidth||160, mh=el.offsetHeight||140;
+  const gap=12;
+  let left=dRect.right+gap;
+  left=Math.min(left, window.innerWidth-mw-6);
+  let top=aRect.top+aRect.height/2-mh/2;
+  top=Math.max(top, blanketPopoverTopFloor()+6);
+  top=Math.min(top, window.innerHeight-mh-6);
   el.style.left=left+'px'; el.style.top=top+'px';
 }
 // "am besten mit einer schicken Animation daneben die eine Zickzack Kurve abrundet für Glätten" —
@@ -15460,6 +16058,12 @@ function ensureBlanketThicknessPop(){
   blanketThicknessPopEl=el;
   return el;
 }
+function homeBlanketThicknessPop(){
+  const el=ensureBlanketThicknessPop();
+  if(el.parentElement!==document.body) document.body.appendChild(el);
+  el.hidden=false;
+  return el;
+}
 function closeBlanketThicknessPop(){
   if(blanketThicknessPopEl) blanketThicknessPopEl.hidden=true;
   blanketThicknessPopCard=null;
@@ -15488,12 +16092,37 @@ function ensureBlanketSmoothPop(){
   blanketSmoothPopEl=el;
   return el;
 }
+function homeBlanketSmoothPop(){
+  const el=ensureBlanketSmoothPop();
+  if(el.parentElement!==document.body) document.body.appendChild(el);
+  el.hidden=false;
+  return el;
+}
 function closeBlanketSmoothPop(){
   if(blanketSmoothPopEl) blanketSmoothPopEl.hidden=true;
   blanketSmoothPopCard=null;
 }
+// Tom, 22.09: "die können sich überlappen es soll aber so sein, dass sich ein regler schließt wenn man
+// einen anderen anklickt" — the three Drawboard tool popovers (Stärke/Glätten/Farbe) used to be able to
+// stack on top of each other since each one only ever closed itself, never the others; opening any one
+// of them now closes the other two first, for every popover in the toolbar.
+function closeOtherBlanketToolPopovers(keep){
+  if(keep!=='thickness') closeBlanketThicknessPop();
+  if(keep!=='smooth') closeBlanketSmoothPop();
+  if(keep!=='colorwheel') closeBlanketColorWheelPop();
+}
+// Whether `anchor` (the button that was actually tapped) lives inside the mobile Werkzeuge-Schublade —
+// decides which positioning function docks the popover: beside the drawer's own right edge
+// (positionBlanketPopoverBesideDrawer) or against the card under the desktop dock
+// (positionBlanketToolPopover) — see the open*Pop() functions below.
+function blanketAnchorIsInMobileDrawer(anchor){
+  const drawer=document.getElementById('mobileDrawer');
+  return !!(drawer && anchor && drawer.contains(anchor));
+}
 function openBlanketSmoothPop(anchor,card){
-  const el=ensureBlanketSmoothPop();
+  closeOtherBlanketToolPopovers('smooth');
+  const inline=blanketAnchorIsInMobileDrawer(anchor);
+  const el=homeBlanketSmoothPop();
   blanketSmoothPopCard=card;
   const v=blanketSmoothIntensity(card);
   el.querySelector('#blanketSmoothPopRange').value=v;
@@ -15503,16 +16132,16 @@ function openBlanketSmoothPop(anchor,card){
   blanketSmoothIndicatorT=v/2;
   const pathEl=el.querySelector('#blanketSmoothIndicatorPath');
   if(pathEl) pathEl.setAttribute('d', buildBlanketSmoothIndicatorPath(blanketSmoothIndicatorT));
-  el.hidden=false;
-  positionBlanketToolPopover(el,anchor,card);
+  if(inline) positionBlanketPopoverBesideDrawer(el,anchor);
+  else positionBlanketToolPopover(el,anchor,card);
 }
 document.addEventListener('pointerdown',(e)=>{
-  if(!blanketSmoothPopEl || blanketSmoothPopEl.hidden) return;
+  if(!blanketSmoothPopCard) return;
   if(e.target.closest('.blanket-thickness-pop') || e.target.closest('#blanketDockSmoothBtn') || e.target.closest('#drawerBlanketSmoothBtn')) return;
   closeBlanketSmoothPop();
 });
 window.addEventListener('keydown',(e)=>{
-  if(e.key==='Escape' && blanketSmoothPopEl && !blanketSmoothPopEl.hidden) closeBlanketSmoothPop();
+  if(e.key==='Escape' && blanketSmoothPopCard) closeBlanketSmoothPop();
 });
 // "die Stiftdicke wird außerhalb des Blankets angezeigt, das soll nur innerhalb des Blankets sein" —
 // this popover is a body-appended singleton (position:fixed), so it used to only clamp against the
@@ -15521,16 +16150,18 @@ window.addEventListener('keydown',(e)=>{
 // Clamps against the actual Blanket card element's own on-screen box instead: anchored under the
 // toolbar button as before when there's room, flipped above it when the card is too short for that.
 function openBlanketThicknessPop(anchor,card){
-  const el=ensureBlanketThicknessPop();
+  closeOtherBlanketToolPopovers('thickness');
+  const inline=blanketAnchorIsInMobileDrawer(anchor);
+  const el=homeBlanketThicknessPop();
   blanketThicknessPopCard=card;
   const range=el.querySelector('#blanketThicknessRange');
   range.value=card.data.thickness||1;
   el._syncDot();
-  el.hidden=false;
-  positionBlanketToolPopover(el,anchor,card);
+  if(inline) positionBlanketPopoverBesideDrawer(el,anchor);
+  else positionBlanketToolPopover(el,anchor,card);
 }
 document.addEventListener('pointerdown',(e)=>{
-  if(!blanketThicknessPopEl || blanketThicknessPopEl.hidden) return;
+  if(!blanketThicknessPopCard) return;
   // "#blanketDockThicknessBtn"/"#drawerBlanketThicknessBtn" (the dedicated Zeichenblanket-Board's
   // dock/drawer buttons) belong in this exclusion exactly like the on-card "#blanketThicknessBtn"
   // already was — without it, tapping either while the popover was already open closed it right here
@@ -15541,7 +16172,7 @@ document.addEventListener('pointerdown',(e)=>{
   closeBlanketThicknessPop();
 });
 window.addEventListener('keydown',(e)=>{
-  if(e.key==='Escape' && blanketThicknessPopEl && !blanketThicknessPopEl.hidden) closeBlanketThicknessPop();
+  if(e.key==='Escape' && blanketThicknessPopCard) closeBlanketThicknessPop();
 });
 // One-time conversion for any board drawn before this version shipped: old strokes stored points as
 // FRACTIONS (0..1) of the card's width/height and `size` as a fraction of BLANKET_REF_W, deliberately
@@ -15581,6 +16212,176 @@ function activeBlanketStrokes(card){
   if(!Array.isArray(card.data.strokes)) card.data.strokes=[];
   return card.data.strokes;
 }
+// ---- Point 8: "Photoshop-artiges Ebenen-System" (Photoshop-style layers) ----
+// Scoped strictly to the dedicated Drawboard's own giant canvas card (see the clarifying-questions
+// round Tom answered: "Nur Drawboard") — a normal small Blanket card placed on an ordinary board never
+// gets any of this (no migration, no UI, activeBlanketStrokes()/redrawBlanketCanvas() above/below both
+// check this before doing anything layer-related), so nothing about a plain Blanket card's behavior
+// changes at all.
+function blanketCardIsDrawboard(card){ return !!card && state.blanketBoardCardId===card.id; }
+function blanketDefaultLayerName(n){ return t('blanket_layer_default_name',{n}); }
+function newBlanketLayer(n){ return {id:uid(), name:blanketDefaultLayerName(n), visible:true}; }
+// "Jeder Frame hat eigene Ebenen" — each stop-motion frame owns its OWN independent layer stack, fully
+// separate from every other frame's; outside stop-motion, the card itself is the one and only "host".
+// This is the one place that decides which of those two a layer read/write actually targets right now.
+function blanketLayerHost(card){
+  if(card.data.stopMotion){
+    if(!Array.isArray(card.data.frames) || !card.data.frames.length) card.data.frames=[{strokes:[]}];
+    if(card.data.frameIndex==null || card.data.frameIndex>=card.data.frames.length) card.data.frameIndex=card.data.frames.length-1;
+    if(card.data.frameIndex<0) card.data.frameIndex=0;
+    return card.data.frames[card.data.frameIndex];
+  }
+  return card.data;
+}
+// Lazy migration, safe to call on every redraw (a plain no-op once a host already has its own
+// `layers`) — same pattern as migrateBlanketCardToAbsCoords() above: a board drawn before this feature
+// existed gets ONE default drawable layer created for it and every one of its existing (untagged)
+// strokes silently tagged onto that layer, so it keeps rendering byte-for-byte the same as before,
+// just now living "on" that one layer instead of nowhere in particular. Persists via DB.putCard only
+// when it actually changed something, exactly like that function does.
+function ensureBlanketLayers(card){
+  if(!blanketCardIsDrawboard(card)) return;
+  let dirty=false;
+  function migrateHost(host){
+    if(!Array.isArray(host.strokes)) host.strokes=[];
+    if(!Array.isArray(host.layers) || !host.layers.length){
+      const layer=newBlanketLayer(1);
+      host.layers=[layer];
+      host.strokes.forEach(s=>{ if(!s.layerId) s.layerId=layer.id; });
+      host.activeLayerId=layer.id;
+      dirty=true;
+    }else if(!host.activeLayerId || !host.layers.some(l=>l.id===host.activeLayerId)){
+      host.activeLayerId=host.layers[host.layers.length-1].id;
+      dirty=true;
+    }
+  }
+  if(card.data.stopMotion){
+    if(!Array.isArray(card.data.frames) || !card.data.frames.length) card.data.frames=[{strokes:[]}];
+    card.data.frames.forEach(migrateHost);
+  }else{
+    migrateHost(card.data);
+  }
+  if(dirty) DB.putCard(card);
+}
+function blanketActiveLayerId(card){
+  ensureBlanketLayers(card);
+  return blanketLayerHost(card).activeLayerId;
+}
+function blanketLayersFor(card){
+  ensureBlanketLayers(card);
+  return blanketLayerHost(card).layers||[];
+}
+// Strokes stay in ONE flat array per host exactly as before (activeBlanketStrokes() above is
+// unchanged, so push/pop-based drawing and undo don't need to know layers exist at all) — each stroke
+// is simply tagged with which layer it belongs to (see newBlanketStroke()) and this is the one place
+// that regroups them back into their layers' own stacking order for drawing: bottom layer's strokes
+// first, then the next one up, etc, skipping any layer whose visibility is off. A non-Drawboard card
+// (or one with no `layers` yet) just returns its strokes exactly as they were, unchanged.
+function blanketOrderedVisibleStrokes(card,host){
+  if(!host) return [];
+  if(!blanketCardIsDrawboard(card) || !Array.isArray(host.layers) || !host.layers.length) return host.strokes||[];
+  const byLayer=new Map(); host.layers.forEach(l=>byLayer.set(l.id,[]));
+  const stray=[];
+  (host.strokes||[]).forEach(s=>{
+    if(s.layerId && byLayer.has(s.layerId)) byLayer.get(s.layerId).push(s);
+    else stray.push(s);
+  });
+  const out=[];
+  host.layers.forEach(l=>{ if(l.visible!==false) out.push(...byLayer.get(l.id)); });
+  out.push(...stray); // defensive only — every stroke should already carry a valid layerId post-migration
+  return out;
+}
+// A brand-new stop-motion frame ("Next" past the last frame) inherits the CURRENT frame's own layer
+// STRUCTURE (same names/order/visibility) but starts every one of those layers empty — so drawing
+// frame-by-frame on, say, a "Skizze"/"Farbe" split keeps working the same way across frames instead of
+// collapsing back to one flat layer each time. Falls back to a plain empty frame outside the Drawboard
+// (or if the source frame has no layers of its own yet).
+function newBlanketFrameLike(card,sourceFrame){
+  if(!blanketCardIsDrawboard(card) || !sourceFrame || !Array.isArray(sourceFrame.layers) || !sourceFrame.layers.length){
+    return {strokes:[]};
+  }
+  return {strokes:[], layers:sourceFrame.layers.map(l=>({...l})), activeLayerId:sourceFrame.activeLayerId};
+}
+// Tom, 22.09: "drückt man auf stop-motion menü sind alle gezeichneten Sachen unsichtbar bis man
+// wieder aus macht" — every call site below used to seed card.data.frames from the flat strokes only
+// the very FIRST time stop-motion was ever switched on (`!Array.isArray(card.data.frames)`), then just
+// re-flip the boolean on every later toggle, reusing whatever frames[] already existed. That's exactly
+// right once there's real per-frame animation work to protect — but if that first-ever toggle happened
+// before anything was actually drawn into frame 0 (a curious tap, switched straight back off), frames
+// was left forever after as ONE permanently-empty stub. Every later toggle-on then showed that empty
+// stub — not whatever had since been drawn in flat mode — which looks exactly like "turning stop-motion
+// on makes everything invisible", because frame 0 genuinely has nothing on it. This is the one place
+// that now decides whether a toggle-on should (re-)seed: yes the first time ever, and also whenever the
+// only frame that exists is still that untouched empty stub; a board with real frame content (more than
+// one frame, or a frame 0 someone actually drew into) is never touched by this.
+function blanketShouldReseedFrames(card){
+  if(!Array.isArray(card.data.frames) || !card.data.frames.length) return true;
+  return card.data.frames.length===1 && !(card.data.frames[0].strokes && card.data.frames[0].strokes.length);
+}
+// Shared by both places that seed stop-motion's frame 0 from the card's own (until-now flat)
+// strokes/layers when stop-motion switches on and blanketShouldReseedFrames() above says it's warranted
+// (buildBlanketCard()'s lazy-init and the dedicated Drawboard panel's own stop-motion toggle) — carries
+// the existing layers over too, so turning stop-motion on never loses layers someone already set up.
+function seedBlanketFrame0FromFlat(card){
+  return [{
+    strokes:(card.data.strokes||[]).map(s=>({...s,points:s.points.map(p=>({...p}))})),
+    layers:Array.isArray(card.data.layers)?card.data.layers.map(l=>({...l})):undefined,
+    activeLayerId:card.data.activeLayerId,
+  }];
+}
+// Tom, 22.09 (Runde 2): "wenn schon Frames existieren und man danach im Flat-Modus weiterzeichnet,
+// wird das beim nächsten Umschalten auf Stop-Motion noch nicht automatisch übernommen" — the fix
+// above only ever seeds frames[0] from flat ONCE per board (via blanketShouldReseedFrames() — exactly
+// right so real animation frames are never clobbered), so once a board has genuine multi-frame
+// content, anything drawn in plain/flat mode *after* that point used to just sit there invisible the
+// next time stop-motion was switched back on, and the reverse was also true (nothing drawn inside
+// stop-motion ever reappeared in flat mode either) — two independent stores that only ever synced
+// once, in one direction, at the very start of a board's life.
+// Frame 0 now stays continuously in sync with the flat store, in BOTH directions, right at the exact
+// moment of toggling — frames[1+] (the actual hand-drawn extra animation frames) are never touched by
+// either half of this, so no animation work is ever at risk:
+//   - switching ON copies whatever's currently in the flat store into frames[0], so frame 0 always
+//     reflects the latest flat-mode drawing;
+//   - switching OFF copies whichever frame was actually on screen back into the flat store, so plain
+//     drawing picks up exactly where the animation view left off.
+// Deep-copies points (not just the stroke objects) the same way seedBlanketFrame0FromFlat() above
+// already does, so the two stores never end up quietly sharing the same array references.
+function blanketCopyBlanketStrokes(strokes){
+  return (strokes||[]).map(s=>({...s, points:(s.points||[]).map(p=>({...p}))}));
+}
+function blanketCopyBlanketLayers(layers){
+  return Array.isArray(layers) ? layers.map(l=>({...l})) : undefined;
+}
+// Single shared implementation of the toggle button's own click behavior — used by BOTH the desktop
+// (#vbfStopMotionToggle) and mobile (#drawerVbfStopMotionToggle) handlers below, so the two variants
+// can never quietly drift apart the way separately-duplicated copies of this same logic already have
+// once before this session (see the Bug 1/Bug 3 fixes' own comments). Caller is still responsible for
+// stopBlanketBoardPlaying(), DB.putCard(c), redrawBlanketBoardCanvas(c) and refreshing the panel —
+// this only decides the new stopMotion state and what the flat store/frames[0] should hold.
+function blanketToggleStopMotion(card){
+  const turningOn=!card.data.stopMotion;
+  if(turningOn){
+    if(blanketShouldReseedFrames(card)){
+      card.data.frames=seedBlanketFrame0FromFlat(card);
+      card.data.frameIndex=0;
+    }else{
+      card.data.frames[0]={
+        strokes:blanketCopyBlanketStrokes(card.data.strokes),
+        layers:blanketCopyBlanketLayers(card.data.layers),
+        activeLayerId:card.data.activeLayerId,
+      };
+      if(card.data.frameIndex==null || card.data.frameIndex<0 || card.data.frameIndex>=card.data.frames.length){
+        card.data.frameIndex=0;
+      }
+    }
+  }else{
+    const host=blanketLayerHost(card); // still resolves to frames[frameIndex] here — stopMotion isn't flipped yet
+    card.data.strokes=blanketCopyBlanketStrokes(host.strokes);
+    card.data.layers=blanketCopyBlanketLayers(host.layers);
+    card.data.activeLayerId=host.activeLayerId;
+  }
+  card.data.stopMotion=turningOn;
+}
 // "das Glätten soll einen Slider bekommen" — replaces the old plain on/off smooth switch with a
 // continuous strength (0 = off/raw lines, 1 = the old "smooth on" baseline, up to 2 = extra rounded).
 // card.data.smoothIntensity is the new field; card.data.smooth (the old boolean) is only read as a
@@ -15603,7 +16404,12 @@ function newBlanketStroke(card){
   // resize can't fatten or thin lines that are already drawn (see the file header comment above).
   const baseW=Math.min(card.w,BLANKET_THICKNESS_SCALE_CAP);
   const smoothIntensity=blanketSmoothIntensity(card);
-  if(card.data.eraser) return {erase:true, size:(BLANKET_ERASER_W*mul*baseW)/BLANKET_REF_W, smoothIntensity, points:[]};
+  // Point 8 ("Ebenen") — a brand-new stroke is stamped with whichever layer is currently active, same
+  // idea as color/size/penType being baked in at creation time (see blanketOrderedVisibleStrokes() for
+  // the one place this tag is actually read back out). undefined outside the Drawboard (a normal small
+  // Blanket card has no layers concept at all — see blanketCardIsDrawboard()'s own comment).
+  const layerId=blanketCardIsDrawboard(card)?blanketActiveLayerId(card):undefined;
+  if(card.data.eraser) return {erase:true, size:(BLANKET_ERASER_W*mul*baseW)/BLANKET_REF_W, smoothIntensity, points:[], layerId};
   // "man soll auch vier verschiedene Stifte benutzen können" — the pen TYPE (fountain/normal/marker/
   // fineliner, see BLANKET_PEN_TYPES) is stamped onto the stroke at creation time, same as color/size/
   // smooth already are, so already-drawn strokes keep rendering however they were drawn even if the
@@ -15615,10 +16421,10 @@ function newBlanketStroke(card){
   // its width still follows the same base as the first preset pen (BLANKET_PENS has no tuned width of
   // its own to fall back on for an arbitrary color).
   if(card.data.pen==='custom' && card.data.customColor){
-    return {color:card.data.customColor, size:(BLANKET_PENS[0].w*mul*baseW)/BLANKET_REF_W, smoothIntensity, penType, points:[]};
+    return {color:card.data.customColor, size:(BLANKET_PENS[0].w*mul*baseW)/BLANKET_REF_W, smoothIntensity, penType, points:[], layerId};
   }
   const pen=BLANKET_PENS[card.data.pen]||BLANKET_PENS[0];
-  return {color:pen.color, size:(pen.w*mul*baseW)/BLANKET_REF_W, smoothIntensity, penType, points:[]};
+  return {color:pen.color, size:(pen.w*mul*baseW)/BLANKET_REF_W, smoothIntensity, penType, points:[], layerId};
 }
 // Fountain pen taper envelope — "das Ende und den Anfang immer so spitz abschließt durch Druck und an
 // der Maus mit einem allgemeinen Durchschnitt": a real pressure-sensitive input (Apple Pencil etc.)
@@ -15810,10 +16616,17 @@ function drawBlanketStroke(ctx,stroke,cw,ch){
 // to well under half its logical size (dpr≈0.53 at the old 3200), so it was always being upscaled
 // blurry/blocky by the browser; it read as acceptable before only because the pen was drawn much
 // thicker back then (BLANKET_THICKNESS_SCALE_CAP's fix), which hid the softness. Raised to 4800 —
-// dpr≈0.8 on the 6000px board, visibly sharper — while keeping the worst-case backing store bounded
-// at 4800×4800×4 bytes ≈ 92MB regardless of device dpr, comfortably below the crash territory the
-// original comment above was guarding against.
-const BLANKET_MAX_BACKING_DIM=4800;
+// dpr≈0.8 on the 6000px board, visibly sharper.
+// "niedrige Auflösung... kantig... pixelig" (still, on the Drawboard specifically) — dpr≈0.8 was
+// better than the old ≈0.53 but still means every stroke is drawn onto a backing store with FEWER
+// real pixels than the logical 6000px board has, then upscaled by the browser to fill it — a genuine
+// resolution loss, not just an anti-aliasing/softness issue, and exactly what still reads as "kantig"/
+// pixelated close up. Raised again to 6000 — dpr=1.0 on the 6000px board, i.e. no upscaling at all,
+// a real 1:1 pixel match — while keeping the worst-case backing store bounded at 6000×6000×4 bytes ≈
+// 144MB regardless of device dpr, still comfortably below the multi-hundred-MB crash territory the
+// original comment above was guarding against (that was hit at 6000px × devicePixelRatio 2-3, i.e.
+// 12000-18000px per side).
+const BLANKET_MAX_BACKING_DIM=6000;
 function ensureBlanketCanvasCtx(canvas,card){
   const cw=Math.max(1,card.w), ch=Math.max(1,card.h);
   let dpr=window.devicePixelRatio||1;
@@ -15827,6 +16640,18 @@ function ensureBlanketCanvasCtx(canvas,card){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   return ctx;
 }
+// One reusable offscreen buffer PER on-screen blanket canvas (not a single global one — several
+// Blanket cards, each with their own <canvas>, can exist at once) — see redrawBlanketCanvas()'s own
+// comment on why the current frame's strokes are always composited through here instead of drawn
+// straight onto the visible canvas. Sized to match that canvas's own backing-store pixel dimensions
+// exactly, so the final drawImage() there is a plain 1:1 pixel copy, never a scale.
+function ensureBlanketStrokeBuffer(canvas){
+  let buf=canvas.__strokeBuf;
+  if(!buf){ buf=document.createElement('canvas'); canvas.__strokeBuf=buf; }
+  if(buf.width!==canvas.width) buf.width=canvas.width;
+  if(buf.height!==canvas.height) buf.height=canvas.height;
+  return buf;
+}
 // "beim Abspielen zeigt es die vorherigen Frames mit im aktuellen Frame" — the onion-skin ghost (the
 // previous frame drawn faint, underneath) is meant purely as a TRACING GUIDE while drawing a new
 // frame; it used to render unconditionally any time stop-motion was on, including during actual
@@ -15834,6 +16659,34 @@ function ensureBlanketCanvasCtx(canvas,card){
 // play-button's interval below) always suppresses it regardless of the onionSkin setting; outside of
 // playback it still respects card.data.onionSkin ("vorherigen Frame transparent anzeigen soll man ein-
 // und ausschalten können" — defaults to on, see buildBlanketCard()'s/newCard()'s onionSkin hydration).
+//
+// "man sieht nach dem Kopieren+Einfügen keinen Trace mehr, auch nach dem Radieren nicht darunter" /
+// "der Radierer soll immer die Farbe des Hintergrunds haben, jetzt radiert er zu Dunkelblau" — both
+// bugs have the same root cause. An eraser stroke uses ctx.globalCompositeOperation='destination-out'
+// (see drawBlanketStroke()), which just punches a transparent hole through WHATEVER is already
+// painted on the canvas it's drawn to — a plain 2D canvas has no concept of "layers", so it can't tell
+// the background fill, an onion-skin ghost, and this frame's own ink apart. Erasing straight onto the
+// same canvas those were already painted on therefore ate into THEM too, as if everything were one
+// single drawing: right after copy/pasting a frame, erasing on the fresh copy could eat the ghost of
+// the frame it was copied from; and on any board, erasing punched clean through the background fill
+// itself, leaving a truly transparent hole that showed whatever sits behind the canvas element in the
+// page (not the board's own background color at all — that's the "Dunkelblau" Tom saw).
+//
+// Fix: the background fill (and, when shown, the onion-skin ghost) are painted onto the visible `ctx`
+// first as before, but the CURRENT frame's own strokes — erasers included — always go onto a
+// throwaway, fully-transparent offscreen buffer (ensureBlanketStrokeBuffer) instead, composited on top
+// in one plain source-over drawImage() only once they're done. An eraser stroke can then only ever
+// punch through ink THIS buffer itself put down, so it always reveals exactly what's already sitting
+// on `ctx` underneath — the background fill normally, or the onion ghost too right after a copy/paste
+// — never a hole straight through to whatever's behind the canvas. Because the background fill is
+// repainted fresh from card.data.bgColor on every single redraw, a later background-color change is
+// picked up automatically by every already-erased spot too — nothing about the erased color is ever
+// "baked in".
+// (The live in-progress stroke preview in buildBlanketCard()'s pointermove handler still draws its
+// fast per-move tail segment straight onto the visible canvas, same as before, for the same
+// performance reason that path already existed — so an active erase drag can briefly show the wrong
+// color/a nick in the ghost while the pointer is still down; finishStroke()'s full redraw() the
+// instant it's released always re-composites everything correctly.)
 function redrawBlanketCanvas(canvas,card,opts){
   // Defensive containment: this runs synchronously from inside renderAllCards() (every Blanket card on
   // the board gets rebuilt any time ANY card anywhere is added/changed — see buildBlanketCard's own
@@ -15845,6 +16698,7 @@ function redrawBlanketCanvas(canvas,card,opts){
   // of a dead click on something else entirely.
   try{
     migrateBlanketCardToAbsCoords(card); // no-op after the first call — see its own comment
+    ensureBlanketLayers(card); // Point 8 — no-op after the first call, and only ever does anything on the Drawboard's own canvas card (see its own comment)
     const ctx=ensureBlanketCanvasCtx(canvas,card);
     const cw=card.w, ch=card.h;
     ctx.clearRect(0,0,cw,ch);
@@ -15855,19 +16709,39 @@ function redrawBlanketCanvas(canvas,card,opts){
     // transparent" toggle, see ensureBlanketDock()'s bg group), but a PNG export can still choose to
     // leave it out just for that one snapshot via opts.forceTransparentBg (see renderCardsToCanvas()'s
     // own transparentBlanketBg option) — without ever touching the card's own stored bgColor.
-    if(card.data.bgColor && !(opts && opts.forceTransparentBg)){ ctx.save(); ctx.fillStyle=card.data.bgColor; ctx.fillRect(0,0,cw,ch); ctx.restore(); }
+    // Point 8 — the background is now also its own (fixed, non-deletable, non-reorderable) "layer" in
+    // the Ebenen panel, with its own visibility eye (card.data.bgVisible); undefined/true for every
+    // board that predates this, so nothing already on a board changes.
+    if(card.data.bgColor && card.data.bgVisible!==false && !(opts && opts.forceTransparentBg)){ ctx.save(); ctx.fillStyle=card.data.bgColor; ctx.fillRect(0,0,cw,ch); ctx.restore(); }
+    // Composites `strokes` onto `ctx` through the throwaway buffer described in this function's own
+    // header comment above — every call site below routes through here so an eraser in any of them
+    // (stop-motion or not, onion ghost showing or not) only ever reveals what's already on `ctx`.
+    const compositeStrokes=(strokes)=>{
+      const buf=ensureBlanketStrokeBuffer(canvas);
+      const bctx=buf.getContext('2d');
+      bctx.setTransform(1,0,0,1,0,0);
+      bctx.clearRect(0,0,buf.width,buf.height);
+      bctx.setTransform(buf.width/cw,0,0,buf.height/ch,0,0);
+      (strokes||[]).forEach(s=>drawBlanketStroke(bctx,s,cw,ch));
+      ctx.save();
+      ctx.setTransform(1,0,0,1,0,0); // raw pixel copy below — undo ctx's own dpr scaling first
+      ctx.drawImage(buf,0,0);
+      ctx.restore();
+    };
     if(card.data.stopMotion){
       const frames=card.data.frames||[];
       const idx=Math.min(card.data.frameIndex||0, Math.max(0,frames.length-1));
       const showOnion=!(opts && opts.playing) && card.data.onionSkin!==false;
+      // Point 8 — the onion-skin ghost and the current frame's own ink each respect THEIR OWN frame's
+      // layer order/visibility (blanketOrderedVisibleStrokes), since "jeder Frame hat eigene Ebenen".
       if(showOnion && idx>0 && frames[idx-1]){
         ctx.save(); ctx.globalAlpha=0.28;
-        (frames[idx-1].strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
+        blanketOrderedVisibleStrokes(card,frames[idx-1]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
         ctx.restore();
       }
-      if(frames[idx]) (frames[idx].strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
+      compositeStrokes(frames[idx] && blanketOrderedVisibleStrokes(card,frames[idx]));
     }else{
-      (card.data.strokes||[]).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
+      compositeStrokes(blanketOrderedVisibleStrokes(card,card.data));
     }
   }catch(e){ try{ console.warn('redrawBlanketCanvas failed for card', card&&card.id, e); }catch(e2){} }
 }
@@ -15914,6 +16788,10 @@ function growBlanketBoardCanvasIfNeeded(card,stroke){
 }
 function buildBlanketCard(card){
   const el=baseCardShell(card,'card-blanket');
+  // Tom, 22.09 (Runde 3) — "seamless" edges: marks ONLY the dedicated Drawboard's own giant canvas
+  // card (never a normal small Blanket card placed on an ordinary board), so the CSS above can strip
+  // its border/shadow/rounded-corners/on-card head+toolbar. See that CSS block's own comment.
+  el.classList.toggle('card-blanket-canvas', blanketCardIsDrawboard(card));
   if(!Array.isArray(card.data.strokes)) card.data.strokes=[];
   if(card.data.pen==null) card.data.pen=0;
   if(card.data.thickness==null) card.data.thickness=1;
@@ -15923,8 +16801,8 @@ function buildBlanketCard(card){
   // First time stop-motion switches on (see the inspector's data-toggle="stopMotion" — the generic
   // toggle handler just flips the boolean and rebuilds the card; THIS is where that rebuild actually
   // seeds frame 0 from whatever was already drawn, so nothing is lost by turning the mode on).
-  if(card.data.stopMotion && !Array.isArray(card.data.frames)){
-    card.data.frames=[{strokes:(card.data.strokes||[]).map(s=>({...s,points:s.points.map(p=>({...p}))}))}];
+  if(card.data.stopMotion && blanketShouldReseedFrames(card)){
+    card.data.frames=seedBlanketFrame0FromFlat(card); // Point 8 — carries any existing layers over too
     card.data.frameIndex=0;
     DB.putCard(card);
   }
@@ -16013,8 +16891,9 @@ function buildBlanketCard(card){
     // of THIS pointerdown before a stroke ever starts makes that first click a plain dismiss, same as
     // clicking anywhere else outside the popover would — drawing resumes normally on the next click.
     let closedPopover=false;
-    if(blanketColorWheelEl && !blanketColorWheelEl.hidden){ closeBlanketColorWheelPop(); closedPopover=true; }
-    if(blanketThicknessPopEl && !blanketThicknessPopEl.hidden){ closeBlanketThicknessPop(); closedPopover=true; }
+    if(blanketColorWheelCard){ closeBlanketColorWheelPop(); closedPopover=true; }
+    if(blanketThicknessPopCard){ closeBlanketThicknessPop(); closedPopover=true; }
+    if(blanketSmoothPopCard){ closeBlanketSmoothPop(); closedPopover=true; }
     if(closedPopover) return;
     if(!state.selection.has(card.id)) toggleSelect(card.id, isMultiSelectKey(e));
     if(activePointerId!=null) return; // already mid-stroke from another pointer — ignore a second one
@@ -16027,13 +16906,29 @@ function buildBlanketCard(card){
   canvas.addEventListener('pointermove',(e)=>{
     if(e.pointerId!==activePointerId || !activeStroke) return;
     e.stopPropagation();
-    activeStroke.points.push(pointFromEvent(e));
-    // Live feedback draws just the newest segment onto the existing bitmap (cheap, keeps up with fast
-    // pointer input) instead of a full redrawBlanketCanvas() on every single move. __live:true tells
-    // drawBlanketStroke() to skip the fountain-taper envelope while still drawing (see its own comment)
-    // — the real taper is applied once, correctly, by the full redraw() finishStroke() runs on release.
+    // "zu selten eine Abfrage für den Stift... niedrige Auflösung... kantig... pixelig" — a plain
+    // pointermove only ever carries the pointer's position at the one moment this event happened to
+    // fire. Most digitizers (Surface Pen and similar Windows pens especially) sample far faster than
+    // that — 133-266Hz is common against a 60/90/120Hz display — and the browser doesn't drop the
+    // in-between samples, it COALESCES them into this same event; getCoalescedEvents() is how to get
+    // them back. Without it, a fast stroke only ever contributed one point per dispatched event no
+    // matter how quickly the pen actually moved, so quick curves were approximated from far fewer,
+    // farther-apart points than the hardware really reported — exactly what reads as "kantig"/low-
+    // resolution on a fast stroke (visible straight facets between sparse points), even though a slow,
+    // careful stroke already looked fine (plenty of events either way at low speed). Falls back to the
+    // event itself on any browser/pointer type that doesn't support it (or reports none).
+    const events=(e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+    const toApply=events.length ? events : [e];
+    toApply.forEach(ev=>activeStroke.points.push(pointFromEvent(ev)));
+    // Live feedback draws just the newest segment(s) onto the existing bitmap (cheap, keeps up with
+    // fast pointer input) instead of a full redrawBlanketCanvas() on every single move. __live:true
+    // tells drawBlanketStroke() to skip the fountain-taper envelope while still drawing (see its own
+    // comment) — the real taper is applied once, correctly, by the full redraw() finishStroke() runs on
+    // release. Covers enough of the tail for every point this one event just added (not just a fixed
+    // last 2) so a coalesced batch of several new points still gets its live preview drawn in full.
     const n=activeStroke.points.length;
-    if(n>=2) drawBlanketStroke(canvas.getContext('2d'), {...activeStroke, points:activeStroke.points.slice(n-2), __live:true}, card.w, card.h);
+    const tailCount=Math.min(n,Math.max(2,toApply.length+1));
+    if(n>=2) drawBlanketStroke(canvas.getContext('2d'), {...activeStroke, points:activeStroke.points.slice(n-tailCount), __live:true}, card.w, card.h);
   });
   function finishStroke(e){
     if(e.pointerId!==activePointerId) return;
@@ -16092,7 +16987,7 @@ function buildBlanketCard(card){
     thicknessBtn.addEventListener('pointerdown',e=>e.stopPropagation());
     thicknessBtn.addEventListener('click',(e)=>{
       e.stopPropagation();
-      if(blanketThicknessPopEl && !blanketThicknessPopEl.hidden && blanketThicknessPopCard===card){
+      if(blanketThicknessPopCard===card){
         closeBlanketThicknessPop();
       }else{
         openBlanketThicknessPop(thicknessBtn,card);
@@ -16111,6 +17006,7 @@ function buildBlanketCard(card){
     bgColorInput.addEventListener('pointerdown',e=>e.stopPropagation());
     bgColorInput.addEventListener('input',()=>{
       card.data.bgColor=bgColorInput.value;
+      syncBlanketBoardSeamlessBg(card);
       DB.putCard(card);
       redraw();
     });
@@ -16142,7 +17038,9 @@ function buildBlanketCard(card){
       // frame für Frame" — at the last frame, Next appends a fresh blank one (onion-skinned against
       // the one just finished) so drawing simply continues forward; anywhere earlier it just steps
       // ahead to review/redraw an existing frame, same as Prev.
-      if(card.data.frameIndex>=card.data.frames.length-1) card.data.frames.push({strokes:[]});
+      // Point 8 — a brand-new frame inherits the current frame's own layer structure (empty, ready to
+      // draw on), see newBlanketFrameLike()'s own comment.
+      if(card.data.frameIndex>=card.data.frames.length-1) card.data.frames.push(newBlanketFrameLike(card,card.data.frames[card.data.frames.length-1]));
       card.data.frameIndex++;
       DB.putCard(card); redraw(); updateFrameLabel();
     });
@@ -16203,6 +17101,8 @@ function resetBlanketCard(card){
   card.data.strokes=[];
   card.data.frames=card.data.stopMotion?[{strokes:[]}]:null;
   card.data.frameIndex=0;
+  card.data.layers=null; // Point 8 — wiped along with everything else; ensureBlanketLayers() lazily reseeds one fresh default layer on the next redraw (Drawboard only)
+  card.data.activeLayerId=null;
   card.data.absCoords=true; // nothing left to migrate — same as a brand-new card, see newCard()
   DB.putCard(card);
   renderAllCards(); applySelectionClasses();
@@ -16356,6 +17256,15 @@ function attachDragAndSelect(el,card){
   dragHandle.addEventListener('pointerdown',(e)=>{
     if(e.target.closest('.resize-handle')) return;
     if(e.button!==0) return;
+    // Same "second finger of a pinch might land on a(nother) card" hand-off as the tap/long-press
+    // touch handler below — wholeCardDrag types (image/boardlink/file/link/covered column) start
+    // dragging straight from pointerdown with no long-press step of their own, so they need the same
+    // guard here instead of inheriting it from that other listener.
+    if(e.pointerType==='touch' && (touchCardOwner || activeTouches.size)){
+      foldTouchCardOwnerIntoPinch();
+      beginPinchTouch(e.pointerId,e.clientX,e.clientY);
+      return;
+    }
     beginDrag(e, dragHandle);
   });
   dragHandle.addEventListener('pointermove',moveDrag);
@@ -16391,6 +17300,19 @@ function attachDragAndSelect(el,card){
       if(dragState) return;
       if(e.target.closest('.resize-handle, input, [contenteditable="true"], button, .check-row, .table-col-grip, .table-row-grip, .table-hcell, .table-vcell')) return;
       if(state.connectMode){ handleConnectClick(card.id); e.stopPropagation(); return; }
+      // "Zoomen ist ... nicht funktionabel auf Smartphone" — a phone board is usually covered
+      // edge-to-edge with cards, so the SECOND finger of a real pinch very often also lands on a card
+      // (its own, or a different one) rather than on empty canvas, where viewport's own pointerdown
+      // (see touchCardOwner's/beginPinchTouch's own comments) was the only place that ever recognized
+      // "a second finger just joined". If either another card's touch is already pending
+      // (touchCardOwner) or a pinch/pan is already running on the viewport, THIS touch — wherever it
+      // physically landed — is that second finger: hand off whatever was pending and join the pinch
+      // immediately, instead of starting this card's own tap/long-press/drag tracking for it at all.
+      if(touchCardOwner || activeTouches.size){
+        foldTouchCardOwnerIntoPinch();
+        beginPinchTouch(e.pointerId,e.clientX,e.clientY);
+        return;
+      }
       const sx=e.clientX, sy=e.clientY, pid=e.pointerId;
       let longPressed=false;
       const cleanup=()=>{
@@ -17681,6 +18603,13 @@ async function addCard(type, extra){
   // default) rather than null/transparent, now that there's no live "clear" toggle left to ever set
   // one explicitly; an already-existing card with bgColor:null keeps rendering exactly as it always
   // did until someone opens its color picker.
+  // Dark/light default bg+pen (blanketDefaultThemeSeed(), see its own comment) is deliberately only
+  // applied to the dedicated Drawboard's own giant canvas card (addBlanketBoard()) — Tom's own report
+  // was specifically about "das Drawboard"/"Leinwand-Board", and this small inline Blanket card's own
+  // on-card toolbar (buildBlanketCard()) has no color-wheel button at all to show/edit a 'custom' pen
+  // color on, unlike the dedicated Drawboard's toolbar — so seeding 'custom' here would leave a plain
+  // small Blanket card with no pen button highlighted as active and no way to change that color from
+  // its own toolbar. Stays exactly as it always was: white bg, black pen (index 0), in both themes.
   if(type==='blanket'){ w=320; h=260; data={strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, bgColor:'#ffffff', absCoords:true}; }
   if(type==='wowpvp'){
     w=300; h=280;
@@ -17794,8 +18723,10 @@ async function addBlanketBoard(at){
     x:-BOARD_CANVAS_SIZE/2, y:-BOARD_CANVAS_SIZE/2, w:BOARD_CANVAS_SIZE, h:BOARD_CANVAS_SIZE, z:1,
     // Same reasoning as the plain blanket-card creation path above: a dedicated Blanket-Board's canvas
     // card now starts with a real background color instead of null, since there's no live "clear"
-    // toggle left — transparency is export-time only now.
-    data:{strokes:[], pen:0, thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, customColor:null, bgColor:'#ffffff', absCoords:true},
+    // toggle left — transparency is export-time only now. bg/pen defaults themselves come from
+    // blanketDefaultThemeSeed() (see its own comment) so a board created in dark mode doesn't start
+    // as a jarring white square with an invisible black pen.
+    data:{strokes:[], thickness:1, smooth:false, eraser:false, stopMotion:false, frames:null, frameIndex:0, onionSkin:true, fps:BLANKET_DEFAULT_FPS, absCoords:true, ...blanketDefaultThemeSeed()},
     createdAt:Date.now(), updatedAt:Date.now()
   };
   await DB.putCard(canvasCard);
@@ -17961,6 +18892,12 @@ function ensureBlanketColorWheelPop(){
   blanketColorWheelEl=el;
   return el;
 }
+function homeBlanketColorWheelPop(){
+  const el=ensureBlanketColorWheelPop();
+  if(el.parentElement!==document.body) document.body.appendChild(el);
+  el.hidden=false;
+  return el;
+}
 function closeBlanketColorWheelPop(){
   if(blanketColorWheelEl) blanketColorWheelEl.hidden=true;
   blanketColorWheelCard=null;
@@ -17972,12 +18909,14 @@ function closeBlanketColorWheelPop(){
 // dedicated .pop-open ring, independent of .active, makes "this popover is open right now" visible on
 // its own, on top of whatever selection-state highlighting the button already has.
 function syncBlanketColorWheelOpenIndicator(){
-  const isOpen=!!(blanketColorWheelEl && !blanketColorWheelEl.hidden);
+  const isOpen=!!blanketColorWheelCard;
   const dockBtn=document.getElementById('blanketDockColorWheelBtn');
   if(dockBtn) dockBtn.classList.toggle('pop-open', isOpen);
 }
 function openBlanketColorWheelPop(anchor,card){
-  const el=ensureBlanketColorWheelPop();
+  closeOtherBlanketToolPopovers('colorwheel');
+  const inline=blanketAnchorIsInMobileDrawer(anchor);
+  const el=homeBlanketColorWheelPop();
   blanketColorWheelCard=card;
   // Seed the wheel from whatever custom color (if any) is already active, so reopening it doesn't
   // silently jump back to red every time.
@@ -17996,21 +18935,25 @@ function openBlanketColorWheelPop(anchor,card){
   }
   el.querySelector('#bcwValueRange').value=Math.round(bcwVal*100);
   el._paint(); el._syncOutputs();
-  el.hidden=false;
-  const r=anchor.getBoundingClientRect();
-  const mw=el.offsetWidth||160, mh=el.offsetHeight||210;
-  let left=Math.max(6, Math.min(r.left+r.width/2-mw/2, window.innerWidth-mw-6));
-  let top=r.top-mh-8; if(top<6) top=r.bottom+6;
-  el.style.left=left+'px'; el.style.top=top+'px';
+  if(inline){
+    positionBlanketPopoverBesideDrawer(el,anchor);
+  }else{
+    const r=anchor.getBoundingClientRect();
+    const mw=el.offsetWidth||160, mh=el.offsetHeight||210;
+    let left=Math.max(6, Math.min(r.left+r.width/2-mw/2, window.innerWidth-mw-6));
+    let top=r.top-mh-8; if(top<6) top=r.bottom+6;
+    top=Math.max(top, blanketPopoverTopFloor()); // see that function's own comment — clears .topbar on mobile
+    el.style.left=left+'px'; el.style.top=top+'px';
+  }
   syncBlanketColorWheelOpenIndicator();
 }
 document.addEventListener('pointerdown',(e)=>{
-  if(!blanketColorWheelEl || blanketColorWheelEl.hidden) return;
+  if(!blanketColorWheelCard) return;
   if(e.target.closest('.blanket-colorwheel-pop') || e.target.closest('#blanketDockColorWheelBtn') || e.target.closest('#drawerBlanketColorWheelBtn')) return;
   closeBlanketColorWheelPop();
 });
 window.addEventListener('keydown',(e)=>{
-  if(e.key==='Escape' && blanketColorWheelEl && !blanketColorWheelEl.hidden) closeBlanketColorWheelPop();
+  if(e.key==='Escape' && blanketColorWheelCard) closeBlanketColorWheelPop();
 });
 
 // ---- fixed drawing dock (left bar) ----
@@ -18060,7 +19003,7 @@ function ensureBlanketDock(){
   // second click just re-opened the same popover instead of closing it.
   wheelBtn.addEventListener('click',()=>{
     withCard(c=>{
-      if(blanketColorWheelEl && !blanketColorWheelEl.hidden && blanketColorWheelCard===c) closeBlanketColorWheelPop();
+      if(blanketColorWheelCard===c) closeBlanketColorWheelPop();
       else openBlanketColorWheelPop(wheelBtn,c);
     });
   });
@@ -18071,7 +19014,7 @@ function ensureBlanketDock(){
   thicknessBtn.addEventListener('pointerdown',e=>e.stopPropagation());
   thicknessBtn.addEventListener('click',()=>{
     withCard(c=>{
-      if(blanketThicknessPopEl && !blanketThicknessPopEl.hidden && blanketThicknessPopCard===c) closeBlanketThicknessPop();
+      if(blanketThicknessPopCard===c) closeBlanketThicknessPop();
       else openBlanketThicknessPop(thicknessBtn,c);
     });
   });
@@ -18079,7 +19022,7 @@ function ensureBlanketDock(){
   smoothBtn.addEventListener('pointerdown',e=>e.stopPropagation());
   smoothBtn.addEventListener('click',()=>{
     withCard(c=>{
-      if(blanketSmoothPopEl && !blanketSmoothPopEl.hidden && blanketSmoothPopCard===c) closeBlanketSmoothPop();
+      if(blanketSmoothPopCard===c) closeBlanketSmoothPop();
       else openBlanketSmoothPop(smoothBtn,c);
     });
   });
@@ -18096,6 +19039,7 @@ function ensureBlanketDock(){
   bgColorInput.addEventListener('input',()=>{
     withCard(c=>{
       c.data.bgColor=bgColorInput.value;
+      syncBlanketBoardSeamlessBg(c); // Runde 3 — keeps the surrounding board bg matched live as Hintergrund changes
       DB.putCard(c);
       redrawBlanketBoardCanvas(c);
       refreshBlanketDock(c);
@@ -18123,7 +19067,7 @@ function refreshBlanketDock(card){
   if(eraserBtn) eraserBtn.classList.toggle('active', !!card.data.eraser);
   const smoothBtn=dock.querySelector('#blanketDockSmoothBtn');
   if(smoothBtn) smoothBtn.classList.toggle('active', blanketSmoothIntensity(card)>0);
-  if(blanketSmoothPopEl && !blanketSmoothPopEl.hidden && blanketSmoothPopCard===card){
+  if(blanketSmoothPopCard===card && blanketSmoothPopEl){
     const r=blanketSmoothPopEl.querySelector('#blanketSmoothPopRange');
     if(r) r.value=blanketSmoothIntensity(card);
   }
@@ -18133,21 +19077,24 @@ function refreshBlanketDock(card){
 }
 
 // ---- same drawing controls, laid out for the mobile hamburger drawer (#drawerBlanketSection) —
-// see the HTML comment on that element for why this exists alongside #blanketDock. Every action
-// closes the drawer first (closeDrawer()) since the drawer sheet (z-index 61) sits ABOVE the
-// thickness/colorwheel popovers (z-index 60, see their own CSS) and would otherwise just cover
-// them — same "tap it, sheet closes, now go use it" pattern #drawerAddSection's own buttons already
-// use for adding a card. Thickness/colorwheel anchor to menuBtn (the hamburger icon itself, always
-// on screen, unaffected by the drawer's close animation) rather than their own tapped button, which
-// would already be sliding out of view the instant the popover tried to position itself against it.
+// see the HTML comment on that element for why this exists alongside #blanketDock.
+// Tom, 22.09 (5. Nachricht, mit Screenshot): "die Balken sollen gern außerhalb des UIs sein ... rechts
+// daneben im freien Feld ... immer auf der Höhe zentriert vom UI Element was man angeklickt hat" — the
+// rows below are plain drawer buttons again, exactly like every other drawer tool. Tapping one opens
+// the SAME shared singleton popover the desktop dock already has (see homeBlanketThicknessPop()/
+// homeBlanketSmoothPop()/homeBlanketColorWheelPop()), just docked beside the drawer's own right edge
+// instead of under the desktop toolbar button — see positionBlanketPopoverBesideDrawer().
 function ensureDrawerBlanketSection(){
   const section=document.getElementById('drawerBlanketSection');
   if(!section || section.dataset.built) return section;
   section.dataset.built='1';
   const pensHtml=BLANKET_PENS.map((p,i)=>`<button type="button" class="blanket-pen" data-pen="${i}" style="--pen-color:${p.color}" title="${t('blanket_pen_title',{n:i+1})}"></button>`).join('');
   section.insertAdjacentHTML('beforeend', `
-    ${blanketPenTypesHtml('drawerBlanket')}
-    <div class="blanket-pens" id="drawerBlanketPens">${pensHtml}</div>
+    <div class="drawer-label">${t('blanket_drawer_section_label')}</div>
+    <div class="drawer-blanket-pen-panel">
+      ${blanketPenTypesHtml('drawerBlanket')}
+      <div class="blanket-pens" id="drawerBlanketPens">${pensHtml}</div>
+    </div>
     <button type="button" class="drawer-btn" id="drawerBlanketColorWheelBtn">
       <span class="blanket-dock-wheel-swatch" id="drawerBlanketWheelSwatch">${iconColorWheel()}</span>
       <span>${t('blanket_colorwheel_label')}</span>
@@ -18159,6 +19106,41 @@ function ensureDrawerBlanketSection(){
     <div class="drawer-btn blanket-bg-group">
       <input type="color" class="blanket-bg-input" id="drawerBlanketBgColor" value="#ffffff">
       <span>${t('blanket_bg_label')}</span>
+    </div>
+    <button type="button" class="drawer-btn" id="drawerVbfStopMotionToggle" title="${t('blanket_stopmotion_toggle_title')}">${iconBlanketStopMotionMode()}<span>${t('blanket_stopmotion_toggle_label')}</span></button>
+    <div class="drawer-blanket-stopmotion-body" id="drawerVbfStopMotionBody" hidden>
+      <div class="dsm-section">
+        <div class="dsm-section-label">${t('blanket_stopmotion_section_frame')}</div>
+        <div class="dsm-row">
+          <button type="button" id="drawerVbfPrev" title="${t('blanket_frame_prev_title')}">${iconChevronLeft()}</button>
+          <div class="dsm-frame-label" id="drawerVbfLabel"></div>
+          <button type="button" id="drawerVbfNext" title="${t('blanket_frame_next_title')}">${iconChevronRight()}</button>
+        </div>
+      </div>
+      <div class="dsm-section">
+        <div class="dsm-section-label">${t('blanket_stopmotion_section_playback')}</div>
+        <div class="dsm-row">
+          <button type="button" id="drawerVbfPlay" title="${t('blanket_frame_play_title')}">${iconBlanketPlay()}</button>
+          <button type="button" id="drawerVbfOnionToggle" title="${t('blanket_onionskin_toggle_title')}">${iconBlanketOnionSkin()}</button>
+          <button type="button" id="drawerVbfFpsBtn" class="dsm-fps-btn" title="${t('blanket_fps_label')}"></button>
+        </div>
+      </div>
+      <div class="dsm-section">
+        <div class="dsm-section-label">${t('blanket_stopmotion_section_actions')}</div>
+        <div class="dsm-row">
+          <button type="button" id="drawerVbfCopyPaste" title="${blanketCopyPasteBtnState().title}">${blanketCopyPasteBtnState().icon}</button>
+          <button type="button" id="drawerVbfDelete" title="${t('blanket_frame_delete_title')}">${iconTrash()}</button>
+        </div>
+      </div>
+    </div>
+    <div class="dsm-divider"></div>
+    <div class="drawer-label bsm-section-label-row">
+      <span>${t('blanket_layers_section_label')}</span>
+      <button type="button" id="drawerVbfLayersCollapseBtn" class="bsm-collapse-btn" title="${t('blanket_layers_collapse_title')}">${iconChevronUp()}</button>
+    </div>
+    <div id="drawerVbfLayersBody">
+      <div class="dsm-layers-list" id="drawerVbfLayersList"></div>
+      <button type="button" class="drawer-btn" id="drawerVbfLayerAdd">${iconPlus()}<span>${t('blanket_layer_add_title')}</span></button>
     </div>
   `);
   wireBlanketPenTypes(section, closeDrawer);
@@ -18174,14 +19156,43 @@ function ensureDrawerBlanketSection(){
       });
     });
   });
+  // Tom, 22.09 (2. Nachricht): "auf Smartphone soll die Werkzeugleiste beim anklicken stehen bleiben
+  // nur die jeweils anderen tools sollen ausgehen" — these three used to call closeDrawer() right
+  // before opening their popover, so the whole mobile Werkzeuge-Schublade slid away the instant you
+  // tapped Farbe/Stärke/Glätten (you had to reopen it every time just to reach the next control).
+  // Dropped the closeDrawer() call: the drawer now stays open, and closeOtherBlanketToolPopovers()
+  // (already called inside each open*Pop() below) still takes care of the actual "only one tool panel
+  // open at a time" behavior he asked for. Anchoring to the button that was actually tapped (instead of
+  // always the top-left menuBtn) is what makes that work visually with the drawer left open — see
+  // this section's own z-index/positioning comments on .blanket-thickness-pop/.blanket-colorwheel-pop
+  // and positionBlanketToolPopover()/openBlanketColorWheelPop() for the rest of that fix.
+  // Toggle-closes-on-second-tap, matching the desktop dock's own wheelBtn/thicknessBtn/smoothBtn
+  // pattern (see ensureBlanketDock()) — tapping an already-open row's button now flips/collapses it
+  // back shut instead of just re-triggering the same open* call (which was already idempotent, but
+  // gave no way to close the flip/accordion again short of tapping a different row).
   const wheelBtn=section.querySelector('#drawerBlanketColorWheelBtn');
-  wheelBtn.addEventListener('click',()=>{ withCard(c=>{ closeDrawer(); openBlanketColorWheelPop(menuBtn,c); }); });
+  wheelBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      if(blanketColorWheelCard===c) closeBlanketColorWheelPop();
+      else openBlanketColorWheelPop(wheelBtn,c);
+    });
+  });
   const eraserBtn=section.querySelector('#drawerBlanketEraserBtn');
   eraserBtn.addEventListener('click',()=>{ withCard(c=>{ c.data.eraser=!c.data.eraser; DB.putCard(c); refreshBlanketDock(c); closeDrawer(); }); });
   const thicknessBtn=section.querySelector('#drawerBlanketThicknessBtn');
-  thicknessBtn.addEventListener('click',()=>{ withCard(c=>{ closeDrawer(); openBlanketThicknessPop(menuBtn,c); }); });
+  thicknessBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      if(blanketThicknessPopCard===c) closeBlanketThicknessPop();
+      else openBlanketThicknessPop(thicknessBtn,c);
+    });
+  });
   const smoothBtn=section.querySelector('#drawerBlanketSmoothBtn');
-  smoothBtn.addEventListener('click',()=>{ withCard(c=>{ closeDrawer(); openBlanketSmoothPop(menuBtn,c); }); });
+  smoothBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      if(blanketSmoothPopCard===c) closeBlanketSmoothPop();
+      else openBlanketSmoothPop(smoothBtn,c);
+    });
+  });
   const undoBtn=section.querySelector('#drawerBlanketUndoBtn');
   undoBtn.addEventListener('click',()=>{
     withCard(c=>{
@@ -18192,7 +19203,119 @@ function ensureDrawerBlanketSection(){
   });
   const bgColorInput=section.querySelector('#drawerBlanketBgColor');
   bgColorInput.addEventListener('input',()=>{
-    withCard(c=>{ c.data.bgColor=bgColorInput.value; DB.putCard(c); redrawBlanketBoardCanvas(c); refreshBlanketDock(c); });
+    withCard(c=>{ c.data.bgColor=bgColorInput.value; syncBlanketBoardSeamlessBg(c); DB.putCard(c); redrawBlanketBoardCanvas(c); refreshBlanketDock(c); });
+  });
+  // ---- mobile Stop-Motion controls — mirrors ensureViewctlBlanketGroup()'s desktop wiring one for
+  // one; kept in sync via refreshDrawerBlanketStopMotion()/refreshDrawerBlanketLayers(), both hooked
+  // into the existing desktop refresh functions so every call site (frame nav, play, onion, fps,
+  // copy/paste, delete, layer add/rename/eye/delete/reorder — desktop AND now mobile) stays correct for
+  // free. Deliberately does NOT closeDrawer() after each tap (unlike the drawing tools above) — you're
+  // meant to stay in this panel across several taps (stepping through frames, reordering layers), same
+  // as the desktop panel never closes either.
+  const smToggle=section.querySelector('#drawerVbfStopMotionToggle');
+  smToggle.addEventListener('click',()=>{
+    withCard(c=>{
+      stopBlanketBoardPlaying();
+      blanketToggleStopMotion(c); // Runde 2 — keeps frame 0 and the flat store synced both ways, see its own comment
+      DB.putCard(c);
+      redrawBlanketBoardCanvas(c);
+      refreshViewctlBlanketGroup(c);
+    });
+  });
+  const smPrev=section.querySelector('#drawerVbfPrev');
+  smPrev.addEventListener('click',()=>{
+    withCard(c=>{
+      stopBlanketBoardPlaying();
+      if(c.data.frameIndex>0){ c.data.frameIndex--; DB.putCard(c); redrawBlanketBoardCanvas(c); refreshViewctlBlanketGroup(c); }
+    });
+  });
+  const smNext=section.querySelector('#drawerVbfNext');
+  smNext.addEventListener('click',()=>{
+    withCard(c=>{
+      stopBlanketBoardPlaying();
+      if(c.data.frameIndex>=c.data.frames.length-1) c.data.frames.push(newBlanketFrameLike(c,c.data.frames[c.data.frames.length-1]));
+      c.data.frameIndex++;
+      DB.putCard(c); redrawBlanketBoardCanvas(c); refreshViewctlBlanketGroup(c);
+    });
+  });
+  const smPlay=section.querySelector('#drawerVbfPlay');
+  smPlay.addEventListener('click',()=>{
+    withCard(c=>{
+      if(blanketBoardPlayTimer){ stopBlanketBoardPlaying(); return; }
+      const frames=c.data.frames||[];
+      if(frames.length<2) return;
+      smPlay.classList.add('toggled'); smPlay.title=t('blanket_frame_stop_title'); smPlay.innerHTML=iconBlanketPause();
+      const intervalMs=Math.max(30, Math.round(1000/(c.data.fps||BLANKET_DEFAULT_FPS)));
+      blanketBoardPlayTimer=setInterval(()=>{
+        c.data.frameIndex=(c.data.frameIndex+1)%frames.length;
+        redrawBlanketBoardCanvas(c,{playing:true});
+        refreshViewctlBlanketGroup(c);
+      },intervalMs);
+    });
+  });
+  const smOnion=section.querySelector('#drawerVbfOnionToggle');
+  smOnion.addEventListener('click',()=>{
+    withCard(c=>{
+      c.data.onionSkin=!(c.data.onionSkin!==false);
+      DB.putCard(c);
+      redrawBlanketBoardCanvas(c);
+      refreshViewctlBlanketGroup(c);
+    });
+  });
+  const smFps=section.querySelector('#drawerVbfFpsBtn');
+  smFps.addEventListener('click',()=>{
+    withCard(c=>{
+      const cur=c.data.fps||BLANKET_DEFAULT_FPS;
+      const idx=BLANKET_FPS_STEPS.indexOf(cur);
+      c.data.fps=BLANKET_FPS_STEPS[(idx===-1?0:idx+1)%BLANKET_FPS_STEPS.length];
+      DB.putCard(c);
+      refreshViewctlBlanketGroup(c);
+    });
+  });
+  const smCopyPaste=section.querySelector('#drawerVbfCopyPaste');
+  smCopyPaste.addEventListener('click',()=>{
+    withCard(c=>{
+      stopBlanketBoardPlaying();
+      handleBlanketCopyPasteClick(c,smCopyPaste,{onPaste:()=>{ redrawBlanketBoardCanvas(c); refreshViewctlBlanketGroup(c); }});
+    });
+  });
+  const smDelete=section.querySelector('#drawerVbfDelete');
+  smDelete.addEventListener('click',()=>{
+    withCard(c=>{
+      stopBlanketBoardPlaying();
+      confirmModal(t('confirm_delete_frame_title'), t('confirm_delete_frame_body'), t('blanket_frame_delete_title'), ()=>{
+        if(c.data.frames.length>1){
+          c.data.frames.splice(c.data.frameIndex,1);
+          if(c.data.frameIndex>=c.data.frames.length) c.data.frameIndex=c.data.frames.length-1;
+        }else{
+          c.data.frames[0].strokes=[];
+        }
+        DB.putCard(c);
+        redrawBlanketBoardCanvas(c);
+        refreshViewctlBlanketGroup(c);
+      });
+    });
+  });
+  const smLayersCollapseBtn=section.querySelector('#drawerVbfLayersCollapseBtn');
+  smLayersCollapseBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      c.data.layersPanelCollapsed=!c.data.layersPanelCollapsed;
+      DB.putCard(c);
+      refreshBlanketLayersSection(c);
+    });
+  });
+  const smLayerAdd=section.querySelector('#drawerVbfLayerAdd');
+  smLayerAdd.addEventListener('click',()=>{
+    withCard(c=>{
+      ensureBlanketLayers(c);
+      const host=blanketLayerHost(c);
+      const layer=newBlanketLayer((host.layers||[]).length+1);
+      host.layers=[...(host.layers||[]), layer];
+      host.activeLayerId=layer.id;
+      DB.putCard(c);
+      redrawBlanketBoardCanvas(c);
+      refreshBlanketLayersSection(c);
+    });
   });
   return section;
 }
@@ -18225,8 +19348,13 @@ let blanketBoardPlayTimer=null;
 function stopBlanketBoardPlaying(){
   if(!blanketBoardPlayTimer) return;
   clearInterval(blanketBoardPlayTimer); blanketBoardPlayTimer=null;
-  const playBtn=document.getElementById('vbfPlay');
-  if(playBtn){ playBtn.classList.remove('toggled'); playBtn.title=t('blanket_frame_play_title'); playBtn.innerHTML=iconBlanketPlay(); }
+  // 'vbfPlay' (desktop panel) and 'drawerVbfPlay' (its mobile drawer counterpart, see
+  // ensureDrawerBlanketSection()) both need their toggled/paused look reset — whichever one the user
+  // actually pressed play on.
+  ['vbfPlay','drawerVbfPlay'].forEach(id=>{
+    const playBtn=document.getElementById(id);
+    if(playBtn){ playBtn.classList.remove('toggled'); playBtn.title=t('blanket_frame_play_title'); playBtn.innerHTML=iconBlanketPlay(); }
+  });
   const card=currentBlanketBoardCard();
   if(card) redrawBlanketBoardCanvas(card);
 }
@@ -18235,36 +19363,65 @@ function ensureViewctlBlanketGroup(){
   if(!group || group.dataset.built) return group;
   group.dataset.built='1';
   // "soll der Stopmodus einen größeren presenteren Button bekommen... mit Logo und Text darunter" —
-  // #vbfStopMotionToggle is the rounded-rectangle .bsm-toggle (see CSS, now shortened per "soll von der
-  // Höhe kürzer sein") with its own visible label under the icon, not a plain viewctl-sized icon-only
-  // button. "das Menü soll ... nun so aussehen wie die Eigenschaftsfelder in einem normalen Board" —
-  // #vbfFrameGroup is now a .bsm-panel of labeled FRAME/WIEDERGABE/AKTIONEN .bsm-section blocks (same
-  // .insp-label-style captions the card inspector itself uses), replacing the old flat column of bare
-  // icon buttons.
+  // #vbfStopMotionToggle is the rounded-rectangle .bsm-toggle (see CSS) with its own visible label
+  // under the icon. "das Menü soll ... nun so aussehen wie die Eigenschaftsfelder in einem normalen
+  // Board" — #vbfFrameGroup is a .bsm-panel of labeled .bsm-section blocks (same .insp-label-style
+  // captions the card inspector itself uses).
+  // Point 8 ("Ebenen") — Tom's own answer to how the two features (Stop-Motion, already here; Ebenen,
+  // new) should share this one panel: "Das Menü soll ab jetzt immer offen sein und im offenen Menü
+  // einen Stop-Motion Bereich und den Ebenen Bereich" (the panel should from now on always be open,
+  // with a Stop-Motion area and an Ebenen area inside it). So #vbfFrameGroup is no longer a collapsed-
+  // by-default panel that vbfStopMotionToggle opens/closes (see the now-removed
+  // setBlanketStopMotionPanelOpen()) — it's permanently visible whenever the Drawboard's own
+  // #viewctlBlanketGroup is (that outer show/hide, tied to actually being on a Drawboard at all, is
+  // untouched — see applyBlanketBoardChrome()). vbfStopMotionToggle now lives INSIDE the panel, as the
+  // first row of its own "Stop-Motion" area, and its only job is flipping card.data.stopMotion on/off —
+  // opening/closing FRAME/WIEDERGABE/AKTIONEN underneath it (#vbfStopMotionBody) is a plain hidden-
+  // attribute flip now, not an animated accordion (nothing to animate open/closed at the panel level
+  // anymore, since the panel itself never closes).
   group.innerHTML=`
-    <button type="button" id="vbfStopMotionToggle" class="bsm-toggle" title="${t('blanket_stopmotion_toggle_title')}">${iconBlanketStopMotionMode()}<span class="bsm-toggle-label">${t('blanket_stopmotion_toggle_label')}</span></button>
-    <div id="vbfFrameGroup" class="bsm-panel" hidden>
+    <div id="vbfFrameGroup" class="bsm-panel">
       <div class="bsm-section">
-        <div class="bsm-section-label">${t('blanket_stopmotion_section_frame')}</div>
         <div class="bsm-section-row">
-          <button type="button" id="vbfPrev" title="${t('blanket_frame_prev_title')}">${iconChevronLeft()}</button>
-          <div class="bsm-frame-label" id="vbfLabel"></div>
-          <button type="button" id="vbfNext" title="${t('blanket_frame_next_title')}">${iconChevronRight()}</button>
+          <button type="button" id="vbfStopMotionToggle" class="bsm-toggle" title="${t('blanket_stopmotion_toggle_title')}">${iconBlanketStopMotionMode()}<span class="bsm-toggle-label">${t('blanket_stopmotion_toggle_label')}</span></button>
         </div>
       </div>
-      <div class="bsm-section">
-        <div class="bsm-section-label">${t('blanket_stopmotion_section_playback')}</div>
-        <div class="bsm-section-row">
-          <button type="button" id="vbfPlay" title="${t('blanket_frame_play_title')}">${iconBlanketPlay()}</button>
-          <button type="button" id="vbfOnionToggle" title="${t('blanket_onionskin_toggle_title')}">${iconBlanketOnionSkin()}</button>
-          <button type="button" id="vbfFpsBtn" class="vbf-fps-btn" title="${t('blanket_fps_label')}"></button>
+      <div id="vbfStopMotionBody" hidden>
+        <div class="bsm-section">
+          <div class="bsm-section-label">${t('blanket_stopmotion_section_frame')}</div>
+          <div class="bsm-section-row">
+            <button type="button" id="vbfPrev" title="${t('blanket_frame_prev_title')}">${iconChevronLeft()}</button>
+            <div class="bsm-frame-label" id="vbfLabel"></div>
+            <button type="button" id="vbfNext" title="${t('blanket_frame_next_title')}">${iconChevronRight()}</button>
+          </div>
+        </div>
+        <div class="bsm-section">
+          <div class="bsm-section-label">${t('blanket_stopmotion_section_playback')}</div>
+          <div class="bsm-section-row">
+            <button type="button" id="vbfPlay" title="${t('blanket_frame_play_title')}">${iconBlanketPlay()}</button>
+            <button type="button" id="vbfOnionToggle" title="${t('blanket_onionskin_toggle_title')}">${iconBlanketOnionSkin()}</button>
+            <button type="button" id="vbfFpsBtn" class="vbf-fps-btn" title="${t('blanket_fps_label')}"></button>
+          </div>
+        </div>
+        <div class="bsm-section">
+          <div class="bsm-section-label">${t('blanket_stopmotion_section_actions')}</div>
+          <div class="bsm-section-row">
+            <button type="button" id="vbfCopyPaste" class="${blanketCopyPasteBtnState().armed?'armed':''}" title="${blanketCopyPasteBtnState().title}">${blanketCopyPasteBtnState().icon}</button>
+            <button type="button" id="vbfDelete" title="${t('blanket_frame_delete_title')}">${iconTrash()}</button>
+          </div>
         </div>
       </div>
+      <div class="bsm-divider"></div>
       <div class="bsm-section">
-        <div class="bsm-section-label">${t('blanket_stopmotion_section_actions')}</div>
-        <div class="bsm-section-row">
-          <button type="button" id="vbfCopyPaste" class="${blanketCopyPasteBtnState().armed?'armed':''}" title="${blanketCopyPasteBtnState().title}">${blanketCopyPasteBtnState().icon}</button>
-          <button type="button" id="vbfDelete" title="${t('blanket_frame_delete_title')}">${iconTrash()}</button>
+        <div class="bsm-section-label bsm-section-label-row">
+          <span>${t('blanket_layers_section_label')}</span>
+          <button type="button" id="vbfLayersCollapseBtn" class="bsm-collapse-btn" title="${t('blanket_layers_collapse_title')}">${iconChevronUp()}</button>
+        </div>
+        <div id="vbfLayersBody">
+          <div class="bsm-layers-list" id="vbfLayersList"></div>
+          <div class="bsm-section-row">
+            <button type="button" id="vbfLayerAdd" title="${t('blanket_layer_add_title')}">${iconPlus()}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -18274,17 +19431,10 @@ function ensureViewctlBlanketGroup(){
   stopMotionToggle.addEventListener('click',()=>{
     withCard(c=>{
       stopBlanketBoardPlaying();
-      c.data.stopMotion=!c.data.stopMotion;
-      if(c.data.stopMotion && !Array.isArray(c.data.frames)){
-        c.data.frames=[{strokes:(c.data.strokes||[]).map(s=>({...s,points:s.points.map(p=>({...p}))}))}];
-        c.data.frameIndex=0;
-      }
+      blanketToggleStopMotion(c); // Runde 2 — keeps frame 0 and the flat store synced both ways, see its own comment
       DB.putCard(c);
       redrawBlanketBoardCanvas(c);
-      // "beim anklicken per Animation nach unten das Menü auffächern" — animate=true only fires from
-      // this direct click, not from the other refreshViewctlBlanketGroup() calls below (next/prev/play/
-      // etc.) which merely refresh an already-open panel's contents.
-      refreshViewctlBlanketGroup(c,true);
+      refreshViewctlBlanketGroup(c);
     });
   });
   const prevBtn=group.querySelector('#vbfPrev');
@@ -18298,9 +19448,35 @@ function ensureViewctlBlanketGroup(){
   nextBtn.addEventListener('click',()=>{
     withCard(c=>{
       stopBlanketBoardPlaying();
-      if(c.data.frameIndex>=c.data.frames.length-1) c.data.frames.push({strokes:[]});
+      // Point 8 — a brand-new frame inherits the current frame's own layer structure, see
+      // newBlanketFrameLike()'s own comment.
+      if(c.data.frameIndex>=c.data.frames.length-1) c.data.frames.push(newBlanketFrameLike(c,c.data.frames[c.data.frames.length-1]));
       c.data.frameIndex++;
       DB.putCard(c); redrawBlanketBoardCanvas(c); refreshViewctlBlanketGroup(c);
+    });
+  });
+  const layerAddBtn=group.querySelector('#vbfLayerAdd');
+  layerAddBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      ensureBlanketLayers(c);
+      const host=blanketLayerHost(c);
+      const layer=newBlanketLayer((host.layers||[]).length+1);
+      host.layers=[...(host.layers||[]), layer]; // appended at the END — the topmost layer, drawn last/on top (see blanketOrderedVisibleStrokes())
+      host.activeLayerId=layer.id;
+      DB.putCard(c);
+      redrawBlanketBoardCanvas(c);
+      refreshBlanketLayersSection(c);
+    });
+  });
+  // Tom, 22.09: "man soll das Ebenen Menü außerdem auch einklappen können" — the Ebenen list/add-row can
+  // be folded away independently of the rest of the (permanently-open, see this function's own header
+  // comment) panel; remembered per-card so it stays collapsed/expanded across reopening the board.
+  const layersCollapseBtn=group.querySelector('#vbfLayersCollapseBtn');
+  layersCollapseBtn.addEventListener('click',()=>{
+    withCard(c=>{
+      c.data.layersPanelCollapsed=!c.data.layersPanelCollapsed;
+      DB.putCard(c);
+      refreshBlanketLayersSection(c);
     });
   });
   const playBtn=group.querySelector('#vbfPlay');
@@ -18363,48 +19539,21 @@ function ensureViewctlBlanketGroup(){
   });
   return group;
 }
-// "beim anklicken per Animation nach unten das Menü auffächern" — measures the panel's real content
-// height (scrollHeight, unaffected by the max-height/overflow:hidden this animates between — the
-// standard height-unknown-in-advance accordion trick) and transitions .bsm-panel's inline max-height
-// between 0 and that value, instead of the old instant hidden-attribute flip. `animate` is only ever
-// true when passed explicitly from the toggle button's own click handler — every other caller here
-// just keeps an already-open panel in sync (new frame count, fps label, etc.), so passing nothing
-// there simply snaps to the (unchanged) open/closed state with no visible jump.
-function setBlanketStopMotionPanelOpen(panelEl,open,animate){
-  if(!panelEl) return;
-  if(panelEl._bsmCloseHandler){ panelEl.removeEventListener('transitionend',panelEl._bsmCloseHandler); panelEl._bsmCloseHandler=null; }
-  if(open){
-    panelEl.hidden=false;
-    panelEl.classList.add('bsm-panel-open');
-    const target=panelEl.scrollHeight;
-    if(animate){
-      panelEl.style.maxHeight='0px';
-      void panelEl.offsetHeight; // force a reflow so the 0px starting point is committed before animating
-      requestAnimationFrame(()=>{ panelEl.style.maxHeight=target+'px'; });
-    }else{
-      panelEl.style.maxHeight=target+'px';
-    }
-  }else{
-    panelEl.classList.remove('bsm-panel-open');
-    if(animate){
-      panelEl.style.maxHeight=panelEl.scrollHeight+'px';
-      void panelEl.offsetHeight;
-      requestAnimationFrame(()=>{ panelEl.style.maxHeight='0px'; });
-      const onEnd=(e)=>{ if(e.propertyName==='max-height'){ panelEl.hidden=true; panelEl.removeEventListener('transitionend',onEnd); } };
-      panelEl._bsmCloseHandler=onEnd;
-      panelEl.addEventListener('transitionend',onEnd);
-    }else{
-      panelEl.style.maxHeight='0px';
-      panelEl.hidden=true;
-    }
-  }
-}
-function refreshViewctlBlanketGroup(card,animate){
+// Point 8 — the panel itself no longer opens/closes at all (see ensureViewctlBlanketGroup()'s own
+// comment on Tom's "immer offen" answer), so this just keeps its two areas' CONTENTS in sync: the
+// Stop-Motion area's FRAME/WIEDERGABE/AKTIONEN body is a plain hidden-attribute flip depending on
+// whether stop-motion is actually on, and the Ebenen area is fully rebuilt every time (see
+// refreshBlanketLayersSection() — cheap for the handful of layers a board realistically has, and the
+// simplest way to keep thumbnails/active-row highlight/etc. always correct rather than hand-patching
+// a stale DOM). The `animate` parameter this used to take for the old open/close accordion is gone —
+// nothing here animates open/closed anymore.
+function refreshViewctlBlanketGroup(card){
   const group=document.getElementById('viewctlBlanketGroup');
   if(!group || group.hidden || !card) return;
   const stopMotionToggle=group.querySelector('#vbfStopMotionToggle');
   if(stopMotionToggle) stopMotionToggle.classList.toggle('toggled', !!card.data.stopMotion);
-  const frameGroup=group.querySelector('#vbfFrameGroup');
+  const bodyEl=group.querySelector('#vbfStopMotionBody');
+  if(bodyEl) bodyEl.hidden=!card.data.stopMotion;
   if(card.data.stopMotion){
     const frames=card.data.frames||[];
     const label=group.querySelector('#vbfLabel');
@@ -18417,10 +19566,420 @@ function refreshViewctlBlanketGroup(card,animate){
     const fpsBtn=group.querySelector('#vbfFpsBtn');
     if(fpsBtn) fpsBtn.textContent=(card.data.fps||BLANKET_DEFAULT_FPS)+' fps';
   }
-  setBlanketStopMotionPanelOpen(frameGroup, !!card.data.stopMotion, !!animate);
+  refreshBlanketLayersSection(card); // also refreshes the mobile Ebenen list at its own tail, see that function's own comment
+  refreshDrawerBlanketStopMotion(card); // Point 8 mobile follow-up — keeps #drawerBlanketSection's own Stop-Motion controls (see ensureDrawerBlanketSection()) in lockstep with every change made here
+}
+// Mobile counterpart of refreshViewctlBlanketGroup()'s Stop-Motion half, above — same state, drawer
+// ids. Does NOT early-return on any "hidden" check of its own: #drawerBlanketSection's own hidden
+// attribute already gates the whole mobile drawing-tools section the normal way (see
+// applyBlanketBoardChrome()), and updating hidden DOM here is harmless.
+function refreshDrawerBlanketStopMotion(card){
+  const toggle=document.getElementById('drawerVbfStopMotionToggle');
+  if(!toggle || !card) return;
+  toggle.classList.toggle('toggled', !!card.data.stopMotion);
+  const bodyEl=document.getElementById('drawerVbfStopMotionBody');
+  if(bodyEl) bodyEl.hidden=!card.data.stopMotion;
+  if(card.data.stopMotion){
+    const frames=card.data.frames||[];
+    const label=document.getElementById('drawerVbfLabel');
+    if(label) label.textContent=t('blanket_frame_label',{i:(card.data.frameIndex+1), n:frames.length});
+    const prevBtn=document.getElementById('drawerVbfPrev');
+    if(prevBtn) prevBtn.disabled=card.data.frameIndex<=0;
+    refreshBlanketCopyPasteBtn(document.getElementById('drawerVbfCopyPaste'));
+    const onionBtn=document.getElementById('drawerVbfOnionToggle');
+    if(onionBtn) onionBtn.classList.toggle('toggled', card.data.onionSkin!==false);
+    const fpsBtn=document.getElementById('drawerVbfFpsBtn');
+    if(fpsBtn) fpsBtn.textContent=(card.data.fps||BLANKET_DEFAULT_FPS)+' fps';
+  }
+}
+// ---- Point 8: the "Ebenen" (layers) area's own list — thumbnails, visibility, drag-reorder, rename,
+// add/delete. Rebuilt from scratch on every refresh (see refreshViewctlBlanketGroup()'s own comment)
+// rather than hand-patched, since a layer's thumbnail has to be redrawn every time anyway whenever
+// anything on that layer changes.
+// Small checkerboard so an empty/transparent layer thumbnail reads as "empty", not just "blank white".
+function blanketPaintThumbCheckerboard(ctx,w,h){
+  const cell=4;
+  for(let y=0;y<h;y+=cell) for(let x=0;x<w;x+=cell){
+    ctx.fillStyle=((Math.round(x/cell)+Math.round(y/cell))%2===0)?'#e3e3e6':'#f5f5f7';
+    ctx.fillRect(x,y,cell,cell);
+  }
+}
+const BLANKET_LAYER_THUMB_W=32, BLANKET_LAYER_THUMB_H=22;
+function renderBlanketLayerThumb(canvasEl,card,host,layerId){
+  const ctx=canvasEl.getContext('2d');
+  const w=canvasEl.width, h=canvasEl.height;
+  ctx.clearRect(0,0,w,h);
+  blanketPaintThumbCheckerboard(ctx,w,h);
+  const cw=Math.max(1,card.w), ch=Math.max(1,card.h);
+  ctx.save();
+  ctx.setTransform(w/cw,0,0,h/ch,0,0);
+  (host.strokes||[]).filter(s=>s.layerId===layerId).forEach(s=>drawBlanketStroke(ctx,s,cw,ch));
+  ctx.restore();
+}
+function renderBlanketBgThumb(canvasEl,card){
+  const ctx=canvasEl.getContext('2d');
+  const w=canvasEl.width, h=canvasEl.height;
+  ctx.clearRect(0,0,w,h);
+  if(card.data.bgColor){ ctx.fillStyle=card.data.bgColor; ctx.fillRect(0,0,w,h); }
+  else blanketPaintThumbCheckerboard(ctx,w,h);
+}
+function blanketLayerRowHtml(layer,isActive){
+  const hidden=layer.visible===false;
+  return `<div class="bsm-layer-row${isActive?' active':''}" data-layer-id="${layer.id}">
+    <span class="bsm-layer-handle" title="${t('dock_customize_intro')}">${ICON_DRAG_HANDLE}</span>
+    <canvas class="bsm-layer-thumb" width="${BLANKET_LAYER_THUMB_W}" height="${BLANKET_LAYER_THUMB_H}"></canvas>
+    <span class="bsm-layer-name">${escapeHtml(layer.name)}</span>
+    <button type="button" class="bsm-layer-eye${hidden?' off':''}" title="${hidden?t('dock_customize_show'):t('dock_customize_hide')}">${hidden?ICON_EYE_OFF:ICON_EYE}</button>
+    <button type="button" class="bsm-layer-del" title="${t('blanket_layer_delete_title')}">${iconTrash()}</button>
+  </div>`;
+}
+// The background is its own fixed row at the bottom — no drag handle (not reorderable), no delete
+// button (not deletable), same visibility eye as any other layer, plus its own color swatch (kept in
+// sync with the drawing dock's own bg picker — see ensureBlanketDock()/refreshBlanketDock()).
+function blanketBgLayerRowHtml(card){
+  const visible=card.data.bgVisible!==false;
+  return `<div class="bsm-layer-row bsm-layer-bg" data-layer-id="__bg__">
+    <span class="bsm-layer-handle bsm-layer-handle-fixed"></span>
+    <canvas class="bsm-layer-thumb" width="${BLANKET_LAYER_THUMB_W}" height="${BLANKET_LAYER_THUMB_H}"></canvas>
+    <span class="bsm-layer-name">${t('blanket_bg_label')}</span>
+    <input type="color" class="blanket-bg-input bsm-layer-bg-color" title="${t('blanket_bg_title')}" value="${card.data.bgColor||'#ffffff'}">
+    <button type="button" class="bsm-layer-eye${visible?'':' off'}" title="${visible?t('dock_customize_hide'):t('dock_customize_show')}">${visible?ICON_EYE:ICON_EYE_OFF}</button>
+  </div>`;
+}
+function refreshBlanketLayersSection(card){
+  const listEl=document.getElementById('vbfLayersList');
+  if(!listEl || !blanketCardIsDrawboard(card)) return;
+  ensureBlanketLayers(card);
+  const host=blanketLayerHost(card);
+  const layers=host.layers||[];
+  // The underlying array is bottom-to-top (index 0 = bottom, matching drawing order in
+  // blanketOrderedVisibleStrokes()); Photoshop-style, the panel lists top-most FIRST.
+  const displayOrder=[...layers].reverse();
+  listEl.innerHTML=displayOrder.map(l=>blanketLayerRowHtml(l,l.id===host.activeLayerId)).join('') + blanketBgLayerRowHtml(card);
+  listEl.querySelectorAll('.bsm-layer-row').forEach(row=>{
+    const id=row.dataset.layerId;
+    const thumbCanvas=row.querySelector('.bsm-layer-thumb');
+    if(id==='__bg__') renderBlanketBgThumb(thumbCanvas,card);
+    else renderBlanketLayerThumb(thumbCanvas,card,host,id);
+  });
+  wireBlanketLayersList(listEl,card,host);
+  // Tom, 22.09: "man soll das Ebenen Menü außerdem auch einklappen können" — folds the list/add-row
+  // away while leaving the "Ebenen" label + collapse chevron visible, remembered per-card.
+  const collapsed=!!card.data.layersPanelCollapsed;
+  const layersBody=document.getElementById('vbfLayersBody');
+  if(layersBody) layersBody.hidden=collapsed;
+  const collapseBtn=document.getElementById('vbfLayersCollapseBtn');
+  if(collapseBtn) collapseBtn.innerHTML=collapsed?iconChevronDown():iconChevronUp();
+  refreshDrawerBlanketLayers(card); // Point 8 mobile follow-up — keeps #drawerBlanketSection's own simplified Ebenen list (see ensureDrawerBlanketSection()) in lockstep with every layer-list change made here
+}
+function wireBlanketLayerDrag(handle,row,listEl,card,host){
+  handle.addEventListener('pointerdown',(e)=>{
+    if(e.button!==undefined && e.button!==0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    handle.setPointerCapture(e.pointerId);
+    row.classList.add('dragging');
+    function onMove(ev){
+      const under=document.elementFromPoint(ev.clientX,ev.clientY);
+      const overRow=under && under.closest('.bsm-layer-row');
+      // Never lets a dragged row land on/past the fixed background row at the bottom.
+      if(overRow && overRow!==row && overRow.parentElement===listEl && overRow.dataset.layerId!=='__bg__'){
+        const rect=overRow.getBoundingClientRect();
+        const before=ev.clientY<rect.top+rect.height/2;
+        listEl.insertBefore(row,before?overRow:overRow.nextSibling);
+      }
+    }
+    function onUp(){
+      handle.removeEventListener('pointermove',onMove);
+      handle.removeEventListener('pointerup',onUp);
+      handle.removeEventListener('pointercancel',onUp);
+      row.classList.remove('dragging');
+      // Read back top-most-first from the DOM, then reverse to match the array's own bottom-to-top order.
+      const idsTopFirst=[...listEl.querySelectorAll('.bsm-layer-row')].map(r=>r.dataset.layerId).filter(id=>id!=='__bg__');
+      const byId=new Map(host.layers.map(l=>[l.id,l]));
+      host.layers=idsTopFirst.reverse().map(id=>byId.get(id)).filter(Boolean);
+      DB.putCard(card);
+      redrawBlanketBoardCanvas(card);
+      refreshBlanketLayersSection(card);
+    }
+    handle.addEventListener('pointermove',onMove);
+    handle.addEventListener('pointerup',onUp);
+    handle.addEventListener('pointercancel',onUp);
+  });
+}
+function wireBlanketLayersList(listEl,card,host){
+  listEl.querySelectorAll('.bsm-layer-row').forEach(row=>{
+    const id=row.dataset.layerId;
+    if(id==='__bg__'){
+      const colorInput=row.querySelector('.bsm-layer-bg-color');
+      if(colorInput){
+        colorInput.addEventListener('pointerdown',e=>e.stopPropagation());
+        colorInput.addEventListener('input',()=>{
+          card.data.bgColor=colorInput.value;
+          syncBlanketBoardSeamlessBg(card); // Runde 3
+          DB.putCard(card);
+          redrawBlanketBoardCanvas(card);
+          refreshBlanketDock(card); // keeps the drawing dock's own bg swatch (see ensureBlanketDock()) in sync
+          refreshBlanketLayersSection(card);
+        });
+      }
+      const eyeBtn=row.querySelector('.bsm-layer-eye');
+      if(eyeBtn) eyeBtn.addEventListener('click',()=>{
+        card.data.bgVisible=!(card.data.bgVisible!==false);
+        DB.putCard(card);
+        redrawBlanketBoardCanvas(card);
+        refreshBlanketLayersSection(card);
+      });
+      return;
+    }
+    const layer=(host.layers||[]).find(l=>l.id===id);
+    if(!layer) return;
+    row.addEventListener('click',(e)=>{
+      if(e.target.closest('.bsm-layer-eye,.bsm-layer-del,.bsm-layer-handle,.bsm-layer-name')) return;
+      host.activeLayerId=id;
+      DB.putCard(card);
+      refreshBlanketLayersSection(card);
+    });
+    const eyeBtn=row.querySelector('.bsm-layer-eye');
+    if(eyeBtn) eyeBtn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      layer.visible=layer.visible===false;
+      DB.putCard(card);
+      redrawBlanketBoardCanvas(card);
+      refreshBlanketLayersSection(card);
+    });
+    const delBtn=row.querySelector('.bsm-layer-del');
+    if(delBtn){
+      if((host.layers||[]).length<=1) delBtn.disabled=true; // always keep at least one drawable layer
+      delBtn.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        if((host.layers||[]).length<=1) return;
+        confirmModal(t('confirm_delete_layer_title'), t('confirm_delete_layer_body'), t('blanket_layer_delete_title'), ()=>{
+          host.strokes=(host.strokes||[]).filter(s=>s.layerId!==id);
+          host.layers=host.layers.filter(l=>l.id!==id);
+          if(host.activeLayerId===id) host.activeLayerId=host.layers[host.layers.length-1].id;
+          DB.putCard(card);
+          redrawBlanketBoardCanvas(card);
+          refreshBlanketLayersSection(card);
+        });
+      });
+    }
+    const nameEl=row.querySelector('.bsm-layer-name');
+    if(nameEl){
+      nameEl.addEventListener('pointerdown',e=>e.stopPropagation());
+      nameEl.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        // Tom, 22.09: "es wird immer auf die unterste Ebene gezeichnet auch wenn eine andere ausgewählt
+        // ist" — root cause: the row's own click listener (which sets host.activeLayerId) explicitly
+        // excludes .bsm-layer-name, and this handler's own stopPropagation() above stops that listener
+        // from ever seeing a click here anyway — so clicking directly on a layer's NAME (by far the
+        // biggest, most obvious tap target on the whole row) silently started a rename and never
+        // actually selected that layer, leaving whatever layer was active before untouched. New
+        // strokes then kept landing on that (still-active, but visually not the one the user just
+        // "picked") layer — which reads exactly like "always draws on the wrong/bottom layer". Fix:
+        // a tap on the name selects the layer too, same as tapping anywhere else on the row.
+        if(host.activeLayerId!==id){
+          const prevActive=listEl.querySelector('.bsm-layer-row.active');
+          if(prevActive) prevActive.classList.remove('active');
+          row.classList.add('active');
+          host.activeLayerId=id;
+          DB.putCard(card);
+        }
+        if(nameEl.isContentEditable) return;
+        nameEl.contentEditable='true';
+        nameEl.classList.add('editing');
+        const range=document.createRange(); range.selectNodeContents(nameEl);
+        const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        nameEl.focus();
+      });
+      function commitName(){
+        nameEl.contentEditable='false';
+        nameEl.classList.remove('editing');
+        const val=nameEl.textContent.trim()||layer.name;
+        layer.name=val;
+        nameEl.textContent=val;
+        DB.putCard(card);
+      }
+      nameEl.addEventListener('blur',commitName);
+      nameEl.addEventListener('keydown',(e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); nameEl.blur(); }
+        if(e.key==='Escape'){ e.preventDefault(); nameEl.textContent=layer.name; nameEl.blur(); }
+      });
+    }
+    const handle=row.querySelector('.bsm-layer-handle');
+    if(handle) wireBlanketLayerDrag(handle,row,listEl,card,host);
+  });
+}
+// ---- Point 8 mobile counterpart: same functional coverage as refreshBlanketLayersSection() above,
+// but the SIMPLIFIED list Tom asked for once this got extended to mobile — up/down arrow buttons
+// instead of pointer-drag reordering, no live per-layer thumbnails. Called from the end of
+// refreshBlanketLayersSection() itself, so every existing layer-changing action (add/delete/rename/
+// visibility/reorder/bg color) already reaches here too without any extra call sites. ----
+function drawerBlanketLayerRowHtml(layer,isActive,isTop,isBottom){
+  const hidden=layer.visible===false;
+  return `<div class="dsm-layer-row${isActive?' active':''}" data-layer-id="${layer.id}">
+    <button type="button" class="dsm-layer-btn dsm-layer-up" title="${t('blanket_layer_move_up_title')}" ${isTop?'disabled':''}>${iconChevronUp()}</button>
+    <button type="button" class="dsm-layer-btn dsm-layer-down" title="${t('blanket_layer_move_down_title')}" ${isBottom?'disabled':''}>${iconChevronDown()}</button>
+    <span class="dsm-layer-name">${escapeHtml(layer.name)}</span>
+    <button type="button" class="dsm-layer-btn dsm-layer-eye${hidden?' off':''}" title="${hidden?t('dock_customize_show'):t('dock_customize_hide')}">${hidden?ICON_EYE_OFF:ICON_EYE}</button>
+    <button type="button" class="dsm-layer-btn dsm-layer-del" title="${t('blanket_layer_delete_title')}">${iconTrash()}</button>
+  </div>`;
+}
+// Same fixed, non-reorderable/non-deletable background row as blanketBgLayerRowHtml() (desktop) — two
+// hidden placeholder buttons keep it visually aligned under the up/down column of the real layer rows
+// above it, since it has neither.
+function drawerBlanketBgLayerRowHtml(card){
+  const visible=card.data.bgVisible!==false;
+  return `<div class="dsm-layer-row" data-layer-id="__bg__">
+    <span class="dsm-layer-btn" style="visibility:hidden;"></span>
+    <span class="dsm-layer-btn" style="visibility:hidden;"></span>
+    <span class="dsm-layer-name">${t('blanket_bg_label')}</span>
+    <input type="color" class="dsm-layer-bg-color" title="${t('blanket_bg_title')}" value="${card.data.bgColor||'#ffffff'}">
+    <button type="button" class="dsm-layer-btn dsm-layer-eye${visible?'':' off'}" title="${visible?t('dock_customize_hide'):t('dock_customize_show')}">${visible?ICON_EYE:ICON_EYE_OFF}</button>
+  </div>`;
+}
+function refreshDrawerBlanketLayers(card){
+  const listEl=document.getElementById('drawerVbfLayersList');
+  if(!listEl || !blanketCardIsDrawboard(card)) return;
+  ensureBlanketLayers(card);
+  const host=blanketLayerHost(card);
+  const layers=host.layers||[];
+  const displayOrder=[...layers].reverse(); // top-most first, same convention as the desktop list
+  listEl.innerHTML=displayOrder.map((l,i)=>drawerBlanketLayerRowHtml(l,l.id===host.activeLayerId,i===0,i===displayOrder.length-1)).join('') + drawerBlanketBgLayerRowHtml(card);
+  wireDrawerBlanketLayersList(listEl,card,host);
+  const collapsed=!!card.data.layersPanelCollapsed;
+  const bodyEl=document.getElementById('drawerVbfLayersBody');
+  if(bodyEl) bodyEl.hidden=collapsed;
+  const collapseBtn=document.getElementById('drawerVbfLayersCollapseBtn');
+  if(collapseBtn) collapseBtn.innerHTML=collapsed?iconChevronDown():iconChevronUp();
+}
+function wireDrawerBlanketLayersList(listEl,card,host){
+  listEl.querySelectorAll('.dsm-layer-row').forEach(row=>{
+    const id=row.dataset.layerId;
+    if(id==='__bg__'){
+      const colorInput=row.querySelector('.dsm-layer-bg-color');
+      if(colorInput){
+        colorInput.addEventListener('input',()=>{
+          card.data.bgColor=colorInput.value;
+          syncBlanketBoardSeamlessBg(card); // Runde 3
+          DB.putCard(card);
+          redrawBlanketBoardCanvas(card);
+          refreshBlanketDock(card);
+          refreshBlanketLayersSection(card); // rebuilds both the desktop list and (via its own tail call) this one
+        });
+      }
+      const eyeBtn=row.querySelector('.dsm-layer-eye');
+      if(eyeBtn) eyeBtn.addEventListener('click',()=>{
+        card.data.bgVisible=!(card.data.bgVisible!==false);
+        DB.putCard(card);
+        redrawBlanketBoardCanvas(card);
+        refreshBlanketLayersSection(card);
+      });
+      return;
+    }
+    const layer=(host.layers||[]).find(l=>l.id===id);
+    if(!layer) return;
+    row.addEventListener('click',(e)=>{
+      if(e.target.closest('.dsm-layer-btn,.dsm-layer-name')) return;
+      host.activeLayerId=id;
+      DB.putCard(card);
+      refreshBlanketLayersSection(card);
+    });
+    const upBtn=row.querySelector('.dsm-layer-up');
+    if(upBtn) upBtn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      // host.layers is bottom-to-top; "up" in the (top-first) displayed list means moving to a HIGHER
+      // raw index (closer to the end of the array, i.e. drawn later/on top — see blanketOrderedVisibleStrokes()).
+      const idx=host.layers.findIndex(l=>l.id===id);
+      if(idx<0 || idx>=host.layers.length-1) return;
+      [host.layers[idx],host.layers[idx+1]]=[host.layers[idx+1],host.layers[idx]];
+      DB.putCard(card);
+      redrawBlanketBoardCanvas(card);
+      refreshBlanketLayersSection(card);
+    });
+    const downBtn=row.querySelector('.dsm-layer-down');
+    if(downBtn) downBtn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      const idx=host.layers.findIndex(l=>l.id===id);
+      if(idx<=0) return;
+      [host.layers[idx],host.layers[idx-1]]=[host.layers[idx-1],host.layers[idx]];
+      DB.putCard(card);
+      redrawBlanketBoardCanvas(card);
+      refreshBlanketLayersSection(card);
+    });
+    const eyeBtn=row.querySelector('.dsm-layer-eye');
+    if(eyeBtn) eyeBtn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      layer.visible=layer.visible===false;
+      DB.putCard(card);
+      redrawBlanketBoardCanvas(card);
+      refreshBlanketLayersSection(card);
+    });
+    const delBtn=row.querySelector('.dsm-layer-del');
+    if(delBtn){
+      if((host.layers||[]).length<=1) delBtn.disabled=true;
+      delBtn.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        if((host.layers||[]).length<=1) return;
+        confirmModal(t('confirm_delete_layer_title'), t('confirm_delete_layer_body'), t('blanket_layer_delete_title'), ()=>{
+          host.strokes=(host.strokes||[]).filter(s=>s.layerId!==id);
+          host.layers=host.layers.filter(l=>l.id!==id);
+          if(host.activeLayerId===id) host.activeLayerId=host.layers[host.layers.length-1].id;
+          DB.putCard(card);
+          redrawBlanketBoardCanvas(card);
+          refreshBlanketLayersSection(card);
+        });
+      });
+    }
+    const nameEl=row.querySelector('.dsm-layer-name');
+    if(nameEl){
+      nameEl.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        if(host.activeLayerId!==id){ host.activeLayerId=id; DB.putCard(card); row.classList.add('active'); const prevActive=listEl.querySelector('.dsm-layer-row.active'); if(prevActive && prevActive!==row) prevActive.classList.remove('active'); }
+        if(nameEl.isContentEditable) return;
+        nameEl.contentEditable='true';
+        nameEl.classList.add('editing');
+        const range=document.createRange(); range.selectNodeContents(nameEl);
+        const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        nameEl.focus();
+      });
+      function commitName(){
+        nameEl.contentEditable='false';
+        nameEl.classList.remove('editing');
+        const val=nameEl.textContent.trim()||layer.name;
+        layer.name=val;
+        nameEl.textContent=val;
+        DB.putCard(card);
+      }
+      nameEl.addEventListener('blur',commitName);
+      nameEl.addEventListener('keydown',(e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); nameEl.blur(); }
+        if(e.key==='Escape'){ e.preventDefault(); nameEl.textContent=layer.name; nameEl.blur(); }
+      });
+    }
+  });
 }
 
 // ---- master switch, called from openBoard()/goHome() ----
+// Tom, 22.09 (Runde 3) — "seamless" edges, second half (see the .card-blanket-canvas CSS's own long
+// comment for the first half): matches the plain empty space AROUND the Drawboard's giant canvas card
+// to that card's own background color, by overriding the --canvas custom property (normally the
+// board's fixed light/dark theme color — see .canvas-viewport{background:var(--canvas)}) right on the
+// #viewport element itself. While a card's own bgColor is white (the default), zooming/panning past
+// its edge used to hit a hard, obviously-rectangular color cliff against the board's plain grey/navy
+// background — now it's the same color on both sides, so the only thing left to ever reveal the
+// honestly-finite BOARD_CANVAS_SIZE boundary is actually reaching it, not a color contrast miles
+// before that point. Called both when entering/leaving a Drawboard (applyBlanketBoardChrome) and
+// every time its own Hintergrund color changes (all the bgColor-setting call sites below), so the two
+// always stay in lockstep. Harmless outside a Drawboard: removing the property just lets .canvas-
+// viewport's rule fall back to the normal var(--canvas) theme value again, exactly as before this.
+function syncBlanketBoardSeamlessBg(card){
+  if(card && blanketCardIsDrawboard(card)){
+    viewport.style.setProperty('--canvas', card.data.bgColor || '#ffffff');
+  }else{
+    viewport.style.removeProperty('--canvas');
+  }
+}
 function applyBlanketBoardChrome(canvasCard){
   const dockEl=document.getElementById('dock');
   const blanketDockEl=ensureBlanketDock();
@@ -18436,6 +19995,14 @@ function applyBlanketBoardChrome(canvasCard){
   const dynamicSep=document.getElementById('dynamicSep');
   const dockCustomizeBtn=document.getElementById('dockCustomizeBtn');
   const dockCustomizeSep=document.getElementById('dockCustomizeSep');
+  // Tom, 22.09: the drawer's own "Ansicht" section carries its own separate Anpassen/Einpassen/
+  // Dynamische-Inhalte buttons (drawerCustomizeBtn/drawerFitBtn/drawerDynamicToggle) — these were never
+  // included in the hide-during-Drawboard treatment above, so a phone kept showing all three the whole
+  // time even though their desktop equivalents were already hidden by the very same request. Brought in
+  // line with the desktop behavior here.
+  const drawerCustomizeBtn=document.getElementById('drawerCustomizeBtn');
+  const drawerFitBtn=document.getElementById('drawerFitBtn');
+  const drawerDynamicToggle=document.getElementById('drawerDynamicToggle');
   // "in der Smartphone Ansicht gibt es keine Werkzeugleiste im Drawboard, die soll auch das
   // Hamburgermenü besetzen" — the mobile counterpart of the dockEl/blanketDockEl swap above: on a
   // phone #dock/#blanketDock are both permanently display:none (see .bottom-bars in the
@@ -18456,6 +20023,7 @@ function applyBlanketBoardChrome(canvasCard){
   // runs, so it can't yet know whether the board it's opening is a Blanket-Board — this is the call
   // that actually settles it, either way.
   syncGridLayerVisibility();
+  syncBlanketBoardSeamlessBg(canvasCard); // Runde 3 — matches the surrounding board bg to this card's own, or restores it on the way out (see that function's own comment)
   if(canvasCard){
     if(dockEl) dockEl.hidden=true;
     if(blanketDockEl) blanketDockEl.hidden=false;
@@ -18467,11 +20035,29 @@ function applyBlanketBoardChrome(canvasCard){
     if(dynamicSep) dynamicSep.hidden=true;
     if(dockCustomizeBtn) dockCustomizeBtn.hidden=true;
     if(dockCustomizeSep) dockCustomizeSep.hidden=true;
+    if(drawerCustomizeBtn) drawerCustomizeBtn.hidden=true;
+    if(drawerFitBtn) drawerFitBtn.hidden=true;
+    if(drawerDynamicToggle) drawerDynamicToggle.hidden=true;
     if(drawerAddSection) drawerAddSection.hidden=true;
     if(drawerToolSection) drawerToolSection.hidden=true;
     if(drawerBlanketSection) drawerBlanketSection.hidden=false;
+    // Runde 3 seamless-edges — same "first paint didn't know yet" gap as the redrawBlanketBoardCanvas()
+    // call below (see its own comment): buildBlanketCard()'s own el.classList.toggle('card-blanket-
+    // canvas', blanketCardIsDrawboard(card)) only ever runs at full-card-build time, which already
+    // happened (via openBoard()'s earlier renderAllCards()) before state.blanketBoardCardId above was
+    // set — so the class never actually lands via that path on a normal "open this Drawboard" flow.
+    // Setting it directly on the already-built element here is what actually makes it stick.
+    const canvasEl=document.querySelector(`.card[data-id="${canvasCard.id}"]`);
+    if(canvasEl) canvasEl.classList.add('card-blanket-canvas');
     refreshBlanketDock(canvasCard);
     refreshViewctlBlanketGroup(canvasCard);
+    // Point 8 — this card's very first paint (renderAllCards(), just above in openBoard(), before
+    // state.blanketBoardCardId was set) couldn't yet know it's the Drawboard's own canvas, so it drew
+    // its strokes in plain flat order rather than respecting any already-saved layer order/visibility
+    // (see blanketOrderedVisibleStrokes()'s own comment). Now that the flag above is set, force one
+    // more repaint so a board with a custom layer order/hidden layer shows correctly right away instead
+    // of only after the next stroke/frame change triggers a redraw anyway.
+    redrawBlanketBoardCanvas(canvasCard);
   }else{
     if(dockEl) dockEl.hidden=false;
     if(blanketDockEl) blanketDockEl.hidden=true;
@@ -18483,6 +20069,9 @@ function applyBlanketBoardChrome(canvasCard){
     if(dynamicSep) dynamicSep.hidden=false;
     if(dockCustomizeBtn) dockCustomizeBtn.hidden=false;
     if(dockCustomizeSep) dockCustomizeSep.hidden=false;
+    if(drawerCustomizeBtn) drawerCustomizeBtn.hidden=false;
+    if(drawerFitBtn) drawerFitBtn.hidden=false;
+    if(drawerDynamicToggle) drawerDynamicToggle.hidden=false;
     if(drawerAddSection) drawerAddSection.hidden=false;
     if(drawerToolSection) drawerToolSection.hidden=false;
     if(drawerBlanketSection) drawerBlanketSection.hidden=true;
@@ -18834,6 +20423,11 @@ function openDrawer(){
 }
 function closeDrawer(){
   mobileScrim.classList.remove('open'); mobileDrawer.classList.remove('open');
+  // Closing the whole drawer (scrim tap, the X button, or navigating away) should also close any
+  // Stärke/Glätten/Farbe popover still floating beside it — otherwise it'd be left stranded on screen
+  // with no drawer left to dock next to, and the blanket*PopCard tracking variable would silently
+  // survive, making the next open think a popover is already showing.
+  if(typeof closeOtherBlanketToolPopovers==='function') closeOtherBlanketToolPopovers(null);
   setTimeout(()=>{ if(!mobileDrawer.classList.contains('open')){ mobileScrim.hidden=true; mobileDrawer.hidden=true; } },220);
 }
 menuBtn.addEventListener('click',openDrawer);
