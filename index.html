@@ -3055,19 +3055,25 @@ try{
     .busy-bar-spinner{animation:none;}
   }
 
-  /* ---------- BOARD-OPEN TRANSITION ("Kachel wächst auf") ----------
+  /* ---------- BOARD-OPEN TRANSITION ("ein echter Zoom in") ----------
      openBoardWithFlyTransition() clones the clicked Home tile (or boardlink card) and animates that
      clone — not the real tile, which stays put underneath — from its exact on-screen position/size up
-     to fill the whole viewport, while the real board loads behind it. Only top/left/width/height/
-     border-radius transition (not transform+scale) so the clone's own contents (title, spine color,
-     thumbnail) don't visibly distort while growing; those get faded out separately, fast, since text
-     legible at tile size turns into a smear once stretched toward fullscreen. See
+     to fill the whole viewport, while the real board loads behind it. Tom, 23.09: "am geilsten wäre
+     ein echter Zoom in und Zoom out" — this used to grow the clone via top/left/width/height, which
+     forces a browser layout pass on every single frame and reads as a box stretching rather than a
+     camera pushing in, on a curve with a steep initial slope that also "popped" into motion instead
+     of easing smoothly out of rest. Now the clone is sized fullscreen from the very first frame and
+     starts with a `transform` that makes it LOOK exactly like the tile (see the translate+scale math
+     in openBoardWithFlyTransition), then animates JUST that transform back to identity — one single
+     GPU-composited property doing all the work, on a symmetric ease-in-out curve (zero velocity at
+     both ends) so the start and the end both read as smooth, not snappy. border-radius still
+     transitions on its own (cheap, non-layout) from the tile's rounded corners down to a square board;
+     the clone's own contents (title, spine color, thumbnail) still get faded out separately, fast,
+     since text legible at tile size turns into a smear once scaled toward fullscreen. See
      openBoardWithFlyTransition() for why this stays entirely optional/best-effort. */
   .board-open-fly{
-    position:fixed; z-index:9999; overflow:hidden; margin:0; pointer-events:none;
-    transition:top .46s cubic-bezier(.22,.61,.36,1), left .46s cubic-bezier(.22,.61,.36,1),
-               width .46s cubic-bezier(.22,.61,.36,1), height .46s cubic-bezier(.22,.61,.36,1),
-               border-radius .46s cubic-bezier(.22,.61,.36,1);
+    position:fixed; z-index:9999; overflow:hidden; margin:0; pointer-events:none; transform-origin:0 0;
+    transition:transform .52s cubic-bezier(.65,0,.35,1), border-radius .52s cubic-bezier(.65,0,.35,1);
   }
   @media (prefers-reduced-motion: reduce){
     .board-open-fly{display:none;} /* openBoardWithFlyTransition() also checks this itself before ever creating one */
@@ -3082,21 +3088,25 @@ try{
      a genuine cross-fade instead of a static reveal. */
   #boardView.board-fly-fadein{opacity:0; transition:opacity .32s ease;}
 
-  /* ---------- BOARD-CLOSE TRANSITION ("Rauszoomen beim Zurückgehen") ----------
-     The reverse of the "Kachel wächst auf" open transition above: leaving a board backward — the
-     "Übersicht"/Home button, or clicking a breadcrumb to jump up to an ancestor board — shrinks and
-     fades the board you're leaving, THEN (once the destination has actually loaded — see
-     navigateBackWithZoom()) eases the destination in from a touch larger than normal, a quick
-     "zooming back out towards you" cue instead of the old hard cut. Two classes, not one, on the
-     exit side (…-prep sets only the transition, …-active then sets the actual end values a frame
-     later) for the same reason openBoardWithFlyTransition()'s clone needs its own forced-reflow step:
-     a class that set the transition AND the target values in one go would have nothing to visibly
-     transition FROM. The entrance side is a single keyframe animation instead (no "current value" to
-     transition from — it always starts at the same slightly-too-big, invisible state). */
-  #boardView.board-exit-zoom-prep{transition:transform .2s cubic-bezier(.4,0,.2,1), opacity .2s ease;}
-  #boardView.board-exit-zoom-active{transform:scale(0.92); opacity:0;}
-  .board-enter-zoom{animation:boardEnterZoom .32s cubic-bezier(.22,1,.36,1);}
-  @keyframes boardEnterZoom{from{opacity:0; transform:scale(1.05);} to{opacity:1; transform:scale(1);}}
+  /* ---------- BOARD-CLOSE TRANSITION ("ein echter Zoom out beim Zurückgehen") ----------
+     The reverse of the "Zoom in" open transition above: leaving a board backward — the
+     "Übersicht"/Home button, or clicking a breadcrumb to jump up to an ancestor board — genuinely
+     scales and fades the board you're leaving away, THEN (once the destination has actually loaded —
+     see navigateBackWithZoom()) scales the destination in from noticeably larger than normal, a real
+     "zooming back out towards you" cue instead of the old hard cut. Tom, 23.09: the previous 0.92→1 /
+     1.05→1 steps were subtle enough to barely read as a zoom at all, and used curves with a steep
+     initial slope (a "snap" into motion) instead of easing smoothly out of rest — bigger scale swings
+     now, and the SAME symmetric ease-in-out curve as the open transition above for both halves, so
+     opening and closing a board share one consistent, smooth feel start-to-end. Two classes, not one,
+     on the exit side (…-prep sets only the transition, …-active then sets the actual end values a
+     frame later) for the same reason openBoardWithFlyTransition()'s clone needs its own forced-reflow
+     step: a class that set the transition AND the target values in one go would have nothing to
+     visibly transition FROM. The entrance side is a single keyframe animation instead (no "current
+     value" to transition from — it always starts at the same slightly-too-big, invisible state). */
+  #boardView.board-exit-zoom-prep{transition:transform .3s cubic-bezier(.65,0,.35,1), opacity .3s cubic-bezier(.65,0,.35,1);}
+  #boardView.board-exit-zoom-active{transform:scale(0.8); opacity:0;}
+  .board-enter-zoom{animation:boardEnterZoom .42s cubic-bezier(.65,0,.35,1);}
+  @keyframes boardEnterZoom{from{opacity:0; transform:scale(1.18);} to{opacity:1; transform:scale(1);}}
   @media (prefers-reduced-motion: reduce){
     #boardView.board-exit-zoom-prep, #boardView.board-exit-zoom-active{transition:none; transform:none; opacity:1;}
     .board-enter-zoom{animation:none;}
@@ -9000,21 +9010,14 @@ function setHomePeek(id){
   state.homePeek=id;
   refreshHomeSelectionUI();
 }
-// Delays the actual setHomePeek() call when the triggering click landed on a tile's title text — see
-// buildBoardTile's title-click handling below for why (short version: the "Zum Board" button renders
-// close enough to the title that revealing it instantly can put it right under a dblclick's second
-// click, silently opening the board instead of the rename the dblclick meant). Shared/module-level
-// rather than per-tile since only one tile's peek can ever be pending at once, which is also exactly
-// why clearHomePeek() below cancels it too — otherwise dismissing a peek (click elsewhere, open a
-// different board, …) within that delay window could get silently "undone" by the stale timer still
-// firing a moment later.
-let homePeekRevealTimer=null;
-function scheduleHomePeek(id,delayMs){
-  clearTimeout(homePeekRevealTimer);
-  homePeekRevealTimer=setTimeout(()=>setHomePeek(id),delayMs);
-}
+// Tom, 23.09: "durch die Wartezeit fühlt es sich laggy an" — this used to delay revealing "Zum Board"
+// by ~300ms specifically when the triggering click landed on the title, to leave the native dblclick
+// event room to land before the button could pop up under the second click and silently open the
+// board instead of triggering the rename. That delay is gone: buildBoardTile's click handler now
+// decides rename-vs-peek by TARGET+STATE (is "Zum Board" already showing for this exact tile — i.e.
+// is this the second click landing on the text itself) instead of by TIMING, so every click — title
+// included — reveals "Zum Board" instantly and there's nothing left here to schedule.
 function clearHomePeek(){
-  clearTimeout(homePeekRevealTimer);
   if(!state.homePeek) return;
   state.homePeek=null;
   refreshHomeSelectionUI();
@@ -9057,11 +9060,7 @@ function updateHomeBulkBar(){
 // tap resets it" convention already used for the touch drag-to-merge mark (see the markedTileBoardId
 // listener further below). "man klickt ins nichts" — this is that click-into-nothing.
 document.addEventListener('pointerdown',(e)=>{
-  // Also fires while a peek is only SCHEDULED (homePeekRevealTimer pending, see scheduleHomePeek)
-  // but hasn't actually landed in state.homePeek yet — otherwise clicking away inside that ~300ms
-  // grace window bailed out here before ever reaching clearHomePeek() below, and the stale timer
-  // would still fire a moment later and reveal the button anyway, undoing the click-away.
-  if(!state.homeSelection.size && !state.homePeek && !homePeekRevealTimer) return;
+  if(!state.homeSelection.size && !state.homePeek) return;
   if(e.target.closest('.board-tile, .project-tile, .project-panel, .home-bulk-bar, #toolsBtn, .tools-sheet')) return;
   clearHomeSelection();
   clearHomePeek();
@@ -9186,42 +9185,30 @@ async function buildBoardTile(b,opts){
   // way a completed drag always has here.
   let justDragged=false;
   let justLongPressedSelect=false;
-  // "in der Übersicht soll Zum Board nur dann auftauchen wenn man nicht auf die Schrift klickt" — a
-  // plain click anywhere on the (block-level, up-to-2-line) h3 used to still count as "click the
-  // tile" and reveal the peek button, since only an ALREADY-editing h3 was excluded. Tom's own
-  // follow-up refined this further: excluding the WHOLE h3 box made almost the entire top of the tile
-  // a dead zone (h3 spans the tile's full width/height regardless of how short the actual title text
-  // is), so a "nur der Beginn vom Text und bisschen schmaler" small zone at the very start of the
-  // title (not the whole heading) is what's actually excluded here — small and deliberately hard to
-  // hit by accident, so almost the whole tile (including most of a longer title) still peeks normally,
-  // while there's still just enough room to reliably land a dblclick there to rename (dblclick stays
-  // bound to the whole h3 below, unaffected by this).
-  const titleStartZoneHit=(e)=>{
-    const h3El=e.target.closest && e.target.closest('h3');
-    if(!h3El || h3El.isContentEditable) return false;
-    const r=h3El.getBoundingClientRect();
-    const zoneW=Math.min(46,r.width*0.5), zoneH=Math.min(20,r.height);
-    return e.clientX>=r.left && e.clientX<=r.left+zoneW && e.clientY>=r.top && e.clientY<=r.top+zoneH;
-  };
-  const tileExcluded=(e)=>e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')||e.target.closest('.tile-go-btn')||titleStartZoneHit(e);
+  // "sonst erscheint es immer nach einem Klick" — ANY click on the tile, title included, reveals
+  // "Zum Board" right away now; there's no more small dead-zone at the start of the title either
+  // (see the removed titleStartZoneHit — no longer needed once rename no longer depends on timing).
+  const tileExcluded=(e)=>e.target.closest('.tile-actions')||e.target.closest('.remove-from-project-btn')||e.target.closest('h3[contenteditable="true"]')||e.target.closest('.spine')||e.target.closest('.tile-go-btn');
   tile.addEventListener('click',(e)=>{
     if(tileExcluded(e)) return;
     if(justDragged){ justDragged=false; return; }
     if(justLongPressedSelect){ justLongPressedSelect=false; return; }
-    if(e.detail>=2) return; // the second half of a dblclick — let the dblclick handler below open it
-    if(state.homeSelection.size){ toggleHomeSelect(b.id); return; }
-    if(e.target.closest('h3')){
-      // See scheduleHomePeek's own comment: delay the reveal by the usual double-click window instead
-      // of showing it instantly. A real single click still peeks, just a beat later; an actual
-      // double-click cancels this (h3's own dblclick handler below clears it) before the button ever
-      // appears, so there's nothing for the second click to accidentally land on.
-      scheduleHomePeek(b.id,300);
-    }else{
-      setHomePeek(b.id);
+    // Tom, 23.09: "Zweiter Klick auf Text = Text wird bearbeitet und Zum Board verschwindet" — a
+    // repeat click on the title while "Zum Board" is already showing for THIS tile edits the name
+    // instead of anything else. Decided by TARGET+STATE, not by native dblclick timing, so it fires
+    // the instant the second click lands (no waiting to see whether a dblclick "completes" first) and
+    // works identically on touch, where dblclick never reliably fires at all.
+    const h3El=e.target.closest('h3');
+    if(h3El && state.homePeek===b.id){
+      clearHomePeek();
+      h3El.contentEditable='true'; h3El.focus(); document.execCommand('selectAll',false,null);
+      return;
     }
+    if(e.detail>=2) return; // the second half of a dblclick elsewhere on the tile — the dblclick handler below opens it
+    if(state.homeSelection.size){ toggleHomeSelect(b.id); return; }
+    setHomePeek(b.id);
   });
   tile.addEventListener('dblclick',(e)=>{
-    clearTimeout(homePeekRevealTimer);
     if(tileExcluded(e)) return;
     openBoardWithFlyTransition(b.id,tile);
   });
@@ -9268,14 +9255,8 @@ async function buildBoardTile(b,opts){
     });
   }
   const h3=tile.querySelector('h3');
-  h3.addEventListener('dblclick',(e)=>{
-    // This handler stops propagation below, so the tile-level dblclick listener above (where the
-    // OTHER clearTimeout(homePeekRevealTimer) lives) never even runs for a dblclick landing directly
-    // on the title — clear it here too, otherwise the delayed peek from this same double-click's
-    // first click could still pop up a moment into the rename.
-    clearTimeout(homePeekRevealTimer);
-    e.stopPropagation(); h3.contentEditable='true'; h3.focus(); document.execCommand('selectAll',false,null);
-  });
+  // Renaming is triggered by the tile's own click handler above now (a repeat click on an
+  // already-peeked title) — no separate dblclick-to-rename listener needed here anymore.
   h3.addEventListener('click',(e)=>{if(h3.isContentEditable) e.stopPropagation();});
   h3.addEventListener('blur',async ()=>{
     h3.contentEditable='false';
@@ -10389,7 +10370,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.50';
+const APP_VERSION='2.4.54';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
@@ -10741,11 +10722,21 @@ function openBoardWithFlyTransition(id, tileEl){
   boardOpenFlyActive=true;
   // Keep the element's own classes (.board-tile / .card.card-boardlink) so its background, border-
   // radius, padding and text styling all still come from the exact same rules the real tile uses —
-  // .board-open-fly only adds position:fixed + the top/left/width/height/border-radius transition,
-  // winning those specific properties by appearing later in the stylesheet than either of those.
+  // .board-open-fly only adds position:fixed + the transform/border-radius transition, winning those
+  // specific properties by appearing later in the stylesheet than either of those.
   clone.className+=' board-open-fly';
+  // Tom, 23.09: "ein echter Zoom in" — sized fullscreen from frame one; the `transform` below (undone
+  // in the rAF callback further down) is what makes it LOOK like the small tile to start with. Standard
+  // translate-then-scale math for a top-left transform-origin (see .board-open-fly above): scaling
+  // the fullscreen box down by rect.width/vw × rect.height/vh, then translating by the tile's own
+  // on-screen position, places local point (0,0) exactly at the tile's top-left corner and local point
+  // (vw,vh) exactly at the tile's bottom-right corner — i.e. the fullscreen element renders pixel-for-
+  // pixel where and how big the tile actually is.
+  const vw=window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const vh=window.visualViewport ? window.visualViewport.height : window.innerHeight;
   Object.assign(clone.style,{
-    margin:'0', top:rect.top+'px', left:rect.left+'px', width:rect.width+'px', height:rect.height+'px', opacity:'1',
+    margin:'0', top:'0px', left:'0px', width:vw+'px', height:vh+'px', opacity:'1',
+    transform:`translate(${rect.left}px, ${rect.top}px) scale(${rect.width/vw}, ${rect.height/vh})`,
   });
   clone.setAttribute('aria-hidden','true');
   document.body.appendChild(clone);
@@ -10755,16 +10746,15 @@ function openBoardWithFlyTransition(id, tileEl){
   // single frame. Only ever removed again in the cleanup at the bottom of this function.
   boardView.classList.add('board-fly-fadein');
   const openPromise=openBoard(id);
-  void clone.offsetWidth; // commit the start rect before animating, same trick used elsewhere in this file
+  void clone.offsetWidth; // commit the start transform before animating, same trick used elsewhere in this file
   requestAnimationFrame(()=>{
-    clone.style.top='0px'; clone.style.left='0px';
-    clone.style.width='100vw'; clone.style.height=(window.visualViewport ? window.visualViewport.height : window.innerHeight)+'px';
+    clone.style.transform='translate(0px, 0px) scale(1, 1)';
     clone.style.borderRadius='0px';
     // The tile's label/spine/thumbnail only ever read correctly at tile size — fade them out fast
-    // while the card itself keeps growing, instead of letting them stretch into an illegible smear.
+    // while the card itself keeps zooming, instead of letting them stretch into an illegible smear.
     Array.from(clone.children).forEach(c=>{ c.style.transition='opacity .16s ease'; c.style.opacity='0'; });
   });
-  const growDone=new Promise(res=>setTimeout(res,460));
+  const growDone=new Promise(res=>setTimeout(res,520)); // matches .board-open-fly's .52s transition
   Promise.all([Promise.resolve(openPromise).catch(()=>{}), growDone]).then(()=>{
     // "das ganze Board müsste danach einen Fade-in-Effekt auf das animierte Feld haben" — a real
     // cross-fade instead of just the clone melting away on its own: the clone fades OUT while the real
@@ -10799,14 +10789,14 @@ async function navigateBackWithZoom(navigateFn){
   outgoing.classList.add('board-exit-zoom-prep');
   void outgoing.offsetWidth; // commit the transition before the class below changes what it's transitioning
   outgoing.classList.add('board-exit-zoom-active');
-  await new Promise(res=>setTimeout(res,190));
+  await new Promise(res=>setTimeout(res,300)); // matches board-exit-zoom-prep's .3s transition
   await navigateFn();
   outgoing.classList.remove('board-exit-zoom-prep','board-exit-zoom-active');
   const incoming = state.screen==='home' ? homeView : boardView;
   incoming.classList.remove('board-enter-zoom');
   void incoming.offsetWidth; // restart the keyframe animation even if this is the very same element as `outgoing'
   incoming.classList.add('board-enter-zoom');
-  setTimeout(()=>incoming.classList.remove('board-enter-zoom'),340);
+  setTimeout(()=>incoming.classList.remove('board-enter-zoom'),420); // matches boardEnterZoom's .42s duration
 }
 async function openBoard(id, skipCrumbAnim){
   // "in ein Board springen soll niemals die Tastatur direkt öffnen sondern immer ohne Auswahl
@@ -11169,6 +11159,7 @@ function isMobileViewport(){
 // state.view.zoom actually ends up at, this included, so there's nothing left to re-apply on the next
 // open — applying it again there would silently compound the zoom-out further on every single visit).
 function defaultCanvasZoom(){ return isMobileViewport() ? 0.85 : 1; }
+let lastAppliedZoom=null;
 function applyView(){
   // See the .viewport-interacting CSS comment: only hold the GPU-compositing hint while the view is
   // actually changing frame-to-frame, and let it settle back to crisp native rendering shortly after.
@@ -11176,27 +11167,40 @@ function applyView(){
   clearTimeout(viewInteractingTimer);
   viewInteractingTimer=setTimeout(()=>canvasInner.classList.remove('viewport-interacting'),220);
   canvasInner.style.transform=`translate(${state.view.x}px, ${state.view.y}px) scale(${state.view.zoom})`;
-  gridLayer.style.backgroundSize=`${GRID_SIZE*state.view.zoom}px ${GRID_SIZE*state.view.zoom}px`;
   gridLayer.style.backgroundPosition=`${state.view.x}px ${state.view.y}px`;
-  // Tom, 22.09 (Runde 3): "im normalen Board die Großpunkte kleiner und hochauflösender" — a CSS
-  // radial-gradient's own absolute-length color stops (the "0.8px"/"1.1px" in the static rule above)
-  // are literal screen pixels, NOT relative to background-size the way a percentage stop would be —
-  // so as background-size shrunk with zoom-out (the line above), the grid SPACING correctly shrank
-  // right along with it, but the dot drawn inside each tile stayed exactly the same fixed absolute
-  // size regardless of zoom. Zoomed out to see a whole board (very common — that's the normal working
-  // view for anything but zoomed-in detail work), the unchanged dot size relative to the now-much-
-  // tighter spacing is exactly what read as "Großpunkte": a coarse, slightly fuzzy haze instead of a
-  // fine, unobtrusive grid. Recomputing background-image here too, scaling the dot's own radius by the
-  // same zoom factor as the spacing, keeps a dot's size proportional to the grid at every zoom level —
-  // small and crisp zoomed out, normal-sized at 100%, a little bigger zoomed in — the same way a real,
-  // fixed-size marker drawn "on" the board would behave. Clamped at a small minimum so it never
-  // anti-aliases into invisibility at extreme zoom-out.
-  const dotR=Math.max(0.35, 0.8*state.view.zoom).toFixed(2);
-  const dotFeather=Math.max(0.55, 1.1*state.view.zoom).toFixed(2);
-  gridLayer.style.backgroundImage=`radial-gradient(circle, var(--canvas-dot) 0, var(--canvas-dot) ${dotR}px, transparent ${dotFeather}px)`;
-  const pct=Math.round(state.view.zoom*100)+'%';
-  document.getElementById('zoomPct').textContent=pct;
-  const dz=document.getElementById('drawerZoomPct'); if(dz) dz.textContent=pct;
+  // Tom, 23.09: "Canvas-Zoom/Pan soll noch geschmeidiger werden" — background-size/background-image
+  // are NOT compositor properties (see the .grid-layer comment above: this is the same repaint cost
+  // that comment already documents), so reassigning them forces an actual repaint of the grid even
+  // when the resulting string would be byte-identical to what's already there. A pure PAN — dragging
+  // the canvas, Strg/Cmd+Mausrad — never touches state.view.zoom, so the dot radius/spacing computed
+  // below is the SAME on every single frame of a pan gesture. Skipping the whole recompute (both style
+  // writes, plus the %-readout DOM writes) whenever zoom hasn't actually moved since the last call
+  // means a pan gesture only ever repaints for backgroundPosition, never for backgroundSize/-image on
+  // top of it. A real zoom always sees a changed value here and still gets the exact same recompute
+  // as before — this only removes work that would have produced an identical result anyway.
+  if(state.view.zoom!==lastAppliedZoom){
+    lastAppliedZoom=state.view.zoom;
+    gridLayer.style.backgroundSize=`${GRID_SIZE*state.view.zoom}px ${GRID_SIZE*state.view.zoom}px`;
+    // Tom, 22.09 (Runde 3): "im normalen Board die Großpunkte kleiner und hochauflösender" — a CSS
+    // radial-gradient's own absolute-length color stops (the "0.8px"/"1.1px" in the static rule above)
+    // are literal screen pixels, NOT relative to background-size the way a percentage stop would be —
+    // so as background-size shrunk with zoom-out (the line above), the grid SPACING correctly shrank
+    // right along with it, but the dot drawn inside each tile stayed exactly the same fixed absolute
+    // size regardless of zoom. Zoomed out to see a whole board (very common — that's the normal working
+    // view for anything but zoomed-in detail work), the unchanged dot size relative to the now-much-
+    // tighter spacing is exactly what read as "Großpunkte": a coarse, slightly fuzzy haze instead of a
+    // fine, unobtrusive grid. Recomputing background-image here too, scaling the dot's own radius by the
+    // same zoom factor as the spacing, keeps a dot's size proportional to the grid at every zoom level —
+    // small and crisp zoomed out, normal-sized at 100%, a little bigger zoomed in — the same way a real,
+    // fixed-size marker drawn "on" the board would behave. Clamped at a small minimum so it never
+    // anti-aliases into invisibility at extreme zoom-out.
+    const dotR=Math.max(0.35, 0.8*state.view.zoom).toFixed(2);
+    const dotFeather=Math.max(0.55, 1.1*state.view.zoom).toFixed(2);
+    gridLayer.style.backgroundImage=`radial-gradient(circle, var(--canvas-dot) 0, var(--canvas-dot) ${dotR}px, transparent ${dotFeather}px)`;
+    const pct=Math.round(state.view.zoom*100)+'%';
+    document.getElementById('zoomPct').textContent=pct;
+    const dz=document.getElementById('drawerZoomPct'); if(dz) dz.textContent=pct;
+  }
 }
 const persistView=debounce(async ()=>{
   const b=boardById(state.currentBoardId); if(!b) return;
@@ -12382,11 +12386,19 @@ function updateInspector(){
     // renderAllCards() rebuild yet, since that would tear down/rebuild the slider mid-drag). 'change'
     // (drag released, or arrow-key step) is what actually persists and re-renders, same split every
     // other continuous inspector control in this app already uses (e.g. the thickness popover).
+    // Tom, 23.09: the redraw itself is also collapsed to at most once per animation frame (see the
+    // thickness/smooth popovers' own comment on this) — 'input' can fire faster than the screen
+    // repaints, and redrawBlanketCanvas() re-renders every stroke from scratch on every call.
+    let inspSmoothRedrawRaf=null;
     blanketSmoothRange.addEventListener('input',()=>{
       const c=cards[0];
       c.data.smoothIntensity=parseFloat(blanketSmoothRange.value);
-      const canvasEl=document.querySelector(`.card[data-id="${c.id}"] .blanket-canvas`);
-      if(canvasEl) redrawBlanketCanvas(canvasEl,c);
+      if(inspSmoothRedrawRaf) return;
+      inspSmoothRedrawRaf=requestAnimationFrame(()=>{
+        inspSmoothRedrawRaf=null;
+        const canvasEl=document.querySelector(`.card[data-id="${c.id}"] .blanket-canvas`);
+        if(canvasEl) redrawBlanketCanvas(canvasEl,c);
+      });
     });
     blanketSmoothRange.addEventListener('change',()=>{
       const c=cards[0];
@@ -16116,12 +16128,26 @@ function ensureBlanketThicknessPop(){
   const range=el.querySelector('#blanketThicknessRange');
   const dot=el.querySelector('#blanketThicknessDot');
   function syncDot(){ const v=parseFloat(range.value)||1; const px=6+v*6; dot.style.width=px+'px'; dot.style.height=px+'px'; }
+  // Tom, 23.09: "Schieberegler sollen feiner/schneller reagieren" — a range input's 'input' event can
+  // fire far more often than the screen actually repaints while it's being dragged, and
+  // redrawBlanketCanvas() below re-renders every single stroke on the card from scratch — doing that
+  // synchronously on every one of those events was strictly more redraws than the display could ever
+  // show, stealing main-thread time from actually painting each frame and reading as lag/stutter on
+  // anything but a trivial drawing. syncDot() (the little preview dot) stays instant/uncoalesced since
+  // it's cheap and should track the slider exactly; only the expensive canvas redraw is collapsed to
+  // at most once per animation frame, always using whatever the latest value is by the time it runs.
+  let thicknessRedrawRaf=null;
   range.addEventListener('input',()=>{
     if(!blanketThicknessPopCard) return;
     blanketThicknessPopCard.data.thickness=parseFloat(range.value);
     syncDot();
-    const canvasEl=document.querySelector(`.card[data-id="${blanketThicknessPopCard.id}"] .blanket-canvas`);
-    if(canvasEl) redrawBlanketCanvas(canvasEl,blanketThicknessPopCard);
+    if(thicknessRedrawRaf) return;
+    thicknessRedrawRaf=requestAnimationFrame(()=>{
+      thicknessRedrawRaf=null;
+      if(!blanketThicknessPopCard) return;
+      const canvasEl=document.querySelector(`.card[data-id="${blanketThicknessPopCard.id}"] .blanket-canvas`);
+      if(canvasEl) redrawBlanketCanvas(canvasEl,blanketThicknessPopCard);
+    });
   });
   range.addEventListener('change',()=>{ if(blanketThicknessPopCard) DB.putCard(blanketThicknessPopCard); });
   el._syncDot=syncDot;
@@ -16163,11 +16189,20 @@ function ensureBlanketSmoothPop(){
   el.addEventListener('pointerdown',e=>e.stopPropagation());
   const range=el.querySelector('#blanketSmoothPopRange');
   const pathEl=el.querySelector('#blanketSmoothIndicatorPath');
+  // Same rAF-coalescing as the thickness popover just above — animateBlanketSmoothIndicatorTo() (the
+  // little wave icon) stays instant since it's cheap and already runs its own rAF loop toward the
+  // target; only the expensive full-card redraw is collapsed to at most once per frame.
+  let smoothRedrawRaf=null;
   range.addEventListener('input',()=>{
     if(!blanketSmoothPopCard) return;
     blanketSmoothPopCard.data.smoothIntensity=parseFloat(range.value);
     animateBlanketSmoothIndicatorTo(pathEl, parseFloat(range.value)/2);
-    redrawBlanketBoardCanvas(blanketSmoothPopCard);
+    if(smoothRedrawRaf) return;
+    smoothRedrawRaf=requestAnimationFrame(()=>{
+      smoothRedrawRaf=null;
+      if(!blanketSmoothPopCard) return;
+      redrawBlanketBoardCanvas(blanketSmoothPopCard);
+    });
   });
   range.addEventListener('change',()=>{ if(blanketSmoothPopCard) DB.putCard(blanketSmoothPopCard); });
   blanketSmoothPopEl=el;
@@ -18962,6 +18997,18 @@ function ensureBlanketColorWheelPop(){
     redrawBlanketBoardCanvas(blanketColorWheelCard);
     refreshBlanketDock(blanketColorWheelCard);
   }
+  // Tom, 23.09: "Farbe-Slider soll feiner/schneller reagieren" — commit() above does a DB write PLUS a
+  // full-card redraw PLUS a dock refresh, and both the wheel canvas drag (pointermove below) and the
+  // value slider used to call it on every single drag event — far more often than the screen actually
+  // repaints, and each one of those was a real IndexedDB write queued on top of the redraw. paint()/
+  // syncOutputs() (the wheel marker + swatch/hex text) stay instant, uncoalesced, since they're cheap
+  // and need to track the cursor exactly; only the expensive commit() is collapsed to at most once per
+  // animation frame, always using the latest hue/sat/val by the time it actually runs.
+  let commitRaf=null;
+  function scheduleCommit(){
+    if(commitRaf) return;
+    commitRaf=requestAnimationFrame(()=>{ commitRaf=null; commit(); });
+  }
   function pickFromEvent(e){
     const r=canvas.getBoundingClientRect();
     const size=120, cx=size/2, cy=size/2;
@@ -18969,7 +19016,7 @@ function ensureBlanketColorWheelPop(){
     const dx=x-cx, dy=y-cy;
     let ang=Math.atan2(dy,dx)*180/Math.PI; if(ang<0) ang+=360;
     bcwHue=ang; bcwSat=Math.min(1,Math.sqrt(dx*dx+dy*dy)/cx);
-    paint(); syncOutputs(); commit();
+    paint(); syncOutputs(); scheduleCommit();
   }
   let dragging=false;
   canvas.addEventListener('pointerdown',(e)=>{ dragging=true; try{canvas.setPointerCapture(e.pointerId);}catch(err){} pickFromEvent(e); });
@@ -18977,7 +19024,7 @@ function ensureBlanketColorWheelPop(){
   canvas.addEventListener('pointerup',()=>{ dragging=false; });
   canvas.addEventListener('pointercancel',()=>{ dragging=false; });
   valueRange.addEventListener('pointerdown',e=>e.stopPropagation());
-  valueRange.addEventListener('input',()=>{ bcwVal=parseInt(valueRange.value,10)/100; syncOutputs(); commit(); });
+  valueRange.addEventListener('input',()=>{ bcwVal=parseInt(valueRange.value,10)/100; syncOutputs(); scheduleCommit(); });
   hexInput.addEventListener('pointerdown',e=>e.stopPropagation());
   hexInput.addEventListener('change',()=>{
     const v=hexInput.value.trim();
