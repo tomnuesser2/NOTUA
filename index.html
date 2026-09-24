@@ -7845,9 +7845,18 @@ const THEME_DUO_PALETTES=[
 function deriveThemeTokens(main,accent,background,dark){
   const [mh,ms]=hexToHslArr(main);
   const [ah]=hexToHslArr(accent);
-  const [bh,bs]=hexToHslArr(background);
-  const bsClamped=Math.min(Math.max(bs,16),42);
-  const bsDarkClamped=Math.min(Math.max(bs,14),30);
+  const [bh,bs,bl]=hexToHslArr(background);
+  // Tom, 24.09: "wenn ich Weiß wähle auf der Rotskala dann wird es einfach ein Rot-Ton... es soll aber
+  // schon die volle Kontrolle haben, nur eben dass es trotzdem leicht verschoben wird" — the old clamp
+  // had a hard 16%/14% FLOOR, so picking anything close to grey/white still got shoved up to a visibly
+  // tinted minimum, and a hard 42%/30% ceiling flattened any strongly saturated pick back down too. Both
+  // are now a gentle linear pull toward a small "give it some character" floor instead of a hard wall —
+  // a genuinely near-grey pick (bs≈0) stays close to neutral (barely nudged), a fully saturated pick
+  // rides almost all the way up to a much higher ceiling than before, and everything between scales
+  // smoothly — actual control over the full range, with only the mild, non-clamping "leicht verschoben"
+  // nudge Tom asked to keep for cohesion.
+  const bsClamped=clamp(4+bs*0.86,4,92);
+  const bsDarkClamped=clamp(4+bs*0.46,4,50);
 
   // Light-mode target lightness values are the original formulas; dark-mode ones mirror the shape
   // of the app's own static :root[data-theme="dark"] stylesheet block near the top of the file
@@ -7859,12 +7868,30 @@ function deriveThemeTokens(main,accent,background,dark){
   const muted = dark ? hslToHex(mh, Math.min(ms,22), 66) : hslToHex(mh, Math.min(ms,40), 41);
   const faint = dark ? hslToHex(mh, Math.min(ms,16), 47) : hslToHex(mh, Math.min(ms,26), 61);
 
-  const canvas       = dark ? hslToHex(bh, bsDarkClamped, 9)  : hslToHex(bh, bsClamped, 89);
-  const canvasDot    = dark ? hslToHex(bh, bsDarkClamped, 17) : hslToHex(bh, bsClamped, 77);
-  const border       = dark ? hslToHex(bh, bsDarkClamped, 15) : hslToHex(bh, bsClamped, 82);
-  const borderStrong = dark ? hslToHex(bh, bsDarkClamped, 20) : hslToHex(bh, bsClamped, 73);
-  const surface       = dark ? hslToHex(bh, bsDarkClamped, 14) : hslToHex(bh, Math.min(bs,18), 99);
-  const surface2       = dark ? hslToHex(bh, bsDarkClamped, 11) : hslToHex(bh, bsClamped, 95);
+  // Tom, 24.09: "man soll das wirklich komplett dynamisch wählen können" — every surface tone below
+  // used to sit at a hardcoded absolute lightness (canvas always 89 in light mode, no matter what you
+  // picked), so only the hue — and, in a narrow clamped band, the saturation — of the Background swatch
+  // ever showed up anywhere; dragging its brightness/luminance slider did visibly nothing. `bl` (the
+  // picked color's OWN lightness, from hexToHslArr above) is now the anchor every surface tone is an
+  // OFFSET from, so brightness genuinely moves the whole palette up/down together — while `anchorL`
+  // itself stays clamped to a band that still reads as "light mode"/"dark mode" (so the mode toggle
+  // keeps meaning something even if you pick a near-black "Background" while in light mode) and every
+  // individual offset is clamped too, so two swatches with very different lightness can't ever cross
+  // over into an unreadable ordering (surface always stays the lightest of the three in light mode,
+  // darkest-but-one in dark mode, etc.) — the "Notbremse" Tom asked to keep.
+  const anchorL     = dark ? clamp(bl, 4, 26) : clamp(bl, 55, 97);
+  const canvas       = dark ? hslToHex(bh, bsDarkClamped, anchorL)                : hslToHex(bh, bsClamped, anchorL);
+  const canvasDot    = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+8,4,42))  : hslToHex(bh, bsClamped, clamp(anchorL-12,4,97));
+  const border       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+6,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL-7,4,97));
+  const borderStrong = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+11,4,46)): hslToHex(bh, bsClamped, clamp(anchorL-16,4,97));
+  // Tom, 24.09: "im hellen Modus sind die Elemente... immer noch weiß anstatt der helle Ton" — this used
+  // to clamp saturation to a mere 18% AND sit at a fixed 99% lightness, which for almost any background
+  // hue rounds to something like #FDFCFC: technically tinted, but indistinguishable from plain white to
+  // the eye. Now shares the same saturation clamp as canvas/border and rides the same anchorL as them
+  // (offset +8 in light mode) — still the lightest of the three surfaces (card face > surface2 >
+  // canvas), just no longer pinned so pale it reads as white regardless of the palette picked.
+  const surface       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+5,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL+8,4,99));
+  const surface2       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+2,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL+6,4,99));
   // Same hex as `surface` above, just as an "r,g,b" triplet — every colorless card's rgba(var(--surface-rgb),…)
   // fill (and the auto-contrast text math that reads it, see cardAccentTextColors) needs the triplet form,
   // not the hex one already returned as --surface. See THEME_OVERRIDE_VARS' own comment for the bug this fixes.
@@ -10535,7 +10562,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.59';
+const APP_VERSION='2.4.62';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
