@@ -9102,6 +9102,17 @@ let tourRunning=false;
 let tourObserver=null;
 let tourRepositionBound=null;
 let tourCurrentTargetEl=null;
+// Tom, 24.09: "bei dem dynamischen UI funktioniert der Tooltip nicht gut weil die outline... nicht
+// passend sitzt auch beim verändern des Formats" — the resize/scroll listeners alone only ever catch
+// a genuine window resize or scroll event. Dock-Magnify (the "Dynamic UI" hover-grow effect on
+// #dock/.viewctl, see startDockMagnifyBar()) continuously changes a highlighted dock-btn's real
+// on-screen width/height every animation frame while the pointer sits over it — no resize/scroll event
+// ever fires for that, so the ring/tooltip pair silently went stale (still sized/positioned for the
+// button's un-grown footprint) the moment Dynamic UI was on and the highlighted button got hovered.
+// A plain rAF loop for as long as a spotlight step is showing re-measures the real target every frame
+// instead, so the ring tracks the button through Dock-Magnify's grow/shrink AND any window resize
+// equally — no separate special-casing needed for either cause.
+let tourRafId=null;
 
 function loadTourEnabled(){ try{ return localStorage.getItem('notua-tooltip-tour-enabled')==='1'; }catch(e){ return false; } }
 function saveTourEnabled(on){ try{ localStorage.setItem('notua-tooltip-tour-enabled', on?'1':'0'); }catch(e){} }
@@ -9142,6 +9153,13 @@ function teardownTourObserver(){
     window.removeEventListener('scroll',tourRepositionBound,true);
     tourRepositionBound=null;
   }
+  if(tourRafId){ cancelAnimationFrame(tourRafId); tourRafId=null; }
+}
+// See tourRafId's own comment above for why this exists alongside the resize/scroll listeners.
+function tourRafLoop(){
+  if(!tourRunning || !tourCurrentTargetEl){ tourRafId=null; return; }
+  repositionTourSpotlight();
+  tourRafId=requestAnimationFrame(tourRafLoop);
 }
 function removeTourUI(){
   document.querySelectorAll('.tour-highlight-box,.tour-tooltip').forEach(el=>el.remove());
@@ -9259,6 +9277,7 @@ function renderTourSpotlight(step,targetEl){
   tourRepositionBound=()=>repositionTourSpotlight();
   window.addEventListener('resize',tourRepositionBound);
   window.addEventListener('scroll',tourRepositionBound,true);
+  tourRafId=requestAnimationFrame(tourRafLoop);
 }
 function renderTourCentered(step){
   const scrim=document.createElement('div'); scrim.className='modal-scrim tour-modal-scrim';
@@ -10971,7 +10990,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.63';
+const APP_VERSION='2.4.64';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
