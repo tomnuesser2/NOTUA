@@ -1207,6 +1207,19 @@ try{
      transition (plain ease, not the bouncy one above) intentionally overrides the base one on this
      more-specific selector so the shrink never overshoots on the way out. */
   .card.card-deleting{opacity:0; transform:scale(0.85); pointer-events:none; transition:opacity .15s ease, transform .15s ease;}
+  /* Tom, 24.09: "einen Kreis der beim Klick erscheint und leicht größer wird und beim loslassen wieder
+     verschwindet" — a small accent-colored ripple that follows the pointer for the duration of any
+     grab-styled drag (see the JS below: it fires off the CSS `cursor:grab`/`grabbing` affordance itself,
+     so it automatically covers cards, card-head, panning the canvas, reordering blanket layers, etc.
+     without being wired into each one separately). Pure visual feedback — pointer-events:none so it
+     never intercepts the drag it's illustrating. */
+  .drag-ripple{
+    position:fixed; left:0; top:0; width:34px; height:34px; margin-left:-17px; margin-top:-17px;
+    border-radius:50%; background:var(--accent); opacity:0; pointer-events:none; z-index:99999;
+    transform:scale(0.4); transition:transform .16s cubic-bezier(.2,.8,.3,1), opacity .16s ease;
+  }
+  .drag-ripple.drag-ripple-in{opacity:0.28; transform:scale(1);}
+  .drag-ripple.drag-ripple-out{opacity:0; transform:scale(1.15); transition:transform .18s ease, opacity .18s ease;}
   /* Desktop-only "leichtes Hover-Lift" — gated on (hover:hover)+(pointer:fine) like every other
      hover-only affordance in this file (see e.g. .trash-tile:hover), since a touch "hover" is really
      just the tap itself landing and releasing, which would otherwise flash this on every tap. Skipped
@@ -7984,10 +7997,17 @@ function loadCustomThemeOnBoot(){
 // of its box is filled ink. Shrunk in two passes now — 24×34/29×30 → 13×19/16×17 → 9×13/11×12 (this
 // last pass, ~70% again, after "der Mauszeiger muss außerdem noch kleiner") — to land at a normal
 // system-cursor glyph size.
-const CURSOR_ARROW_PNG_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAANCAYAAAB7AEQGAAABVUlEQVR4nGWRz2oTURjFz/m+6ag0byB9A6n5g+u8QLcJItkonYktceHCTRGHS8lWF10Ig4RuTcAXcJUH6MJdfYDSRaAWtJDJvXO/LsQa0rP+8TscDtoHo8P28OAYAHq9ngIgNiKxDl1N0/fN/fxoNpvVmE7lHgRYVVdLE9VxM8+P0O/X3aJI1o1CQEEyVEuvouOnWfZ27lxAUegdJDAABAHWq1VUTT62smwE58I/4/9+kjBDvVpFqH5qZa9fzf+CKmbGNVBoRqu8QFB28vzF3LmQbC4BSQMivFc8eHjaHh4yAQnAYGaRJACoiAiAq1iH62h4nNAQo8UoSbIlqiCAGPxnUT35E/zFz8nktxiskTa2heT32oeXEeZhmp6V5fnznZ0bABRK8i16/6G6/rX3Y/LllORXfZTu7w4GT5xzhqLg+k9EUbCzWDwD+ebG+3fnZXkJQG4BYJOP1Uy2qnQAAAAASUVORK5CYII=';
+// 24.09 v2: replaced with Tom's own SOLID (fully-filled, no outline-only silhouette) arrow/hand
+// artwork so buildOutlinedCursorPng()'s source-in fill has an opaque interior to tint — the previous
+// artwork's own baked-in softness (repeatedly downscaled with smoothing) was the second, independent
+// cause of the "5k verschwommen" blur, on top of the resolution/image-set fix below. Cropped tight to
+// opaque ink and downscaled in ONE high-quality pass (not the old artwork's two compounding passes)
+// to roughly the same on-screen footprint as before, so it doesn't repeat the earlier "ultra riesig"
+// complaint.
+const CURSOR_ARROW_PNG_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAPCAYAAAA2yOUNAAAAwElEQVR4nHXQMUqDQRCG4ef/k5hCBIuA5B72nsTaQkSEoKfQJkfINTyAvYWggl1KiYmFYDQW+VaWkAx87MzsO7OzA/e4sbaeHTbFCmeJu9ug10ArXOwC3wJ857zcBhboB8v4V5tggX6jAo5qsIbK+VV3rN8tw7foJ3eHYbcC2vgLPFSdD+A5wRSPmONocwXvqTrGSQrGudtDByY4TbKPF3xigKYa478KztPtul5BGzXRIT6i/QKUJZYfznCLp+SaPzJ0Ozb6nFQUAAAAAElFTkSuQmCC';
 const CURSOR_ARROW_HOTSPOT='1 0';
-const CURSOR_POINTER_PNG_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAMCAYAAAC0qUeeAAABZ0lEQVR4nGWQvU4bURCFz5m5KyxQCjfkDeiCEjtKiZsIJDqE9gmsxRSpwgMs8AppQkRHSRNFSkGHBC0RdLwBFoJQ8JN4vfceCrMFcKQpZubMaOYDAKAsDQA+FsXqh37/CyYiXohNURK6g8GxYpofur292Nn5B05ajdmajCREjgT8b4dgINXr9RxlaXmeOzAZpZ7Wd4rBYUpxzh/u392HoPO9vetXZwgAy5Kdi+FBinEB5CmEGZJnNPuLYEdeVadEnnt5ecn92Vmbard/mftSGtcgCbpDMcJbLcSq+vbs406x9hvmy6kaVQCCAEGKnmUZye+hO+h/smxmqX64OxPwhhBEOgFjg8KMEBSgrMvg23BHqusxSRDwZ4AlAaCd3Fz/GN3efTUPIOmSakmxCUiR7oxQJCSCVHd9fQO0baU0TTzBlAAzJOAqprgyMW9uEltb6X1RfKbZohJalCSJIfNxquuff3Z3jx4BUhKmut8xpBEAAAAASUVORK5CYII=';
-const CURSOR_POINTER_HOTSPOT='4 0';
+const CURSOR_POINTER_PNG_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAANCAYAAACdKY9CAAAAz0lEQVR4nIXRMUpDQRAG4C/7YpUiWqWz9AR6BO+RKvfxICLYBYIeQLCyFEQQTEgTEBH0+V6aWbIsTxwY2NmZ/59/ZjjYCAm3WKKJv0HLiQk+8I1plQPjAfAX+iJuIu7QDwGaSHYRt/91yOz3eMYNtrgr9aUonETRrCLZ4QWvJQiOsQ5wG7LaiHvsMvMJjoIpa09BVs70mXCNDZ5wFcDa8o3SGCuc4hxnVdFfCwGLonVbvDv8hm+FxiZAc/wUQ9b+WLbPN7kMmW+xsTXe8YCLPTtnPziR/ow7AAAAAElFTkSuQmCC';
+const CURSOR_POINTER_HOTSPOT='5 0';
 const cursorPngCache={arrow:{img:null,ready:false}, pointer:{img:null,ready:false}};
 // Tom, 24.09: "Mauszeiger... auf einem 5k Display verschwommen, warum?" — the tiny hand-tuned artwork
 // above (9×13 / 11×12, deliberately shrunk down after "der Mauszeiger ist jetzt zu groß, ultra riesig")
@@ -8199,6 +8219,70 @@ function updateCustomCursor(){
     document.documentElement.style.setProperty('--custom-pointer-cursor', buildAccentPointerCursorValue(leftDuoColor));
   }catch(e){} // purely cosmetic — never worth interrupting anything else over
 }
+
+// ---------- DRAG RIPPLE (accent-colored circle that grows while grabbing, shrinks on release) ----------
+// "einen Kreis der beim Klick erscheint und leicht größer wird und beim loslassen wieder verschwindet"
+// — additional to the existing grab/grabbing hand, not a replacement for it. Deliberately keyed off the
+// computed `cursor` value rather than any one drag implementation's own code: every drag-to-move
+// affordance in the app already sets `cursor:grab`/`grabbing` in the stylesheet (cards, .card-head,
+// canvas panning, blanket-layer reordering, the calendar drag-handle, …), so watching for that single
+// CSS property covers all of them at once, present and future, with no per-feature wiring. Deliberately
+// excludes resize handles (precision `nwse-resize` etc. cursors — a ripple there would sit right on top
+// of the exact corner you're aiming for) and crosshair tools (connector drawing, the Drawboard pen —
+// those are continuous strokes, not a single "pick this up" gesture, and would ripple non-stop).
+let dragRippleEl=null, dragRipplePointerId=null, dragRippleHideTimer=null;
+function cursorIsGrabAffordance(el){
+  try{
+    const c=getComputedStyle(el).cursor;
+    return c==='grab' || c==='grabbing';
+  }catch(e){ return false; }
+}
+function findGrabAffordanceAncestor(el){
+  let node=el, hops=0;
+  while(node && node.nodeType===1 && hops<10){
+    if(cursorIsGrabAffordance(node)) return node;
+    node=node.parentElement; hops++;
+  }
+  return null;
+}
+function positionDragRipple(x,y){
+  if(dragRippleEl){ dragRippleEl.style.left=x+'px'; dragRippleEl.style.top=y+'px'; }
+}
+function showDragRipple(x,y){
+  if(dragRippleHideTimer){ clearTimeout(dragRippleHideTimer); dragRippleHideTimer=null; }
+  if(!dragRippleEl){
+    dragRippleEl=document.createElement('div');
+    dragRippleEl.className='drag-ripple';
+    document.body.appendChild(dragRippleEl);
+  }
+  positionDragRipple(x,y);
+  dragRippleEl.classList.remove('drag-ripple-out');
+  void dragRippleEl.offsetWidth; // reflow, so the grow-in transition replays even mid-fade-out
+  dragRippleEl.classList.add('drag-ripple-in');
+}
+function hideDragRipple(){
+  if(!dragRippleEl) return;
+  dragRippleEl.classList.remove('drag-ripple-in');
+  dragRippleEl.classList.add('drag-ripple-out');
+  const el=dragRippleEl;
+  dragRippleHideTimer=setTimeout(()=>{ el.remove(); if(dragRippleEl===el) dragRippleEl=null; }, 200);
+}
+document.addEventListener('pointerdown',(e)=>{
+  if(e.pointerType==='mouse' && e.button!==0) return;
+  if(dragRipplePointerId!=null) return; // one grab gesture tracked at a time
+  const grabEl=findGrabAffordanceAncestor(e.target);
+  if(!grabEl) return;
+  dragRipplePointerId=e.pointerId;
+  showDragRipple(e.clientX, e.clientY);
+},true);
+document.addEventListener('pointermove',(e)=>{
+  if(dragRipplePointerId===e.pointerId) positionDragRipple(e.clientX, e.clientY);
+});
+function endDragRippleFor(e){
+  if(dragRipplePointerId===e.pointerId){ dragRipplePointerId=null; hideDragRipple(); }
+}
+document.addEventListener('pointerup', endDragRippleFor);
+document.addEventListener('pointercancel', endDragRippleFor);
 function pickRandomPalette(){
   const current=(()=>{ try{ return JSON.parse(localStorage.getItem('notua-custom-theme')||'null'); }catch(e){ return null; } })();
   let pool=THEME_DUO_PALETTES;
@@ -10433,7 +10517,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.56';
+const APP_VERSION='2.4.58';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
