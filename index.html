@@ -1214,7 +1214,8 @@ try{
      without being wired into each one separately). Pure visual feedback — pointer-events:none so it
      never intercepts the drag it's illustrating. */
   .drag-ripple{
-    position:fixed; left:0; top:0; width:34px; height:34px; margin-left:-17px; margin-top:-17px;
+    /* "der Kreis kann einen mini müü kleiner" (24.09) — was 34px, trimmed down a notch to 28px. */
+    position:fixed; left:0; top:0; width:28px; height:28px; margin-left:-14px; margin-top:-14px;
     border-radius:50%; background:var(--accent); opacity:0; pointer-events:none; z-index:99999;
     transform:scale(0.4); transition:transform .16s cubic-bezier(.2,.8,.3,1), opacity .16s ease;
   }
@@ -8000,14 +8001,27 @@ function loadCustomThemeOnBoot(){
 // 24.09 v2: replaced with Tom's own SOLID (fully-filled, no outline-only silhouette) arrow/hand
 // artwork so buildOutlinedCursorPng()'s source-in fill has an opaque interior to tint — the previous
 // artwork's own baked-in softness (repeatedly downscaled with smoothing) was the second, independent
-// cause of the "5k verschwommen" blur, on top of the resolution/image-set fix below. Cropped tight to
-// opaque ink and downscaled in ONE high-quality pass (not the old artwork's two compounding passes)
-// to roughly the same on-screen footprint as before, so it doesn't repeat the earlier "ultra riesig"
-// complaint.
-const CURSOR_ARROW_PNG_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAPCAYAAAA2yOUNAAAAwElEQVR4nHXQMUqDQRCG4ef/k5hCBIuA5B72nsTaQkSEoKfQJkfINTyAvYWggl1KiYmFYDQW+VaWkAx87MzsO7OzA/e4sbaeHTbFCmeJu9ug10ArXOwC3wJ857zcBhboB8v4V5tggX6jAo5qsIbK+VV3rN8tw7foJ3eHYbcC2vgLPFSdD+A5wRSPmONocwXvqTrGSQrGudtDByY4TbKPF3xigKYa478KztPtul5BGzXRIT6i/QKUJZYfznCLp+SaPzJ0Ozb6nFQUAAAAAElFTkSuQmCC';
+// cause of the "5k verschwommen" blur, on top of the resolution/image-set fix below.
+// 24.09 v3: "immer noch sehr verpixelt" — v2 cropped Tom's artwork straight down to the final on-screen
+// size (9×15/12×13) and then let buildOutlinedCursorPng() blow THAT tiny bitmap back up for HiDPI with
+// imageSmoothingEnabled=false (nearest-neighbor) — sharp in the sense of "not stretched-blurry", but at
+// only 9-15px a diagonal edge nearest-neighbor-scaled 2-3× turns into a visible staircase of big square
+// blocks, which reads as "pixelated" rather than crisp. The actual fix: keep the source artwork at a
+// generous 128px-tall intermediate resolution (cropped tight to opaque ink, downscaled from Tom's
+// original once with high-quality smoothing — plenty of headroom over any on-screen size this cursor
+// will ever need) and have buildOutlinedCursorPng() downsample straight from THAT to the exact target
+// pixel size for the current DPR, WITH smoothing enabled — a proper single anti-aliased resize onto
+// each resolution, the same way real @1x/@2x/@3x app icons are each rendered from a high-res master
+// rather than one raster stretched into the next. See CURSOR_BASE_SIZE below for the on-screen (1x)
+// footprint this now targets independently of the source bitmap's own pixel dimensions.
+const CURSOR_ARROW_PNG_SRC='data:image/png;base64,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';
 const CURSOR_ARROW_HOTSPOT='1 0';
-const CURSOR_POINTER_PNG_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAANCAYAAACdKY9CAAAAz0lEQVR4nIXRMUpDQRAG4C/7YpUiWqWz9AR6BO+RKvfxICLYBYIeQLCyFEQQTEgTEBH0+V6aWbIsTxwY2NmZ/59/ZjjYCAm3WKKJv0HLiQk+8I1plQPjAfAX+iJuIu7QDwGaSHYRt/91yOz3eMYNtrgr9aUonETRrCLZ4QWvJQiOsQ5wG7LaiHvsMvMJjoIpa09BVs70mXCNDZ5wFcDa8o3SGCuc4hxnVdFfCwGLonVbvDv8hm+FxiZAc/wUQ9b+WLbPN7kMmW+xsTXe8YCLPTtnPziR/ow7AAAAAElFTkSuQmCC';
+const CURSOR_POINTER_PNG_SRC='data:image/png;base64,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';
 const CURSOR_POINTER_HOTSPOT='5 0';
+// The on-screen (1x/CSS-pixel) footprint each cursor renders at — independent of the source PNGs'
+// own pixel dimensions above (128px tall, kept as a high-quality resampling reserve). Chosen to match
+// the earlier hand-tuned sizes so this round doesn't reopen "der Mauszeiger ist jetzt zu groß".
+const CURSOR_BASE_SIZE={arrow:{w:9,h:15}, pointer:{w:12,h:13}};
 const cursorPngCache={arrow:{img:null,ready:false}, pointer:{img:null,ready:false}};
 // Tom, 24.09: "Mauszeiger... auf einem 5k Display verschwommen, warum?" — the tiny hand-tuned artwork
 // above (9×13 / 11×12, deliberately shrunk down after "der Mauszeiger ist jetzt zu groß, ultra riesig")
@@ -8118,21 +8132,24 @@ function buildOutlinedCursorPng(key, fillHex, outlineHex, outlinePx){
   if(!entry || !entry.ready || !entry.img) return null;
   try{
     const img=entry.img;
-    const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
-    if(!w || !h) return null;
-    // Render at the screen's actual pixel density (see cursorRenderScale()'s own comment) instead of
-    // the artwork's native 9×13/11×12 size, so the cursor stays crisp on a HiDPI/5K display instead of
-    // being stretched by the browser afterward. imageSmoothingEnabled=false is what makes this an
-    // actual sharp upscale (nearest-neighbor, each source pixel becomes a solid block) rather than
-    // just blurring the same tiny bitmap at a bigger size — smoothing it here would recreate the exact
-    // softness this is meant to fix, just baked into the PNG instead of done by the browser.
+    const base=CURSOR_BASE_SIZE[key];
+    if(!base) return null;
+    // Render at the screen's actual pixel density (see cursorRenderScale()'s own comment), straight
+    // from the 128px-tall source (CURSOR_ARROW_PNG_SRC/CURSOR_POINTER_PNG_SRC above) down to the exact
+    // target size for this DPR — a proper single anti-aliased downsample onto each resolution, not a
+    // nearest-neighbor upscale of an already-tiny bitmap (see the 24.09 v3 comment above: that's what
+    // used to read as "verpixelt" once the earlier resolution/blur fix was in). imageSmoothingEnabled
+    // stays ON here — the source has ~5-10× the pixels of any target size this ever needs, so smoothing
+    // downsamples cleanly instead of reintroducing the old stretched-blur (that only happened when a
+    // TINY source was smoothed while being enlarged, the opposite direction from this).
     const scale=cursorRenderScale();
-    const sw=Math.max(1,Math.round(w*scale)), sh=Math.max(1,Math.round(h*scale));
+    const sw=Math.max(1,Math.round(base.w*scale)), sh=Math.max(1,Math.round(base.h*scale));
     const outline=Math.max(1,Math.round(outlinePx*scale));
     const silCanvas=document.createElement('canvas');
     silCanvas.width=sw; silCanvas.height=sh;
     const silCtx=silCanvas.getContext('2d');
-    silCtx.imageSmoothingEnabled=false;
+    silCtx.imageSmoothingEnabled=true;
+    silCtx.imageSmoothingQuality='high';
     silCtx.drawImage(img,0,0,sw,sh);
     silCtx.globalCompositeOperation='source-in';
     silCtx.fillStyle=outlineHex;
@@ -8141,7 +8158,8 @@ function buildOutlinedCursorPng(key, fillHex, outlineHex, outlinePx){
     const fillCanvas=document.createElement('canvas');
     fillCanvas.width=sw; fillCanvas.height=sh;
     const fillCtx=fillCanvas.getContext('2d');
-    fillCtx.imageSmoothingEnabled=false;
+    fillCtx.imageSmoothingEnabled=true;
+    fillCtx.imageSmoothingQuality='high';
     fillCtx.drawImage(img,0,0,sw,sh);
     fillCtx.globalCompositeOperation='source-in';
     fillCtx.fillStyle=fillHex;
@@ -10517,7 +10535,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.58';
+const APP_VERSION='2.4.59';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
