@@ -7770,7 +7770,17 @@ function ensureContrast(hex, bgHex, minRatio){
   return bgIsLight ? '#000000' : '#FFFFFF';
 }
 
-const THEME_OVERRIDE_VARS=['--canvas','--canvas-dot','--surface','--surface-2','--ink','--muted','--faint',
+// "die Farbe der Karte die bleibt in dem Blau vom standardmenü selbst wenn man per tomistcool die
+// Farbe vom UI ändert" (Tom, 24.09) — --surface-rgb was missing from this list entirely, even though
+// every colorless Note/Checklist/Table/Boardlink/Colorpicker/WoW/File/Column card (see the .tag-none
+// CSS rules, and the surfaceRgb fallback in baseCardShell/cardAccentTextColors) paints its background
+// AND derives its auto-contrast text color from that one variable. It's a plain static hex value baked
+// into the :root / :root[data-theme="dark"] stylesheet blocks (255,255,255 / 30,34,42 — that fixed dark
+// navy IS the "Blau" Tom saw), never touched by applyCustomTheme() before, so a custom Duo palette
+// changed --surface (the hex) but left every colorless card's actual fill AND its light/dark text
+// decision stuck on the old default forever. Now derived alongside --surface in deriveThemeTokens() and
+// listed here so resetCustomTheme() also correctly hands it back to the static stylesheet default.
+const THEME_OVERRIDE_VARS=['--canvas','--canvas-dot','--surface','--surface-rgb','--surface-2','--ink','--muted','--faint',
   '--border','--border-strong','--accent','--accent-ink','--accent-soft',
   '--tag-yellow','--tag-pink','--tag-blue','--tag-green','--tag-purple','--tag-grey','--tag-orange','--tag-red',
   '--trash-accent','--trash-accent-soft','--trash-accent-border','--cluster-accent'];
@@ -7841,6 +7851,10 @@ function deriveThemeTokens(main,accent,background,dark){
   const borderStrong = dark ? hslToHex(bh, bsDarkClamped, 20) : hslToHex(bh, bsClamped, 73);
   const surface       = dark ? hslToHex(bh, bsDarkClamped, 14) : hslToHex(bh, Math.min(bs,18), 99);
   const surface2       = dark ? hslToHex(bh, bsDarkClamped, 11) : hslToHex(bh, bsClamped, 95);
+  // Same hex as `surface` above, just as an "r,g,b" triplet — every colorless card's rgba(var(--surface-rgb),…)
+  // fill (and the auto-contrast text math that reads it, see cardAccentTextColors) needs the triplet form,
+  // not the hex one already returned as --surface. See THEME_OVERRIDE_VARS' own comment for the bug this fixes.
+  const surfaceRgb=hexToRgbTriplet(surface);
 
   // "das hier passiert bei Farben die zu nah aneinander sind ... generell für die Designs" — Accent
   // doubles as TEXT/icon color all over the stylesheet (toggled buttons, badges, links: every
@@ -7887,7 +7901,7 @@ function deriveThemeTokens(main,accent,background,dark){
   return {
     '--ink':ink, '--muted':muted, '--faint':faint,
     '--canvas':canvas, '--canvas-dot':canvasDot, '--border':border, '--border-strong':borderStrong,
-    '--surface':surface, '--surface-2':surface2,
+    '--surface':surface, '--surface-rgb':surfaceRgb, '--surface-2':surface2,
     '--accent':accent, '--accent-soft':accentSoft, '--accent-ink':accentInk,
     '--tag-yellow':hexToRgbTriplet(tagYellow), '--tag-pink':hexToRgbTriplet(tagPink),
     '--tag-blue':hexToRgbTriplet(tagBlue), '--tag-green':hexToRgbTriplet(tagGreen),
@@ -7975,6 +7989,29 @@ const CURSOR_ARROW_HOTSPOT='1 0';
 const CURSOR_POINTER_PNG_SRC='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAMCAYAAAC0qUeeAAABZ0lEQVR4nGWQvU4bURCFz5m5KyxQCjfkDeiCEjtKiZsIJDqE9gmsxRSpwgMs8AppQkRHSRNFSkGHBC0RdLwBFoJQ8JN4vfceCrMFcKQpZubMaOYDAKAsDQA+FsXqh37/CyYiXohNURK6g8GxYpofur292Nn5B05ajdmajCREjgT8b4dgINXr9RxlaXmeOzAZpZ7Wd4rBYUpxzh/u392HoPO9vetXZwgAy5Kdi+FBinEB5CmEGZJnNPuLYEdeVadEnnt5ecn92Vmbard/mftSGtcgCbpDMcJbLcSq+vbs406x9hvmy6kaVQCCAEGKnmUZye+hO+h/smxmqX64OxPwhhBEOgFjg8KMEBSgrMvg23BHqusxSRDwZ4AlAaCd3Fz/GN3efTUPIOmSakmxCUiR7oxQJCSCVHd9fQO0baU0TTzBlAAzJOAqprgyMW9uEltb6X1RfKbZohJalCSJIfNxquuff3Z3jx4BUhKmut8xpBEAAAAASUVORK5CYII=';
 const CURSOR_POINTER_HOTSPOT='4 0';
 const cursorPngCache={arrow:{img:null,ready:false}, pointer:{img:null,ready:false}};
+// Tom, 24.09: "Mauszeiger... auf einem 5k Display verschwommen, warum?" — the tiny hand-tuned artwork
+// above (9×13 / 11×12, deliberately shrunk down after "der Mauszeiger ist jetzt zu groß, ultra riesig")
+// was always rasterized at that exact native pixel size and handed straight to `cursor:url(...)`,
+// which renders 1 image pixel = 1 CSS pixel no matter the screen's actual device-pixel-ratio. On a
+// HiDPI/5K display the browser then has to stretch that same handful of pixels across far more
+// physical pixels to keep the cursor the same apparent size, which is exactly what reads as blurry —
+// the same class of bug ensureBlanketCanvasSize()/the PNG-export scale below already account for
+// elsewhere, just never applied to the cursor artwork itself. `image-set()` is the actual fix (it's
+// what lets a higher-resolution bitmap be shown at the SAME on-screen size, crisply, instead of just
+// making the cursor bigger the way a plain higher-res `url()` would) — feature-detected once via
+// CSS.supports() rather than assumed, since it isn't universally supported.
+const CURSOR_IMAGE_SET_SUPPORTED=(function(){
+  try{ return CSS.supports('cursor','image-set(url("data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=") 1x) 0 0, auto'); }
+  catch(e){ return false; }
+})();
+function cursorRenderScale(){
+  // Capped at 3 mainly to bound the data-URI size on an unusually high DPR — same idea as the PNG
+  // export's own Math.min(2, devicePixelRatio||1) below; a cursor glyph is tiny either way, so there's
+  // no real cost to allowing a bit more headroom than that one does. Falls back to a plain 1x render
+  // (identical to the previous behavior) when image-set() itself isn't supported, since rendering the
+  // bitmap bigger without it would just make the cursor bigger on screen, not sharper.
+  return CURSOR_IMAGE_SET_SUPPORTED ? Math.max(1, Math.min(3, window.devicePixelRatio||1)) : 1;
+}
 function preloadCursorPng(key,src){
   try{
     const entry=cursorPngCache[key];
@@ -8063,34 +8100,49 @@ function buildOutlinedCursorPng(key, fillHex, outlineHex, outlinePx){
     const img=entry.img;
     const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
     if(!w || !h) return null;
+    // Render at the screen's actual pixel density (see cursorRenderScale()'s own comment) instead of
+    // the artwork's native 9×13/11×12 size, so the cursor stays crisp on a HiDPI/5K display instead of
+    // being stretched by the browser afterward. imageSmoothingEnabled=false is what makes this an
+    // actual sharp upscale (nearest-neighbor, each source pixel becomes a solid block) rather than
+    // just blurring the same tiny bitmap at a bigger size — smoothing it here would recreate the exact
+    // softness this is meant to fix, just baked into the PNG instead of done by the browser.
+    const scale=cursorRenderScale();
+    const sw=Math.max(1,Math.round(w*scale)), sh=Math.max(1,Math.round(h*scale));
+    const outline=Math.max(1,Math.round(outlinePx*scale));
     const silCanvas=document.createElement('canvas');
-    silCanvas.width=w; silCanvas.height=h;
+    silCanvas.width=sw; silCanvas.height=sh;
     const silCtx=silCanvas.getContext('2d');
-    silCtx.drawImage(img,0,0,w,h);
+    silCtx.imageSmoothingEnabled=false;
+    silCtx.drawImage(img,0,0,sw,sh);
     silCtx.globalCompositeOperation='source-in';
     silCtx.fillStyle=outlineHex;
-    silCtx.fillRect(0,0,w,h);
+    silCtx.fillRect(0,0,sw,sh);
 
     const fillCanvas=document.createElement('canvas');
-    fillCanvas.width=w; fillCanvas.height=h;
+    fillCanvas.width=sw; fillCanvas.height=sh;
     const fillCtx=fillCanvas.getContext('2d');
-    fillCtx.drawImage(img,0,0,w,h);
+    fillCtx.imageSmoothingEnabled=false;
+    fillCtx.drawImage(img,0,0,sw,sh);
     fillCtx.globalCompositeOperation='source-in';
     fillCtx.fillStyle=fillHex;
-    fillCtx.fillRect(0,0,w,h);
+    fillCtx.fillRect(0,0,sw,sh);
 
-    const pad=outlinePx;
+    const pad=outline;
     const outCanvas=document.createElement('canvas');
-    outCanvas.width=w+pad*2; outCanvas.height=h+pad*2;
+    outCanvas.width=sw+pad*2; outCanvas.height=sh+pad*2;
     const outCtx=outCanvas.getContext('2d');
-    for(let dx=-outlinePx; dx<=outlinePx; dx++){
-      for(let dy=-outlinePx; dy<=outlinePx; dy++){
-        if(dx*dx+dy*dy > outlinePx*outlinePx+0.4) continue;
+    outCtx.imageSmoothingEnabled=false;
+    for(let dx=-outline; dx<=outline; dx++){
+      for(let dy=-outline; dy<=outline; dy++){
+        if(dx*dx+dy*dy > outline*outline+0.4) continue;
         outCtx.drawImage(silCanvas, pad+dx, pad+dy);
       }
     }
     outCtx.drawImage(fillCanvas, pad, pad);
-    return {dataUrl:outCanvas.toDataURL('image/png'), pad};
+    // `scale` travels back to the caller so the CSS hotspot (which image-set() expects in the 1x/
+    // nominal size, not this canvas's actual scaled-up pixel dimensions) can be converted back down —
+    // see buildAccentCursorValue()/buildAccentPointerCursorValue().
+    return {dataUrl:outCanvas.toDataURL('image/png'), pad, scale};
   }catch(e){ return null; }
 }
 function buildAccentCursorValue(hex){
@@ -8099,7 +8151,13 @@ function buildAccentCursorValue(hex){
   const built=buildOutlinedCursorPng('arrow', safeHex, outlineHex, 1);
   if(built){
     const [hx,hy]=CURSOR_ARROW_HOTSPOT.split(' ').map(Number);
-    return 'url("'+built.dataUrl+'") '+(hx+built.pad)+' '+(hy+built.pad)+', auto';
+    // built.pad is in SCALED pixels (see buildOutlinedCursorPng) — divide back down by built.scale to
+    // land the hotspot at the same logical/1x spot image-set() expects, whatever the render scale was.
+    const hxCss=(hx+built.pad/built.scale).toFixed(2), hyCss=(hy+built.pad/built.scale).toFixed(2);
+    if(built.scale>1){
+      return 'image-set(url("'+built.dataUrl+'") '+built.scale+'x) '+hxCss+' '+hyCss+', auto';
+    }
+    return 'url("'+built.dataUrl+'") '+hxCss+' '+hyCss+', auto';
   }
   // fallback while the PNG is still decoding: the previous hand-built SVG arrow, now with the same
   // contrast-picked outline idea (a stroke around the path) so it matches once the real artwork takes over
@@ -8115,7 +8173,12 @@ function buildAccentPointerCursorValue(hex){
   const built=buildOutlinedCursorPng('pointer', safeHex, outlineHex, 1);
   if(built){
     const [hx,hy]=CURSOR_POINTER_HOTSPOT.split(' ').map(Number);
-    return 'url("'+built.dataUrl+'") '+(hx+built.pad)+' '+(hy+built.pad)+', pointer';
+    // Same scale->logical hotspot conversion as buildAccentCursorValue() above.
+    const hxCss=(hx+built.pad/built.scale).toFixed(2), hyCss=(hy+built.pad/built.scale).toFixed(2);
+    if(built.scale>1){
+      return 'image-set(url("'+built.dataUrl+'") '+built.scale+'x) '+hxCss+' '+hyCss+', pointer';
+    }
+    return 'url("'+built.dataUrl+'") '+hxCss+' '+hyCss+', pointer';
   }
   // fallback while the PNG is still decoding: the previous hand-built SVG pointing hand, now also
   // using the contrast-picked outline color instead of a hardcoded white stroke
@@ -10370,7 +10433,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.54';
+const APP_VERSION='2.4.56';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
