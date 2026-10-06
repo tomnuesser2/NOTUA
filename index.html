@@ -1291,6 +1291,15 @@ try{
   .lf-step{font-size:0.62rem; font-weight:600; letter-spacing:.04em; color:var(--muted); white-space:nowrap;}
   .lf-x{border:none; background:none; color:var(--muted); font-size:1.2rem; line-height:1; padding:0 2px; cursor:var(--custom-pointer-cursor,pointer);}
   .lf-x:hover{color:var(--ink);}
+  /* Smartphone: der Look-Finder ist eine ganze Ansicht (Vollbild), kein schwebendes Fenster. Zurück/Weiter bleiben unten fixiert. */
+  @media (max-width:640px){
+    .lf-scrim{padding:0 !important; align-items:stretch !important; justify-content:stretch !important; background:var(--surface) !important;}
+    .modal.lf-modal{width:100vw; max-width:none; height:100vh; height:100dvh; max-height:none; border-radius:0; border:none; box-shadow:none; animation:none;
+      padding:max(14px,env(safe-area-inset-top)) 18px max(12px,env(safe-area-inset-bottom)); gap:16px; overflow-y:auto; overscroll-behavior:contain;}
+    .modal.lf-modal h4.lf-q{font-size:1.2rem;}
+    .lf-foot.lf-nav{position:sticky; bottom:0; margin-top:auto; padding:12px 0 2px; background:var(--surface);}
+    .lf-foot.lf-nav button{padding:11px 20px; font-size:0.95rem;}
+  }
   .lf-foot.lf-nav{flex-wrap:nowrap; justify-content:space-between;}
   .lf-foot.lf-nav button{flex:none;}
   .lf-opt small{display:none;}
@@ -1364,6 +1373,17 @@ try{
   .lf-sl-text{display:flex; align-items:baseline; gap:10px; min-height:1.4em; flex-wrap:wrap;}
   .lf-sl-text b{font-size:1rem; font-weight:700; color:var(--ink);}
   .lf-sl-text span{font-size:0.82rem; color:var(--muted);}
+  @media (max-width:640px){
+    .lf-sl-board{height:min(300px,40dvh);}
+    .lf-sl-card.a{top:22px; height:calc(100% - 92px); min-height:122px; padding:18px 20px;}
+    .lf-sl-card.a b{font-size:1.2rem;} .lf-sl-card.a em{font-size:0.98rem; margin-top:8px;} .lf-sl-card.a i{margin-top:14px; height:8px;}
+    .lf-sl-card.b{top:36px; height:calc(100% - 100px); min-height:110px; padding:18px; gap:16px;}
+    .lf-sl-card.b u{height:9px; margin-left:26px;} .lf-sl-card.b u::before{left:-26px; top:-4px; width:17px; height:17px;}
+    .lf-sl-card.b.lf-tx{padding:16px 16px; gap:14px;} .lf-sl-card.b.lf-tx u{height:auto; font-size:0.88rem; margin-left:24px; white-space:nowrap;} .lf-sl-card.b.lf-tx u::before{left:-24px;} .lf-sl-card.b.lf-tx u::before{top:0;}
+    .lf-sl-card.c{bottom:16px; height:52px; padding:0 14px; gap:10px;}
+    .lf-sl-btn{padding:8px 18px; font-size:0.95rem;} .lf-sl-chip{padding:6px 12px; font-size:0.9rem;}
+    .lf-sl-text b{font-size:1.15rem;} .lf-sl-text span{font-size:0.9rem;} .lf-pill{padding:10px 16px;}
+  }
   .lf-mb{position:relative; display:block; width:100%; height:100%; border-radius:9px; overflow:hidden; background-color:var(--canvas); background-image:radial-gradient(var(--border-strong) 1px, transparent 1.2px); background-size:12px 12px;}
   .lf-mb .mc{position:absolute; background:var(--surface); box-sizing:border-box; overflow:hidden;}
   .lf-mb .mc.a{left:8%; top:11px; width:50%; height:58px; padding:8px 9px;}
@@ -14809,7 +14829,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.100';
+const APP_VERSION='2.4.102';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
