@@ -1286,12 +1286,17 @@ try{
 
   /* Look-Finder */
   .lf-scrim{background:rgba(8,10,16,.24) !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; z-index:100003;}
-  .modal.lf-modal{width:min(660px,94vw); max-height:92vh; overflow-y:auto; gap:16px; padding:22px 22px 18px;}
+  .modal.lf-modal{width:min(620px,94vw); max-height:92vh; overflow-y:auto; gap:12px; padding:16px 18px 14px;}
   .lf-head{display:flex; align-items:center; gap:12px;}
-  .lf-step{font-size:0.72rem; font-weight:700; letter-spacing:.03em; color:var(--accent); white-space:nowrap;}
-  .lf-prog{flex:1; height:4px; border-radius:2px; background:var(--surface-2); overflow:hidden;}
+  .lf-step{font-size:0.62rem; font-weight:600; letter-spacing:.04em; color:var(--muted); white-space:nowrap;}
+  .lf-x{border:none; background:none; color:var(--muted); font-size:1.2rem; line-height:1; padding:0 2px; cursor:var(--custom-pointer-cursor,pointer);}
+  .lf-x:hover{color:var(--ink);}
+  .lf-foot.lf-nav{flex-wrap:nowrap; justify-content:space-between;}
+  .lf-foot.lf-nav button{flex:none;}
+  .lf-opt small{display:none;}
+  .lf-prog{flex:1; height:3px; border-radius:2px; background:var(--surface-2); overflow:hidden;}
   .lf-prog i{display:block; height:100%; background:var(--accent); border-radius:2px; transition:width .35s cubic-bezier(.22,1,.36,1);}
-  .modal.lf-modal h4.lf-q{font-size:1.2rem; line-height:1.25;}
+  .modal.lf-modal h4.lf-q{font-size:1.08rem; line-height:1.25; margin:0;}
   .lf-opts{display:grid; grid-template-columns:repeat(auto-fit,minmax(138px,1fr)); gap:10px;}
   .lf-opt{display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; padding:12px; border:1.5px solid var(--border); border-radius:12px; background:var(--surface-2); color:var(--ink); font:inherit; cursor:var(--custom-pointer-cursor,pointer); transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease, background .15s ease;}
   .lf-opt:hover{border-color:var(--border-strong); transform:translateY(-1px);}
@@ -1318,8 +1323,8 @@ try{
   .lf-vis.w{width:100%; height:56px;}
   .lf-vis.mb{height:84px;}
   .lf-shape-live{display:flex; flex-direction:column; gap:12px;}
-  .lf-sl-board{position:relative; height:176px; border-radius:12px; overflow:hidden; background-color:var(--canvas); background-image:radial-gradient(var(--border-strong) 1px, transparent 1.2px); background-size:14px 14px; border:1px solid var(--border);}
-  .lf-sl-card{position:absolute; background:var(--surface); border:1px solid var(--border); border-radius:var(--lf-r); box-shadow:0 3px 10px rgba(0,0,0,.12); box-sizing:border-box; overflow:hidden; transition:border-radius .14s ease;}
+  .lf-sl-board{position:relative; height:176px; border-radius:12px; overflow:hidden; --lf-sh-fix:0; background-color:var(--canvas); background-image:radial-gradient(var(--border-strong) 1px, transparent 1.2px); background-size:14px 14px; border:1px solid var(--border);}
+  .lf-sl-card{position:absolute; background:var(--surface); border:var(--lf-bw,1px) solid var(--lf-bc,var(--border)); border-radius:var(--lf-r); box-shadow:var(--lf-sh,0 3px 10px rgba(0,0,0,.12)); box-sizing:border-box; overflow:hidden; transition:border-radius .14s ease, box-shadow .14s ease, border-width .14s ease, border-color .14s ease;}
   .lf-sl-card.a{left:5%; top:16px; width:44%; height:104px; padding:14px 16px;}
   .lf-sl-card.a b{display:block; font-size:0.95rem; font-weight:700; color:var(--ink);}
   .lf-sl-card.a em{display:block; margin-top:6px; font-style:normal; font-size:0.78rem; color:var(--muted); line-height:1.3;}
@@ -1332,6 +1337,25 @@ try{
   .lf-sl-btn{padding:5px 14px; font-size:0.76rem; font-weight:650; background:var(--accent); color:var(--accent-ink,#fff); border-radius:calc(var(--lf-r) * .7); transition:border-radius .14s ease;}
   .lf-sl-chip{padding:4px 10px; font-size:0.72rem; background:var(--surface-2); color:var(--ink); border:1px solid var(--border); border-radius:calc(var(--lf-r) * .9); transition:border-radius .14s ease;}
   .lf-sl-chip.ac{background:var(--accent-soft); border-color:transparent; color:var(--accent);}
+  @media (max-width:480px){ .lf-sl-card.c{width:90%;} .lf-sl-chip{padding:4px 8px;} }
+  .lf-pick{font-family:var(--lf-ff,inherit);}
+  .lf-pick .lf-sl-card, .lf-pick .lf-sl-card *{font-family:var(--lf-ff,inherit);}
+  .lf-pick .lf-sl-text b{font-size:1.15rem;}
+  .lf-sl-card.b.lf-tx{padding:12px 12px; gap:9px;}
+  .lf-sl-card.b.lf-tx u{height:auto; background:none; margin-left:18px; font-size:0.8rem; text-decoration:none; color:var(--ink); line-height:1.1;}
+  .lf-sl-card.b.lf-tx u::before{top:0;}
+  .lf-pills{display:flex; flex-wrap:wrap; gap:8px;}
+  .lf-sl-board.lf-bd-plain{background-image:none;}
+  .lf-sl-board.lf-bd-lines,.lf-sl-board.lf-bd-paper,.lf-sl-board.lf-bd-gradient{background-size:auto;}
+  .lf-sl-board.lf-bd-grid,.lf-sl-board.lf-bd-cross{background-size:11px 11px;}
+  .lf-sl-board.lf-mv{animation:lfGridMove 2s linear infinite;}
+  .lf-sw{display:inline-block; width:22px; height:22px; border-radius:6px; border:1px solid var(--border-strong); background-color:var(--canvas); flex:none; align-self:center;}
+  .lf-sw.lf-bd-grid{background-size:6px 6px;} .lf-sw.lf-bd-lines{background-image:repeating-linear-gradient(0deg, transparent 0 5px, var(--canvas-dot) 5px 6px);} .lf-sw.lf-bd-cross{background-size:6px 6px;}
+  .lf-pill{display:inline-flex; align-items:baseline; gap:8px; padding:8px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--surface-2); color:var(--ink); cursor:var(--custom-pointer-cursor,pointer); transition:border-color .15s, background .15s;}
+  .lf-pill b{font-size:1.25rem; line-height:1; font-weight:600;}
+  .lf-pill span{font-size:0.8rem;}
+  .lf-pill:hover{border-color:var(--border-strong);}
+  .lf-pill.sel{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px var(--accent);}
   .lf-sl-ctl{display:flex; flex-direction:column; gap:8px;}
   .lf-sl-lab{font-size:0.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);}
   .lf-slider{-webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px; outline:none; background:linear-gradient(to right, var(--accent) var(--p,40%), var(--surface-2) var(--p,40%)); border:1px solid var(--border); cursor:var(--custom-pointer-cursor,pointer);}
@@ -5209,14 +5233,27 @@ const I18N={
   lf_o_font_serif:{de:"Serif|editorial & ruhig",en:"Serif|editorial & calm"},
   lf_o_font_mono:{de:"Mono|technisch & präzise",en:"Mono|technical & precise"},
   lf_o_font_helvetica:{de:"Helvetica|der Klassiker, zeitlos",en:"Helvetica|the timeless classic"},
-  lf_o_shadow_flat:{de:"Flach|kein Schatten",en:"Flat|no shadow"},
-  lf_o_shadow_soft:{de:"Sanft|weiche Schatten",en:"Soft|gentle shadows"},
-  lf_o_shadow_float:{de:"Schwebend|Karten heben ab",en:"Floating|cards lift off"},
-  lf_o_shadow_deep:{de:"Tief|dramatisch",en:"Deep|dramatic"},
-  lf_o_border_none:{de:"Ohne|keine Kontur",en:"None|no outline"},
-  lf_o_border_thin:{de:"Fein|dezente Linie",en:"Fine|subtle line"},
-  lf_o_border_strong:{de:"Kräftig|starke Kontur",en:"Bold|strong outline"},
-  lf_o_border_accent:{de:"Akzent|in Akzentfarbe",en:"Accent|in accent color"},
+  lf_o_shadow_sh0:{de:"Flach|kein Schatten – alles liegt auf dem Papier",en:"Flat|no shadow – everything lies on paper"},
+  lf_o_shadow_sh1:{de:"Hauch|kaum sichtbar",en:"Whisper|barely visible"},
+  lf_o_shadow_sh2:{de:"Sanft|weiche, ruhige Schatten",en:"Soft|gentle, calm shadows"},
+  lf_o_shadow_sh3:{de:"Leicht schwebend|Karten heben sich ab",en:"Slightly floating|cards lift off"},
+  lf_o_shadow_sh4:{de:"Schwebend|klar erkennbare Tiefe",en:"Floating|clearly visible depth"},
+  lf_o_shadow_sh5:{de:"Hoch|Karten schweben deutlich",en:"High|cards clearly float"},
+  lf_o_shadow_sh6:{de:"Kräftig|starke Kontraste",en:"Strong|strong contrast"},
+  lf_o_shadow_sh7:{de:"Tief|dramatisch",en:"Deep|dramatic"},
+  lf_o_shadow_sh8:{de:"Maximal|wie auf einer Bühne",en:"Maximum|like a stage"},
+  lf_shadow_live_label:{de:"Schatten-Stärke",en:"Shadow strength"},
+  lf_o_border_bd0:{de:"Ohne|keine Kontur",en:"None|no outline"},
+  lf_o_border_bd1:{de:"Haarfein|kaum zu sehen",en:"Hairline|barely visible"},
+  lf_o_border_bd2:{de:"Fein|dezente Linie",en:"Fine|subtle line"},
+  lf_o_border_bd3:{de:"Klar|deutliche Kontur",en:"Clear|clear outline"},
+  lf_o_border_bd4:{de:"Kräftig|starke Kontur",en:"Bold|strong outline"},
+  lf_o_border_bd5:{de:"Dick|fast wie gezeichnet",en:"Thick|almost hand-drawn"},
+  lf_o_border_bd6:{de:"Akzent fein|dünne Linie in Akzentfarbe",en:"Accent fine|thin accent line"},
+  lf_o_border_bd7:{de:"Akzent|Kontur in Akzentfarbe",en:"Accent|accent-colored outline"},
+  lf_o_border_bd8:{de:"Akzent kräftig|auffällig umrandet",en:"Accent bold|eye-catching outline"},
+  lf_o_border_bd9:{de:"Akzent dick|Comic-Look",en:"Accent thick|comic look"},
+  lf_border_live_label:{de:"Rahmen-Stärke",en:"Border strength"},
   lf_o_landing_plain:{de:"Ruhig|keine Animation",en:"Calm|no animation"},
   lf_o_landing_fireflies:{de:"Glühwürmchen|leises Glimmen",en:"Fireflies|quiet glow"},
   lf_o_landing_seasons:{de:"Jahreszeiten|Regen und Schnee im Wechsel",en:"Seasons|rain and snow, alternating"},
@@ -12617,25 +12654,29 @@ const LF_QUESTIONS=[
     {id:'helvetica', font:'helvetica'}]},
   // --- Tiefe ---
   {id:'shadow', q:'lf_q6', sub:'lf_q6_sub', opts:[
-    {id:'flat',  shadow:'none',   shadowAmt:1},
-    {id:'soft',  shadow:'soft',   shadowAmt:1},
-    {id:'float', shadow:'strong', shadowAmt:1},
-    {id:'deep',  shadow:'strong', shadowAmt:1.7}]},
+    {id:'sh0', shadow:'none', shadowAmt:1},
+    {id:'sh1', shadow:'soft', shadowAmt:0.5},
+    {id:'sh2', shadow:'soft', shadowAmt:1},
+    {id:'sh3', shadow:'soft', shadowAmt:1.4},
+    {id:'sh4', shadow:'strong', shadowAmt:0.7},
+    {id:'sh5', shadow:'strong', shadowAmt:1},
+    {id:'sh6', shadow:'strong', shadowAmt:1.5},
+    {id:'sh7', shadow:'strong', shadowAmt:2.2},
+    {id:'sh8', shadow:'strong', shadowAmt:3}]},
   {id:'border', q:'lf_q7', sub:'lf_q7_sub', opts:[
-    {id:'none',    border:'none',    borderW:null},
-    {id:'thin',    border:'default', borderW:null},
-    {id:'strong',  border:'strong',  borderW:2},
-    {id:'accent',  border:'accent',  borderW:1.5}]},
-  // --- Hintergründe ---
-  {id:'landing', q:'lf_q8', sub:'lf_q8_sub', opts:[
-    {id:'plain',     landing:'none'},
-    {id:'fireflies', landing:'fireflies'},
-    {id:'space',     landing:'space'},
-    {id:'seasons',   landing:'seasons'},
-    {id:'aurora',    landing:'aurora'},
-    {id:'bubbles',   landing:'bubbles'},
-    {id:'waves',     landing:'linewaves'},
-    {id:'liquid',    landing:'liquid'}]},
+    {id:'bd0', border:'none', borderW:null},
+    {id:'bd1', border:'default', borderW:0.5},
+    {id:'bd2', border:'default', borderW:1},
+    {id:'bd3', border:'strong', borderW:1.5},
+    {id:'bd4', border:'strong', borderW:2},
+    {id:'bd5', border:'strong', borderW:3},
+    {id:'bd6', border:'accent', borderW:1},
+    {id:'bd7', border:'accent', borderW:1.5},
+    {id:'bd8', border:'accent', borderW:2.5},
+    {id:'bd9', border:'accent', borderW:4}]},
+  // Mauszeiger-Spur, Startseiten-Hintergrund und Klick-Animation sind absichtlich NICHT Teil des Look-Finders
+  // (zu viel Spielerei) — nur noch im Design-Menü (Secret-Code functiondesign) einstellbar.
+  // --- Board ---
   {id:'board', q:'lf_q9', sub:'lf_q9_sub', opts:[
     {id:'grid',     bg:'grid'},
     {id:'lines',    bg:'lines'},
@@ -12652,30 +12693,9 @@ const LF_QUESTIONS=[
     {id:'dock',   dynamic:true,  groups:[]},
     {id:'calm',   dynamic:true,  groups:['boardzoom','menustagger']},
     {id:'full',   dynamic:true,  groups:'all'}]},
-  // --- Cursor: Spur und Klick getrennt ---
-  {id:'trail', q:'lf_q12', sub:'lf_q12_sub', opts:[
-    {id:'off',      trail:'off'},
-    {id:'line',     trail:'line'},
-    {id:'comet',    trail:'comet'},
-    {id:'sparks',   trail:'sparks'},
-    {id:'stars',    trail:'stars'},
-    {id:'confetti', trail:'confetti'},
-    {id:'hearts',   trail:'hearts'},
-    {id:'bubbles',  trail:'bubbles'},
-    {id:'pixels',   trail:'pixels'}]},
-  {id:'click', q:'lf_q13', sub:'lf_q13_sub', opts:[
-    {id:'off',      click:'off'},
-    {id:'ring',     click:'ring'},
-    {id:'ripple',   click:'ripple'},
-    {id:'sparks',   click:'sparks'},
-    {id:'stars',    click:'stars'},
-    {id:'confetti', click:'confetti'},
-    {id:'hearts',   click:'hearts'},
-    {id:'bubbles',  click:'bubbles'},
-    {id:'firework', click:'firework'}]},
 ];
 const LF_WIDE=new Set(['palette','landing','board','boardmove','uianim','trail','click','shape','shadow','border','font']);
-const LF_BOARDPREV=new Set(['shape','shadow','border','font']); // zeigen eine Mini-Board-Vorschau mit zwei Karten
+const LF_BOARDPREV=new Set(['font']); // zeigen eine Mini-Board-Vorschau mit zwei Karten
 function lfOpt(qid,oid){
   // Zufalls-Farben: 'rnd:<bg>:<accent>' (siehe lfRandomAnswers)
   if(qid==='palette' && typeof oid==='string' && oid.startsWith('rnd:')){ const pt=oid.split(':'); return {id:oid,bg:pt[1],accent:pt[2]}; }
@@ -12816,32 +12836,95 @@ function lfFinish(ans){
 }
 /* Ecken-Frage: große Live-Ansicht (Notiz, Checkliste, Buttons, Chips) + Schieberegler für den Radius und ein kleiner
    Text, der sich mit dem Regler verändert. Die elf Rasterstufen entsprechen den Antwort-Optionen (Look-Code bleibt gültig). */
-function lfShapeUi(selId){
-  const q=LF_QUESTIONS.find(x=>x.id==='shape'); let i=q.opts.findIndex(o=>o.id===selId); if(i<0) i=4;
-  const o=q.opts[i], p=lfParts('shape',o.id);
-  return `<div class="lf-shape-live" style="--lf-r:${o.radius}px">
+const LF_SLIDER_Q=new Set(['shape','shadow','border']);
+function lfSliderVars(qid,o){
+  if(qid==='shape') return `--lf-r:${o.radius}px`;
+  if(qid==='border'){
+    const col={none:'transparent',default:'var(--border)',strong:'var(--border-strong)',accent:'var(--accent)'}[o.border]||'var(--border)';
+    return `--lf-r:12px;--lf-bw:${o.borderW==null?1:o.borderW}px;--lf-bc:${col};--lf-sh:0 2px 6px rgba(0,0,0,.07)`;
+  }
+  const sh=designShadowCss(o.shadow,o.shadowAmt);
+  return `--lf-r:12px;--lf-sh:${sh==='none'?'0 0 0 0 transparent':sh}`;
+}
+/* Schrift-Frage: große Live-Ansicht mit echtem Text (Notiz, Checkliste, Button) + Auswahl-Pillen; der kleine Text
+   darunter wechselt mit der Schrift. */
+const LF_PICK_Q=new Set(['font','board','boardmove']);
+function lfPickFont(o){ return o.font==='default'?'inherit':DESIGN_FONTS[o.font]; }
+// Welche Klassen/Variablen die große Vorschau für die gewählte Option bekommt
+function lfPickBoardCls(qid,o,ans){
+  if(qid==='board') return 'lf-bd-'+o.id;
+  if(qid==='boardmove') return 'lf-bd-'+((ans&&ans.board)||'grid')+(o.move?' lf-mv':'');
+  return '';
+}
+function lfPickBoard(qid,o,ans){
+  const cls=lfPickBoardCls(qid,o,ans);
+  if(qid==='font') return `<div class="lf-sl-board">
+      <span class="lf-sl-card a"><b>Notiz</b><em>Der schnelle braune Fuchs springt über den faulen Hund.</em></span>
+      <span class="lf-sl-card b lf-tx"><u>Einkaufen</u><u>Anrufen</u><u class="on">Ideen sammeln</u></span>
+      <span class="lf-sl-card c"><span class="lf-sl-btn">Speichern</span><span class="lf-sl-chip">Idee</span><span class="lf-sl-chip ac">Wichtig</span></span>
+    </div>`;
+  return `<div class="lf-sl-board ${cls}">
+      <span class="lf-sl-card a"><b>Notiz</b><em>Hier landen deine Ideen.</em><i></i></span>
+      <span class="lf-sl-card b"><u></u><u></u><u class="on"></u></span>
+      <span class="lf-sl-card c"><span class="lf-sl-btn">Speichern</span><span class="lf-sl-chip">Idee</span><span class="lf-sl-chip ac">Wichtig</span></span>
+    </div>`;
+}
+function lfPickPill(qid,x,sel,ans){
+  const pp=lfParts(qid,x.id);
+  if(qid==='font') return `<button type="button" class="lf-pill${sel?' sel':''}" data-id="${x.id}" style="font-family:${lfPickFont(x)}"><b>Aa</b><span>${pp.label}</span></button>`;
+  if(qid==='board') return `<button type="button" class="lf-pill${sel?' sel':''}" data-id="${x.id}"><i class="lf-sw ${lfPickBoardCls(qid,x,ans)}"></i><span>${pp.label}</span></button>`;
+  return `<button type="button" class="lf-pill${sel?' sel':''}" data-id="${x.id}"><span>${pp.label}</span></button>`;
+}
+function lfPickUi(qid,selId,ans){
+  const q=LF_QUESTIONS.find(x=>x.id===qid); let o=q.opts.find(x=>x.id===selId)||q.opts[0];
+  const p=lfParts(qid,o.id);
+  const vars=qid==='font'?`--lf-ff:${lfPickFont(o)};--lf-r:12px;--lf-sh:0 2px 8px rgba(0,0,0,.10)`:`--lf-r:12px;--lf-sh:0 2px 8px rgba(0,0,0,.10)`;
+  return `<div class="lf-shape-live lf-pick${qid==='font'?'':' lf-pick-'+qid}" style="${vars}">
+    ${lfPickBoard(qid,o,ans)}
+    <div class="lf-pills">${q.opts.map(x=>lfPickPill(qid,x,x.id===o.id,ans)).join('')}</div>
+    <div class="lf-sl-text"><b class="n">${p.label}</b><span class="d">${p.desc}</span></div></div>`;
+}
+function lfBindPickUi(box,q,ans,onChange){
+  const wrap=box.querySelector('.lf-pick'); if(!wrap) return;
+  const set=(o)=>{
+    const p=lfParts(q.id,o.id);
+    if(q.id==='font') wrap.style.setProperty('--lf-ff',lfPickFont(o));
+    else{
+      const bd=wrap.querySelector('.lf-sl-board'); bd.className='lf-sl-board '+lfPickBoardCls(q.id,o,ans);
+    }
+    wrap.querySelector('.n').textContent=p.label; wrap.querySelector('.d').textContent=p.desc;
+    wrap.querySelectorAll('.lf-pill').forEach(b=>b.classList.toggle('sel',b.dataset.id===o.id));
+    ans[q.id]=o.id; onChange();
+  };
+  wrap.querySelectorAll('.lf-pill').forEach(b=>b.addEventListener('click',()=>set(q.opts.find(x=>x.id===b.dataset.id))));
+  if(!ans[q.id]) set(q.opts[0]);
+}
+function lfShapeUi(qid,selId){
+  const q=LF_QUESTIONS.find(x=>x.id===qid); let i=q.opts.findIndex(o=>o.id===selId); if(i<0) i=(qid==='shape'?4:2);
+  const o=q.opts[i], p=lfParts(qid,o.id), lab=t('lf_'+qid+'_live_label');
+  return `<div class="lf-shape-live" style="${lfSliderVars(qid,o)}">
     <div class="lf-sl-board">
       <span class="lf-sl-card a"><b>Notiz</b><em>Hier landen deine Ideen.</em><i></i></span>
       <span class="lf-sl-card b"><u></u><u></u><u class="on"></u></span>
       <span class="lf-sl-card c"><span class="lf-sl-btn">Speichern</span><span class="lf-sl-chip">Idee</span><span class="lf-sl-chip ac">Wichtig</span></span>
     </div>
     <div class="lf-sl-ctl">
-      <span class="lf-sl-lab">${t('lf_shape_live_label')}</span>
-      <input type="range" class="lf-slider" min="0" max="${q.opts.length-1}" step="1" value="${i}" aria-label="${t('lf_shape_live_label')}">
+      <span class="lf-sl-lab">${lab}</span>
+      <input type="range" class="lf-slider" min="0" max="${q.opts.length-1}" step="1" value="${i}" aria-label="${lab}">
       <div class="lf-sl-text"><b class="n">${p.label}</b><span class="d">${p.desc}</span></div>
     </div></div>`;
 }
 function lfBindShapeUi(box,q,ans,onChange){
   const wrap=box.querySelector('.lf-shape-live'), sl=box.querySelector('.lf-slider'); if(!wrap||!sl) return;
   const upd=()=>{
-    const o=q.opts[+sl.value], p=lfParts('shape',o.id);
-    wrap.style.setProperty('--lf-r',o.radius+'px');
+    const o=q.opts[+sl.value], p=lfParts(q.id,o.id);
+    wrap.setAttribute('style',lfSliderVars(q.id,o));
     wrap.querySelector('.n').textContent=p.label; wrap.querySelector('.d').textContent=p.desc;
     const pct=(+sl.value)/(q.opts.length-1)*100; sl.style.setProperty('--p',pct+'%');
-    ans.shape=o.id; onChange();
+    ans[q.id]=o.id; onChange();
   };
   sl.addEventListener('input',upd);
-  if(!ans.shape){ ans.shape=q.opts[+sl.value].id; onChange(); }
+  if(!ans[q.id]){ ans[q.id]=q.opts[+sl.value].id; onChange(); }
   sl.style.setProperty('--p',(+sl.value)/(q.opts.length-1)*100+'%');
 }
 function lfVisual(qid,o){
@@ -12923,15 +13006,13 @@ function showLookFinder(opts){
   function renderQuestion(){
     const q=LF_QUESTIONS[step];
     box.innerHTML=`
-      <div class="lf-head"><span class="lf-step">${t('lf_step',{n:step+1,m:N})}</span><div class="lf-prog"><i style="width:${Math.round(step/N*100)}%"></i></div></div>
-      <div><h4 class="lf-q">${t(q.q)}</h4><p style="margin-top:4px;">${t(q.sub)}</p></div>
-      ${q.id==='shape'?lfShapeUi(ans[q.id]):''}
-      <div class="lf-opts"${q.id==='shape'?' hidden':''}>${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}${LF_BOARDPREV.has(q.id)?' mb':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
-      <div class="lf-foot">
-        <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>
-        <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button>
-<span class="lf-spacer"></span>
-        ${step>0?`<button type="button" data-a="back">${t('lf_back')}</button>`:''}
+      <div class="lf-head"><span class="lf-step">${step+1}/${N}</span><div class="lf-prog"><i style="width:${Math.round(step/N*100)}%"></i></div>${(!first&&step>0)?`<button type="button" class="lf-x" data-a="later" title="${t('lf_cancel')}">&times;</button>`:''}</div>
+      <h4 class="lf-q">${t(q.q)}</h4>
+      ${LF_SLIDER_Q.has(q.id)?lfShapeUi(q.id,ans[q.id]):(LF_PICK_Q.has(q.id)?lfPickUi(q.id,ans[q.id],ans):'')}
+      <div class="lf-opts"${(LF_SLIDER_Q.has(q.id)||LF_PICK_Q.has(q.id))?' hidden':''}>${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}${LF_BOARDPREV.has(q.id)?' mb':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
+      <div class="lf-foot lf-nav">
+        ${step===0?`<button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>`:`<button type="button" data-a="back">${t('lf_back')}</button>`}
+        <span class="lf-spacer"></span>
         <button type="button" class="primary" data-a="next"${ans[q.id]?'':' disabled'}>${t(step===N-1?'lf_show_result':'lf_next')}</button>
       </div>`;
     requestAnimationFrame(()=>{ const bar=box.querySelector('.lf-prog i'); if(bar) bar.style.width=Math.round((step+1)/N*100)+'%'; });
@@ -12942,9 +13023,9 @@ function showLookFinder(opts){
       box.querySelector('[data-a="next"]').disabled=false;
       lfApplyAll(ans,false);
     }));
-    if(q.id==='shape') lfBindShapeUi(box,q,ans,()=>{ box.querySelector('[data-a="next"]').disabled=false; lfApplyAll(ans,false); });
-    box.querySelector('[data-a="later"]').addEventListener('click',cancel);
-    box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
+    if(LF_PICK_Q.has(q.id)) lfBindPickUi(box,q,ans,()=>{ box.querySelector('[data-a="next"]').disabled=false; lfApplyAll(ans,false); });
+    if(LF_SLIDER_Q.has(q.id)) lfBindShapeUi(box,q,ans,()=>{ box.querySelector('[data-a="next"]').disabled=false; lfApplyAll(ans,false); });
+    const lt=box.querySelector('[data-a="later"]'); if(lt) lt.addEventListener('click',cancel);
     const bk=box.querySelector('[data-a="back"]'); if(bk) bk.addEventListener('click',()=>{ step--; render(); });
     box.querySelector('[data-a="next"]').addEventListener('click',()=>{ if(!ans[q.id]) return; step++; render(); });
   }
@@ -12953,7 +13034,7 @@ function showLookFinder(opts){
     const sparks=(ans.trail && ans.trail!=='off') || (ans.click && ans.click!=='off') ? '<i class="lf-spark" style="left:18%;bottom:6%"></i><i class="lf-spark" style="left:52%;bottom:2%;animation-delay:.8s"></i><i class="lf-spark" style="left:84%;bottom:8%;animation-delay:1.5s"></i>' : '';
     const items=LF_QUESTIONS.map(q=>{ const pt=lfParts(q.id,ans[q.id]); return `<div class="lf-item"><span>${t('lf_cat_'+q.id)}</span><b>${pt.label}</b></div>`; }).join('');
     box.innerHTML=`
-      <div class="lf-head"><span class="lf-step">${t('lf_done_step')}</span><div class="lf-prog"><i style="width:100%"></i></div></div>
+      <div class="lf-head"><span class="lf-step">✓</span><div class="lf-prog"><i style="width:100%"></i></div></div>
       <div class="lf-pass">
         <div class="lf-pass-top">
           <div class="lf-prev">
@@ -12962,14 +13043,13 @@ function showLookFinder(opts){
             <div class="lf-pc c3"><b>NOTUA</b></div>
             ${sparks}
           </div>
-          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')}${isBetaFeatureUnlocked('look')?`<div class="lf-code-row"><span class="lf-code-txt">${code}</span><button type="button" class="lf-copy" data-a="copy" title="${t('lf_copy_title')}">${t('lf_copy')}</button></div>`:''}</div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{k:N,n:LF_QUESTIONS.reduce((a,q)=>a*q.opts.length,1).toLocaleString(document.documentElement.lang==='en'?'en-US':'de-DE')})}</div></div>
+          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')}${isBetaFeatureUnlocked('look')?`<div class="lf-code-row"><span class="lf-code-txt">${code}</span><button type="button" class="lf-copy" data-a="copy" title="${t('lf_copy_title')}">${t('lf_copy')}</button></div>`:''}</div><div class="lf-rname">${name}</div></div>
         </div>
         <div class="lf-items">${items}</div>
       </div>
-      <div class="lf-beta">${LF_LOCK_SVG}<span>${t('lf_beta_hint')}</span></div>
       <div class="lf-foot">
         <button type="button" data-a="again">${t('lf_again')}</button>
-        <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button><span class="lf-spacer"></span>
+        <span class="lf-spacer"></span>
         <button type="button" class="primary" data-a="apply">${t(first?'lf_apply_first':'lf_apply')}</button>
       </div>`;
     box.querySelector('[data-a="again"]').addEventListener('click',()=>{ lfRestore(snap); ans={}; step=0; render(); });
@@ -12979,7 +13059,6 @@ function showLookFinder(opts){
       if(!ok){ try{ const ta=document.createElement('textarea'); ta.value=code; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok=document.execCommand('copy'); ta.remove(); }catch(e){} }
       cp.textContent=t(ok?'lf_copied':'lf_copy'); if(ok) setTimeout(()=>{ if(cp.isConnected) cp.textContent=t('lf_copy'); },1600);
     });
-    box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
     box.querySelector('[data-a="apply"]').addEventListener('click',()=>{
       lfFinish(ans); markDone(); try{ localStorage.setItem('notua-look-code',code); }catch(e){} done();
       try{ showToast(t('lf_toast',{name})); }catch(e){}
@@ -14730,7 +14809,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.94';
+const APP_VERSION='2.4.100';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
