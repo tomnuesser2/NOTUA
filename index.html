@@ -45,6 +45,19 @@
 // only runs once the whole document — every card, every drawer row — has parsed), so an explicit
 // light/dark choice from a previous visit is already on <html> at first paint instead of visibly
 // flipping from the system default a moment after the page appears.
+// v2.4.89: EINMALIGER Zwangs-Reset aller UI-Einstellungen (Theme, Design, Hintergründe, Animationen, Dock, Mausrad …)
+// auf jedem Gerät. Boards, Sync, Sprache und Konto bleiben unberührt. Danach läuft der Erststart-Ablauf neu:
+// Knopf → Look-Finder (UI auswählen) → Frage nach der Onboarding-Tour. "Später" behält den Standard-Look.
+try{
+  if(localStorage.getItem('notua-ui-reset')!=='2.4.89'){
+    var __rk=[];
+    for(var __i=0;__i<localStorage.length;__i++){ var __k=localStorage.key(__i); if(__k && (__k.indexOf('notua-anim-')===0 || __k.indexOf('notua-tooltip-tour-')===0)) __rk.push(__k); }
+    ['notua-theme','notua-custom-theme','notua-design','notua-grid-style','notua-ui-dynamic','notua-wheel-pref','notua-dynamic-content','notua-dock-config',
+     'notua-look-answers','notua-lookfinder-done','notua-tour-v2-seen','notua-tooltip-welcome-seen'].forEach(function(k){ __rk.push(k); });
+    __rk.forEach(function(k){ localStorage.removeItem(k); });
+    localStorage.setItem('notua-ui-reset','2.4.89');
+  }
+}catch(e){}
 try{
   var __notuaTheme=localStorage.getItem('notua-theme');
   if(__notuaTheme==='light'||__notuaTheme==='dark') document.documentElement.setAttribute('data-theme',__notuaTheme);
@@ -1381,6 +1394,12 @@ try{
   .lf-prev .lf-spark{position:absolute; width:7px; height:7px; border-radius:50%; background:var(--accent); opacity:.7; animation:lfRise 2.4s ease-in infinite;}
   .lf-info{padding:16px; display:flex; flex-direction:column; gap:6px; justify-content:center;}
   .lf-rname{font-size:1.25rem; font-weight:750; line-height:1.15; color:var(--ink);}
+  .lf-code-txt{font-family:'IBM Plex Mono',ui-monospace,monospace; letter-spacing:.08em; user-select:all; margin-left:2px;}
+  .lf-code-row{display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;}
+  .lf-copy{ padding:2px 9px; border-radius:7px; border:1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); background:var(--surface-2); color:var(--accent); font:inherit; font-size:0.7rem; font-weight:600; letter-spacing:0; cursor:var(--custom-pointer-cursor,pointer);}
+  .lf-copy:hover{background:var(--accent-soft);}
+  .lf-code-input{width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:1.05rem; letter-spacing:.12em; text-transform:uppercase; box-sizing:border-box;}
+  .lf-code-err{color:#d9534f; font-size:0.82rem;}
   .lf-rcode{font-size:0.74rem; color:var(--accent); font-weight:700; letter-spacing:.06em;}
   .lf-rsub{font-size:0.78rem; color:var(--muted); line-height:1.4;}
   .lf-items{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:var(--border); border-top:1px solid var(--border);}
@@ -5053,6 +5072,10 @@ const I18N={
   // is a hidden beta feature, and t() already falls back to `de` for any language without its own
   // entry, so es/da simply show the German text until/unless this becomes a public feature.
   tools_secret_tooltip_item:{de:'Tooltip-Tour',en:'Tooltip tour'},
+  tour_ask_title:{de:'Onboarding-Tour machen?',en:'Take the onboarding tour?'},
+  tour_ask_body:{de:'Eine kurze Tour zeigt dir Schritt für Schritt, wo alles ist. Du kannst sie jederzeit über Werkzeuge → Tooltip-Tour starten.',en:'A short tour shows you where everything is, step by step. You can start it any time via Tools → Tooltip tour.'},
+  tour_ask_yes:{de:'Tour starten',en:'Start tour'},
+  tour_ask_later:{de:'Später',en:'Later'},
   tour_welcome_title:{de:'Kurze Einführung?',en:'Quick tour?'},
   tour_welcome_body:{de:'NOTUA kann dir auf Wunsch ein paar kurze Tipps zeigen, während du die App gerade kennenlernst — wo du Boards anlegst, wie du Elemente erstellst und was es sonst noch gibt. Du kannst die Tipps jederzeit wegklicken.',en:'NOTUA can show you a few short tips while you get to know the app — where to create boards, how to add elements, and what else is there. You can dismiss the tips at any time.'},
   tour_welcome_switch_label:{de:'Tooltips anzeigen',en:'Show tooltips'},
@@ -5205,6 +5228,10 @@ const I18N={
   lf_name_light:{de:"{p} am Tag",en:"{p} by day"},
   lf_name_dark:{de:"{p} bei Nacht",en:"{p} by night"},
   lf_code_label:{de:"Dein Look",en:"Your look"},
+  lf_copy:{de:"Kopieren",en:"Copy"}, lf_copied:{de:"Kopiert ✓",en:"Copied ✓"}, lf_copy_title:{de:"Look-Code kopieren",en:"Copy look code"},
+  lf_code_enter:{de:"Code einlösen",en:"Enter code"}, lf_code_title:{de:"Look-Code einlösen",en:"Enter a look code"},
+  lf_code_hint:{de:"Füge deinen 12-stelligen Look-Code ein, um dein gespeichertes UI wiederherzustellen.",en:"Paste your 12-character look code to restore your saved UI."},
+  lf_code_bad:{de:"Dieser Code ist ungültig.",en:"This code is not valid."}, lf_code_apply:{de:"Einlösen",en:"Apply"},
   lf_result_sub:{de:"Aus deinen {k} Antworten gebaut – einer von {n} möglichen Looks.",en:"Built from your {k} answers – one of {n} possible looks."},
   lf_prev_card1:{de:"Notiz",en:"Note"},
   lf_prev_card2:{de:"Checkliste",en:"Checklist"},
@@ -9909,7 +9936,7 @@ const THEME_DUO_PALETTES=[
 
 function deriveThemeTokens(main,accent,background,dark){
   const [mh,ms]=hexToHslArr(main);
-  const [ah]=hexToHslArr(accent);
+  const [ah,as_]=hexToHslArr(accent);
   const [bh,bs,bl]=hexToHslArr(background);
   // Tom, 24.09: "wenn ich Weiß wähle auf der Rotskala dann wird es einfach ein Rot-Ton... es soll aber
   // schon die volle Kontrolle haben, nur eben dass es trotzdem leicht verschoben wird" — the old clamp
@@ -9983,8 +10010,11 @@ function deriveThemeTokens(main,accent,background,dark){
     // A pale HSL tint (the light-mode formula below) barely registers against a near-black
     // surface — the static dark stylesheet block washes the accent itself in at low opacity
     // instead, so this mirrors that rather than reusing the light-mode approach.
-    const [ar,ag,ab]=hexToRgbArr(accent);
-    accentSoft=`rgba(${ar},${ag},${ab},0.18)`;
+    // Mono & Co.: ein (fast) graues Akzent-Grau würde hier nur graues Weiß waschen — wie im Lightmode (Ton des Akzents,
+    // z. B. das Blau bei Mono) bekommt auch der Darkmode dann einen farbigen Hauch ("bei Dunkel soll das Blau drin sein").
+    const tintHex=(as_<30) ? hslToHex(ah, 70, 62) : accent;
+    const [ar,ag,ab]=hexToRgbArr(tintHex);
+    accentSoft=`rgba(${ar},${ag},${ab},${as_<30?0.24:0.18})`;
   } else {
     accentSoft=hslToHex(ah, 82, 90);
   }
@@ -12316,6 +12346,9 @@ function renderTourSpotlight(step,targetEl){
     <div class="tour-tooltip-arrow"></div>`;
   document.body.appendChild(tip);
   tourFingerZapNext=true;
+  // "beim Onboarding immer zu dem Punkt snappen, wo der Tooltip hinzeigt" — das Ziel wird sofort (ohne Animation)
+  // in den sichtbaren Bereich gescrollt, bevor Markierung und Tooltip positioniert werden.
+  try{ targetEl.scrollIntoView({block:'center',inline:'center',behavior:'instant'}); }catch(e){ try{ targetEl.scrollIntoView(); }catch(e2){} }
   positionTourSpotlight(ring,tip,targetEl.getBoundingClientRect());
   tourInstallClickGuard(step,targetEl);
   tip.querySelector('[data-a="close"]').addEventListener('click',()=>stopTour(true));
@@ -12595,10 +12628,72 @@ function lfRandomAnswers(){
   const R=(a,b)=>a+Math.random()*(b-a), pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
   const ans={};
   LF_QUESTIONS.forEach(q=>{ ans[q.id]=pick(q.opts).id; });
-  const h=Math.random()*360, h2=Math.random()*360;
-  const bg=hslToHex(h,R(35,90),R(86,95)), ac=hslToHex(h2,R(55,92),R(36,52));
-  ans.palette='rnd:'+bg+':'+ac;
+  const ri=(n)=>Math.floor(Math.random()*n);
+  ans.palette=lfRndOid([ri(90),ri(56),ri(10),ri(90),ri(38),ri(17)]);
   return ans;
+}
+/* ---------- Look-Code: 12 Zeichen (Crockford-Base32), die alle Antworten verlustfrei enthalten ----------
+   Gemischte Zahlenbasis (eine Ziffer je Frage) × Zufallsfarben-Parameter, danach per umkehrbarer Multiplikation
+   (mod 2^60) durchgemischt, damit der Code wie Zufall aussieht. Eingelöst wird derselbe Code wieder in die Antworten. */
+const LF_ALPHA='0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const LF_RND_DIMS=[90,56,10,90,38,17];               // Farbton1/4°, Sättigung1 35–90, Helligkeit1 86–95, Farbton2/4°, Sättigung2 55–92, Helligkeit2 36–52
+const LF_MASK=(1n<<60n)-1n, LF_MULT=0x9E3779B97F4A7C15n & LF_MASK | 1n, LF_ADD=0x2545F4914F6CDD1Dn & LF_MASK;
+const LF_RND_PARAMS={};                              // oid -> Parameter (vermeidet Rundungsfehler beim Hex↔HSL-Umrechnen)
+function lfRndOid(p){
+  const bg=hslToHex(p[0]*4,35+p[1],86+p[2]), ac=hslToHex(p[3]*4,55+p[4],36+p[5]);
+  const oid='rnd:'+bg+':'+ac; LF_RND_PARAMS[oid]=p.slice(); return oid;
+}
+function lfRndParamsOf(oid){
+  if(LF_RND_PARAMS[oid]) return LF_RND_PARAMS[oid];
+  const pt=oid.split(':'), a=rgbToHsl(...hexToRgbArr(pt[1])), b=rgbToHsl(...hexToRgbArr(pt[2]));
+  const cl=(v,n)=>Math.max(0,Math.min(n-1,Math.round(v)));
+  const hh=(h)=>Math.round(((h%360)+360)%360/4)%90;
+  const S=(x)=>x<=1?x*100:x; // rgbToHsl liefert je nach Implementierung 0–1 oder 0–100
+  return [hh(a[0]),cl(S(a[1])-35,56),cl(S(a[2])-86,10),hh(b[0]),cl(S(b[1])-55,38),cl(S(b[2])-36,17)];
+}
+function lfInv(a){ let x=a; for(let i=0;i<7;i++) x=(x*(2n-a*x))&LF_MASK; return x; }
+function lfEncode(ans){
+  let v=0n;
+  for(const q of LF_QUESTIONS){
+    const isP=q.id==='palette', rad=q.opts.length+(isP?1:0), o=ans[q.id];
+    let idx;
+    if(isP && typeof o==='string' && o.startsWith('rnd:')) idx=q.opts.length;
+    else idx=q.opts.findIndex(x=>x.id===o);
+    if(idx<0) return null;
+    v=v*BigInt(rad)+BigInt(idx);
+  }
+  let extra=0n;
+  if(typeof ans.palette==='string' && ans.palette.startsWith('rnd:')){
+    const p=lfRndParamsOf(ans.palette);
+    LF_RND_DIMS.forEach((d,i)=>{ extra=extra*BigInt(d)+BigInt(p[i]); });
+  }
+  v=v*LF_RND_EXTRA+extra;
+  v=(v*LF_MULT+LF_ADD)&LF_MASK;
+  let out=''; for(let i=0;i<12;i++){ out=LF_ALPHA[Number(v&31n)]+out; v>>=5n; }
+  return out.slice(0,4)+'-'+out.slice(4,8)+'-'+out.slice(8);
+}
+const LF_RND_EXTRA=LF_RND_DIMS.reduce((a,d)=>a*BigInt(d),1n);
+function lfDecode(str){
+  try{
+    const c=String(str||'').toUpperCase().replace(/O/g,'0').replace(/[IL]/g,'1').replace(/[^0-9A-Z]/g,'');
+    if(c.length!==12) return null;
+    let v=0n; for(const ch of c){ const i=LF_ALPHA.indexOf(ch); if(i<0) return null; v=(v<<5n)|BigInt(i); }
+    v=((v-LF_ADD)*lfInv(LF_MULT))&LF_MASK;
+    let extra=v%LF_RND_EXTRA; v=v/LF_RND_EXTRA;
+    const idxs=[];
+    for(let k=LF_QUESTIONS.length-1;k>=0;k--){ const q=LF_QUESTIONS[k], rad=BigInt(q.opts.length+(q.id==='palette'?1:0)); idxs[k]=Number(v%rad); v=v/rad; }
+    if(v!==0n) return null;
+    const ans={};
+    for(let k=0;k<LF_QUESTIONS.length;k++){
+      const q=LF_QUESTIONS[k], i=idxs[k];
+      if(q.id==='palette' && i===q.opts.length){
+        const p=[]; for(let j=LF_RND_DIMS.length-1;j>=0;j--){ const d=BigInt(LF_RND_DIMS[j]); p[j]=Number(extra%d); extra=extra/d; }
+        ans.palette=lfRndOid(p);
+      }else ans[q.id]=q.opts[i].id;
+    }
+    if(extra!==0n && ans.palette && !ans.palette.startsWith('rnd:')) return null; // Zusatzfeld nur bei Zufallsfarben erlaubt
+    return ans;
+  }catch(e){ return null; }
 }
 function lfSnapshot(){
   let custom=null; try{ custom=localStorage.getItem('notua-custom-theme'); }catch(e){}
@@ -12714,6 +12809,9 @@ const LF_DICE_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" s
 function showLookFinder(opts){
   opts=opts||{};
   const first=!!opts.firstRun, snap=lfSnapshot();
+  // Startbasis des Look-Finders: Mono im Lightmode mit allen Standardeinstellungen (nur Vorschau, nichts gespeichert).
+  // "Später" stellt über lfRestore(snap) den Standard-Look (blau/orange) wieder her.
+  if(first){ try{ document.documentElement.setAttribute('data-theme','light'); applyCustomTheme(THEME_MONO,false); syncThemeUI(); }catch(e){} }
   let ans={}, step=0, closed=false;
   const scrim=document.createElement('div'); scrim.className='modal-scrim lf-scrim';
   scrim.innerHTML='<div class="modal lf-modal"></div>';
@@ -12727,6 +12825,19 @@ function showLookFinder(opts){
   function render(){
     if(step<N) renderQuestion(); else renderResult();
   }
+  function renderCodeEntry(){
+    box.innerHTML=`
+      <div><h4 class="lf-q">${t('lf_code_title')}</h4><p style="margin-top:4px;">${t('lf_code_hint')}</p></div>
+      <input type="text" class="lf-code-input" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX">
+      <p class="lf-code-err" hidden>${t('lf_code_bad')}</p>
+      <div class="lf-foot"><button type="button" data-a="back">${t('lf_back')}</button><span class="lf-spacer"></span><button type="button" class="primary" data-a="go">${t('lf_code_apply')}</button></div>`;
+    const inp=box.querySelector('input'), err=box.querySelector('.lf-code-err');
+    const go=()=>{ const a=lfDecode(inp.value); if(!a){ err.hidden=false; return; } ans=a; lfApplyAll(ans,false); step=N; render(); };
+    box.querySelector('[data-a="back"]').addEventListener('click',render);
+    box.querySelector('[data-a="go"]').addEventListener('click',go);
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } });
+    setTimeout(()=>inp.focus(),30);
+  }
   function renderQuestion(){
     const q=LF_QUESTIONS[step];
     box.innerHTML=`
@@ -12735,7 +12846,8 @@ function showLookFinder(opts){
       <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
       <div class="lf-foot">
         <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>
-        <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button><span class="lf-spacer"></span>
+        <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button>
+        <button type="button" data-a="code">${t('lf_code_enter')}</button><span class="lf-spacer"></span>
         ${step>0?`<button type="button" data-a="back">${t('lf_back')}</button>`:''}
         <button type="button" class="primary" data-a="next"${ans[q.id]?'':' disabled'}>${t(step===N-1?'lf_show_result':'lf_next')}</button>
       </div>`;
@@ -12749,11 +12861,12 @@ function showLookFinder(opts){
     }));
     box.querySelector('[data-a="later"]').addEventListener('click',cancel);
     box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
+    box.querySelector('[data-a="code"]').addEventListener('click',renderCodeEntry);
     const bk=box.querySelector('[data-a="back"]'); if(bk) bk.addEventListener('click',()=>{ step--; render(); });
     box.querySelector('[data-a="next"]').addEventListener('click',()=>{ if(!ans[q.id]) return; step++; render(); });
   }
   function renderResult(){
-    const name=lfName(ans), code=lfCode(ans);
+    const name=lfName(ans), code=lfEncode(ans)||'';
     const sparks=(ans.trail && ans.trail!=='off') || (ans.click && ans.click!=='off') ? '<i class="lf-spark" style="left:18%;bottom:6%"></i><i class="lf-spark" style="left:52%;bottom:2%;animation-delay:.8s"></i><i class="lf-spark" style="left:84%;bottom:8%;animation-delay:1.5s"></i>' : '';
     const items=LF_QUESTIONS.map(q=>{ const pt=lfParts(q.id,ans[q.id]); return `<div class="lf-item"><span>${t('lf_cat_'+q.id)}</span><b>${pt.label}</b></div>`; }).join('');
     box.innerHTML=`
@@ -12766,7 +12879,7 @@ function showLookFinder(opts){
             <div class="lf-pc c3"><b>NOTUA</b></div>
             ${sparks}
           </div>
-          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')} #${code}</div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{k:N,n:LF_QUESTIONS.reduce((a,q)=>a*q.opts.length,1).toLocaleString(document.documentElement.lang==='en'?'en-US':'de-DE')})}</div></div>
+          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')}<div class="lf-code-row"><span class="lf-code-txt">${code}</span><button type="button" class="lf-copy" data-a="copy" title="${t('lf_copy_title')}">${t('lf_copy')}</button></div></div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{k:N,n:LF_QUESTIONS.reduce((a,q)=>a*q.opts.length,1).toLocaleString(document.documentElement.lang==='en'?'en-US':'de-DE')})}</div></div>
         </div>
         <div class="lf-items">${items}</div>
       </div>
@@ -12777,9 +12890,15 @@ function showLookFinder(opts){
         <button type="button" class="primary" data-a="apply">${t(first?'lf_apply_first':'lf_apply')}</button>
       </div>`;
     box.querySelector('[data-a="again"]').addEventListener('click',()=>{ lfRestore(snap); ans={}; step=0; render(); });
+    const cp=box.querySelector('[data-a="copy"]');
+    if(cp) cp.addEventListener('click',async()=>{
+      let ok=false; try{ await navigator.clipboard.writeText(code); ok=true; }catch(e){}
+      if(!ok){ try{ const ta=document.createElement('textarea'); ta.value=code; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok=document.execCommand('copy'); ta.remove(); }catch(e){} }
+      cp.textContent=t(ok?'lf_copied':'lf_copy'); if(ok) setTimeout(()=>{ if(cp.isConnected) cp.textContent=t('lf_copy'); },1600);
+    });
     box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
     box.querySelector('[data-a="apply"]').addEventListener('click',()=>{
-      lfFinish(ans); markDone(); done();
+      lfFinish(ans); markDone(); try{ localStorage.setItem('notua-look-code',code); }catch(e){} done();
       try{ showToast(t('lf_toast',{name})); }catch(e){}
     });
   }
@@ -12870,8 +12989,19 @@ function startFirstTourIfNeeded(){
   let seen=false; try{ seen=localStorage.getItem(TOUR_V2_KEY)==='1'; }catch(e){}
   if(!seen){
     try{ localStorage.setItem(TOUR_V2_KEY,'1'); }catch(e){}
-    saveTourEnabled(true); saveTourStep(0); saveTourBoardId(null);
-    setTimeout(()=>{ if(state.screen==='home') startTour(0); },350);
+    // "danach kommt die Meldung: willst du eine Onboarding-Tour machen?" — erst fragen, nicht einfach starten.
+    const ask=document.createElement('div'); ask.className='modal-scrim';
+    ask.innerHTML=`<div class="modal"><h4>${t('tour_ask_title')}</h4><p>${t('tour_ask_body')}</p>
+      <div class="modal-actions"><button data-a="later">${t('tour_ask_later')}</button><button data-a="yes" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('tour_ask_yes')}</button></div></div>`;
+    const later=()=>{ ask.remove(); saveTourEnabled(false); saveTourStep(0); saveTourBoardId(null); try{ localStorage.setItem('notua-tooltip-welcome-seen','1'); }catch(e){} };
+    bindScrimDismiss(ask,later);
+    ask.querySelector('[data-a="later"]').addEventListener('click',later);
+    ask.querySelector('[data-a="yes"]').addEventListener('click',()=>{
+      ask.remove(); saveTourEnabled(true); saveTourStep(0); saveTourBoardId(null);
+      try{ localStorage.setItem('notua-tooltip-welcome-seen','1'); }catch(e){}
+      setTimeout(()=>{ if(state.screen==='home') startTour(0); },250);
+    });
+    document.body.appendChild(ask);
   }else{
     resumeTourIfNeeded();
   }
@@ -14485,7 +14615,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.88';
+const APP_VERSION='2.4.89';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
