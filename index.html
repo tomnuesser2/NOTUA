@@ -3447,7 +3447,9 @@ try{
   .style-check-row input{accent-color:var(--accent); width:16px; height:16px;}
   /* functiondesign: Karten-Look, Schrift, Board-Hintergrund (siehe designStyle/applyDesign) */
   html[data-d-radius] .card, html[data-d-radius] .modal, html[data-d-radius] .board-tile,
-  html[data-d-radius] .create-menu, html[data-d-radius] .template-tile, html[data-d-radius] .dp-card{border-radius:var(--d-radius);}
+  html[data-d-radius] .create-menu, html[data-d-radius] .template-tile, html[data-d-radius] .dp-card,
+  html[data-d-radius] .project-tile, html[data-d-radius] .project-panel{border-radius:var(--d-radius);}
+  html[data-d-radius] .project-mini-chip{border-radius:calc(var(--d-radius) * 0.5);}
   html[data-d-shadow] .card:not(.dragging), html[data-d-shadow] .dp-card{box-shadow:var(--d-shadow);}
   html[data-d-bw] .card, html[data-d-bw] .dp-card{border-width:var(--d-bw);}
   html[data-d-go] .grid-layer, html[data-d-go] .dp-grid{opacity:var(--d-go);}
@@ -3460,6 +3462,8 @@ try{
   html[data-d-radius] .board-tile{height:calc(158px + var(--d-inset) * 2);}
   html[data-d-radius] .project-panel-grid .board-tile{height:calc(152px + var(--d-inset) * 2);}
   html[data-d-radius] .create-menu{padding:calc(6px + var(--d-inset) * 0.6);}
+  html[data-d-radius] .project-tile{padding:calc(14px + var(--d-inset)) calc(16px + var(--d-inset)); height:calc(158px + var(--d-inset) * 2);}
+  html[data-d-radius] .project-panel{padding:calc(18px + var(--d-inset)) calc(20px + var(--d-inset)) calc(20px + var(--d-inset));}
   html[data-d-border="none"] .card, html[data-d-border="none"] .dp-card{border-color:transparent;}
   html[data-d-border="strong"] .card, html[data-d-border="strong"] .dp-card{border-color:var(--border-strong);}
   html[data-d-border="accent"] .card, html[data-d-border="accent"] .dp-card{border-color:var(--accent);}
@@ -13376,7 +13380,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.78';
+const APP_VERSION='2.4.79';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
