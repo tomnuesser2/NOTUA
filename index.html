@@ -4924,6 +4924,10 @@ const I18N={
   design_trail_stars:{de:'Sterne',en:'Stars'},
   design_trail_sparks:{de:'Funken',en:'Sparks'},
   design_click_fx:{de:'Klick-Funken',en:'Click sparks'},
+  style_menu_wheel:{de:'Mausrad (ohne Strg)',en:'Mouse wheel (without Ctrl)'},
+  style_wheel_auto:{de:'Automatisch',en:'Auto'},
+  style_wheel_zoom:{de:'Immer zoomen',en:'Always zoom'},
+  style_wheel_pan:{de:'Immer verschieben',en:'Always pan'},
   style_menu_title:{de:'Anpassen',en:'Customize'},
   style_menu_intro:{de:'Gilt für die ganze App auf diesem Gerät.',en:'Applies to the whole app on this device.'},
   style_menu_grid_title:{de:'Grid',en:'Grid'},
@@ -10302,6 +10306,10 @@ function showStyleMenuModal(){
       <div class="style-range-row"><label>${t('style_menu_spacing')}</label><input type="range" id="styleSpacing" min="0.5" max="3" step="0.5"/></div>
     </div>
     <div class="theme-menu-section">
+      <h5>${t('style_menu_wheel')}</h5>
+      <div class="style-opt-row" id="styleWheelRow">${['auto','zoom','pan'].map(v=>`<button type="button" class="style-shape-btn" data-v="${v}"><span>${t('style_wheel_'+v)}</span></button>`).join('')}</div>
+    </div>
+    <div class="theme-menu-section">
       <h5>${t('style_menu_landing_title')}</h5>
       <label class="style-check-row"><input type="checkbox" id="styleLanding"/><span>${t('style_menu_landing_anim')}</span></label>
     </div>
@@ -10315,15 +10323,21 @@ function showStyleMenuModal(){
   function sync(){
     scrim.querySelectorAll('.style-shape-btn').forEach(b=>b.classList.toggle('active',b.dataset.shape===gridStyle.shape));
     sizeEl.value=gridStyle.size; spacingEl.value=gridStyle.spacing; landingEl.checked=gridStyle.landingMode==='space';
+    scrim.querySelectorAll('#styleWheelRow .style-shape-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===wheelPref));
   }
   function commit(){ saveGridStyle(); refreshGridStyle(); landingFxSync(); }
   sync();
   scrim.querySelectorAll('.style-shape-btn').forEach(b=>b.addEventListener('click',()=>{ gridStyle.shape=b.dataset.shape; sync(); commit(); }));
+  scrim.querySelector('#styleWheelRow').addEventListener('click',(e)=>{
+    const b=e.target.closest('.style-shape-btn'); if(!b) return;
+    wheelPref=b.dataset.v; try{ localStorage.setItem('notua-wheel-pref',wheelPref); }catch(err){}
+    sync();
+  });
   sizeEl.addEventListener('input',()=>{ gridStyle.size=parseFloat(sizeEl.value)||1; commit(); });
   spacingEl.addEventListener('input',()=>{ gridStyle.spacing=parseFloat(spacingEl.value)||1; commit(); });
   landingEl.addEventListener('change',()=>{ gridStyle.landingMode=landingEl.checked?'space':'none'; commit(); });
   scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
-    gridStyle.shape='circle'; gridStyle.size=1; gridStyle.spacing=1; gridStyle.landingMode='none'; gridStyle.landingSpeed=1; gridStyle.landingDensity=1; sync(); commit();
+    gridStyle.shape='circle'; gridStyle.size=1; gridStyle.spacing=1; gridStyle.landingMode='none'; gridStyle.landingSpeed=1; gridStyle.landingDensity=1; wheelPref='auto'; try{ localStorage.removeItem('notua-wheel-pref'); }catch(err){} sync(); commit();
   });
   document.body.appendChild(scrim);
 }
@@ -12687,7 +12701,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.73';
+const APP_VERSION='2.4.74';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -13730,6 +13744,10 @@ viewport.addEventListener('focusout',()=>{
 //      next frame ~16ms later with a DIFFERENT magnitude. A fast-spun mouse wheel sends the same notch
 //      size again, so identical magnitudes still mean "mouse". Either way, the held event is applied
 //      with whatever kind it turns out to be, so nothing is lost.
+// Manuelle Einstellung (Secret-Menü "Anpassen"): 'auto' = Erkennung unten, 'zoom'/'pan' erzwingt es für
+// jedes Mausrad-/Wisch-Ereignis ohne Strg — der sichere Ausweg, falls ein Gerät doch falsch erkannt wird.
+let wheelPref='auto';
+try{ const v=localStorage.getItem('notua-wheel-pref'); if(v==='zoom'||v==='pan') wheelPref=v; }catch(e){}
 const WHEEL_BURST_GAP_MS=220, WHEEL_TRACKPAD_STICKY_MS=1500, WHEEL_PENDING_MS=45;
 let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0, wheelPending=null;
 function wheelApply(kind,x,y,dx,dy){
@@ -13752,11 +13770,17 @@ function wheelResolvePending(kind){
 function classifyWheel(e,now){
   const gap=now-wheelLastTs; wheelLastTs=now;
   if(gap>WHEEL_BURST_GAP_MS && !wheelPending) wheelBurstKind=null; // a new gesture starts here
-  const adx=Math.abs(e.deltaX), ady=Math.abs(e.deltaY);
+  // v2.4.74 — "Mausrad zoomt am PC nie, scrollt nur": unter Windows mit Anzeige-Skalierung (125 %/150 %,
+  // sehr häufig) meldet Chrome/Edge pro Rastung deltaY=80 bzw. 66,67 und wheelDeltaY=96 bzw. 80 statt
+  // 100/120. Die alte Prüfung "wheelDeltaY ist ein Vielfaches von 120" hielt deshalb jede echte
+  // Mausrad-Rastung für Trackpad (→ Verschieben). Jetzt wird deltaY mit devicePixelRatio zurück auf
+  // "100 pro Rastung" normiert und der wheelDelta-Test entfällt.
+  const dpr=window.devicePixelRatio||1;
+  const adx=Math.abs(e.deltaX)*dpr, ady=Math.abs(e.deltaY)*dpr;
   if(wheelPending){
     // The held event's follow-up has arrived — same notch size again means a spinning wheel, anything
     // else (the ramp-up/decay of a trackpad swipe) means trackpad.
-    const same=(e.deltaMode===0 && e.deltaX===0 && ady===wheelPending.ady);
+    const same=(e.deltaMode===0 && e.deltaX===0 && Math.abs(ady-wheelPending.ady)<0.75);
     wheelResolvePending(same?'mouse':'trackpad');
   }
   if(e.deltaMode!==0){ wheelBurstKind='mouse'; return 'mouse'; } // lines/pages mode: only a physical wheel
@@ -13764,8 +13788,6 @@ function classifyWheel(e,now){
   if(adx!==0 || ady<40){ wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; } // small/diagonal = clearly trackpad
   // Large, purely vertical: could be a mouse notch OR the first frame of a hard trackpad flick.
   if(now-wheelTrackpadTs<WHEEL_TRACKPAD_STICKY_MS){ wheelBurstKind='trackpad'; return 'trackpad'; }
-  const wd=e.wheelDeltaY;
-  if(typeof wd==='number' && !(wd!==0 && wd%120===0)){ wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; }
   return null; // genuinely ambiguous — the handler below holds it back and decides on the next event/timeout
 }
 viewport.addEventListener('wheel',(e)=>{
@@ -13791,14 +13813,17 @@ viewport.addEventListener('wheel',(e)=>{
     // the fingers actually moved — a fixed step per event made it jump, and its size depended on how
     // many events the browser happened to emit. A real notch of a mouse wheel with a held Ctrl (lines
     // mode, or a large whole-number delta) keeps the fixed step it always had.
-    const notch=(e.deltaMode!==0) || (e.deltaX===0 && Math.abs(e.deltaY)>=40 && Number.isInteger(e.deltaY));
+    const ndy=Math.abs(e.deltaY)*(window.devicePixelRatio||1);
+    const notch=(e.deltaMode!==0) || (e.deltaX===0 && ndy>=40 && Math.abs(ndy-Math.round(ndy))<0.02);
     const factor=notch ? (e.deltaY<0 ? 1.08 : 0.92) : clamp(Math.exp(-e.deltaY*0.01),0.8,1.25);
     zoomAt(e.clientX,e.clientY,factor);
     return;
   }
+  if(wheelPref==='zoom'){ wheelApply('mouse',e.clientX,e.clientY,e.deltaX,e.deltaY); return; }
+  if(wheelPref==='pan'){ wheelApply('trackpad',e.clientX,e.clientY,e.deltaX,e.deltaY); return; }
   const kind=classifyWheel(e,performance.now());
   if(kind===null){
-    wheelPending={x:e.clientX,y:e.clientY,dx:e.deltaX,dy:e.deltaY,ady:Math.abs(e.deltaY),
+    wheelPending={x:e.clientX,y:e.clientY,dx:e.deltaX,dy:e.deltaY,ady:Math.abs(e.deltaY)*(window.devicePixelRatio||1),
       timer:setTimeout(()=>wheelResolvePending('mouse'),WHEEL_PENDING_MS)};
     return;
   }
