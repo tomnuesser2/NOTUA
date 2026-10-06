@@ -3448,9 +3448,14 @@ try{
   /* functiondesign: Karten-Look, Schrift, Board-Hintergrund (siehe designStyle/applyDesign) */
   html[data-d-radius] .card, html[data-d-radius] .modal, html[data-d-radius] .board-tile,
   html[data-d-radius] .create-menu, html[data-d-radius] .template-tile, html[data-d-radius] .dp-card{border-radius:var(--d-radius);}
-  html[data-d-shadow="none"] .card:not(.dragging), html[data-d-shadow="none"] .dp-card{box-shadow:none;}
-  html[data-d-shadow="soft"] .card:not(.dragging), html[data-d-shadow="soft"] .dp-card{box-shadow:0 6px 18px -8px var(--shadow);}
-  html[data-d-shadow="strong"] .card:not(.dragging), html[data-d-shadow="strong"] .dp-card{box-shadow:0 10px 26px -8px var(--shadow-lg), 0 2px 4px var(--shadow);}
+  html[data-d-shadow] .card:not(.dragging), html[data-d-shadow] .dp-card{box-shadow:var(--d-shadow);}
+  html[data-d-bw] .card, html[data-d-bw] .dp-card{border-width:var(--d-bw);}
+  html[data-d-go] .grid-layer, html[data-d-go] .dp-grid{opacity:var(--d-go);}
+  /* Ecken → Innenabstand (--d-inset, siehe applyDesign): Text/Icons rücken mit runderen Ecken vom Rand weg */
+  html[data-d-radius] :is(.card-note,.card-checklist,.card-table,.card-boardlink,.card-colorpicker,.card-wowpvp,.card-file){padding:var(--d-inset);}
+  html[data-d-radius] .modal:not(.dm-prev):not(.dm-menu){padding:calc(22px + var(--d-inset));}
+  html[data-d-radius] .dp-card{padding:calc(9px + var(--d-inset)) calc(11px + var(--d-inset));}
+  html[data-d-radius] .board-tile, html[data-d-radius] .create-menu{padding:calc(var(--d-inset) * 0.6);}
   html[data-d-border="none"] .card, html[data-d-border="none"] .dp-card{border-color:transparent;}
   html[data-d-border="strong"] .card, html[data-d-border="strong"] .dp-card{border-color:var(--border-strong);}
   html[data-d-border="accent"] .card, html[data-d-border="accent"] .dp-card{border-color:var(--accent);}
@@ -3515,12 +3520,50 @@ try{
     .dm-shell.open .modal.dm-prev{width:min(94vw,400px); height:230px; margin:12px 0 0;}
     .dm-prev-head, .dm-prev-stage{width:100%;}
   }
+  /* schicke Dropdowns (Design-Menü) */
+  .dm-field{display:flex; flex-direction:column; gap:5px;}
+  .dm-field > label{font-size:0.74rem; text-transform:uppercase; letter-spacing:.04em; color:var(--faint); font-weight:600;}
+  .dd{position:relative;}
+  .dd-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:9px 11px; border-radius:9px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.86rem; text-align:left;
+    cursor:var(--custom-pointer-cursor,pointer); transition:border-color .15s, box-shadow .15s, background .15s;
+  }
+  .dd-btn:hover{border-color:var(--border-strong);}
+  .dd.open .dd-btn{border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);}
+  .dd-cur, .dd-item{display:flex; align-items:center; gap:9px; min-width:0;}
+  .dd-cur span, .dd-item span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .dd-ico{display:flex; flex:none; width:20px; height:20px; align-items:center; justify-content:center; color:var(--muted);}
+  .dd-ico svg{width:18px; height:18px; fill:currentColor;}
+  .dd-chev{flex:none; color:var(--muted); transition:transform .2s ease;}
+  .dd.open .dd-chev{transform:rotate(180deg);}
+  .dd-pop{
+    position:fixed; z-index:60; background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:4px;
+    box-shadow:0 22px 48px -14px var(--shadow-lg); max-height:min(46vh,330px); overflow-y:auto; transform-origin:top center;
+    animation:ddIn .16s cubic-bezier(.22,1,.36,1);
+  }
+  .dd-pop.up{transform-origin:bottom center;}
+  @keyframes ddIn{from{opacity:0; transform:translateY(-6px) scale(.97);} to{opacity:1; transform:none;}}
+  .dd-item{padding:8px 10px; border-radius:8px; font-size:0.86rem; color:var(--ink); cursor:var(--custom-pointer-cursor,pointer);}
+  .dd-item:hover, .dd-item.hl{background:var(--surface-2);}
+  .dd-item.sel{color:var(--accent); font-weight:600;}
+  .dd-item.sel .dd-ico{color:var(--accent);}
+  .dd-item .dd-tick{margin-left:auto; flex:none; opacity:0; color:var(--accent);}
+  .dd-item.sel .dd-tick{opacity:1;}
+  .dm-switchrow{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:0.86rem; color:var(--ink); cursor:var(--custom-pointer-cursor,pointer); padding:2px 0;}
+  .dm-switch{position:relative; width:40px; height:23px; flex:none;}
+  .dm-switch input{position:absolute; inset:0; opacity:0; margin:0; cursor:inherit;}
+  .dm-switch i{position:absolute; inset:0; border-radius:999px; background:var(--border-strong); transition:background .2s;}
+  .dm-switch i::after{content:''; position:absolute; top:3px; left:3px; width:17px; height:17px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .22s cubic-bezier(.34,1.4,.64,1);}
+  .dm-switch input:checked + i{background:var(--accent);}
+  .dm-switch input:checked + i::after{transform:translateX(17px);}
+  .dm-switch input:focus-visible + i{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);}
   .style-menu-scroll{max-height:84vh; overflow-y:auto;}
   .style-opt-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:6px;}
   .style-opt-row .style-shape-btn{padding:8px 6px; text-align:center; justify-content:center;}
   #fxTrail{position:fixed; inset:0; width:100vw; height:100vh; z-index:2147483000; pointer-events:none;}
   #landingView{isolation:isolate;}
-  #landingFx{position:absolute; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none;}
+  #landingFx, #landingFxGl{position:absolute; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none;}
   .theme-menu-actions{display:flex; justify-content:space-between; gap:8px; padding-top:2px;}
   .theme-menu-actions .theme-menu-left{display:flex; gap:8px;}
   /* This row never actually had the .modal-actions class, so its buttons only ever got the bare
@@ -4942,6 +4985,40 @@ const I18N={
   secret_password_title:{de:'Geheimer Zugang',en:'Secret access',es:'Acceso secreto',da:'Hemmelig adgang'},
   secret_password_intro:{de:'Nur für die engsten Beta-Tester …',en:'For the closest beta testers only …',es:'Solo para los beta testers más cercanos…',da:'Kun for de nærmeste betatestere …'},
   secret_password_placeholder:{de:'Passwort',en:'Password',es:'Contraseña',da:'Adgangskode'},
+  dm_tab_input:{de:'Eingabe',en:'Input'},
+  dm_shadow_amt:{de:'Stärke',en:'Strength'},
+  dm_border_w:{de:'Dicke',en:'Thickness'},
+  dm_bg_shape:{de:'Form',en:'Shape'},
+  dm_grid_opacity:{de:'Deckkraft',en:'Opacity'},
+  dm_bg_move:{de:'Hintergrund bewegt sich',en:'Animate background'},
+  dm_trail_amt:{de:'Stärke',en:'Strength'},
+  dm_click_title:{de:'Klick-Animation',en:'Click animation'},
+  dm_click_amt:{de:'Stärke',en:'Strength'},
+  dm_label_spacing:{de:'Abstand',en:'Spacing'},
+  dm_label_size:{de:'Größe',en:'Size'},
+  dm_label_radius:{de:'Ecken',en:'Corners'},
+  dm_label_font:{de:'Schriftart',en:'Font'},
+  dm_label_shadow:{de:'Schatten',en:'Shadow'},
+  dm_label_border:{de:'Rahmen',en:'Border'},
+  dm_label_bgtype:{de:'Art',en:'Type'},
+  dm_label_landing:{de:'Animation',en:'Animation'},
+  dm_label_trail:{de:'Spur',en:'Trail'},
+  dm_label_wheel:{de:'Mausrad (ohne Strg)',en:'Mouse wheel (without Ctrl)'},
+  design_trail_line:{de:'Linie',en:'Line'},
+  design_trail_comet:{de:'Komet',en:'Comet'},
+  design_trail_bubbles:{de:'Blasen',en:'Bubbles'},
+  design_trail_confetti:{de:'Konfetti',en:'Confetti'},
+  design_trail_hearts:{de:'Herzen',en:'Hearts'},
+  design_trail_pixels:{de:'Pixel',en:'Pixels'},
+  design_click_off:{de:'Aus',en:'Off'},
+  design_click_sparks:{de:'Funken',en:'Sparks'},
+  design_click_stars:{de:'Sterne',en:'Stars'},
+  design_click_ring:{de:'Ring',en:'Ring'},
+  design_click_ripple:{de:'Doppelwelle',en:'Ripple'},
+  design_click_confetti:{de:'Konfetti',en:'Confetti'},
+  design_click_hearts:{de:'Herzen',en:'Hearts'},
+  design_click_bubbles:{de:'Blasen',en:'Bubbles'},
+  design_click_firework:{de:'Feuerwerk',en:'Firework'},
   dm_tab_cards:{de:'Karten',en:'Cards'},
   dm_tab_text:{de:'Schrift',en:'Text'},
   dm_tab_bg:{de:'Hintergrund',en:'Background'},
@@ -4985,6 +5062,16 @@ const I18N={
   design_land_snow:{de:'Schnee',en:'Snow'},
   design_land_fireflies:{de:'Glühwürmchen',en:'Fireflies'},
   design_land_matrix:{de:'Matrix',en:'Matrix'},
+  design_land_aurora:{de:'Polarlicht',en:'Aurora'},
+  design_land_warp:{de:'Warp-Flug',en:'Warp'},
+  design_land_bubbles:{de:'Blasen',en:'Bubbles'},
+  design_land_blobs:{de:'Farbwolken',en:'Soft blobs'},
+  design_land_sakura:{de:'Blüten',en:'Blossoms'},
+  design_land_retro:{de:'Retro-Grid',en:'Retro grid'},
+  design_land_liquid:{de:'Liquid Ether',en:'Liquid Ether'},
+  design_land_ferro:{de:'Ferrofluid',en:'Ferrofluid'},
+  design_land_floatlines:{de:'Floating Lines',en:'Floating Lines'},
+  design_land_linewaves:{de:'Line Waves',en:'Line Waves'},
   design_speed:{de:'Tempo',en:'Speed'},
   design_density:{de:'Dichte',en:'Density'},
   design_fx:{de:'Effekte',en:'Effects'},
@@ -8110,7 +8197,9 @@ const GRID_SIZE=18;
 // gespeichert (localStorage). Snap-to-Grid bleibt bewusst bei GRID_SIZE, nur die Darstellung ändert sich.
 const GRID_STYLE_KEY='notua-grid-style';
 const GRID_SHAPES=['circle','star','rect','triangle'];
-const LANDING_MODES=['none','space','rain','snow','fireflies','matrix'];
+const LANDING_MODES=['none','space','rain','snow','fireflies','matrix','aurora','warp','bubbles','blobs','sakura','retro','liquid','ferro','floatlines','linewaves'];
+const FX_TRAILS=['off','stars','sparks','line','comet','bubbles','confetti','hearts','pixels'];
+const FX_CLICKS=['off','sparks','stars','ring','ripple','confetti','hearts','bubbles','firework'];
 const gridStyle=(()=>{
   const d={shape:'circle',size:1,spacing:1,landingMode:'none',landingSpeed:1,landingDensity:1};
   try{
@@ -8138,37 +8227,61 @@ const DESIGN_FONTS={
   rounded:"ui-rounded,'SF Pro Rounded','Nunito','Varela Round','Segoe UI',system-ui,sans-serif"
 };
 const designStyle=(()=>{
-  const d={radius:null,shadow:'default',border:'default',font:'default',fontScale:1,bg:'grid',trail:'off',click:false};
+  const d={radius:null,shadow:'default',shadowAmt:1,border:'default',borderW:null,font:'default',fontScale:1,
+           bg:'grid',bgMove:false,gridOpacity:1,trail:'off',trailAmt:1,clickFx:'off',clickAmt:1};
+  const num=(v,lo,hi,def)=>typeof v==='number'&&isFinite(v)?Math.min(hi,Math.max(lo,v)):def;
   try{
     const r=JSON.parse(localStorage.getItem(DESIGN_KEY)||'null');
     if(r && typeof r==='object'){
-      if(typeof r.radius==='number') d.radius=Math.min(32,Math.max(0,r.radius));
+      d.radius=r.radius==null?null:num(r.radius,0,32,null);
       if(['default','none','soft','strong'].includes(r.shadow)) d.shadow=r.shadow;
+      d.shadowAmt=num(r.shadowAmt,0,3,1);
       if(['default','none','strong','accent'].includes(r.border)) d.border=r.border;
+      d.borderW=r.borderW==null?null:num(r.borderW,0,6,null);
       if(r.font==='default'||DESIGN_FONTS[r.font]) d.font=r.font;
-      if(typeof r.fontScale==='number') d.fontScale=Math.min(1.3,Math.max(0.85,r.fontScale));
+      d.fontScale=num(r.fontScale,0.85,1.3,1);
       if(['grid','lines','cross','paper','gradient','plain'].includes(r.bg)) d.bg=r.bg;
-      if(['off','stars','sparks'].includes(r.trail)) d.trail=r.trail;
-      d.click=!!r.click;
+      d.bgMove=!!r.bgMove;
+      d.gridOpacity=num(r.gridOpacity,0.1,1,1);
+      if(FX_TRAILS.includes(r.trail)) d.trail=r.trail;
+      d.trailAmt=num(r.trailAmt,0.5,2,1);
+      if(FX_CLICKS.includes(r.clickFx)) d.clickFx=r.clickFx;
+      else if(r.click===true) d.clickFx=(d.trail==='stars')?'stars':'sparks'; // v2.4.73-Einstellung migrieren
+      d.clickAmt=num(r.clickAmt,0.5,2,1);
     }
   }catch(e){}
   return d;
 })();
 function saveDesignStyle(){ try{ localStorage.setItem(DESIGN_KEY,JSON.stringify(designStyle)); }catch(e){} }
+// box-shadow-Wert für Voreinstellung + Stärke-Regler (k=1 normal, 0 = kein Schatten, bis 3 = sehr kräftig)
+function designShadowCss(mode,k){
+  if(mode==='none' || k<=0.001) return 'none';
+  const r=n=>Math.round(n*10)/10;
+  const sh=(y,b,sp,v,pc)=>`0 ${r(y*k)}px ${r(b*k)}px ${r(sp*k)}px color-mix(in srgb, var(${v}) ${Math.min(100,Math.round(pc*Math.min(k,1.6)*100))}%, transparent)`;
+  if(mode==='soft') return sh(6,18,-8,'--shadow',1);
+  if(mode==='strong') return sh(10,26,-8,'--shadow-lg',1)+', '+sh(2,4,0,'--shadow',1);
+  return sh(1.5,3,0,'--shadow',1);
+}
 function applyDesign(){
   const root=document.documentElement, D=designStyle;
   const set=(name,on,val)=>{ if(on) root.setAttribute(name,val); else root.removeAttribute(name); };
+  const sv=(n,v)=>{ if(v==null) root.style.removeProperty(n); else root.style.setProperty(n,v); };
   set('data-d-radius',D.radius!==null,'1');
-  if(D.radius!==null) root.style.setProperty('--d-radius',D.radius+'px'); else root.style.removeProperty('--d-radius');
-  set('data-d-shadow',D.shadow!=='default',D.shadow);
+  sv('--d-radius',D.radius!==null?D.radius+'px':null);
+  // Ecken → Innenabstand: je runder die Ecken, desto mehr Luft zwischen Text/Icons und dem Rand
+  sv('--d-inset',D.radius!==null?(Math.max(0,D.radius-6)*0.4).toFixed(1)+'px':null);
+  const shOn=D.shadow!=='default'||D.shadowAmt!==1;
+  set('data-d-shadow',shOn,'1'); sv('--d-shadow',shOn?designShadowCss(D.shadow,D.shadowAmt):null);
   set('data-d-border',D.border!=='default',D.border);
+  set('data-d-bw',D.borderW!==null,'1'); sv('--d-bw',D.borderW!==null?D.borderW+'px':null);
   set('data-d-font',D.font!=='default',D.font);
-  if(D.font!=='default') root.style.setProperty('--d-font',DESIGN_FONTS[D.font]); else root.style.removeProperty('--d-font');
+  sv('--d-font',D.font!=='default'?DESIGN_FONTS[D.font]:null);
   set('data-d-bg',D.bg!=='grid' && D.bg!=='lines' && D.bg!=='cross',D.bg);
+  set('data-d-go',D.gridOpacity<1,'1'); sv('--d-go',D.gridOpacity<1?String(D.gridOpacity):null);
   root.style.fontSize=D.fontScale!==1 ? (D.fontScale*100)+'%' : '';
   try{ refreshGridStyle(); }catch(e){}
+  try{ gridDriftSync(); }catch(e){}
 }
-
 // SVG-Markup einer Grid-Form, zentriert auf (cx,cy) mit "Radius" R — gemeinsam für die Maske (Canvas-Grid)
 // und die Vorschau-Buttons im Menü.
 function gridShapeMarkup(shape,cx,cy,R){
@@ -10348,9 +10461,8 @@ function showSecretPasswordModal(){
     // device pattern as strava/wow/control/template above.
     else if(v==='functiontooltip'){ scrim.remove(); unlockBetaFeature('tooltip'); showToast(t('beta_tooltip_unlocked_toast')); }
     // Neu (v2.4.71): Grid-Formen + Landingpage-Animation — öffnet ein kleines Anpassen-Menü.
-    else if(v==='functionstyle'){ scrim.remove(); showStyleMenuModal(); }
     // v2.4.73: Karten-Look, Schrift, Board-Hintergrund, Landing-Animationen, Cursor-Effekte.
-    else if(v==='functiondesign'){ scrim.remove(); showDesignMenuModal(); }
+    else if(v==='functiondesign' || v==='functionstyle'){ scrim.remove(); showDesignMenuModal(); } // functionstyle ist jetzt Teil des Design-Menüs
     else{ errEl.textContent=t('secret_password_wrong'); input.value=''; input.focus(); }
   }
   scrim.querySelector('[data-a="ok"]').addEventListener('click',trySubmit);
@@ -10359,68 +10471,16 @@ function showSecretPasswordModal(){
   setTimeout(()=>input.focus(),0);
 }
 
-/* ============================================================
-   SECRET STYLE MENU (Code "functionstyle") — Grid-Form/-Größe/-Abstand + Landingpage-Weltraum-Animation
-   ============================================================ */
-function showStyleMenuModal(){
-  const scrim=document.createElement('div'); scrim.className='modal-scrim';
-  const shapeBtns=GRID_SHAPES.map(sh=>`<button type="button" class="style-shape-btn" data-shape="${sh}"><svg viewBox="0 0 24 24" aria-hidden="true">${gridShapeMarkup(sh,12,12,sh==='circle'?10:9.5)}</svg><span>${t('style_shape_'+sh)}</span></button>`).join('');
-  scrim.innerHTML=`<div class="modal modal-wide">
-    <h4>${t('style_menu_title')}</h4>
-    <p>${t('style_menu_intro')}</p>
-    <div class="theme-menu-section">
-      <h5>${t('style_menu_grid_title')}</h5>
-      <div class="style-shape-row">${shapeBtns}</div>
-      <div class="style-range-row"><label>${t('style_menu_size')}</label><input type="range" id="styleSize" min="0.5" max="3" step="0.25"/></div>
-      <div class="style-range-row"><label>${t('style_menu_spacing')}</label><input type="range" id="styleSpacing" min="0.5" max="3" step="0.5"/></div>
-    </div>
-    <div class="theme-menu-section">
-      <h5>${t('style_menu_wheel')}</h5>
-      <div class="style-opt-row" id="styleWheelRow">${['auto','zoom','pan'].map(v=>`<button type="button" class="style-shape-btn" data-v="${v}"><span>${t('style_wheel_'+v)}</span></button>`).join('')}</div>
-    </div>
-    <div class="theme-menu-section">
-      <h5>${t('style_menu_landing_title')}</h5>
-      <label class="style-check-row"><input type="checkbox" id="styleLanding"/><span>${t('style_menu_landing_anim')}</span></label>
-    </div>
-    <div class="theme-menu-actions">
-      <div class="theme-menu-left"><button data-a="reset">${t('style_menu_reset')}</button></div>
-      <button data-a="close">${t('theme_menu_close_btn')}</button>
-    </div></div>`;
-  bindScrimDismiss(scrim,()=>scrim.remove());
-  scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
-  const sizeEl=scrim.querySelector('#styleSize'), spacingEl=scrim.querySelector('#styleSpacing'), landingEl=scrim.querySelector('#styleLanding');
-  function sync(){
-    scrim.querySelectorAll('.style-shape-btn').forEach(b=>b.classList.toggle('active',b.dataset.shape===gridStyle.shape));
-    sizeEl.value=gridStyle.size; spacingEl.value=gridStyle.spacing; landingEl.checked=gridStyle.landingMode==='space';
-    scrim.querySelectorAll('#styleWheelRow .style-shape-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===wheelPref));
-  }
-  function commit(){ saveGridStyle(); refreshGridStyle(); landingFxSync(); }
-  sync();
-  scrim.querySelectorAll('.style-shape-btn').forEach(b=>b.addEventListener('click',()=>{ gridStyle.shape=b.dataset.shape; sync(); commit(); }));
-  scrim.querySelector('#styleWheelRow').addEventListener('click',(e)=>{
-    const b=e.target.closest('.style-shape-btn'); if(!b) return;
-    wheelPref=b.dataset.v; try{ localStorage.setItem('notua-wheel-pref',wheelPref); }catch(err){}
-    sync();
-  });
-  sizeEl.addEventListener('input',()=>{ gridStyle.size=parseFloat(sizeEl.value)||1; commit(); });
-  spacingEl.addEventListener('input',()=>{ gridStyle.spacing=parseFloat(spacingEl.value)||1; commit(); });
-  landingEl.addEventListener('change',()=>{ gridStyle.landingMode=landingEl.checked?'space':'none'; commit(); });
-  scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
-    gridStyle.shape='circle'; gridStyle.size=1; gridStyle.spacing=1; gridStyle.landingMode='none'; gridStyle.landingSpeed=1; gridStyle.landingDensity=1; wheelPref='auto'; try{ localStorage.removeItem('notua-wheel-pref'); }catch(err){} sync(); commit();
-  });
-  document.body.appendChild(scrim);
-}
-
 // ---- Landingpage-Animation (Modi: space/rain/snow/fireflies/matrix): dezenter Canvas hinter Logo/Button
 // (z-index:-1). Läuft nur, wenn eingeschaltet + Landingpage sichtbar + Tab sichtbar; bei "weniger Bewegung"
 // nur ein Standbild. Tempo/Dichte aus gridStyle.landingSpeed/-Density.
-const landingFx={canvas:null, ctx:null, raf:0, last:0, w:0, h:0, dpr:1, mode:'none', stars:[], rocks:[], drops:[], flakes:[], flies:[], cols:[], shoot:null, nextShoot:0, rgb:[120,130,150], acc:[255,107,87], rgbAt:0, ro:null};
-function landingFxNew(canvas){ return {canvas,ctx:canvas.getContext('2d'),raf:0,last:0,w:0,h:0,dpr:1,mode:'none',stars:[],rocks:[],drops:[],flakes:[],flies:[],cols:[],shoot:null,nextShoot:performance.now()+1500,rgb:[120,130,150],acc:[255,107,87],rgbAt:0}; }
+const landingFx={canvas:null, ctx:null, raf:0, last:0, w:0, h:0, dpr:1, mode:'none', stars:[], rocks:[], drops:[], flakes:[], flies:[], cols:[], bands:[], warp:[], bubs:[], blobs:[], petals:[], shoot:null, nextShoot:0, rgb:[120,130,150], acc:[255,107,87], rgbAt:0, ro:null};
+function landingFxNew(canvas){ return {canvas,ctx:canvas.getContext('2d'),raf:0,last:0,w:0,h:0,dpr:1,mode:'none',stars:[],rocks:[],drops:[],flakes:[],flies:[],cols:[],bands:[],warp:[],bubs:[],blobs:[],petals:[],shoot:null,nextShoot:performance.now()+1500,rgb:[120,130,150],acc:[255,107,87],rgbAt:0}; }
 function landingFxRand(a,b){ return a+Math.random()*(b-a); }
 const MATRIX_CHARS='ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉ0123456789ABCDEF';
 function landingFxBuild(L=landingFx){
   const dn=gridStyle.landingDensity, mode=gridStyle.landingMode, area=L.w*L.h;
-  L.mode=mode; L.stars=[]; L.rocks=[]; L.drops=[]; L.flakes=[]; L.flies=[]; L.cols=[]; L.shoot=null;
+  L.mode=mode; L.stars=[]; L.rocks=[]; L.drops=[]; L.flakes=[]; L.flies=[]; L.cols=[]; L.bands=[]; L.warp=[]; L.bubs=[]; L.blobs=[]; L.petals=[]; L.shoot=null;
   if(mode==='space'){
     const n=Math.round(Math.min(220,Math.max(45,area/9500*dn)));
     for(let i=0;i<n;i++) L.stars.push({x:Math.random()*L.w,y:Math.random()*L.h,z:landingFxRand(0.2,1),ph:Math.random()*6.28,sp:landingFxRand(0.6,1.6)});
@@ -10440,6 +10500,21 @@ function landingFxBuild(L=landingFx){
   }else if(mode==='fireflies'){
     const n=Math.round(Math.min(60,Math.max(14,area/30000*dn)));
     for(let i=0;i<n;i++) L.flies.push({x:Math.random()*L.w,y:Math.random()*L.h,ph:Math.random()*6.28,sp:landingFxRand(0.5,1.3),r:landingFxRand(1.6,3.2),a:landingFxRand(20,60),b:landingFxRand(0.2,0.6)});
+  }else if(mode==='aurora'){
+    const n=Math.min(5,Math.max(2,Math.round(2+dn*1.2))), offs=[0,55,-50,95,-95];
+    for(let i=0;i<n;i++) L.bands.push({y:L.h*landingFxRand(0.18,0.55),amp:landingFxRand(18,46),f:landingFxRand(0.003,0.008),sp:landingFxRand(0.12,0.38),ph:Math.random()*6.28,hue:offs[i],th:landingFxRand(90,170)});
+  }else if(mode==='warp'){
+    const n=Math.round(Math.min(300,Math.max(60,area/4200*dn)));
+    for(let i=0;i<n;i++) L.warp.push({a:Math.random()*6.283,r:Math.random()*Math.hypot(L.w,L.h)*0.5,z:landingFxRand(0.5,1.3)});
+  }else if(mode==='bubbles'){
+    const n=Math.round(Math.min(46,Math.max(10,area/15000*dn)));
+    for(let i=0;i<n;i++) L.bubs.push({x:Math.random()*L.w,y:Math.random()*L.h,r:landingFxRand(5,34),v:landingFxRand(14,42),ph:Math.random()*6.28,sw:landingFxRand(6,20)});
+  }else if(mode==='blobs'){
+    const n=Math.min(8,Math.max(3,Math.round(3+dn*1.5))), big=Math.max(L.w,L.h);
+    for(let i=0;i<n;i++) L.blobs.push({x:Math.random()*L.w,y:Math.random()*L.h,r:landingFxRand(0.22,0.45)*big,vx:landingFxRand(-14,14),vy:landingFxRand(-10,10),hue:landingFxRand(-70,70)});
+  }else if(mode==='sakura'){
+    const n=Math.round(Math.min(80,Math.max(16,area/14000*dn)));
+    for(let i=0;i<n;i++) L.petals.push({x:Math.random()*L.w,y:Math.random()*L.h,s:landingFxRand(4,9),v:landingFxRand(22,52),sw:landingFxRand(10,34),ph:Math.random()*6.28,rot:Math.random()*6.283,vr:landingFxRand(-1.4,1.4)});
   }else if(mode==='matrix'){
     const step=18, n=Math.ceil(L.w/step);
     for(let i=0;i<n;i++){
@@ -10463,6 +10538,7 @@ function landingFxColor(now,L=landingFx){
     const cs=getComputedStyle(document.documentElement);
     const v=cs.getPropertyValue('--ink').trim(); if(v.startsWith('#')) L.rgb=hexToRgbArr(v);
     const ac=cs.getPropertyValue('--accent').trim(); if(ac.startsWith('#')) L.acc=hexToRgbArr(ac);
+    L.hsl=rgbToHsl(L.acc[0],L.acc[1],L.acc[2]);
   }catch(e){}
 }
 function landingFxDrawSpace(dt,now,c,col,L=landingFx){
@@ -10552,13 +10628,212 @@ function landingFxDrawMatrix(dt,now,c,col,L=landingFx){
     }
   }
 }
+function landingFxHue(L,off){ const h=(L.hsl||[10,100,60]); return (h[0]+off+360)%360; }
+function landingFxDrawAurora(dt,now,c,col,L=landingFx){
+  const t=now/1000;
+  for(const b of L.bands){
+    const top=[],bot=[];
+    for(let x=0;x<=L.w+12;x+=12){
+      const y=b.y+Math.sin(x*b.f+t*b.sp+b.ph)*b.amp+Math.sin(x*b.f*2.3-t*b.sp*0.7)*b.amp*0.4;
+      top.push([x,y]); bot.push([x,y+b.th+Math.sin(x*b.f*1.4+t*b.sp*0.5)*b.amp*0.5]);
+    }
+    const hue=landingFxHue(L,b.hue), g=c.createLinearGradient(0,b.y-b.amp,0,b.y+b.th+b.amp);
+    g.addColorStop(0,`hsla(${hue},75%,62%,0)`); g.addColorStop(0.35,`hsla(${hue},75%,62%,0.2)`); g.addColorStop(1,`hsla(${hue},75%,62%,0)`);
+    c.fillStyle=g; c.beginPath(); top.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); for(let i=bot.length-1;i>=0;i--) c.lineTo(bot[i][0],bot[i][1]); c.closePath(); c.fill();
+  }
+}
+function landingFxDrawWarp(dt,now,c,col,L=landingFx){
+  const cx=L.w/2, cy=L.h/2, dmax=Math.hypot(L.w,L.h)*0.5+20;
+  c.lineCap='round';
+  for(const s of L.warp){
+    const prev=s.r; s.r+=(s.r*1.1+24)*dt*s.z;
+    if(s.r>dmax){ s.r=landingFxRand(2,24); s.a=Math.random()*6.283; continue; }
+    const ca=Math.cos(s.a), sa=Math.sin(s.a);
+    c.strokeStyle=col(Math.min(0.55,s.r/260)); c.lineWidth=0.5+s.r/420;
+    c.beginPath(); c.moveTo(cx+ca*prev,cy+sa*prev); c.lineTo(cx+ca*(s.r+s.r*0.04),cy+sa*(s.r+s.r*0.04)); c.stroke();
+  }
+}
+function landingFxDrawBubbles(dt,now,c,col,L=landingFx){
+  const t=now/1000;
+  for(const b of L.bubs){
+    b.y-=b.v*dt; if(b.y<-b.r*2){ b.y=L.h+b.r*2; b.x=Math.random()*L.w; }
+    const x=b.x+Math.sin(t*0.8+b.ph)*b.sw, a=0.12+0.2*(b.r/34);
+    c.fillStyle=col(a*0.25); c.strokeStyle=col(a+0.08); c.lineWidth=1;
+    c.beginPath(); c.arc(x,b.y,b.r,0,6.283); c.fill(); c.stroke();
+    c.strokeStyle=col(a+0.1); c.beginPath(); c.arc(x,b.y,b.r*0.68,-2.5,-1.5); c.stroke();
+  }
+}
+function landingFxDrawBlobs(dt,now,c,col,L=landingFx){
+  for(const b of L.blobs){
+    b.x+=b.vx*dt; b.y+=b.vy*dt;
+    if(b.x<-b.r*0.3||b.x>L.w+b.r*0.3) b.vx*=-1; if(b.y<-b.r*0.3||b.y>L.h+b.r*0.3) b.vy*=-1;
+    const hue=landingFxHue(L,b.hue), g=c.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    g.addColorStop(0,`hsla(${hue},80%,62%,0.24)`); g.addColorStop(1,`hsla(${hue},80%,62%,0)`);
+    c.fillStyle=g; c.beginPath(); c.arc(b.x,b.y,b.r,0,6.283); c.fill();
+  }
+}
+function landingFxDrawSakura(dt,now,c,col,L=landingFx){
+  const t=now/1000;
+  for(const p of L.petals){
+    p.y+=p.v*dt; p.rot+=p.vr*dt;
+    if(p.y>L.h+10){ p.y=-10; p.x=Math.random()*L.w; }
+    const x=p.x+Math.sin(t*0.6+p.ph)*p.sw;
+    c.save(); c.translate(x,p.y); c.rotate(p.rot);
+    c.fillStyle='rgba(255,170,195,0.6)'; c.beginPath(); c.ellipse(0,0,p.s,p.s*0.55,0,0,6.283); c.fill();
+    c.fillStyle='rgba(255,120,160,0.35)'; c.beginPath(); c.ellipse(-p.s*0.25,0,p.s*0.45,p.s*0.25,0,0,6.283); c.fill();
+    c.restore();
+  }
+}
+function landingFxDrawRetro(dt,now,c,col,L=landingFx){
+  const t=now/1000, w=L.w, h=L.h, cx=w/2, y0=h*0.58, [ar,ag,ab]=L.acc, ac=a=>`rgba(${ar},${ag},${ab},${a})`;
+  const sr=Math.min(w,h)*0.2, sg=c.createLinearGradient(0,y0-sr,0,y0);
+  sg.addColorStop(0,ac(0.38)); sg.addColorStop(1,ac(0.04));
+  c.save(); c.beginPath(); c.rect(0,0,w,y0); c.clip(); c.fillStyle=sg; c.beginPath(); c.arc(cx,y0,sr,0,6.283); c.fill(); c.restore();
+  c.lineWidth=1; c.strokeStyle=ac(0.4); c.beginPath(); c.moveTo(0,y0); c.lineTo(w,y0); c.stroke();
+  for(let i=-12;i<=12;i++){ c.strokeStyle=ac(0.16); c.beginPath(); c.moveTo(cx+i*16,y0); c.lineTo(cx+i*w*0.14,h); c.stroke(); }
+  const off=(t*0.35)%1;
+  for(let j=0;j<12;j++){ const u=(j+off)/12, y=y0+(h-y0)*u*u; c.strokeStyle=ac(0.08+0.34*u); c.beginPath(); c.moveTo(0,y); c.lineTo(w,y); c.stroke(); }
+}
+// ---- Shader-Hintergründe (WebGL) + Linien-Hintergründe, inspiriert von reactbits.dev: Liquid Ether
+// (fließende, zeigerreaktive Verzerrung), Ferrofluid (magnetische Flüssigkeit mit leuchtenden Konturen),
+// Floating Lines (schwebende Linien mit Tiefe/Parallax) und Line Waves (wellige Linienschar). Eigene
+// Umsetzung (kein Code von dort); alle reagieren auf den Mauszeiger (L.sx/L.sy, 0..1).
+const LFX_GLSL_HEAD=`#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 uRes; uniform float uT; uniform vec2 uM; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform float uD;
+float hsh(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float nz(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hsh(i),hsh(i+vec2(1.0,0.0)),f.x),mix(hsh(i+vec2(0.0,1.0)),hsh(i+vec2(1.0,1.0)),f.x),f.y); }
+float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*nz(p); p=p*2.02+vec2(3.1,1.7); a*=0.5; } return v; }
+`;
+const LFX_FRAG={
+  liquid:LFX_GLSL_HEAD+`void main(){
+    vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y;
+    vec2 p=(uv-0.5)*vec2(asp,1.0)*2.4*uD, m=(uM-0.5)*vec2(asp,1.0)*2.4*uD;
+    vec2 dv=p-m; float d=length(dv); float inf=exp(-d*d*0.9);
+    float ang=inf*1.6*sin(uT*0.6); mat2 R=mat2(cos(ang),-sin(ang),sin(ang),cos(ang));
+    p=m+R*dv; p+=normalize(dv+vec2(1e-4))*inf*0.25;
+    float t=uT*0.18;
+    vec2 q=vec2(fbm(p+vec2(0.0,t)),fbm(p+vec2(5.2,1.3)-t));
+    vec2 r=vec2(fbm(p+3.0*q+vec2(1.7,9.2)+0.4*t),fbm(p+3.0*q+vec2(8.3,2.8)-0.3*t));
+    float f=fbm(p+3.0*r);
+    vec3 col=mix(uA,uB,smoothstep(0.15,0.85,f)); col=mix(col,uC,smoothstep(0.3,1.0,length(q))*0.7);
+    float a=(0.12+0.32*f)*(0.78+0.45*inf);
+    gl_FragColor=vec4(col*a,a);
+  }`,
+  ferro:LFX_GLSL_HEAD+`void main(){
+    vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y;
+    vec2 p=(uv-0.5)*vec2(asp,1.0), m=(uM-0.5)*vec2(asp,1.0);
+    float F=0.0;
+    for(int i=0;i<7;i++){
+      float fi=float(i);
+      vec2 c=vec2(sin(uT*0.3+fi*1.7)*0.3*asp+cos(uT*0.21+fi*2.3)*0.2, cos(uT*0.27+fi*2.1)*0.3+sin(uT*0.17+fi)*0.1);
+      float r=0.085+0.03*sin(fi*3.1+uT*0.4); vec2 dv=p-c; F+=r*r/(dot(dv,dv)+1e-4);
+    }
+    vec2 dm=p-m; float dist=length(dm); float ang=atan(dm.y,dm.x);
+    float spike=1.0+0.5*exp(-dist*3.0)*sin(ang*13.0+uT*0.8);
+    F+=0.016/(dist*dist*spike*spike+1e-3);
+    float body=smoothstep(0.92,1.18,F);
+    float c=abs(fract(F*1.5*uD-uT*0.04)-0.5);
+    float line=smoothstep(0.07,0.0,c)*smoothstep(0.25,1.0,F)*smoothstep(9.0,2.0,F);
+    float glow=smoothstep(0.3,1.0,F)*(1.0-body)*0.5;
+    vec3 inner=mix(uA,uB,0.5)*0.55;
+    vec3 col=inner*body+uC*line*1.2+uA*glow;
+    float a=clamp(body*0.3+line*0.8+glow*0.5,0.0,1.0);
+    gl_FragColor=vec4(col*min(1.0,a/max(0.0001,body*0.3+line*0.8+glow*0.5+1e-4)) ,a);
+  }`
+};
+function landingFxGLProgram(L,gl,mode){
+  L.glp=L.glp||{};
+  if(L.glp[mode]) return L.glp[mode];
+  const mk=(type,src)=>{ const sh=gl.createShader(type); gl.shaderSource(sh,src); gl.compileShader(sh); return gl.getShaderParameter(sh,gl.COMPILE_STATUS)?sh:null; };
+  const vs=mk(gl.VERTEX_SHADER,'attribute vec2 aP; void main(){ gl_Position=vec4(aP,0.0,1.0); }');
+  const fs=mk(gl.FRAGMENT_SHADER,LFX_FRAG[mode]);
+  if(!vs||!fs){ try{ console.warn('NOTUA shader',gl.getShaderInfoLog(fs||vs)); }catch(e){} return (L.glp[mode]={bad:true}); }
+  const pr=gl.createProgram(); gl.attachShader(pr,vs); gl.attachShader(pr,fs); gl.linkProgram(pr);
+  if(!gl.getProgramParameter(pr,gl.LINK_STATUS)) return (L.glp[mode]={bad:true});
+  const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const o={pr,buf,aP:gl.getAttribLocation(pr,'aP'),u:{}};
+  ['uRes','uT','uM','uA','uB','uC','uD'].forEach(n=>{ o.u[n]=gl.getUniformLocation(pr,n); });
+  return (L.glp[mode]=o);
+}
+function landingFxDrawGL(dt,now,L,mode){
+  if(!L.glc){
+    if(L.glFail || !L.canvas) return;
+    const cv=document.createElement('canvas'); cv.className=L.canvas.className;
+    if(L.canvas.id==='landingFx') cv.id='landingFxGl';
+    cv.setAttribute('aria-hidden','true');
+    L.canvas.parentNode.insertBefore(cv,L.canvas);
+    let gl=null; try{ gl=cv.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false}); }catch(e){}
+    if(!gl){ cv.remove(); L.glFail=true; return; }
+    L.glc=cv; L.gl=gl;
+  }
+  const gl=L.gl, cv=L.glc, prog=landingFxGLProgram(L,gl,mode); if(prog.bad) return;
+  const sc=Math.min(1,window.devicePixelRatio||1)*0.85, W=Math.max(2,Math.round(L.w*sc)), H=Math.max(2,Math.round(L.h*sc));
+  if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
+  L.tgl=(L.tgl||0)+dt;
+  const acc=L.hsl||[10,100,60], rgb=(h,sa,li)=>hslToRgbArr(h,sa,li).map(v=>v/255);
+  const A=rgb(acc[0],80,58), B=rgb(acc[0]+48,75,60), C=rgb(acc[0]-48,80,64);
+  gl.viewport(0,0,W,H); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(prog.pr); gl.bindBuffer(gl.ARRAY_BUFFER,prog.buf); gl.enableVertexAttribArray(prog.aP); gl.vertexAttribPointer(prog.aP,2,gl.FLOAT,false,0,0);
+  gl.uniform2f(prog.u.uRes,W,H); gl.uniform1f(prog.u.uT,L.tgl); gl.uniform2f(prog.u.uM,L.sx,1-L.sy);
+  gl.uniform3f(prog.u.uA,A[0],A[1],A[2]); gl.uniform3f(prog.u.uB,B[0],B[1],B[2]); gl.uniform3f(prog.u.uC,C[0],C[1],C[2]);
+  gl.uniform1f(prog.u.uD,Math.max(0.5,gridStyle.landingDensity));
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+function landingFxDispose(L){
+  if(L.glc){ try{ const ext=L.gl&&L.gl.getExtension('WEBGL_lose_context'); if(ext) ext.loseContext(); }catch(e){} L.glc.remove(); L.glc=null; L.gl=null; L.glp=null; }
+}
+function landingFxDrawFloatLines(dt,now,c,col,L=landingFx){
+  const t=(L.tl=(L.tl||0)+dt), w=L.w, h=L.h, mx=L.sx*w, my=L.sy*h, n=Math.max(4,Math.round(6*gridStyle.landingDensity));
+  const groups=[{y:0.27,amp:0.05,f:1.4,sp:0.5,hue:0},{y:0.52,amp:0.08,f:1.0,sp:0.34,hue:46},{y:0.77,amp:0.06,f:1.8,sp:0.6,hue:-46}];
+  c.lineWidth=1.3; c.lineJoin='round';
+  for(const g of groups){
+    const hue=landingFxHue(L,g.hue);
+    for(let i=0;i<n;i++){
+      const z=n>1?i/(n-1):0, baseY=g.y*h+(i-n/2)*h*0.013*(1+z*0.9);
+      const px=(L.sx-0.5)*(24+z*60), py=(L.sy-0.5)*(12+z*34);
+      const gr=c.createLinearGradient(0,0,w,0), a=0.2+0.4*z;
+      gr.addColorStop(0,`hsla(${hue},75%,60%,0)`); gr.addColorStop(0.3,`hsla(${hue},75%,60%,${a})`); gr.addColorStop(0.7,`hsla(${hue+30},75%,62%,${a})`); gr.addColorStop(1,`hsla(${hue+30},75%,62%,0)`);
+      c.strokeStyle=gr; c.beginPath();
+      for(let x=-10;x<=w+10;x+=10){
+        let y=baseY+py+Math.sin(x/w*6.283*g.f+t*g.sp+i*0.35)*h*g.amp*(0.6+0.6*z);
+        const dx=(x+px-mx)/(w*0.18); y+=Math.exp(-dx*dx)*(my-y)*0.22;
+        x===-10?c.moveTo(x+px,y):c.lineTo(x+px,y);
+      }
+      c.stroke();
+    }
+  }
+}
+function landingFxDrawLineWaves(dt,now,c,col,L=landingFx){
+  const t=(L.tw=(L.tw||0)+dt), w=L.w, h=L.h, mx=L.sx*w, my=L.sy*h, rows=Math.round(Math.min(64,Math.max(14,34*gridStyle.landingDensity)));
+  c.lineWidth=1.1; c.lineJoin='round';
+  for(let r=0;r<rows;r++){
+    const v=rows>1?r/(rows-1):0, y0=h*(0.08+0.84*v), hue=landingFxHue(L,(v-0.5)*90);
+    c.strokeStyle=`hsla(${hue},70%,60%,${0.16+0.3*v})`; c.beginPath();
+    for(let x=0;x<=w+8;x+=8){
+      const u=x/w;
+      let y=y0+(Math.sin(u*8+t*0.7+v*5)+0.6*Math.sin(u*17-t*0.5+v*9))*h*0.012*(0.5+v);
+      const dx=x-mx, dy=y0-my, d2=(dx*dx+dy*dy)/(w*w*0.02); y-=Math.exp(-d2)*h*0.07;
+      x===0?c.moveTo(x,y):c.lineTo(x,y);
+    }
+    c.stroke();
+  }
+}
 function landingFxDraw(dt,now,L=landingFx){
   const c=L.ctx; if(!c) return;
   landingFxColor(now,L);
   const [r,g,b]=L.rgb, col=a=>`rgba(${r},${g},${b},${a})`;
   c.clearRect(0,0,L.w,L.h);
   const d=dt*gridStyle.landingSpeed;
-  ({space:landingFxDrawSpace,rain:landingFxDrawRain,snow:landingFxDrawSnow,fireflies:landingFxDrawFlies,matrix:landingFxDrawMatrix}[L.mode]||(()=>{}))(d,now,c,col,L);
+  if(L.sx==null){ L.mx=L.my=L.sx=L.sy=0.5; }
+  const k=Math.min(1,(dt||0.016)*5); L.sx+=(L.mx-L.sx)*k; L.sy+=(L.my-L.sy)*k; // Zeiger glätten (Maus-Reaktion)
+  const isGl=(L.mode==='liquid'||L.mode==='ferro');
+  if(L.glc) L.glc.style.display=isGl?'':'none';
+  if(isGl){ landingFxDrawGL(d,now,L,L.mode); return; }
+  ({space:landingFxDrawSpace,rain:landingFxDrawRain,snow:landingFxDrawSnow,fireflies:landingFxDrawFlies,matrix:landingFxDrawMatrix,aurora:landingFxDrawAurora,warp:landingFxDrawWarp,bubbles:landingFxDrawBubbles,blobs:landingFxDrawBlobs,sakura:landingFxDrawSakura,retro:landingFxDrawRetro,floatlines:landingFxDrawFloatLines,linewaves:landingFxDrawLineWaves}[L.mode]||(()=>{}))(d,now,c,col,L);
 }
 function landingFxTick(now){
   const L=landingFx; L.raf=0;
@@ -10572,7 +10847,8 @@ function landingFxSync(){
   const L=landingFx, host=document.getElementById('landingView'); if(!host) return;
   if(gridStyle.landingMode==='none'){
     if(L.raf){ cancelAnimationFrame(L.raf); L.raf=0; }
-    if(L.canvas){ L.canvas.remove(); L.canvas=null; L.ctx=null; if(L.ro){ L.ro.disconnect(); L.ro=null; } }
+    if(L.canvas){ L.canvas.remove(); L.canvas=null; L.ctx=null; if(L.ro){ L.ro.disconnect(); L.ro=null; } if(L.onMove){ host.removeEventListener('pointermove',L.onMove); L.onMove=null; } }
+    landingFxDispose(L);
     return;
   }
   if(!L.canvas){
@@ -10580,6 +10856,8 @@ function landingFxSync(){
     host.insertBefore(L.canvas,host.firstChild);
     L.ctx=L.canvas.getContext('2d');
     L.nextShoot=performance.now()+3500;
+    L.mx=L.my=L.sx=L.sy=0.5;
+    host.addEventListener('pointermove',L.onMove=(e)=>{ const r=host.getBoundingClientRect(); if(r.width>0){ L.mx=(e.clientX-r.left)/r.width; L.my=(e.clientY-r.top)/r.height; } },{passive:true});
     if(window.ResizeObserver){ L.ro=new ResizeObserver(()=>{ if(!host.hidden) landingFxResize(); }); L.ro.observe(host); }
     L.w=0;
   }
@@ -10603,25 +10881,52 @@ function landingFxSync(){
 function showDesignMenuModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   const D=designStyle;
-  const opts=(key,list,labelFn)=>`<div class="style-opt-row" data-key="${key}">${list.map(v=>`<button type="button" class="style-shape-btn" data-v="${v}"><span>${labelFn(v)}</span></button>`).join('')}</div>`;
-  const range=(id,label,min,max,step)=>`<div class="style-range-row"><label>${label}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}"/><span class="dm-val" id="${id}Val"></span></div>`;
-  const TABS=['cards','text','bg','landing','fx'];
+  const CHEV='<svg class="dd-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  const TICK='<svg class="dd-tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+  const shapeIco=sh=>`<span class="dd-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${gridShapeMarkup(sh,12,12,sh==='circle'?10:9.5)}</svg></span>`;
+  // ---- Dropdown-Definitionen: value lesen/setzen + Einträge ({v,label,ico?,style?})
+  const lab=(prefix)=>v=>t(prefix+v);
+  const DD={
+    shadow:{get:()=>D.shadow,set:v=>{D.shadow=v;},list:['default','none','soft','strong'].map(v=>({v,label:t('design_opt_'+v)}))},
+    border:{get:()=>D.border,set:v=>{D.border=v;},list:['default','none','strong','accent'].map(v=>({v,label:t('design_opt_'+v)}))},
+    font:{get:()=>D.font,set:v=>{D.font=v;},list:['default','serif','mono','hand','rounded'].map(v=>({v,label:v==='default'?t('design_opt_default'):t('design_font_'+v),style:v==='default'?'':`font-family:${DESIGN_FONTS[v]}`}))},
+    bg:{get:()=>D.bg,set:v=>{D.bg=v;},list:['grid','lines','cross','paper','gradient','plain'].map(v=>({v,label:t('design_bg_'+v)}))},
+    shape:{get:()=>gridStyle.shape,set:v=>{gridStyle.shape=v;},list:GRID_SHAPES.map(v=>({v,label:t('style_shape_'+v),ico:shapeIco(v)}))},
+    landingMode:{get:()=>gridStyle.landingMode,set:v=>{gridStyle.landingMode=v;},list:LANDING_MODES.map(v=>({v,label:t('design_land_'+v)}))},
+    trail:{get:()=>D.trail,set:v=>{D.trail=v;},list:FX_TRAILS.map(v=>({v,label:t('design_trail_'+v)}))},
+    clickFx:{get:()=>D.clickFx,set:v=>{D.clickFx=v;},list:FX_CLICKS.map(v=>({v,label:t('design_click_'+v)}))},
+    wheel:{get:()=>wheelPref,set:v=>{ wheelPref=v; try{ if(v==='auto') localStorage.removeItem('notua-wheel-pref'); else localStorage.setItem('notua-wheel-pref',v); }catch(e){} },list:['auto','zoom','pan'].map(v=>({v,label:t('style_wheel_'+v)}))}
+  };
+  const field=(label,inner,attrs='')=>`<div class="dm-field" ${attrs}><label>${label}</label>${inner}</div>`;
+  const dd=(key,label,attrs='')=>field(label,`<div class="dd" data-dd="${key}"><button type="button" class="dd-btn"><span class="dd-cur"></span>${CHEV}</button></div>`,attrs);
+  const range=(id,label,min,max,step,attrs='')=>`<div class="style-range-row" ${attrs}><label>${label}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}"/><span class="dm-val" id="${id}Val"></span></div>`;
+  const sw=(id,label,attrs='')=>`<label class="dm-switchrow" ${attrs}><span>${label}</span><span class="dm-switch"><input type="checkbox" id="${id}"/><i></i></span></label>`;
+  const TABS=['cards','text','bg','landing','fx','input'];
+  const tabLabel={cards:t('dm_tab_cards'),text:t('dm_tab_text'),bg:t('dm_tab_bg'),landing:t('dm_tab_landing'),fx:t('dm_tab_fx'),input:t('dm_tab_input')};
   const secs={
-    cards:`${range('dRadius',t('design_radius'),0,32,2)}
-      <h5>${t('design_shadow')}</h5>${opts('shadow',['default','none','soft','strong'],v=>t('design_opt_'+v))}
-      <h5>${t('design_border')}</h5>${opts('border',['default','none','strong','accent'],v=>t('design_opt_'+v))}`,
-    text:`<h5>${t('design_text')}</h5>${opts('font',['default','serif','mono','hand','rounded'],v=>v==='default'?t('design_opt_default'):t('design_font_'+v))}
-      ${range('dFontScale',t('design_font_size'),0.85,1.3,0.05)}`,
-    bg:`<h5>${t('design_bg')}</h5>${opts('bg',['grid','lines','cross','paper','gradient','plain'],v=>t('design_bg_'+v))}
-      <p class="dm-hint">${t('dm_bg_hint')}</p>`,
-    landing:`<h5>${t('design_landing')}</h5>${opts('landingMode',LANDING_MODES,v=>t('design_land_'+v))}
+    cards:`${range('dRadius',t('dm_label_radius'),0,32,2)}
+      ${dd('shadow',t('dm_label_shadow'))}
+      ${range('dShadowAmt',t('dm_shadow_amt'),0,3,0.1)}
+      ${dd('border',t('dm_label_border'))}
+      ${range('dBorderW',t('dm_border_w'),0,6,0.5)}`,
+    text:`${dd('font',t('dm_label_font'))}
+      ${range('dFontScale',t('dm_label_size'),0.85,1.3,0.05)}`,
+    bg:`${dd('bg',t('dm_label_bgtype'))}
+      ${dd('shape',t('dm_bg_shape'),'data-when="grid"')}
+      ${range('dGridSize',t('dm_label_size'),0.5,3,0.25,'data-when="grid"')}
+      ${range('dGridSpacing',t('dm_label_spacing'),0.5,3,0.5,'data-when="grid lines cross"')}
+      ${range('dGridOpacity',t('dm_grid_opacity'),0.1,1,0.05,'data-when="grid lines cross"')}
+      ${sw('dBgMove',t('dm_bg_move'),'data-when="grid lines cross"')}`,
+    landing:`${dd('landingMode',t('dm_label_landing'))}
       ${range('dLandSpeed',t('design_speed'),0.4,2,0.1)}
       ${range('dLandDensity',t('design_density'),0.4,2,0.1)}`,
-    fx:`<h5>${t('design_trail')}</h5>${opts('trail',['off','stars','sparks'],v=>t('design_trail_'+v))}
-      <label class="style-check-row"><input type="checkbox" id="dClick"/><span>${t('design_click_fx')}</span></label>
-      <p class="dm-hint">${t('dm_fx_hint')}</p>`
+    fx:`${dd('trail',t('design_trail'))}
+      ${range('dTrailAmt',t('dm_trail_amt'),0.5,2,0.1)}
+      ${dd('clickFx',t('dm_click_title'))}
+      ${range('dClickAmt',t('dm_click_amt'),0.5,2,0.1)}
+      <p class="dm-hint">${t('dm_fx_hint')}</p>`,
+    input:`${dd('wheel',t('dm_label_wheel'))}`
   };
-  const tabLabel={cards:t('dm_tab_cards'),text:t('dm_tab_text'),bg:t('dm_tab_bg'),landing:t('dm_tab_landing'),fx:t('dm_tab_fx')};
   const arrow='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13m0 0l-5-5m5 5l-5 5"/></svg>';
   scrim.innerHTML=`<div class="dm-shell" id="dmShell">
     <div class="modal dm-menu">
@@ -10660,13 +10965,55 @@ function showDesignMenuModal(){
   const gridEl=scrim.querySelector('.dp-grid'), curEl=scrim.querySelector('.dp-cursor');
   const fxCv=scrim.querySelector('.dp-fx'), lfxCv=scrim.querySelector('.dp-lfx');
   const PF=fxNew(fxCv), LP=landingFxNew(lfxCv);
-  let tab='cards', raf=0, last=0, alive=true, lastCx=-99, lastCy=-99, nextClick=0, builtMode=null, builtDn=null;
+  let tab='cards', raf=0, last=0, alive=true, lastCx=-99, lastCy=-99, nextClick=0, builtMode=null, builtDn=null, ox=0, oy=0, pop=null, popKey=null;
   let reduce=false; try{ reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  const $=id=>scrim.querySelector('#'+id);
 
-  function close(){ alive=false; cancelAnimationFrame(raf); if(PF.raf) cancelAnimationFrame(PF.raf); try{ ro.disconnect(); }catch(e){} scrim.remove(); }
+  function close(){ closePop(); landingFxDispose(LP); alive=false; cancelAnimationFrame(raf); if(PF.raf) cancelAnimationFrame(PF.raf); try{ ro.disconnect(); }catch(e){} document.removeEventListener('keydown',onKey,true); scrim.remove(); }
   scrim.querySelector('[data-a="close"]').addEventListener('click',close);
 
-  // Canvas-Größen an die Kachel anpassen (die Kachel wächst beim Aufklappen noch → ResizeObserver)
+  // ---- Dropdown-Popover (position:fixed unter/über dem Button, schließt bei Klick daneben/Esc/Scrollen)
+  function curItem(key){ const sp=DD[key]; return sp.list.find(o=>o.v===sp.get())||sp.list[0]; }
+  function itemInner(o,withTick){ return `${o.ico||''}<span${o.style?` style="${o.style}"`:''}>${o.label}</span>${withTick?TICK:''}`; }
+  function renderDd(key){
+    const el=scrim.querySelector(`.dd[data-dd="${key}"] .dd-cur`); if(el) el.innerHTML=itemInner(curItem(key),false);
+  }
+  function closePop(){
+    if(pop){ pop.remove(); pop=null; }
+    if(popKey){ const d=scrim.querySelector(`.dd[data-dd="${popKey}"]`); if(d) d.classList.remove('open'); popKey=null; }
+  }
+  function openPop(key){
+    if(popKey===key){ closePop(); return; }
+    closePop();
+    const wrap=scrim.querySelector(`.dd[data-dd="${key}"]`), btn=wrap.querySelector('.dd-btn'), sp=DD[key];
+    wrap.classList.add('open'); popKey=key;
+    pop=document.createElement('div'); pop.className='dd-pop';
+    pop.innerHTML=sp.list.map(o=>`<div class="dd-item${o.v===sp.get()?' sel':''}" data-v="${o.v}">${itemInner(o,true)}</div>`).join('');
+    scrim.appendChild(pop);
+    const r=btn.getBoundingClientRect(), ph=Math.min(pop.scrollHeight+10,Math.min(window.innerHeight*0.46,330));
+    const below=window.innerHeight-r.bottom, up=below<ph+12 && r.top>below;
+    pop.style.left=r.left+'px'; pop.style.width=r.width+'px';
+    if(up){ pop.classList.add('up'); pop.style.bottom=(window.innerHeight-r.top+6)+'px'; } else { pop.style.top=(r.bottom+6)+'px'; }
+    const selEl=pop.querySelector('.dd-item.sel'); if(selEl) selEl.scrollIntoView({block:'nearest'});
+    pop.addEventListener('click',(e)=>{
+      const it=e.target.closest('.dd-item'); if(!it) return;
+      sp.set(it.dataset.v); closePop(); sync(); commit();
+    });
+  }
+  function onKey(e){
+    if(!pop) return;
+    if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); closePop(); return; }
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault(); const items=[...pop.querySelectorAll('.dd-item')]; let i=items.findIndex(x=>x.classList.contains('hl')); if(i<0) i=items.findIndex(x=>x.classList.contains('sel'));
+      i=(i+(e.key==='ArrowDown'?1:-1)+items.length)%items.length; items.forEach(x=>x.classList.remove('hl')); items[i].classList.add('hl'); items[i].scrollIntoView({block:'nearest'});
+    }else if(e.key==='Enter'){ const h=pop.querySelector('.dd-item.hl'); if(h){ e.preventDefault(); h.click(); } }
+  }
+  document.addEventListener('keydown',onKey,true);
+  scrim.addEventListener('pointerdown',(e)=>{ if(pop && !e.target.closest('.dd-pop') && !e.target.closest('.dd')) closePop(); },true);
+  scrim.querySelectorAll('.dd').forEach(d=>d.querySelector('.dd-btn').addEventListener('click',()=>openPop(d.dataset.dd)));
+  scrim.querySelector('.dm-body').addEventListener('scroll',closePop,{passive:true});
+
+  // ---- Canvas-Größen an die Kachel anpassen (die Kachel wächst beim Aufklappen noch → ResizeObserver)
   function sizeCanvas(F,cv,w,h){ F.dpr=Math.min(2,window.devicePixelRatio||1); F.w=w; F.h=h; cv.width=Math.max(1,Math.round(w*F.dpr)); cv.height=Math.max(1,Math.round(h*F.dpr)); F.ctx.setTransform(F.dpr,0,0,F.dpr,0,0); }
   function resizeAll(){
     const w=stage.clientWidth, h=stage.clientHeight; if(!w||!h) return;
@@ -10681,62 +11028,64 @@ function showDesignMenuModal(){
     else{ st.backgroundColor='var(--canvas-dot)'; st.backgroundImage='none'; st.maskImage=gp.url; st.webkitMaskImage=gp.url; st.maskSize=`${gp.T}px ${gp.T}px`; st.webkitMaskSize=`${gp.T}px ${gp.T}px`; }
     gridEl._T=gp.T; gridEl._masked=gp.masked;
   }
-  function vals(){
-    const set=(id,txt)=>{ const e=scrim.querySelector('#'+id+'Val'); if(e) e.textContent=txt; };
-    set('dRadius',(D.radius===null?6:D.radius)+' px'); set('dFontScale',Math.round(D.fontScale*100)+' %');
-    set('dLandSpeed','×'+gridStyle.landingSpeed.toFixed(1)); set('dLandDensity','×'+gridStyle.landingDensity.toFixed(1));
+  const FMT={
+    dRadius:()=>(D.radius===null?6:D.radius)+' px', dShadowAmt:()=>Math.round(D.shadowAmt*100)+' %', dBorderW:()=>(D.borderW===null?1:D.borderW)+' px',
+    dFontScale:()=>Math.round(D.fontScale*100)+' %', dGridSize:()=>Math.round(gridStyle.size*100)+' %', dGridSpacing:()=>'×'+gridStyle.spacing.toFixed(1),
+    dGridOpacity:()=>Math.round(D.gridOpacity*100)+' %', dLandSpeed:()=>'×'+gridStyle.landingSpeed.toFixed(1), dLandDensity:()=>'×'+gridStyle.landingDensity.toFixed(1),
+    dTrailAmt:()=>'×'+D.trailAmt.toFixed(1), dClickAmt:()=>'×'+D.clickAmt.toFixed(1)
+  };
+  const VAL={ // id → [get, set]
+    dRadius:[()=>D.radius===null?6:D.radius, v=>{D.radius=v;}], dShadowAmt:[()=>D.shadowAmt, v=>{D.shadowAmt=v;}], dBorderW:[()=>D.borderW===null?1:D.borderW, v=>{D.borderW=v;}],
+    dFontScale:[()=>D.fontScale, v=>{D.fontScale=v;}], dGridSize:[()=>gridStyle.size, v=>{gridStyle.size=v;}], dGridSpacing:[()=>gridStyle.spacing, v=>{gridStyle.spacing=v;}],
+    dGridOpacity:[()=>D.gridOpacity, v=>{D.gridOpacity=v;}], dLandSpeed:[()=>gridStyle.landingSpeed, v=>{gridStyle.landingSpeed=v;}], dLandDensity:[()=>gridStyle.landingDensity, v=>{gridStyle.landingDensity=v;}],
+    dTrailAmt:[()=>D.trailAmt, v=>{D.trailAmt=v;}], dClickAmt:[()=>D.clickAmt, v=>{D.clickAmt=v;}]
+  };
+  function updateWhen(){
+    scrim.querySelectorAll('[data-when]').forEach(el=>{ el.hidden=!el.dataset.when.split(' ').includes(D.bg); });
   }
-  const radiusEl=scrim.querySelector('#dRadius'), fsEl=scrim.querySelector('#dFontScale'),
-        spEl=scrim.querySelector('#dLandSpeed'), dnEl=scrim.querySelector('#dLandDensity'), clickEl=scrim.querySelector('#dClick');
-  function curOf(key){ return key==='landingMode'?gridStyle.landingMode:D[key]; }
   function sync(){
-    scrim.querySelectorAll('.style-opt-row').forEach(row=>{
-      const key=row.dataset.key;
-      row.querySelectorAll('.style-shape-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===curOf(key)));
-    });
-    radiusEl.value=D.radius===null?6:D.radius; fsEl.value=D.fontScale;
-    spEl.value=gridStyle.landingSpeed; dnEl.value=gridStyle.landingDensity; clickEl.checked=D.click;
-    vals();
+    Object.keys(DD).forEach(renderDd);
+    Object.keys(VAL).forEach(id=>{ const el=$(id); if(!el) return; el.value=VAL[id][0](); const o=$(id+'Val'); if(o) o.textContent=FMT[id](); });
+    $('dBgMove').checked=D.bgMove;
+    updateWhen();
   }
   function commit(){
     saveDesignStyle(); saveGridStyle(); applyDesign(); landingFxSync(); fxSync();
     paintGrid();
     if(builtMode!==gridStyle.landingMode || builtDn!==gridStyle.landingDensity){ landingFxBuild(LP); builtMode=gridStyle.landingMode; builtDn=gridStyle.landingDensity; }
-    // der Demo-Cursor/die Vorschau reagiert in der Schleife unten sofort auf die neuen Werte
   }
   function showTab(k){
-    tab=k;
+    closePop(); tab=k;
     scrim.querySelectorAll('.dm-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));
     scrim.querySelectorAll('.dm-sec').forEach(sec=>{ sec.hidden=sec.dataset.sec!==k; });
     boardEl.classList.toggle('on',k!=='landing'); landEl.classList.toggle('on',k==='landing');
     if(k==='landing'){ landingFxBuild(LP); }
   }
   scrim.querySelectorAll('.dm-tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
-  scrim.querySelectorAll('.style-opt-row').forEach(row=>row.addEventListener('click',(e)=>{
-    const b=e.target.closest('.style-shape-btn'); if(!b) return;
-    const key=row.dataset.key, v=b.dataset.v;
-    if(key==='landingMode') gridStyle.landingMode=v; else D[key]=v;
-    sync(); commit();
-  }));
-  radiusEl.addEventListener('input',()=>{ D.radius=parseFloat(radiusEl.value); vals(); commit(); });
-  fsEl.addEventListener('input',()=>{ D.fontScale=parseFloat(fsEl.value)||1; vals(); commit(); });
-  spEl.addEventListener('input',()=>{ gridStyle.landingSpeed=parseFloat(spEl.value)||1; vals(); commit(); });
-  dnEl.addEventListener('input',()=>{ gridStyle.landingDensity=parseFloat(dnEl.value)||1; vals(); commit(); });
-  clickEl.addEventListener('change',()=>{ D.click=clickEl.checked; commit(); });
+  Object.keys(VAL).forEach(id=>{
+    const el=$(id); el.addEventListener('input',()=>{
+      const v=parseFloat(el.value); VAL[id][1](isNaN(v)?VAL[id][0]():v);
+      $(id+'Val').textContent=FMT[id](); commit();
+    });
+  });
+  $('dBgMove').addEventListener('change',()=>{ D.bgMove=$('dBgMove').checked; commit(); });
   scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
-    Object.assign(D,{radius:null,shadow:'default',border:'default',font:'default',fontScale:1,bg:'grid',trail:'off',click:false});
-    gridStyle.landingMode='none'; gridStyle.landingSpeed=1; gridStyle.landingDensity=1;
+    Object.assign(D,{radius:null,shadow:'default',shadowAmt:1,border:'default',borderW:null,font:'default',fontScale:1,bg:'grid',bgMove:false,gridOpacity:1,trail:'off',trailAmt:1,clickFx:'off',clickAmt:1});
+    Object.assign(gridStyle,{shape:'circle',size:1,spacing:1,landingMode:'none',landingSpeed:1,landingDensity:1});
+    DD.wheel.set('auto');
     sync(); commit();
   });
 
-  // Vorschau-Schleife: Grid wandert, Demo-Cursor fährt eine Bahn (Spur + Klick-Funken wie im echten Board),
-  // in der Landing-Ansicht läuft die gewählte Animation. Alles liest die Werte live — Slider wirken sofort.
+  // Vorschau-Schleife: Grid wandert (nur wenn "Hintergrund bewegt sich" an ist), Demo-Cursor fährt eine Bahn
+  // (Spur + Klick-Animation wie im echten Board), in der Landing-Ansicht läuft die gewählte Animation.
+  // Alles liest die Werte live — Slider wirken sofort.
   function loop(now){
     if(!alive) return;
     const dt=Math.min(0.05,last?(now-last)/1000:0.016); last=now; const tt=now/1000;
     if(tab!=='landing'){
-      if(!reduce && gridEl._T){
-        const T=gridEl._T, ox=(tt*12)%T, oy=(tt*7)%T, pos=`${ox}px ${oy}px`;
+      if(gridEl._T){
+        if(!reduce && D.bgMove){ ox=(ox+12*dt)%gridEl._T; oy=(oy+7*dt)%gridEl._T; }
+        const pos=`${ox}px ${oy}px`;
         if(gridEl._masked){ gridEl.style.maskPosition=pos; gridEl.style.webkitMaskPosition=pos; } else gridEl.style.backgroundPosition=pos;
       }
       const w=PF.w, h=PF.h;
@@ -10744,11 +11093,13 @@ function showDesignMenuModal(){
         const x=w*(0.5+0.34*Math.sin(tt*0.7)), y=h*(0.52+0.3*Math.sin(tt*1.05+1));
         curEl.style.transform=`translate(${x}px,${y}px)`;
         if(!reduce){
-          if(designStyle.trail!=='off' && Math.hypot(x-lastCx,y-lastCy)>11){ lastCx=x; lastCy=y; fxSpawn(x+3,y+3,designStyle.trail,1,false,PF); }
-          if(designStyle.click && now>nextClick){ nextClick=now+2300; fxSpawn(x+3,y+3,designStyle.trail==='stars'?'stars':'sparks',10,true,PF); }
+          if(D.trail==='line'){ if(Math.hypot(x-lastCx,y-lastCy)>=3){ lastCx=x; lastCy=y; fxLinePt(PF,x+2,y+2); } }
+          else if(D.trail!=='off' && Math.hypot(x-lastCx,y-lastCy)>Math.max(6,12/Math.sqrt(D.trailAmt))){ lastCx=x; lastCy=y; fxEmit(PF,x+3,y+3,D.trail,false,D.trailAmt); }
+          if(D.clickFx!=='off' && now>nextClick){ nextClick=now+2300; fxEmit(PF,x+3,y+3,D.clickFx,true,D.clickAmt); }
         }
       }
     }else if(gridStyle.landingMode!=='none' && LP.w){
+      LP.mx=0.5+0.32*Math.sin(tt*0.8); LP.my=0.5+0.28*Math.sin(tt*1.1+1);
       landingFxDraw(reduce?0:dt,now,LP);
     }else if(LP.ctx && LP.w){ LP.ctx.clearRect(0,0,LP.w,LP.h); }
     raf=requestAnimationFrame(loop);
@@ -10760,11 +11111,11 @@ function showDesignMenuModal(){
   raf=requestAnimationFrame(loop);
 }
 
-// ---- Cursor-Spur + Klick-Funken: ein fixer, klick-durchlässiger Canvas, der nur läuft, solange Partikel leben.
-const fx={canvas:null, ctx:null, parts:[], raf:0, last:0, lx:-999, ly:-999, w:0, h:0, dpr:1, rgb:[255,107,87], rgbAt:0, bound:false};
+// ---- Cursor-Spur + Klick-Animationen: ein fixer, klick-durchlässiger Canvas, der nur läuft, solange Partikel leben.
+const fx={canvas:null, ctx:null, parts:[], pts:[], raf:0, last:0, lx:-999, ly:-999, w:0, h:0, dpr:1, rgb:[255,107,87], rgbAt:0, bound:false};
 function fxActive(){
   let reduce=false; try{ reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
-  return !reduce && (designStyle.trail!=='off' || designStyle.click);
+  return !reduce && (designStyle.trail!=='off' || designStyle.clickFx!=='off');
 }
 function fxResize(){
   if(!fx.canvas) return;
@@ -10776,38 +11127,97 @@ function fxColor(now,F=fx){
   if(now-F.rgbAt<1500) return; F.rgbAt=now;
   try{ const ac=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); if(ac.startsWith('#')) F.rgb=hexToRgbArr(ac); }catch(e){}
 }
-function fxNew(canvas){ return {canvas,ctx:canvas.getContext('2d'),parts:[],raf:0,last:0,w:0,h:0,dpr:1,rgb:[255,107,87],rgbAt:0}; }
-function fxSpawn(x,y,kind,n,burst,F=fx){
+function fxNew(canvas){ return {canvas,ctx:canvas.getContext('2d'),parts:[],pts:[],raf:0,last:0,w:0,h:0,dpr:1,rgb:[255,107,87],rgbAt:0}; }
+function fxKick(F){ if(!F.raf){ F.last=0; F.raf=requestAnimationFrame((t)=>fxTick(t,F)); } }
+// Ein Punkt der Linien-Spur (kind 'line'): wird als verblassende, nach hinten dünner werdende Linie gezeichnet.
+function fxLinePt(F,x,y){ if(!F.canvas) return; F.pts.push({x,y,age:0}); fxKick(F); }
+// Erzeugt Partikel: burst=true → Klick-Animation (mehrere), sonst ein Spur-Partikel. amt = Stärke-Regler.
+function fxEmit(F,x,y,kind,burst,amt=1){
   if(!F.canvas) return;
-  for(let i=0;i<n;i++){
-    const a=Math.random()*6.283, sp=burst?landingFxRand(70,200):landingFxRand(8,34);
-    F.parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp+(burst?0:10),life:0,max:burst?landingFxRand(0.45,0.8):landingFxRand(0.55,0.95),
-      size:kind==='stars'?landingFxRand(3.5,6.5):landingFxRand(1.2,2.6),rot:Math.random()*6.283,vr:landingFxRand(-4,4),kind});
+  const R=landingFxRand, push=(o)=>F.parts.push(Object.assign({x,y,vx:0,vy:0,life:0,max:0.7,size:2,rot:0,vr:0,kind,hue:0,R:30},o));
+  if(kind==='ring'){ push({max:0.6,R:14+26*amt}); }
+  else if(kind==='ripple'){ push({kind:'ring',max:0.6,R:12+24*amt}); push({kind:'ring',max:0.9,R:22+44*amt}); }
+  else if(kind==='firework'){
+    const n=Math.round(16*amt), a0=Math.random()*6.283;
+    for(let i=0;i<n;i++){ const a=a0+i/n*6.283, sp=R(110,190)*(0.8+0.4*amt); push({kind:'ray',vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,max:R(0.45,0.75),size:R(1.2,2.1)}); }
+  }else{
+    const base={sparks:10,stars:9,confetti:18,hearts:7,bubbles:8,comet:6,pixels:12}[kind]||8;
+    const n=burst?Math.max(1,Math.round(base*amt)):(amt>=1.6?2:1), m=burst?1:Math.sqrt(amt);
+    for(let i=0;i<n;i++){
+      const a=Math.random()*6.283, sp=burst?R(70,200):R(8,34);
+      const o={vx:Math.cos(a)*sp,vy:Math.sin(a)*sp+(burst?0:10),max:burst?R(0.45,0.85):R(0.55,0.95),vr:R(-4,4),rot:Math.random()*6.283};
+      if(kind==='stars') o.size=R(3.5,6.5)*m;
+      else if(kind==='hearts') o.size=R(4.2,6.8)*m;
+      else if(kind==='confetti'){ o.size=R(2.6,4.6)*m; o.hue=R(0,360); o.vr=R(-9,9); }
+      else if(kind==='bubbles'){ o.size=R(3,8)*m; o.vy=-R(14,46)-(burst?R(0,60):0); o.max=R(0.7,1.2); }
+      else if(kind==='comet'){ o.size=R(5,9)*m; o.vx*=0.15; o.vy*=0.15; o.max=R(0.35,0.6); }
+      else if(kind==='pixels'){ o.size=R(2,3.6)*m; o.vr=0; o.rot=0; }
+      else o.size=R(1.2,2.6)*m;
+      push(o);
+    }
   }
-  if(!F.raf){ F.last=0; F.raf=requestAnimationFrame((t)=>fxTick(t,F)); }
+  fxKick(F);
 }
 function fxStarPath(c,x,y,R){
   c.beginPath();
   for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?R*0.46:R; const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr; i?c.lineTo(px,py):c.moveTo(px,py); }
   c.closePath();
 }
+function fxHeartPath(c,x,y,s){
+  c.beginPath(); c.moveTo(x,y+0.9*s);
+  c.bezierCurveTo(x-1.3*s,y-0.1*s,x-0.6*s,y-1.1*s,x,y-0.35*s);
+  c.bezierCurveTo(x+0.6*s,y-1.1*s,x+1.3*s,y-0.1*s,x,y+0.9*s); c.closePath();
+}
 function fxTick(now,F=fx){
   F.raf=0;
-  const c=F.ctx; if(!c){ F.parts.length=0; return; }
+  const c=F.ctx; if(!c){ F.parts.length=0; F.pts.length=0; return; }
   const dt=Math.min(0.05,F.last?(now-F.last)/1000:0.016); F.last=now;
   fxColor(now,F);
-  const [r,g,b]=F.rgb;
+  const [r,g,b]=F.rgb, amtT=Math.sqrt(designStyle.trailAmt||1);
   c.clearRect(0,0,F.w,F.h);
+  // Linien-Spur
+  if(F.pts.length){
+    const maxAge=0.5*amtT; c.lineCap='round'; c.lineJoin='round';
+    for(let i=F.pts.length-1;i>=0;i--){ F.pts[i].age+=dt; if(F.pts[i].age>maxAge) F.pts.splice(i,1); }
+    for(let i=1;i<F.pts.length;i++){
+      const p=F.pts[i], q=F.pts[i-1], k=1-p.age/maxAge; if(k<=0) continue;
+      if(Math.hypot(p.x-q.x,p.y-q.y)>120) continue;
+      c.strokeStyle=`rgba(${r},${g},${b},${0.85*k})`; c.lineWidth=(1+2.6*k)*amtT;
+      c.beginPath(); c.moveTo(q.x,q.y); c.lineTo(p.x,p.y); c.stroke();
+    }
+  }
   for(let i=F.parts.length-1;i>=0;i--){
     const p=F.parts[i]; p.life+=dt;
     if(p.life>=p.max){ F.parts.splice(i,1); continue; }
-    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.96; p.vy=p.vy*0.96+60*dt; p.rot+=p.vr*dt;
-    const k=1-p.life/p.max;
+    const k=1-p.life/p.max, kind=p.kind;
+    if(kind==='ring'){
+      const pr=p.life/p.max, rr=4+(p.R-4)*(1-Math.pow(1-pr,3));
+      c.strokeStyle=`rgba(${r},${g},${b},${0.85*k})`; c.lineWidth=0.8+2.2*k; c.beginPath(); c.arc(p.x,p.y,rr,0,6.283); c.stroke(); continue;
+    }
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.96; p.rot+=p.vr*dt;
+    p.vy=p.vy*0.96+(kind==='bubbles'?-20:kind==='comet'?0:60)*dt;
+    if(kind==='ray'){
+      c.strokeStyle=`rgba(${r},${g},${b},${0.9*k})`; c.lineWidth=p.size*(0.4+0.6*k); c.lineCap='round';
+      c.beginPath(); c.moveTo(p.x,p.y); c.lineTo(p.x-p.vx*0.07,p.y-p.vy*0.07); c.stroke(); continue;
+    }
+    if(kind==='comet'){
+      const rr=p.size*(0.5+0.5*k), gr=c.createRadialGradient(p.x,p.y,0,p.x,p.y,rr*2.2);
+      gr.addColorStop(0,`rgba(${r},${g},${b},${0.85*k})`); gr.addColorStop(1,`rgba(${r},${g},${b},0)`);
+      c.fillStyle=gr; c.beginPath(); c.arc(p.x,p.y,rr*2.2,0,6.283); c.fill(); continue;
+    }
+    if(kind==='bubbles'){
+      c.strokeStyle=`rgba(${r},${g},${b},${0.75*k})`; c.lineWidth=1.2; c.beginPath(); c.arc(p.x,p.y,p.size*(0.7+0.3*k),0,6.283); c.stroke(); continue;
+    }
+    if(kind==='confetti'){
+      c.fillStyle=`hsla(${p.hue},85%,60%,${0.95*k})`; c.save(); c.translate(p.x,p.y); c.rotate(p.rot); c.fillRect(-p.size,-p.size*0.5,p.size*2,p.size); c.restore(); continue;
+    }
     c.fillStyle=`rgba(${r},${g},${b},${0.9*k})`;
-    if(p.kind==='stars'){ c.save(); c.translate(p.x,p.y); c.rotate(p.rot); fxStarPath(c,0,0,p.size*(0.5+0.5*k)); c.fill(); c.restore(); }
+    if(kind==='stars'){ c.save(); c.translate(p.x,p.y); c.rotate(p.rot); fxStarPath(c,0,0,p.size*(0.5+0.5*k)); c.fill(); c.restore(); }
+    else if(kind==='hearts'){ c.save(); c.translate(p.x,p.y); c.rotate(p.rot*0.15); fxHeartPath(c,0,0,p.size*(0.55+0.45*k)); c.fill(); c.restore(); }
+    else if(kind==='pixels'){ const sz=p.size*(0.6+0.4*k); c.fillRect(Math.round(p.x-sz/2),Math.round(p.y-sz/2),sz,sz); }
     else{ c.beginPath(); c.arc(p.x,p.y,p.size*(0.4+0.6*k),0,6.283); c.fill(); }
   }
-  if(F.parts.length) F.raf=requestAnimationFrame((t)=>fxTick(t,F)); else c.clearRect(0,0,F.w,F.h);
+  if(F.parts.length||F.pts.length) F.raf=requestAnimationFrame((t)=>fxTick(t,F)); else c.clearRect(0,0,F.w,F.h);
 }
 function fxSync(){
   if(fxActive()){
@@ -10820,18 +11230,19 @@ function fxSync(){
       window.addEventListener('resize',fxResize);
       document.addEventListener('pointermove',(e)=>{
         if(!fx.canvas || designStyle.trail==='off' || e.pointerType==='touch') return;
-        if(Math.hypot(e.clientX-fx.lx,e.clientY-fx.ly)<14) return;
+        if(designStyle.trail==='line'){ if(Math.hypot(e.clientX-fx.lx,e.clientY-fx.ly)>=3){ fx.lx=e.clientX; fx.ly=e.clientY; fxLinePt(fx,e.clientX,e.clientY); } return; }
+        if(Math.hypot(e.clientX-fx.lx,e.clientY-fx.ly)<Math.max(6,12/Math.sqrt(designStyle.trailAmt))) return;
         fx.lx=e.clientX; fx.ly=e.clientY;
-        fxSpawn(e.clientX,e.clientY,designStyle.trail,1,false);
+        fxEmit(fx,e.clientX,e.clientY,designStyle.trail,false,designStyle.trailAmt);
       },{passive:true,capture:true});
       document.addEventListener('pointerdown',(e)=>{
-        if(!fx.canvas || !designStyle.click) return;
-        fxSpawn(e.clientX,e.clientY,designStyle.trail==='stars'?'stars':'sparks',10,true);
+        if(!fx.canvas || designStyle.clickFx==='off') return;
+        fxEmit(fx,e.clientX,e.clientY,designStyle.clickFx,true,designStyle.clickAmt);
       },{passive:true,capture:true});
     }
   }else if(fx.canvas){
     if(fx.raf){ cancelAnimationFrame(fx.raf); fx.raf=0; }
-    fx.parts.length=0; fx.canvas.remove(); fx.canvas=null; fx.ctx=null;
+    fx.parts.length=0; fx.pts.length=0; fx.canvas.remove(); fx.canvas=null; fx.ctx=null;
   }
 }
 applyDesign();
@@ -12863,7 +13274,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.75';
+const APP_VERSION='2.4.76';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -13685,8 +14096,7 @@ function applyView(){
   clearTimeout(viewInteractingTimer);
   viewInteractingTimer=setTimeout(()=>canvasInner.classList.remove('viewport-interacting'),220);
   canvasInner.style.transform=`translate(${state.view.x}px, ${state.view.y}px) scale(${state.view.zoom})`;
-  gridLayer.style.backgroundPosition=`${state.view.x}px ${state.view.y}px`;
-  if(gridMasked){ const mp=`${state.view.x}px ${state.view.y}px`; gridLayer.style.maskPosition=mp; gridLayer.style.webkitMaskPosition=mp; }
+  gridApplyPos();
   // Tom, 23.09: "Canvas-Zoom/Pan soll noch geschmeidiger werden" — background-size/background-image
   // are NOT compositor properties (see the .grid-layer comment above), so a pure PAN (zoom unchanged)
   // skips the whole recompute below and only repaints for the position. refreshGridStyle() resets
@@ -13712,14 +14122,38 @@ function applyView(){
       gridLayer.style.maskImage=gp.url; gridLayer.style.webkitMaskImage=gp.url;
       gridLayer.style.maskRepeat='repeat'; gridLayer.style.webkitMaskRepeat='repeat';
       gridLayer.style.maskSize=`${T}px ${T}px`; gridLayer.style.webkitMaskSize=`${T}px ${T}px`;
-      const mp=`${state.view.x}px ${state.view.y}px`; gridLayer.style.maskPosition=mp; gridLayer.style.webkitMaskPosition=mp;
     }
     const pct=Math.round(z*100)+'%';
     document.getElementById('zoomPct').textContent=pct;
     const dz=document.getElementById('drawerZoomPct'); if(dz) dz.textContent=pct;
   }
+  if(designStyle.bgMove && !gridDrift.raf) gridDriftSync();
 }
 function refreshGridStyle(){ lastAppliedZoom=null; applyView(); }
+// "Hintergrund bewegt sich": optionale, rein dekorative Drift des Grids (Einstellung im Design-Menü).
+const gridDrift={x:0,y:0,raf:0,last:0};
+function gridApplyPos(){
+  const px=`${state.view.x+gridDrift.x}px ${state.view.y+gridDrift.y}px`;
+  gridLayer.style.backgroundPosition=px;
+  if(gridMasked){ gridLayer.style.maskPosition=px; gridLayer.style.webkitMaskPosition=px; }
+}
+function gridDriftTick(now){
+  gridDrift.raf=0;
+  let reduce=false; try{ reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  if(!designStyle.bgMove || reduce){ gridDrift.x=0; gridDrift.y=0; gridApplyPos(); return; }
+  const dt=Math.min(0.05,gridDrift.last?(now-gridDrift.last)/1000:0.016); gridDrift.last=now;
+  const visible=!document.hidden && !(typeof boardView!=='undefined' && boardView.hidden);
+  if(visible){
+    const T=Math.max(4,GRID_SIZE*state.view.zoom*gridStyle.spacing);
+    gridDrift.x=(gridDrift.x+12*dt)%T; gridDrift.y=(gridDrift.y+7*dt)%T;
+    gridApplyPos();
+  }
+  gridDrift.raf=requestAnimationFrame(gridDriftTick);
+}
+function gridDriftSync(){
+  if(designStyle.bgMove){ if(!gridDrift.raf){ gridDrift.last=0; gridDrift.raf=requestAnimationFrame(gridDriftTick); } }
+  else{ if(gridDrift.raf){ cancelAnimationFrame(gridDrift.raf); gridDrift.raf=0; } if(gridDrift.x||gridDrift.y){ gridDrift.x=0; gridDrift.y=0; try{ gridApplyPos(); }catch(e){} } }
+}
 const persistView=debounce(async ()=>{
   const b=boardById(state.currentBoardId); if(!b) return;
   b.view={...state.view}; b.gridEnabled=state.gridEnabled; b.snapEnabled=state.snapEnabled;
@@ -13953,7 +14387,15 @@ function classifyWheel(e,now){
     wheelResolvePending(same?'mouse':'trackpad');
   }
   if(e.deltaMode!==0){ wheelBurstKind='mouse'; return 'mouse'; } // lines/pages mode: only a physical wheel
-  if(wheelBurstKind) return wheelBurstKind;                       // the burst already has its kind — keep it
+  // v2.4.76 — "manchmal zoomt er nicht, sondern wischt": ein echtes Mausrad liefert (auf Windows, auch mit
+  // schnell gedrehtem Rad/Beschleunigung) rein vertikale Werte, die — mit devicePixelRatio normiert — GANZE
+  // VIELFACHE von 100 sind (100, 200, 300 …). Ein Trackpad-Wisch tut das praktisch nie. Solche Ereignisse
+  // zoomen deshalb immer, auch mitten in einem schnellen Dreh, solange nicht gerade ein Trackpad-Wisch läuft.
+  if(e.deltaX===0 && ady>=50 && Math.abs(ady/100-Math.round(ady/100))*100<2.5){
+    const trackpadRunning=(wheelBurstKind==='trackpad' && now-wheelTrackpadTs<WHEEL_BURST_GAP_MS);
+    if(!trackpadRunning){ wheelBurstKind='mouse'; return 'mouse'; }
+  }
+  if(wheelBurstKind){ if(wheelBurstKind==='trackpad') wheelTrackpadTs=now; return wheelBurstKind; } // the burst already has its kind — keep it
   if(adx!==0 || ady<40){ wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; } // small/diagonal = clearly trackpad
   // Large, purely vertical: could be a mouse notch OR the first frame of a hard trackpad flick.
   if(now-wheelTrackpadTs<WHEEL_TRACKPAD_STICKY_MS){ wheelBurstKind='trackpad'; return 'trackpad'; }
