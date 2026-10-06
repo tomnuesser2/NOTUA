@@ -1009,7 +1009,7 @@ try{
      board-switch fly transition) — smoothViewJump() (JS) toggles this class on gridLayer alongside
      canvasInner's own — while staying transition-free the rest of the time, exactly like
      .canvas-inner's own comment says it must for continuous gestures. */
-  .grid-layer.smooth-view{transition:background-position .3s cubic-bezier(.22,1,.36,1), background-size .3s cubic-bezier(.22,1,.36,1);}
+  .grid-layer.smooth-view{transition:background-position .3s cubic-bezier(.22,1,.36,1), background-size .3s cubic-bezier(.22,1,.36,1), mask-position .3s cubic-bezier(.22,1,.36,1), mask-size .3s cubic-bezier(.22,1,.36,1), -webkit-mask-position .3s cubic-bezier(.22,1,.36,1), -webkit-mask-size .3s cubic-bezier(.22,1,.36,1);}
   .grid-layer.hidden-grid{display:none;}
   #connectorSvg{position:absolute; overflow:visible; left:0; top:0; pointer-events:none;}
   /* Bumped from 2px to 3px — connectors were hard to spot against the dotted canvas background. */
@@ -3432,6 +3432,21 @@ try{
   .theme-color-row input[type="color"]{
     width:38px; height:30px; border-radius:7px; border:1px solid var(--border); padding:0; background:none; cursor:var(--custom-pointer-cursor,pointer);
   }
+  .style-shape-row{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
+  .style-shape-btn{
+    display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.74rem;
+    cursor:var(--custom-pointer-cursor,pointer);
+  }
+  .style-shape-btn svg{width:24px; height:24px; fill:currentColor;}
+  .style-shape-btn.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; color:var(--accent);}
+  .style-range-row{display:flex; align-items:center; gap:10px;}
+  .style-range-row label{font-size:0.84rem; color:var(--ink); width:64px; flex:none;}
+  .style-range-row input[type="range"]{flex:1; accent-color:var(--accent);}
+  .style-check-row{display:flex; align-items:center; gap:10px; font-size:0.84rem; color:var(--ink); cursor:var(--custom-pointer-cursor,pointer);}
+  .style-check-row input{accent-color:var(--accent); width:16px; height:16px;}
+  #landingView{isolation:isolate;}
+  #landingFx{position:absolute; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none;}
   .theme-menu-actions{display:flex; justify-content:space-between; gap:8px; padding-top:2px;}
   .theme-menu-actions .theme-menu-left{display:flex; gap:8px;}
   /* This row never actually had the .modal-actions class, so its buttons only ever got the bare
@@ -4853,6 +4868,19 @@ const I18N={
   secret_password_title:{de:'Geheimer Zugang',en:'Secret access',es:'Acceso secreto',da:'Hemmelig adgang'},
   secret_password_intro:{de:'Nur für die engsten Beta-Tester …',en:'For the closest beta testers only …',es:'Solo para los beta testers más cercanos…',da:'Kun for de nærmeste betatestere …'},
   secret_password_placeholder:{de:'Passwort',en:'Password',es:'Contraseña',da:'Adgangskode'},
+  style_menu_title:{de:'Anpassen',en:'Customize'},
+  style_menu_intro:{de:'Gilt für die ganze App auf diesem Gerät.',en:'Applies to the whole app on this device.'},
+  style_menu_grid_title:{de:'Grid',en:'Grid'},
+  style_menu_shape:{de:'Form',en:'Shape'},
+  style_shape_circle:{de:'Kreis',en:'Circle'},
+  style_shape_star:{de:'Stern',en:'Star'},
+  style_shape_rect:{de:'Rechteck',en:'Rectangle'},
+  style_shape_triangle:{de:'Dreieck',en:'Triangle'},
+  style_menu_size:{de:'Größe',en:'Size'},
+  style_menu_spacing:{de:'Abstand',en:'Spacing'},
+  style_menu_landing_title:{de:'Landingpage',en:'Landing page'},
+  style_menu_landing_anim:{de:'Weltraum-Animation (Sterne & Asteroiden)',en:'Space animation (stars & asteroids)'},
+  style_menu_reset:{de:'Zurücksetzen',en:'Reset'},
   secret_password_wrong:{de:'Falsches Passwort',en:'Wrong password',es:'Contraseña incorrecta',da:'Forkert adgangskode'},
   secret_password_submit:{de:'Bestätigen',en:'Confirm',es:'Confirmar',da:'Bekræft'},
   theme_menu_title:{de:'Farbwelt',en:'Color theme',es:'Paleta de colores',da:'Farvetema'},
@@ -7948,6 +7976,39 @@ const state={
   dockConfig:loadDockConfig(), // {order:[...ids], hidden:[...ids]} — toolbar customization, see loadDockConfig() above.
 };
 const GRID_SIZE=18;
+// v2.4.71 — Secret-Code "functionstyle": Grid-Punkte als Kreis/Stern/Rechteck/Dreieck, Größe + Abstand,
+// und die Weltraum-Animation der Landingpage. Global für die ganze App, nur auf diesem Gerät
+// gespeichert (localStorage). Snap-to-Grid bleibt bewusst bei GRID_SIZE, nur die Darstellung ändert sich.
+const GRID_STYLE_KEY='notua-grid-style';
+const GRID_SHAPES=['circle','star','rect','triangle'];
+const gridStyle=(()=>{
+  const d={shape:'circle',size:1,spacing:1,landingAnim:false};
+  try{
+    const r=JSON.parse(localStorage.getItem(GRID_STYLE_KEY)||'null');
+    if(r && typeof r==='object'){
+      if(GRID_SHAPES.includes(r.shape)) d.shape=r.shape;
+      if(typeof r.size==='number') d.size=Math.min(3,Math.max(0.5,r.size));
+      if(typeof r.spacing==='number') d.spacing=Math.min(3,Math.max(0.5,r.spacing));
+      d.landingAnim=!!r.landingAnim;
+    }
+  }catch(e){}
+  return d;
+})();
+function saveGridStyle(){ try{ localStorage.setItem(GRID_STYLE_KEY,JSON.stringify(gridStyle)); }catch(e){} }
+// SVG-Markup einer Grid-Form, zentriert auf (cx,cy) mit "Radius" R — gemeinsam für die Maske (Canvas-Grid)
+// und die Vorschau-Buttons im Menü.
+function gridShapeMarkup(shape,cx,cy,R){
+  const f=n=>Math.round(n*100)/100;
+  if(shape==='rect'){ const h=R*0.72; return `<rect x="${f(cx-h)}" y="${f(cy-h)}" width="${f(2*h)}" height="${f(2*h)}" rx="${f(h*0.14)}"/>`; }
+  if(shape==='triangle'){
+    return `<polygon points="${f(cx)},${f(cy-R)} ${f(cx+R*0.866)},${f(cy+R*0.5)} ${f(cx-R*0.866)},${f(cy+R*0.5)}"/>`;
+  }
+  if(shape==='star'){
+    const pts=[]; for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?R*0.46:R; pts.push(f(cx+Math.cos(a)*rr)+','+f(cy+Math.sin(a)*rr)); }
+    return `<polygon points="${pts.join(' ')}"/>`;
+  }
+  return `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R*0.62)}"/>`;
+}
 
 function boardById(id){return state.boards.find(b=>b.id===id);}
 
@@ -10112,6 +10173,8 @@ function showSecretPasswordModal(){
     // invisible to every normal user until this code is entered once, same unlock-forever-on-this-
     // device pattern as strava/wow/control/template above.
     else if(v==='functiontooltip'){ scrim.remove(); unlockBetaFeature('tooltip'); showToast(t('beta_tooltip_unlocked_toast')); }
+    // Neu (v2.4.71): Grid-Formen + Landingpage-Animation — öffnet ein kleines Anpassen-Menü.
+    else if(v==='functionstyle'){ scrim.remove(); showStyleMenuModal(); }
     else{ errEl.textContent=t('secret_password_wrong'); input.value=''; input.focus(); }
   }
   scrim.querySelector('[data-a="ok"]').addEventListener('click',trySubmit);
@@ -10119,6 +10182,163 @@ function showSecretPasswordModal(){
   document.body.appendChild(scrim);
   setTimeout(()=>input.focus(),0);
 }
+
+/* ============================================================
+   SECRET STYLE MENU (Code "functionstyle") — Grid-Form/-Größe/-Abstand + Landingpage-Weltraum-Animation
+   ============================================================ */
+function showStyleMenuModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  const shapeBtns=GRID_SHAPES.map(sh=>`<button type="button" class="style-shape-btn" data-shape="${sh}"><svg viewBox="0 0 24 24" aria-hidden="true">${gridShapeMarkup(sh,12,12,sh==='circle'?10:9.5)}</svg><span>${t('style_shape_'+sh)}</span></button>`).join('');
+  scrim.innerHTML=`<div class="modal modal-wide">
+    <h4>${t('style_menu_title')}</h4>
+    <p>${t('style_menu_intro')}</p>
+    <div class="theme-menu-section">
+      <h5>${t('style_menu_grid_title')}</h5>
+      <div class="style-shape-row">${shapeBtns}</div>
+      <div class="style-range-row"><label>${t('style_menu_size')}</label><input type="range" id="styleSize" min="0.5" max="3" step="0.25"/></div>
+      <div class="style-range-row"><label>${t('style_menu_spacing')}</label><input type="range" id="styleSpacing" min="0.5" max="3" step="0.5"/></div>
+    </div>
+    <div class="theme-menu-section">
+      <h5>${t('style_menu_landing_title')}</h5>
+      <label class="style-check-row"><input type="checkbox" id="styleLanding"/><span>${t('style_menu_landing_anim')}</span></label>
+    </div>
+    <div class="theme-menu-actions">
+      <div class="theme-menu-left"><button data-a="reset">${t('style_menu_reset')}</button></div>
+      <button data-a="close">${t('theme_menu_close_btn')}</button>
+    </div></div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
+  const sizeEl=scrim.querySelector('#styleSize'), spacingEl=scrim.querySelector('#styleSpacing'), landingEl=scrim.querySelector('#styleLanding');
+  function sync(){
+    scrim.querySelectorAll('.style-shape-btn').forEach(b=>b.classList.toggle('active',b.dataset.shape===gridStyle.shape));
+    sizeEl.value=gridStyle.size; spacingEl.value=gridStyle.spacing; landingEl.checked=gridStyle.landingAnim;
+  }
+  function commit(){ saveGridStyle(); refreshGridStyle(); landingFxSync(); }
+  sync();
+  scrim.querySelectorAll('.style-shape-btn').forEach(b=>b.addEventListener('click',()=>{ gridStyle.shape=b.dataset.shape; sync(); commit(); }));
+  sizeEl.addEventListener('input',()=>{ gridStyle.size=parseFloat(sizeEl.value)||1; commit(); });
+  spacingEl.addEventListener('input',()=>{ gridStyle.spacing=parseFloat(spacingEl.value)||1; commit(); });
+  landingEl.addEventListener('change',()=>{ gridStyle.landingAnim=landingEl.checked; commit(); });
+  scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
+    gridStyle.shape='circle'; gridStyle.size=1; gridStyle.spacing=1; gridStyle.landingAnim=false; sync(); commit();
+  });
+  document.body.appendChild(scrim);
+}
+
+// ---- Landingpage-Weltraum-Animation: dezent, Canvas hinter Logo/Button (z-index:-1), Parallax-Tiefe.
+// Läuft nur, wenn eingeschaltet + Landingpage sichtbar + Tab sichtbar; bei "weniger Bewegung" nur ein Standbild.
+const landingFx={canvas:null, ctx:null, raf:0, last:0, w:0, h:0, dpr:1, stars:[], rocks:[], shoot:null, nextShoot:0, rgb:[120,130,150], rgbAt:0, ro:null};
+function landingFxRand(a,b){ return a+Math.random()*(b-a); }
+function landingFxBuild(){
+  const L=landingFx;
+  const n=Math.round(Math.min(150,Math.max(45,(L.w*L.h)/9500)));
+  L.stars=[]; for(let i=0;i<n;i++) L.stars.push({x:Math.random()*L.w,y:Math.random()*L.h,z:landingFxRand(0.2,1),ph:Math.random()*6.28,sp:landingFxRand(0.6,1.6)});
+  const m=Math.round(Math.min(9,Math.max(4,L.w/170)));
+  L.rocks=[]; for(let i=0;i<m;i++){
+    const z=landingFxRand(0.35,1), r=landingFxRand(9,26)*(0.55+z*0.6), k=landingFxRand(8,11)|0, pts=[];
+    for(let j=0;j<k;j++) pts.push(landingFxRand(0.68,1.1));
+    L.rocks.push({x:Math.random()*L.w,y:Math.random()*L.h,z,r,pts,rot:Math.random()*6.28,vr:landingFxRand(-0.35,0.35),
+      cr:[{a:landingFxRand(0,6.28),d:landingFxRand(0.2,0.5),s:landingFxRand(0.12,0.2)},{a:landingFxRand(0,6.28),d:landingFxRand(0.15,0.45),s:landingFxRand(0.08,0.15)}]});
+  }
+}
+function landingFxResize(){
+  const L=landingFx, host=document.getElementById('landingView'); if(!L.canvas||!host) return;
+  L.dpr=Math.min(2,window.devicePixelRatio||1);
+  L.w=host.clientWidth; L.h=host.clientHeight;
+  L.canvas.width=Math.max(1,Math.round(L.w*L.dpr)); L.canvas.height=Math.max(1,Math.round(L.h*L.dpr));
+  L.ctx.setTransform(L.dpr,0,0,L.dpr,0,0);
+  landingFxBuild();
+}
+function landingFxColor(now){
+  const L=landingFx;
+  if(now-L.rgbAt<1500) return; L.rgbAt=now;
+  try{
+    const v=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+    if(v) L.rgb=hexToRgbArr(v.startsWith('#')?v:'#788296');
+  }catch(e){}
+}
+function landingFxDraw(dt,now){
+  const L=landingFx, c=L.ctx; if(!c) return;
+  landingFxColor(now);
+  const [r,g,b]=L.rgb, col=a=>`rgba(${r},${g},${b},${a})`;
+  c.clearRect(0,0,L.w,L.h);
+  const t=now/1000;
+  for(const s of L.stars){
+    s.x-=(8+30*s.z)*dt; s.y+=(2+9*s.z)*dt;
+    if(s.x<-4) s.x=L.w+4; if(s.y>L.h+4) s.y=-4;
+    const tw=0.75+0.25*Math.sin(t*s.sp+s.ph);
+    const a=(0.18+0.5*s.z)*tw, rad=0.5+1.3*s.z;
+    c.fillStyle=col(a);
+    if(s.z>0.85){ // ein paar größere Sterne funkeln als kleines Kreuz
+      c.fillRect(s.x-rad*2.4,s.y-0.4,rad*4.8,0.8); c.fillRect(s.x-0.4,s.y-rad*2.4,0.8,rad*4.8);
+    }
+    c.beginPath(); c.arc(s.x,s.y,rad,0,6.283); c.fill();
+  }
+  for(const k of L.rocks){
+    k.x-=(7+22*k.z)*dt; k.y+=(2+8*k.z)*dt; k.rot+=k.vr*dt;
+    const m=k.r*1.3;
+    if(k.x<-m){ k.x=L.w+m; k.y=Math.random()*L.h; }
+    if(k.y>L.h+m){ k.y=-m; k.x=Math.random()*L.w; }
+    c.save(); c.translate(k.x,k.y); c.rotate(k.rot);
+    c.beginPath();
+    const n=k.pts.length;
+    for(let j=0;j<n;j++){ const a=j/n*6.283, rr=k.r*k.pts[j]; const x=Math.cos(a)*rr, y=Math.sin(a)*rr; j?c.lineTo(x,y):c.moveTo(x,y); }
+    c.closePath();
+    c.fillStyle=col(0.05+0.05*k.z); c.fill();
+    c.lineWidth=1; c.strokeStyle=col(0.16+0.2*k.z); c.stroke();
+    c.strokeStyle=col(0.12+0.12*k.z);
+    for(const cr of k.cr){ c.beginPath(); c.arc(Math.cos(cr.a)*k.r*cr.d,Math.sin(cr.a)*k.r*cr.d,k.r*cr.s,0,6.283); c.stroke(); }
+    c.restore();
+  }
+  // selten eine Sternschnuppe
+  if(!L.shoot && now>L.nextShoot){
+    L.shoot={x:landingFxRand(L.w*0.4,L.w*1.05),y:landingFxRand(0,L.h*0.4),vx:-landingFxRand(380,520),vy:landingFxRand(140,220),life:0};
+    L.nextShoot=now+landingFxRand(6000,12000);
+  }
+  if(L.shoot){
+    const s=L.shoot; s.life+=dt; s.x+=s.vx*dt; s.y+=s.vy*dt;
+    const a=Math.max(0,1-s.life/0.9), len=70;
+    const grad=c.createLinearGradient(s.x,s.y,s.x-s.vx/Math.hypot(s.vx,s.vy)*len,s.y-s.vy/Math.hypot(s.vx,s.vy)*len);
+    grad.addColorStop(0,col(0.6*a)); grad.addColorStop(1,col(0));
+    c.strokeStyle=grad; c.lineWidth=1.4; c.beginPath(); c.moveTo(s.x,s.y); c.lineTo(s.x-s.vx/Math.hypot(s.vx,s.vy)*len,s.y-s.vy/Math.hypot(s.vx,s.vy)*len); c.stroke();
+    if(s.life>0.9) L.shoot=null;
+  }
+}
+function landingFxTick(now){
+  const L=landingFx; L.raf=0;
+  const host=document.getElementById('landingView');
+  if(!gridStyle.landingAnim || !host || host.hidden || document.hidden) return;
+  const dt=Math.min(0.05,L.last?(now-L.last)/1000:0.016); L.last=now;
+  landingFxDraw(dt,now);
+  L.raf=requestAnimationFrame(landingFxTick);
+}
+function landingFxSync(){
+  const L=landingFx, host=document.getElementById('landingView'); if(!host) return;
+  if(!gridStyle.landingAnim){
+    if(L.raf){ cancelAnimationFrame(L.raf); L.raf=0; }
+    if(L.canvas){ L.canvas.remove(); L.canvas=null; L.ctx=null; if(L.ro){ L.ro.disconnect(); L.ro=null; } }
+    return;
+  }
+  if(!L.canvas){
+    L.canvas=document.createElement('canvas'); L.canvas.id='landingFx'; L.canvas.setAttribute('aria-hidden','true');
+    host.insertBefore(L.canvas,host.firstChild);
+    L.ctx=L.canvas.getContext('2d');
+    L.nextShoot=performance.now()+3500;
+    if(window.ResizeObserver){ L.ro=new ResizeObserver(()=>{ if(!host.hidden) landingFxResize(); }); L.ro.observe(host); }
+    if(!host.hidden) landingFxResize();
+  }
+  if(host.hidden || document.hidden) return;
+  if(!L.w) landingFxResize();
+  let reduce=false; try{ reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  if(reduce){ landingFxDraw(0,performance.now()); return; }
+  if(!L.raf){ L.last=0; L.raf=requestAnimationFrame(landingFxTick); }
+}
+(function(){
+  const host=document.getElementById('landingView'); if(!host) return;
+  try{ new MutationObserver(landingFxSync).observe(host,{attributes:true,attributeFilter:['hidden']}); }catch(e){}
+  document.addEventListener('visibilitychange',landingFxSync);
+  landingFxSync();
+})();
 const themeSecretBtn=document.getElementById('themeSecretBtn');
 if(themeSecretBtn) themeSecretBtn.addEventListener('click',showSecretPasswordModal);
 loadCustomThemeOnBoot();
@@ -12146,7 +12366,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.71';
+const APP_VERSION='2.4.72';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -12937,6 +13157,7 @@ function isMobileViewport(){
 // open — applying it again there would silently compound the zoom-out further on every single visit).
 function defaultCanvasZoom(){ return isMobileViewport() ? 0.85 : 1; }
 let lastAppliedZoom=null;
+let gridMasked=false;
 function applyView(){
   // See the .viewport-interacting CSS comment: only hold the GPU-compositing hint while the view is
   // actually changing frame-to-frame, and let it settle back to crisp native rendering shortly after.
@@ -12945,40 +13166,48 @@ function applyView(){
   viewInteractingTimer=setTimeout(()=>canvasInner.classList.remove('viewport-interacting'),220);
   canvasInner.style.transform=`translate(${state.view.x}px, ${state.view.y}px) scale(${state.view.zoom})`;
   gridLayer.style.backgroundPosition=`${state.view.x}px ${state.view.y}px`;
+  if(gridMasked){ const mp=`${state.view.x}px ${state.view.y}px`; gridLayer.style.maskPosition=mp; gridLayer.style.webkitMaskPosition=mp; }
   // Tom, 23.09: "Canvas-Zoom/Pan soll noch geschmeidiger werden" — background-size/background-image
-  // are NOT compositor properties (see the .grid-layer comment above: this is the same repaint cost
-  // that comment already documents), so reassigning them forces an actual repaint of the grid even
-  // when the resulting string would be byte-identical to what's already there. A pure PAN — dragging
-  // the canvas, Strg/Cmd+Mausrad — never touches state.view.zoom, so the dot radius/spacing computed
-  // below is the SAME on every single frame of a pan gesture. Skipping the whole recompute (both style
-  // writes, plus the %-readout DOM writes) whenever zoom hasn't actually moved since the last call
-  // means a pan gesture only ever repaints for backgroundPosition, never for backgroundSize/-image on
-  // top of it. A real zoom always sees a changed value here and still gets the exact same recompute
-  // as before — this only removes work that would have produced an identical result anyway.
+  // are NOT compositor properties (see the .grid-layer comment above), so a pure PAN (zoom unchanged)
+  // skips the whole recompute below and only repaints for the position. refreshGridStyle() resets
+  // lastAppliedZoom so a changed Form/Größe/Abstand (functionstyle-Menü) is picked up too.
   if(state.view.zoom!==lastAppliedZoom){
     lastAppliedZoom=state.view.zoom;
-    gridLayer.style.backgroundSize=`${GRID_SIZE*state.view.zoom}px ${GRID_SIZE*state.view.zoom}px`;
-    // Tom, 22.09 (Runde 3): "im normalen Board die Großpunkte kleiner und hochauflösender" — a CSS
-    // radial-gradient's own absolute-length color stops (the "0.8px"/"1.1px" in the static rule above)
-    // are literal screen pixels, NOT relative to background-size the way a percentage stop would be —
-    // so as background-size shrunk with zoom-out (the line above), the grid SPACING correctly shrank
-    // right along with it, but the dot drawn inside each tile stayed exactly the same fixed absolute
-    // size regardless of zoom. Zoomed out to see a whole board (very common — that's the normal working
-    // view for anything but zoomed-in detail work), the unchanged dot size relative to the now-much-
-    // tighter spacing is exactly what read as "Großpunkte": a coarse, slightly fuzzy haze instead of a
-    // fine, unobtrusive grid. Recomputing background-image here too, scaling the dot's own radius by the
-    // same zoom factor as the spacing, keeps a dot's size proportional to the grid at every zoom level —
-    // small and crisp zoomed out, normal-sized at 100%, a little bigger zoomed in — the same way a real,
-    // fixed-size marker drawn "on" the board would behave. Clamped at a small minimum so it never
-    // anti-aliases into invisibility at extreme zoom-out.
-    const dotR=Math.max(0.35, 0.8*state.view.zoom).toFixed(2);
-    const dotFeather=Math.max(0.55, 1.1*state.view.zoom).toFixed(2);
-    gridLayer.style.backgroundImage=`radial-gradient(circle, var(--canvas-dot) 0, var(--canvas-dot) ${dotR}px, transparent ${dotFeather}px)`;
-    const pct=Math.round(state.view.zoom*100)+'%';
+    const z=state.view.zoom;
+    const T=GRID_SIZE*z*gridStyle.spacing;
+    if(gridStyle.shape==='circle'){
+      if(gridMasked){
+        gridMasked=false;
+        gridLayer.style.maskImage=''; gridLayer.style.webkitMaskImage=''; gridLayer.style.maskSize=''; gridLayer.style.webkitMaskSize='';
+        gridLayer.style.maskPosition=''; gridLayer.style.webkitMaskPosition=''; gridLayer.style.backgroundColor='';
+      }
+      gridLayer.style.backgroundSize=`${T}px ${T}px`;
+      // Radius des Punkts skaliert mit dem Zoom (siehe Kommentar 22.09 Runde 3: kleine, scharfe Punkte
+      // beim Rauszoomen), zusätzlich mit der Größe aus dem Menü.
+      const dotR=Math.max(0.35, 0.8*z*gridStyle.size).toFixed(2);
+      const dotFeather=Math.max(0.55, 1.1*z*gridStyle.size).toFixed(2);
+      gridLayer.style.backgroundImage=`radial-gradient(circle, var(--canvas-dot) 0, var(--canvas-dot) ${dotR}px, transparent ${dotFeather}px)`;
+    }else{
+      // Stern/Rechteck/Dreieck: die Layer-Fläche wird in --canvas-dot gefüllt und per SVG-Maske
+      // (Kachelgröße = Rasterabstand) zu Formen ausgeschnitten, so folgt die Farbe weiter dem Theme.
+      const Rpx=Math.max(1.2, 3.0*z*gridStyle.size);
+      const R=Math.min(46, Rpx/T*100);
+      const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none' fill='#000'>${gridShapeMarkup(gridStyle.shape,50,50,R)}</svg>`;
+      const url=`url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+      gridMasked=true;
+      gridLayer.style.backgroundColor='var(--canvas-dot)';
+      gridLayer.style.backgroundImage='none';
+      gridLayer.style.maskImage=url; gridLayer.style.webkitMaskImage=url;
+      gridLayer.style.maskRepeat='repeat'; gridLayer.style.webkitMaskRepeat='repeat';
+      gridLayer.style.maskSize=`${T}px ${T}px`; gridLayer.style.webkitMaskSize=`${T}px ${T}px`;
+      const mp=`${state.view.x}px ${state.view.y}px`; gridLayer.style.maskPosition=mp; gridLayer.style.webkitMaskPosition=mp;
+    }
+    const pct=Math.round(z*100)+'%';
     document.getElementById('zoomPct').textContent=pct;
     const dz=document.getElementById('drawerZoomPct'); if(dz) dz.textContent=pct;
   }
 }
+function refreshGridStyle(){ lastAppliedZoom=null; applyView(); }
 const persistView=debounce(async ()=>{
   const b=boardById(state.currentBoardId); if(!b) return;
   b.view={...state.view}; b.gridEnabled=state.gridEnabled; b.snapEnabled=state.snapEnabled;
