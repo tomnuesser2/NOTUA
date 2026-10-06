@@ -1273,13 +1273,13 @@ try{
 
   /* Look-Finder */
   .lf-scrim{background:rgba(8,10,16,.24) !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; z-index:100003;}
-  .modal.lf-modal{width:min(600px,94vw); max-height:92vh; overflow-y:auto; gap:16px; padding:22px 22px 18px;}
+  .modal.lf-modal{width:min(660px,94vw); max-height:92vh; overflow-y:auto; gap:16px; padding:22px 22px 18px;}
   .lf-head{display:flex; align-items:center; gap:12px;}
   .lf-step{font-size:0.72rem; font-weight:700; letter-spacing:.03em; color:var(--accent); white-space:nowrap;}
   .lf-prog{flex:1; height:4px; border-radius:2px; background:var(--surface-2); overflow:hidden;}
   .lf-prog i{display:block; height:100%; background:var(--accent); border-radius:2px; transition:width .35s cubic-bezier(.22,1,.36,1);}
   .modal.lf-modal h4.lf-q{font-size:1.2rem; line-height:1.25;}
-  .lf-opts{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+  .lf-opts{display:grid; grid-template-columns:repeat(auto-fit,minmax(138px,1fr)); gap:10px;}
   .lf-opt{display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; padding:12px; border:1.5px solid var(--border); border-radius:12px; background:var(--surface-2); color:var(--ink); font:inherit; cursor:var(--custom-pointer-cursor,pointer); transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease, background .15s ease;}
   .lf-opt:hover{border-color:var(--border-strong); transform:translateY(-1px);}
   .lf-opt.sel{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px var(--accent);}
@@ -1295,18 +1295,61 @@ try{
   .lf-win.dk{background:#1b1f27; border-color:#3a4150;} .lf-win.dk::before{background:#e8ebf2;}
   .lf-shape{display:flex; align-items:center; justify-content:center; width:58px; height:36px; border:2px solid var(--accent); background:var(--surface); color:var(--ink); font-size:0.95rem; font-weight:600;}
   .lf-depth{display:block; width:58px; height:34px; background:var(--surface); border-radius:9px; border:1px solid var(--border);}
-  .lf-mo{display:flex; align-items:center; gap:5px; height:34px;}
-  .lf-mo i{display:block; width:9px; height:9px; border-radius:50%; background:var(--accent);}
-  .lf-mo-calm i{animation:lfFade 2.6s ease-in-out infinite;} .lf-mo-calm i:nth-child(2){animation-delay:.5s;} .lf-mo-calm i:nth-child(3){animation-delay:1s;}
-  .lf-mo-lively i{animation:lfBounce 1s ease-in-out infinite;} .lf-mo-lively i:nth-child(2){animation-delay:.15s;} .lf-mo-lively i:nth-child(3){animation-delay:.3s;}
-  .lf-mo-playful i{animation:lfRise 1.8s ease-in infinite;} .lf-mo-playful i:nth-child(2){animation-delay:.45s; width:12px; height:12px;} .lf-mo-playful i:nth-child(3){animation-delay:.9s; width:7px; height:7px;}
-  .lf-mo-tech i{width:16px; height:3px; border-radius:1px; animation:lfScan 1.4s linear infinite;} .lf-mo-tech i:nth-child(2){animation-delay:.2s;} .lf-mo-tech i:nth-child(3){animation-delay:.4s;}
-  .lf-mo-flow i{animation:lfWave 2.2s ease-in-out infinite;} .lf-mo-flow i:nth-child(2){animation-delay:.25s;} .lf-mo-flow i:nth-child(3){animation-delay:.5s;}
+  .lf-vis.w{width:100%; height:56px;}
+  .lf-bgp,.lf-ui,.lf-cur{display:block; position:relative; width:100%; height:56px; border-radius:9px; overflow:hidden; border:1px solid var(--border); background:var(--canvas);}
+  .lf-bgp i{position:absolute; display:block;}
+  /* Hintergrund-Vorschauen (rein CSS, Farben folgen der gewählten Palette) */
+  .lf-bgp-grid,.lf-bgp-fireflies,.lf-bgp-space,.lf-bgp-bubbles{background-image:radial-gradient(circle, var(--canvas-dot) 1.1px, transparent 1.4px); background-size:11px 11px;}
+  .lf-bgp-fireflies i{width:5px; height:5px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px 2px var(--accent); animation:lfFly 3.4s ease-in-out infinite;}
+  .lf-bgp-fireflies i:nth-child(1){left:18%; top:55%;} .lf-bgp-fireflies i:nth-child(2){left:52%; top:30%; animation-delay:1.1s;} .lf-bgp-fireflies i:nth-child(3){left:78%; top:62%; animation-delay:2.1s;} .lf-bgp-fireflies i:nth-child(4){left:35%; top:20%; animation-delay:.6s;}
+  .lf-bgp-space{background-color:color-mix(in srgb, var(--ink) 10%, var(--canvas));}
+  .lf-bgp-space i{width:2px; height:2px; border-radius:50%; background:var(--ink); animation:lfFade 2.2s ease-in-out infinite;}
+  .lf-bgp-space i:nth-child(1){left:12%; top:30%;} .lf-bgp-space i:nth-child(2){left:30%; top:68%; animation-delay:.5s;} .lf-bgp-space i:nth-child(3){left:47%; top:22%; animation-delay:1s;} .lf-bgp-space i:nth-child(4){left:64%; top:56%; animation-delay:1.5s;} .lf-bgp-space i:nth-child(5){left:82%; top:28%; animation-delay:.3s; width:3px; height:3px;} .lf-bgp-space i:nth-child(6){left:90%; top:72%; animation-delay:1.2s;}
+  .lf-bgp-aurora{background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, var(--canvas)), var(--canvas));}
+  .lf-bgp-aurora i{left:-20%; width:140%; height:18px; border-radius:50%; filter:blur(7px); background:linear-gradient(90deg, transparent, var(--accent), transparent); opacity:.55; animation:lfAur 4.4s ease-in-out infinite;}
+  .lf-bgp-aurora i:nth-child(1){top:8px;} .lf-bgp-aurora i:nth-child(2){top:22px; animation-delay:-1.5s; opacity:.4;} .lf-bgp-aurora i:nth-child(3){top:34px; animation-delay:-3s; opacity:.3;}
+  .lf-bgp-bubbles i{border-radius:50%; border:1.5px solid var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); animation:lfBub 3.6s ease-in infinite;}
+  .lf-bgp-bubbles i:nth-child(1){left:16%; bottom:-14px; width:14px; height:14px;} .lf-bgp-bubbles i:nth-child(2){left:46%; bottom:-14px; width:20px; height:20px; animation-delay:1.2s;} .lf-bgp-bubbles i:nth-child(3){left:76%; bottom:-14px; width:11px; height:11px; animation-delay:2.2s;}
+  .lf-bgp svg{position:absolute; left:0; top:0; width:200%; height:100%; animation:lfWaveX 3.2s linear infinite;}
+  .lf-bgp-waves svg path{fill:none; stroke:var(--accent); stroke-width:1.6; opacity:.75;} .lf-bgp-waves svg path:nth-child(2){opacity:.45; stroke-width:1.2;} .lf-bgp-waves svg path:nth-child(3){opacity:.25;}
+  .lf-bgp-liquid{background:color-mix(in srgb, var(--accent) 8%, var(--canvas));}
+  .lf-bgp-liquid i{width:34px; height:34px; border-radius:50%; filter:blur(9px); background:var(--accent); opacity:.5; animation:lfBlob 4.8s ease-in-out infinite;}
+  .lf-bgp-liquid i:nth-child(1){left:8%; top:10px;} .lf-bgp-liquid i:nth-child(2){left:42%; top:16px; animation-delay:-1.6s; opacity:.35;} .lf-bgp-liquid i:nth-child(3){left:70%; top:8px; animation-delay:-3.2s; opacity:.45;}
+  /* Board-Hintergründe: Mini-Board mit zwei Karten */
+  .lf-bd-grid,.lf-bd-gridmove{background-image:radial-gradient(circle, var(--canvas-dot) 1.1px, transparent 1.4px); background-size:11px 11px;}
+  .lf-bd-gridmove{animation:lfGridMove 2s linear infinite;}
+  .lf-bd-lines{background-image:repeating-linear-gradient(0deg, transparent 0 10px, var(--canvas-dot) 10px 11px);}
+  .lf-bd-cross{background-image:linear-gradient(var(--canvas-dot) 1px, transparent 1px), linear-gradient(90deg, var(--canvas-dot) 1px, transparent 1px); background-size:11px 11px;}
+  .lf-bd-paper{background:color-mix(in srgb, #d9b97a 16%, var(--canvas));}
+  .lf-bd-gradient{background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 26%, var(--canvas)), var(--canvas) 70%);}
+  .lf-bgp i.a,.lf-bgp i.b{border-radius:var(--lf-r,5px); background:var(--surface); border:1px solid var(--border-strong); box-shadow:0 2px 5px -2px var(--shadow-lg);}
+  .lf-bgp i.a{left:14%; top:12px; width:34%; height:20px;} .lf-bgp i.b{left:52%; top:26px; width:32%; height:20px;}
+  .lf-bgp i.a::after,.lf-bgp i.b::after{content:''; position:absolute; left:5px; top:5px; width:55%; height:3px; border-radius:2px; background:var(--accent);}
+  /* UI-Animationen: Mini-Dock mit Magnify-Welle + kleine Menükarte */
+  .lf-ui{display:flex; align-items:flex-end; justify-content:center; gap:8px; padding:0 8px 8px; background:var(--surface-2);}
+  .lf-ui .dk{display:flex; flex:none; align-items:flex-end; gap:3px; padding:4px 5px; border-radius:11px; background:var(--surface); border:1px solid var(--border);}
+  .lf-ui .dk i{display:block; width:9px; height:9px; border-radius:4px; background:var(--accent); opacity:.85; transform-origin:50% 100%;}
+  .lf-ui .dk i:nth-child(even){opacity:.5;}
+  .lf-ui .mc{display:block; flex:none; width:26px; height:22px; border-radius:6px; background:var(--surface); border:1px solid var(--border-strong); position:relative; margin-bottom:2px;}
+  .lf-ui .mc::before{content:''; position:absolute; left:5px; top:6px; width:60%; height:3px; border-radius:2px; background:var(--border-strong);} .lf-ui .mc::after{content:''; position:absolute; left:5px; top:13px; width:38%; height:3px; border-radius:2px; background:var(--accent);}
+  .lf-ui-dock .dk i,.lf-ui-calm .dk i,.lf-ui-full .dk i{animation:lfMag 2.4s ease-in-out infinite;}
+  .lf-ui .dk i:nth-child(2){animation-delay:.18s;} .lf-ui .dk i:nth-child(3){animation-delay:.36s;} .lf-ui .dk i:nth-child(4){animation-delay:.54s;} .lf-ui .dk i:nth-child(5){animation-delay:.72s;}
+  .lf-ui-calm .mc{animation:lfMenu 2.4s ease-out infinite; transform-origin:0 100%;}
+  .lf-ui-full .mc{animation:lfDrag 2.4s ease-in-out infinite;}
+  .lf-ui-static .mc,.lf-ui-dock .mc{opacity:.9;}
+  .lf-cur canvas{position:absolute; inset:0; width:100%; height:100%; display:block;}
+  .lf-cur .lf-cur-ptr{position:absolute; left:0; top:0; z-index:2; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)); will-change:transform;}
   @keyframes lfFade{0%,100%{opacity:.25;} 50%{opacity:1;}}
-  @keyframes lfBounce{0%,100%{transform:translateY(0);} 50%{transform:translateY(-9px);}}
   @keyframes lfRise{0%{transform:translateY(8px); opacity:0;} 40%{opacity:1;} 100%{transform:translateY(-12px); opacity:0;}}
-  @keyframes lfScan{0%{transform:translateX(-6px); opacity:.2;} 50%{opacity:1;} 100%{transform:translateX(6px); opacity:.2;}}
-  @keyframes lfWave{0%,100%{transform:translateY(5px);} 50%{transform:translateY(-5px);}}
+  @keyframes lfFly{0%,100%{transform:translate(0,0); opacity:.25;} 50%{transform:translate(10px,-8px); opacity:1;}}
+  @keyframes lfAur{0%,100%{transform:translateX(-12%) scaleY(.8);} 50%{transform:translateX(12%) scaleY(1.3);}}
+  @keyframes lfBub{0%{transform:translateY(0); opacity:0;} 15%{opacity:1;} 100%{transform:translateY(-72px); opacity:0;}}
+  @keyframes lfWaveX{from{transform:translateX(0);} to{transform:translateX(-50%);}}
+  @keyframes lfBlob{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(18px,8px) scale(1.35);}}
+  @keyframes lfGridMove{from{background-position:0 0;} to{background-position:11px 11px;}}
+  @keyframes lfMag{0%,100%{transform:scale(1);} 18%{transform:scale(1.75);} 36%{transform:scale(1);}}
+  @keyframes lfMenu{0%,15%{transform:scale(.3); opacity:0;} 35%,75%{transform:scale(1); opacity:1;} 100%{transform:scale(.3); opacity:0;}}
+  @keyframes lfDrag{0%,100%{transform:translate(0,0) rotate(0);} 30%{transform:translate(-8px,-12px) rotate(-6deg);} 60%{transform:translate(6px,-6px) rotate(4deg);}}
   .lf-foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   .lf-foot .lf-spacer{flex:1;}
   .lf-foot button{padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.84rem; cursor:var(--custom-pointer-cursor,pointer);}
@@ -1331,15 +1374,16 @@ try{
   .lf-rname{font-size:1.25rem; font-weight:750; line-height:1.15; color:var(--ink);}
   .lf-rcode{font-size:0.74rem; color:var(--accent); font-weight:700; letter-spacing:.06em;}
   .lf-rsub{font-size:0.78rem; color:var(--muted); line-height:1.4;}
-  .lf-items{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:1px; background:var(--border); border-top:1px solid var(--border);}
-  .lf-item{background:var(--surface); padding:10px 12px; display:flex; flex-direction:column; gap:3px; animation:lfItemIn .45s ease both;}
-  .lf-item:nth-child(2){animation-delay:.07s;} .lf-item:nth-child(3){animation-delay:.14s;} .lf-item:nth-child(4){animation-delay:.21s;} .lf-item:nth-child(5){animation-delay:.28s;}
+  .lf-items{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:var(--border); border-top:1px solid var(--border);}
+  .lf-item{background:var(--surface); padding:10px 10px; display:flex; flex-direction:column; gap:3px; animation:lfItemIn .45s ease both;}
+  .lf-item:nth-child(2){animation-delay:.07s;} .lf-item:nth-child(3){animation-delay:.14s;} .lf-item:nth-child(4){animation-delay:.21s;} .lf-item:nth-child(5){animation-delay:.28s;} .lf-item:nth-child(6){animation-delay:.35s;} .lf-item:nth-child(7){animation-delay:.42s;} .lf-item:nth-child(8){animation-delay:.49s;}
   @keyframes lfItemIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
   .lf-item span{font-size:0.66rem; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:700;}
-  .lf-item b{font-size:0.84rem; color:var(--ink);}
+  .lf-item b{font-size:0.8rem; color:var(--ink); overflow-wrap:anywhere; line-height:1.25;}
+  @media (max-width:520px){ .lf-items{grid-template-columns:repeat(2,minmax(0,1fr));} }
   .lf-beta{display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border-radius:12px; background:var(--accent-soft); border:1px dashed color-mix(in srgb, var(--accent) 55%, transparent); font-size:0.78rem; line-height:1.45; color:var(--ink);}
   .lf-beta svg{flex:none; margin-top:1px; color:var(--accent);}
-  @media (prefers-reduced-motion:reduce){ .lf-pass,.lf-item,.lf-mo i,.lf-prev .lf-spark{animation:none;} }
+  @media (prefers-reduced-motion:reduce){ .lf-bd-gridmove{animation:none !important;} .lf-pass,.lf-item,.lf-bgp i,.lf-bgp svg,.lf-ui i,.lf-ui .mc,.lf-prev .lf-spark{animation:none !important;} }
 
   /* Steuerungs-Guide: animierte Maus-/Finger-Demos */
   .modal.gs-modal{width:min(460px,94vw); gap:12px;}
@@ -3633,6 +3677,22 @@ try{
   html[data-d-radius] .create-menu{padding:calc(6px + var(--d-inset) * 0.6);}
   html[data-d-radius] .project-tile{padding:calc(14px + var(--d-inset)) calc(16px + var(--d-inset)); height:calc(158px + var(--d-inset) * 2);}
   html[data-d-radius] .project-panel{padding:calc(18px + var(--d-inset)) calc(20px + var(--d-inset)) calc(20px + var(--d-inset));}
+  /* Kompakte Boardübersicht auf Smartphone/kleinen Geräten: zwei Boards pro Reihe statt einem
+     (nach den d-radius-Regeln, damit Höhe/Padding auch mit eigenem Eckenradius kompakt bleiben). */
+  @media (max-width:640px){
+    .board-grid, .project-panel-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
+    .home-main{padding-left:14px; padding-right:14px;}
+    .board-tile, html[data-d-radius] .board-tile{padding:calc(12px + var(--d-inset,0px)) calc(12px + var(--d-inset,0px)) calc(10px + var(--d-inset,0px)); height:calc(124px + var(--d-inset,0px) * 2);}
+    .project-panel-grid .board-tile, html[data-d-radius] .project-panel-grid .board-tile{height:calc(124px + var(--d-inset,0px) * 2);}
+    .project-tile, html[data-d-radius] .project-tile{padding:calc(10px + var(--d-inset,0px)) calc(12px + var(--d-inset,0px)); height:calc(124px + var(--d-inset,0px) * 2);}
+    .board-tile h3{font-size:0.92rem; margin-top:8px; line-height:1.25;}
+    .board-tile .tile-logo, .board-tile .board-badge{width:28px; height:28px; border-radius:7px;}
+    .board-tile .board-badge svg{width:14px; height:14px;}
+    .board-tile .meta{font-size:0.66rem;}
+    .project-tile .meta{font-size:0.66rem;}
+    .tile-actions{top:6px; right:6px; gap:3px;}
+    .tile-actions button{width:24px; height:24px;}
+  }
   html[data-d-border="none"] .card, html[data-d-border="none"] .dp-card{border-color:transparent;}
   html[data-d-border="strong"] .card, html[data-d-border="strong"] .dp-card{border-color:var(--border-strong);}
   html[data-d-border="accent"] .card, html[data-d-border="accent"] .dp-card{border-color:var(--accent);}
@@ -5020,8 +5080,14 @@ const I18N={
   lf_q3_sub:{de:"Das bestimmt Ecken, Innenabstände und die Schrift.",en:"This sets corners, padding and typeface."},
   lf_q4:{de:"Wie viel Tiefe soll die Oberfläche haben?",en:"How much depth should surfaces have?"},
   lf_q4_sub:{de:"Schatten und Rahmen der Karten.",en:"Shadows and borders of cards."},
-  lf_q5:{de:"Wie lebendig soll NOTUA sein?",en:"How alive should NOTUA feel?"},
-  lf_q5_sub:{de:"Hintergrund, Cursor-Spur und Klick-Effekte – alles lässt sich später im Design-Menü feinjustieren.",en:"Background, cursor trail and click effects – all fine-tunable later in the design menu."},
+  lf_q5:{de:"Wie soll deine Startseite aussehen?",en:"What should your home screen look like?"},
+  lf_q5_sub:{de:"Die Animation hinter Logo und Boards. Die Vorschau nutzt schon deine Farben.",en:"The animation behind logo and boards. The preview already uses your colors."},
+  lf_q6:{de:"Welcher Board-Hintergrund gefällt dir?",en:"Which board background do you like?"},
+  lf_q6_sub:{de:"Die Fläche, auf der du Notizen, Bilder und Listen platzierst.",en:"The surface where you place notes, images and lists."},
+  lf_q7:{de:"Wie soll sich die Oberfläche bewegen?",en:"How should the interface move?"},
+  lf_q7_sub:{de:"Dock-Magnify, Menüs, Zoom, Ziehen – alles, was auf dich reagiert.",en:"Dock magnify, menus, zoom, dragging – everything that reacts to you."},
+  lf_q8:{de:"Was soll dein Cursor machen?",en:"What should your cursor do?"},
+  lf_q8_sub:{de:"Spur beim Bewegen und Effekt beim Klicken – in jeder Vorschau läuft eine Mini-Demo.",en:"Trail while moving and effect on click – every preview runs a mini demo."},
   lf_o_palette_ocean:{de:"Ozean|kühl & klar",en:"Ocean|cool & clear"},
   lf_o_palette_sunset:{de:"Sonnenuntergang|warm & kräftig",en:"Sunset|warm & bold"},
   lf_o_palette_forest:{de:"Wald|ruhig & natürlich",en:"Forest|calm & natural"},
@@ -5039,12 +5105,32 @@ const I18N={
   lf_o_depth_soft:{de:"Sanft|weiche Schatten",en:"Soft|gentle shadows"},
   lf_o_depth_float:{de:"Schwebend|Karten heben ab",en:"Floating|cards lift off"},
   lf_o_depth_outline:{de:"Konturiert|kräftige Rahmen",en:"Outlined|strong borders"},
-  lf_o_motion_still:{de:"Still|ganz ohne Animationen",en:"Still|no animations at all"},
-  lf_o_motion_calm:{de:"Dezent|leises Glühen im Hintergrund",en:"Subtle|quiet glow in the background"},
-  lf_o_motion_lively:{de:"Lebendig|Nordlicht & Kometen-Spur",en:"Lively|aurora & comet trail"},
-  lf_o_motion_playful:{de:"Verspielt|Blasen, Sterne, Konfetti",en:"Playful|bubbles, stars, confetti"},
-  lf_o_motion_tech:{de:"Technisch|Linienwellen & Raster",en:"Technical|line waves & grid"},
-  lf_o_motion_flow:{de:"Fließend|flüssiger Hintergrund",en:"Flowing|liquid background"},
+  lf_o_landing_plain:{de:"Ruhig|keine Animation",en:"Calm|no animation"},
+  lf_o_landing_fireflies:{de:"Glühwürmchen|leises Glimmen",en:"Fireflies|quiet glow"},
+  lf_o_landing_space:{de:"Sternenhimmel|funkelnde Sterne",en:"Starry sky|twinkling stars"},
+  lf_o_landing_aurora:{de:"Nordlicht|weiche Farbbänder",en:"Aurora|soft color bands"},
+  lf_o_landing_bubbles:{de:"Blasen|zum Zerplatzen",en:"Bubbles|pop them"},
+  lf_o_landing_waves:{de:"Linienwellen|fließende Linien",en:"Line waves|flowing lines"},
+  lf_o_landing_liquid:{de:"Flüssig|reagiert auf die Maus",en:"Liquid|reacts to the mouse"},
+  lf_o_board_grid:{de:"Raster|klassische Punkte",en:"Grid|classic dots"},
+  lf_o_board_gridmove:{de:"Raster in Bewegung|Punkte wandern mit",en:"Moving grid|dots drift along"},
+  lf_o_board_lines:{de:"Linien|wie liniertes Papier",en:"Lines|like ruled paper"},
+  lf_o_board_cross:{de:"Karo|Millimeter-Gitter",en:"Graph|square grid"},
+  lf_o_board_paper:{de:"Papier|warm & schlicht",en:"Paper|warm & simple"},
+  lf_o_board_gradient:{de:"Verlauf|sanfte Farbfläche",en:"Gradient|soft color field"},
+  lf_o_board_plain:{de:"Schlicht|nur Fläche",en:"Plain|just a surface"},
+  lf_o_uianim_static:{de:"Statisch|nichts bewegt sich",en:"Static|nothing moves"},
+  lf_o_uianim_dock:{de:"Nur Dock|Icons wachsen beim Drüberfahren",en:"Dock only|icons grow on hover"},
+  lf_o_uianim_calm:{de:"Dezent|Dock, Menüs & Zoom",en:"Subtle|dock, menus & zoom"},
+  lf_o_uianim_full:{de:"Voll lebendig|alle Animationen",en:"Fully alive|all animations"},
+  lf_o_cursor_off:{de:"Kein Effekt|normaler Cursor",en:"No effect|plain cursor"},
+  lf_o_cursor_comet:{de:"Komet|leuchtende Spur, Doppelwelle",en:"Comet|glowing trail, ripple"},
+  lf_o_cursor_sparks:{de:"Funken|sprühen beim Klick",en:"Sparks|burst on click"},
+  lf_o_cursor_stars:{de:"Sterne|Sternenspur",en:"Stars|star trail"},
+  lf_o_cursor_confetti:{de:"Konfetti|bunte Explosion",en:"Confetti|colorful burst"},
+  lf_o_cursor_hearts:{de:"Herzen|verspielt",en:"Hearts|playful"},
+  lf_o_cursor_line:{de:"Linie|Zeichenspur & Ring",en:"Line|drawn trail & ring"},
+  lf_o_cursor_pixels:{de:"Pixel|retro & Feuerwerk",en:"Pixels|retro & fireworks"},
   lf_step:{de:"Frage {n} von {m}",en:"Question {n} of {m}"},
   lf_next:{de:"Weiter",en:"Next"},
   lf_back:{de:"Zurück",en:"Back"},
@@ -5059,12 +5145,15 @@ const I18N={
   lf_name_light:{de:"{p} am Tag",en:"{p} by day"},
   lf_name_dark:{de:"{p} bei Nacht",en:"{p} by night"},
   lf_code_label:{de:"Dein Look",en:"Your look"},
-  lf_result_sub:{de:"Aus deinen 5 Antworten gebaut – einer von {n} möglichen Looks.",en:"Built from your 5 answers – one of {n} possible looks."},
+  lf_result_sub:{de:"Aus deinen {k} Antworten gebaut – einer von {n} möglichen Looks.",en:"Built from your {k} answers – one of {n} possible looks."},
   lf_cat_palette:{de:"Farbwelt",en:"Colors"},
   lf_cat_light:{de:"Licht",en:"Light"},
   lf_cat_shape:{de:"Formen",en:"Shapes"},
   lf_cat_depth:{de:"Tiefe",en:"Depth"},
-  lf_cat_motion:{de:"Leben",en:"Motion"},
+  lf_cat_landing:{de:"Startseite",en:"Home screen"},
+  lf_cat_board:{de:"Board",en:"Board"},
+  lf_cat_uianim:{de:"UI-Animation",en:"UI motion"},
+  lf_cat_cursor:{de:"Cursor",en:"Cursor"},
   lf_prev_card1:{de:"Notiz",en:"Note"},
   lf_prev_card2:{de:"Checkliste",en:"Checklist"},
   lf_beta_hint:{de:"Beta-Tipp: In NOTUA stecken versteckte Codes. Gib sie über den geheimen Button unten rechts in der Ecke ein, dann schaltest du weitere Customization frei – z. B. das komplette Design-Menü mit Dropdowns, Slidern und Live-Vorschau. Such sie dir zusammen, solange wir in der Beta sind!",en:"Beta tip: NOTUA hides secret codes. Enter them via the secret button in the bottom-right corner to unlock more customization – e.g. the full design menu with dropdowns, sliders and live preview. Go find them while we're in beta!"},
@@ -5072,7 +5161,7 @@ const I18N={
   controls_btn_title:{de:"Steuerung & Gesten",en:"Controls & gestures"},
   tour_click_hint_mouse:{de:"Klicke auf das markierte Element – oder auf „Weiter“.",en:"Click the highlighted element – or press “Next”."},
   tour_click_hint_touch:{de:"Tippe auf das markierte Element – oder auf „Weiter“.",en:"Tap the highlighted element – or press “Next”."},
-  tour_btn_look:{de:"Look-Finder (5 Fragen)",en:"Look finder (5 questions)"},
+  tour_btn_look:{de:"Look-Finder (8 Fragen)",en:"Look finder (8 questions)"},
   tour_btn_guide_mouse:{de:"Steuerung erklärt: Maus & Tastatur",en:"Controls explained: mouse & keyboard"},
   tour_btn_guide_touch:{de:"Steuerung erklärt: Handy & Tablet",en:"Controls explained: phone & tablet"},
   g_tab_mouse:{de:"Maus & Tastatur",en:"Mouse & keyboard"},
@@ -12146,13 +12235,36 @@ const LF_QUESTIONS=[
     {id:'soft',    shadow:'soft',   shadowAmt:1,   border:'default', borderW:null},
     {id:'float',   shadow:'strong', shadowAmt:1.15,border:'default', borderW:null},
     {id:'outline', shadow:'none',   shadowAmt:1,   border:'strong',  borderW:2}]},
-  {id:'motion', q:'lf_q5', sub:'lf_q5_sub', opts:[
-    {id:'still',   landing:'none',      bg:'grid',     gridShape:'circle', move:false, trail:'off',      click:'off',     dynamic:false},
-    {id:'calm',    landing:'fireflies', bg:'grid',     gridShape:'circle', move:false, trail:'off',      click:'off',     dynamic:true},
-    {id:'lively',  landing:'aurora',    bg:'gradient', gridShape:'circle', move:true,  trail:'comet',    click:'ripple',  dynamic:true},
-    {id:'playful', landing:'bubbles',   bg:'grid',     gridShape:'star',   move:true,  trail:'confetti', click:'confetti',dynamic:true},
-    {id:'tech',    landing:'linewaves', bg:'lines',    gridShape:'rect',   move:false, trail:'line',     click:'ring',    dynamic:true},
-    {id:'flow',    landing:'liquid',    bg:'gradient', gridShape:'circle', move:true,  trail:'sparks',   click:'sparks',  dynamic:true}]},
+  {id:'landing', q:'lf_q5', sub:'lf_q5_sub', opts:[
+    {id:'plain',     landing:'none'},
+    {id:'fireflies', landing:'fireflies'},
+    {id:'space',     landing:'space'},
+    {id:'aurora',    landing:'aurora'},
+    {id:'bubbles',   landing:'bubbles'},
+    {id:'waves',     landing:'linewaves'},
+    {id:'liquid',    landing:'liquid'}]},
+  {id:'board', q:'lf_q6', sub:'lf_q6_sub', opts:[
+    {id:'grid',     bg:'grid',     move:false},
+    {id:'gridmove', bg:'grid',     move:true},
+    {id:'lines',    bg:'lines',    move:false},
+    {id:'cross',    bg:'cross',    move:false},
+    {id:'paper',    bg:'paper',    move:false},
+    {id:'gradient', bg:'gradient', move:false},
+    {id:'plain',    bg:'plain',    move:false}]},
+  {id:'uianim', q:'lf_q7', sub:'lf_q7_sub', opts:[
+    {id:'static', dynamic:false, groups:[]},
+    {id:'dock',   dynamic:true,  groups:[]},
+    {id:'calm',   dynamic:true,  groups:['boardzoom','menustagger']},
+    {id:'full',   dynamic:true,  groups:'all'}]},
+  {id:'cursor', q:'lf_q8', sub:'lf_q8_sub', opts:[
+    {id:'off',      trail:'off',      click:'off'},
+    {id:'comet',    trail:'comet',    click:'ripple'},
+    {id:'sparks',   trail:'sparks',   click:'sparks'},
+    {id:'stars',    trail:'stars',    click:'stars'},
+    {id:'confetti', trail:'confetti', click:'confetti'},
+    {id:'hearts',   trail:'hearts',   click:'hearts'},
+    {id:'line',     trail:'line',     click:'ring'},
+    {id:'pixels',   trail:'pixels',   click:'firework'}]},
 ];
 function lfOpt(qid,oid){ const q=LF_QUESTIONS.find(x=>x.id===qid); return q?q.opts.find(o=>o.id===oid):null; }
 function lfParts(qid,oid){ const p=t('lf_o_'+qid+'_'+oid).split('|'); return {label:p[0], desc:p[1]||''}; }
@@ -12165,24 +12277,26 @@ function lfSnapshot(){
   let custom=null; try{ custom=localStorage.getItem('notua-custom-theme'); }catch(e){}
   return {design:JSON.stringify(designStyle), grid:JSON.stringify(gridStyle), theme:document.documentElement.getAttribute('data-theme'), custom, ui:isUiDynamicEnabled()};
 }
-function lfSetUiDynamicQuiet(on){
-  try{ localStorage.setItem('notua-ui-dynamic',on?'1':'0'); }catch(e){}
+function lfSetUiAnimQuiet(o){
+  try{
+    localStorage.setItem('notua-ui-dynamic',o.dynamic?'1':'0');
+    DYNAMIC_ANIM_KEYS.forEach(k=>{ const on=o.groups==='all' || (o.groups||[]).includes(k); localStorage.setItem('notua-anim-'+k,on?'1':'0'); });
+  }catch(e){}
   try{ refreshDockMagnify(); applyDynamicAnimSettings(); refreshUiDynamicToggleUI(); }catch(e){}
 }
 function lfApplyAll(ans,final){
   const root=document.documentElement;
-  const l=lfOpt('light',ans.light), p=lfOpt('palette',ans.palette), s=lfOpt('shape',ans.shape), d=lfOpt('depth',ans.depth), m=lfOpt('motion',ans.motion);
+  const l=lfOpt('light',ans.light), p=lfOpt('palette',ans.palette), s=lfOpt('shape',ans.shape), d=lfOpt('depth',ans.depth), m=lfOpt('landing',ans.landing), bd=lfOpt('board',ans.board), cu=lfOpt('cursor',ans.cursor), ui=lfOpt('uianim',ans.uianim);
   if(l) root.setAttribute('data-theme',l.theme);
   if(p) applyCustomTheme({background:p.bg,accent:p.accent},false);
   else if(l){ try{ reapplyCustomThemeForCurrentMode(); }catch(e){} }
   try{ syncThemeUI(); }catch(e){}
   if(s){ designStyle.radius=s.radius; designStyle.font=s.font; }
   if(d){ designStyle.shadow=d.shadow; designStyle.shadowAmt=d.shadowAmt; designStyle.border=d.border; designStyle.borderW=d.borderW; }
-  if(m){
-    gridStyle.landingMode=m.landing; gridStyle.shape=m.gridShape;
-    designStyle.bg=m.bg; designStyle.bgMove=m.move; designStyle.trail=m.trail; designStyle.clickFx=m.click;
-    if(final) lfSetUiDynamicQuiet(m.dynamic);
-  }
+  if(m) gridStyle.landingMode=m.landing;
+  if(bd){ designStyle.bg=bd.bg; designStyle.bgMove=bd.move; }
+  if(cu){ designStyle.trail=cu.trail; designStyle.clickFx=cu.click; }
+  if(ui && final) lfSetUiAnimQuiet(ui);
   try{ applyDesign(); landingFxSync(); fxSync(); }catch(e){}
 }
 function lfRestore(snap){
@@ -12211,7 +12325,46 @@ function lfVisual(qid,o){
     const sh=designShadowCss(o.shadow,o.shadowAmt), bd=o.border==='strong'?'2px solid var(--ink)':'1px solid var(--border)';
     return `<span class="lf-depth" style="box-shadow:${sh};border:${bd}"></span>`;
   }
-  return `<span class="lf-mo lf-mo-${o.id}"><i></i><i></i><i></i></span>`;
+  if(qid==='landing'){
+    const n={fireflies:4,space:6,aurora:3,bubbles:3,liquid:3}[o.id]||0;
+    let inner='<i></i>'.repeat(n);
+    if(o.id==='waves'){
+      const w=(y,a)=>{ let d='M0 '+y; for(let x=0;x<=400;x+=50) d+=` Q${x+12.5} ${y-a} ${x+25} ${y} T${x+50} ${y}`; return `<path d="${d}"/>`; };
+      inner=`<svg viewBox="0 0 400 56" preserveAspectRatio="none">${w(18,9)}${w(30,12)}${w(42,8)}</svg>`;
+    }
+    return `<span class="lf-bgp lf-bgp-${o.id}">${inner}</span>`;
+  }
+  if(qid==='board') return `<span class="lf-bgp lf-bd-${o.id}"><i class="a"></i><i class="b"></i></span>`;
+  if(qid==='uianim') return `<span class="lf-ui lf-ui-${o.id}"><span class="dk"><i></i><i></i><i></i><i></i><i></i></span><span class="mc"></span></span>`;
+  if(qid==='cursor') return `<span class="lf-cur" data-o="${o.id}"><canvas></canvas><svg class="lf-cur-ptr" width="13" height="16" viewBox="0 0 22 26"><path d="M3 2l15 11-7 1.6 4 7.2-3 1.7-4-7.2L3 21z" fill="var(--ink)" stroke="var(--surface)" stroke-width="1.6" stroke-linejoin="round"/></svg></span>`;
+  return '';
+}
+/* Cursor-Vorschauen: jede Karte fährt einen Demo-Cursor über eine kleine Fläche und nutzt dieselbe Effekt-Engine
+   (fxNew/fxEmit/fxTick) wie das echte Board – so sieht die Vorschau exakt aus wie das Ergebnis. */
+function lfStartCursorPreviews(box){
+  const cells=[...box.querySelectorAll('.lf-cur')]; if(!cells.length) return;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  let reduce=false; try{ reduce=prefersReducedMotion(); }catch(e){}
+  const items=cells.map((el,i)=>{
+    const cv=el.querySelector('canvas'), w=el.clientWidth||120, h=el.clientHeight||56, F=fxNew(cv);
+    F.dpr=dpr; F.w=w; F.h=h; cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); F.ctx.setTransform(dpr,0,0,dpr,0,0);
+    const o=lfOpt('cursor',el.dataset.o);
+    return {el,F,w,h,o,ptr:el.querySelector('.lf-cur-ptr'),lx:-99,ly:-99,nextClick:performance.now()+500+i*180,ph:i*0.7};
+  });
+  function loop(now){
+    if(!cells[0].isConnected) return;
+    const tt=now/1000;
+    items.forEach(it=>{
+      const x=it.w*(0.5+0.34*Math.sin(tt*0.9+it.ph)), y=it.h*(0.52+0.26*Math.sin(tt*1.5+1+it.ph));
+      it.ptr.style.transform=`translate(${x}px,${y}px)`;
+      if(reduce) return;
+      if(it.o.trail==='line'){ if(Math.hypot(x-it.lx,y-it.ly)>=3){ it.lx=x; it.ly=y; fxLinePt(it.F,x+2,y+2); } }
+      else if(it.o.trail!=='off' && Math.hypot(x-it.lx,y-it.ly)>9){ it.lx=x; it.ly=y; fxEmit(it.F,x+3,y+3,it.o.trail,false,1); }
+      if(it.o.click!=='off' && now>it.nextClick){ it.nextClick=now+2100; fxEmit(it.F,x+3,y+3,it.o.click,true,0.8); }
+    });
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
 }
 const LF_LOCK_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none"/></svg>';
 function showLookFinder(opts){
@@ -12234,13 +12387,14 @@ function showLookFinder(opts){
     box.innerHTML=`
       <div class="lf-head"><span class="lf-step">${t('lf_step',{n:step+1,m:N})}</span><div class="lf-prog"><i style="width:${Math.round(step/N*100)}%"></i></div></div>
       <div><h4 class="lf-q">${t(q.q)}</h4><p style="margin-top:4px;">${t(q.sub)}</p></div>
-      <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
+      <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${(q.id==='landing'||q.id==='board'||q.id==='uianim'||q.id==='cursor')?' w':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
       <div class="lf-foot">
         <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button><span class="lf-spacer"></span>
         ${step>0?`<button type="button" data-a="back">${t('lf_back')}</button>`:''}
         <button type="button" class="primary" data-a="next"${ans[q.id]?'':' disabled'}>${t(step===N-1?'lf_show_result':'lf_next')}</button>
       </div>`;
     requestAnimationFrame(()=>{ const bar=box.querySelector('.lf-prog i'); if(bar) bar.style.width=Math.round((step+1)/N*100)+'%'; });
+    if(q.id==='cursor') lfStartCursorPreviews(box);
     box.querySelectorAll('.lf-opt').forEach(b=>b.addEventListener('click',()=>{
       ans[q.id]=b.dataset.id;
       box.querySelectorAll('.lf-opt').forEach(x=>x.classList.toggle('sel',x===b));
@@ -12253,7 +12407,7 @@ function showLookFinder(opts){
   }
   function renderResult(){
     const name=lfName(ans), code=lfCode(ans);
-    const sparks=ans.motion && ans.motion!=='still' ? '<i class="lf-spark" style="left:18%;bottom:6%"></i><i class="lf-spark" style="left:52%;bottom:2%;animation-delay:.8s"></i><i class="lf-spark" style="left:84%;bottom:8%;animation-delay:1.5s"></i>' : '';
+    const sparks=ans.cursor && ans.cursor!=='off' ? '<i class="lf-spark" style="left:18%;bottom:6%"></i><i class="lf-spark" style="left:52%;bottom:2%;animation-delay:.8s"></i><i class="lf-spark" style="left:84%;bottom:8%;animation-delay:1.5s"></i>' : '';
     const items=LF_QUESTIONS.map(q=>{ const pt=lfParts(q.id,ans[q.id]); return `<div class="lf-item"><span>${t('lf_cat_'+q.id)}</span><b>${pt.label}</b></div>`; }).join('');
     box.innerHTML=`
       <div class="lf-head"><span class="lf-step">${t('lf_done_step')}</span><div class="lf-prog"><i style="width:100%"></i></div></div>
@@ -12265,7 +12419,7 @@ function showLookFinder(opts){
             <div class="lf-pc c3"><b>NOTUA</b></div>
             ${sparks}
           </div>
-          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')} #${code}</div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{n:'1.440'})}</div></div>
+          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')} #${code}</div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{k:N,n:LF_QUESTIONS.reduce((a,q)=>a*q.opts.length,1).toLocaleString(document.documentElement.lang==='en'?'en-US':'de-DE')})}</div></div>
         </div>
         <div class="lf-items">${items}</div>
       </div>
@@ -13982,7 +14136,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION = '2.4.80';
+const APP_VERSION = '2.4.81';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
