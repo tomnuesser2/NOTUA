@@ -1890,7 +1890,14 @@ try{
     color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:var(--custom-pointer-cursor,pointer); transition:border-color .14s ease, color .14s ease;
   }
   .cp-eyedrop-btn:hover{border-color:var(--accent); color:var(--accent);}
-  .cp-eyedrop-btn:disabled{opacity:0.4; cursor:not-allowed;}
+  /* Tom, 30.09 (Mac): "beim Pipetten-Button kommt ein Blocksymbol" — Safari has no EyeDropper API at
+     all (Chrome/Edge-only, see the JS below), so this used to just set the native `disabled` attribute
+     on browsers without it. A genuinely disabled button both shows the browser's own not-allowed
+     cursor AND silently swallows every click, which reads exactly like "this is broken" rather than
+     "your browser doesn't support this" — there was no toast, no explanation, nothing to click on to
+     even find the title tooltip's reason. Kept as its own class (not :disabled) precisely so the click
+     handler below still fires and can explain itself instead of doing nothing.*/
+  .cp-eyedrop-btn:disabled, .cp-eyedrop-btn.cp-eyedrop-unsupported{opacity:0.4; cursor:not-allowed;}
   .cp-fmt-row{display:flex; align-items:center; gap:6px;}
   .cp-fmt-label{width:26px; flex:none; font-size:0.65rem; font-weight:700; letter-spacing:.04em; color:var(--muted);}
   .cp-hex-input{
@@ -11073,7 +11080,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.65';
+const APP_VERSION='2.4.67';
 const WHATSNEW_ITEMS=[
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
@@ -12044,23 +12051,80 @@ viewport.addEventListener('focusout',()=>{
   },30);
 });
 
-// Tom, 23.09: "tausch das, strg soll hoch runter und ohne strg rein raus" — swapped from the
-// original mapping. Plain wheel (no modifier) is now the zoom gesture, always straight to the
-// cursor position (zoomAt already does that math); Ctrl/Cmd+wheel is now the pan gesture — exactly
-// the reverse of what each one did before. A real mouse wheel is what most people reach for to zoom
-// a whiteboard-style canvas (Miro does the same by default), so needing to hold Ctrl for THAT was
-// the wrong way around. Note: a trackpad pinch gesture is reported by the browser as a wheel event
-// with ctrlKey force-set to true (there's no way to tell that apart from a real held Ctrl key from
-// inside JS), so a trackpad pinch now pans instead of zooming — an accepted trade-off here since
-// this was specifically about the plain mouse-wheel-on-PC case.
+// Tom, 23.09: "tausch das, strg soll hoch runter und ohne strg rein raus" — plain wheel (no modifier)
+// became the zoom gesture, straight to the cursor position (zoomAt already does that math), and
+// Ctrl/Cmd+wheel became the pan gesture, specifically so a real USB/Bluetooth mouse wheel would zoom
+// without needing a held modifier (Miro does the same by default).
+// Tom, 30.09: "das scrollen und zoomen auf laptop ist über das trackpad jetzt verbuggt — zwei Finger
+// hoch runter soll scrollen, zusammen/auseinander schieben soll zoomen" — the 23.09 fix above broke
+// exactly this. A trackpad's plain two-finger swipe fires the same *kind* of wheel event (no ctrlKey)
+// as a real mouse wheel roll, so "plain wheel = zoom" made a two-finger pan gesture zoom instead of
+// scroll. Pinch-to-zoom was never affected by that swap — browsers report a trackpad pinch as a wheel
+// event with ctrlKey force-set to true regardless of any real key being held (see the comment on
+// looksLikeRealMouseWheel below), and ctrl/meta+wheel has always meant "zoom" or "pan" as a single
+// unconditional branch here — so pinch already lined up with "zusammen/auseinander schieben soll
+// zoomen" once this fix restores its OWN sibling branch (plain wheel) to mean "pan" for a trackpad
+// while still meaning "zoom" for a real mouse wheel. The two are told apart by what the delta itself
+// looks like (see looksLikeRealMouseWheel): a two-finger swipe sends many small, often fractional,
+// slightly-diagonal deltas as one continuous gesture, while a mechanical wheel sends a few large,
+// round, purely-vertical per-notch steps. ("ein Finger soll Mauszeiger zum bewegen sein" — a single
+// trackpad finger only ever moves the system pointer; that's OS-level behavior, nothing here touches
+// or could touch it.)
+// Tom, 06.10: "es gibt Handy, Tablet, PC, Convertible, Laptop (Trackpad + Maus), dazu macOS/iOS — alle
+// brauchen eine ordentliche Funktionsweise ... nimm dir irgendein Beispiel, wo das schon existiert" —
+// this follows the Miro / Google-Maps model, which is exactly what Tom described:
+//   • Mausrad                      → zoomt zum Mauszeiger
+//   • Mausrad-KLICK + ziehen       → ganzes Board verschieben (pointerdown, capture-phase, further below)
+//   • Trackpad 2 Finger wischen    → Board verschieben (wie auf dem Handy)
+//   • Trackpad Pinch (auseinander/zusammen) → zoomt zum Mauszeiger/Pinch-Punkt
+//     (Chrome/Edge/Firefox: wheel + ctrlKey; Safari/macOS: gesturestart/-change/-end, see below)
+//   • Touchscreen/Handy/Tablet     → 2-Finger-Pinch zoomt UND verschiebt gleichzeitig (pointer-handling
+//     further below, unchanged).
+// The one genuinely ambiguous input is a plain wheel event: a mouse wheel and a two-finger trackpad swipe
+// both arrive as ctrlKey-less wheel events, and the browser never says which device sent it. The old
+// check (one event, integer deltaY>=40) was wrong for fast trackpad flicks (those ARE integer and large
+// for a few frames, so a hard swipe suddenly zoomed instead of scrolled). classifyWheel() below judges
+// by (1) what the delta looks like, (2) the wheel event stream — a trackpad swipe plus its momentum
+// tail is ONE continuous burst (events <~140ms apart), so the very first event decides for the whole
+// burst and a big integer delta in the middle of a swipe can no longer flip it — and (3) whether a
+// clearly-trackpad event was seen in the last 1.5s, in which case an ambiguous event is a trackpad too.
+// A real notch from a mouse wheel is always either lines-mode (Firefox) or an integer >=40 whose legacy
+// wheelDeltaY is a multiple of 120 (Chrome/Edge/Safari on a real wheel). Ctrl/Cmd+wheel always zooms,
+// regardless — that's also the guaranteed fallback if a particular mouse is ever misclassified.
+const WHEEL_BURST_GAP_MS=140, WHEEL_TRACKPAD_STICKY_MS=1500;
+let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0;
+function classifyWheel(e,now){
+  const gap=now-wheelLastTs; wheelLastTs=now;
+  const inBurst=!!wheelBurstKind && gap<=WHEEL_BURST_GAP_MS;
+  const adx=Math.abs(e.deltaX), ady=Math.abs(e.deltaY);
+  let kind;
+  if(e.deltaMode!==0){
+    kind='mouse'; // lines/pages mode (Firefox): only a physical wheel does this
+  }else if(adx!==0 || !Number.isInteger(e.deltaX) || !Number.isInteger(e.deltaY) || ady<40){
+    kind='trackpad'; wheelTrackpadTs=now; // fractional / diagonal / small continuous deltas
+  }else if(inBurst){
+    kind=wheelBurstKind; // integer>=40 in the middle of a burst — keep whatever the burst already was
+  }else if(now-wheelTrackpadTs<WHEEL_TRACKPAD_STICKY_MS){
+    kind='trackpad'; // looks like a notch, but a trackpad was just in use — most likely a flick's first frame
+  }else{
+    const wd=e.wheelDeltaY;
+    kind=(typeof wd==='number' && !(wd!==0 && wd%120===0)) ? 'trackpad' : 'mouse';
+  }
+  wheelBurstKind=kind;
+  return kind;
+}
 viewport.addEventListener('wheel',(e)=>{
+  const kind=classifyWheel(e,performance.now());
+  const ctrlOrPinch=e.ctrlKey||e.metaKey;
+  const willZoom=ctrlOrPinch||kind==='mouse';
   // Let the wheel event fall through to native scrolling when it started over content that can
   // scroll itself (a non-dynamic note whose text overflows its box, a checklist's item list, a
   // table's own scroll area) — without this, preventDefault() below fired unconditionally and ate
   // the scroll before the browser ever got to move that inner content, even though its scrollbar
   // chrome was only ever hidden visually (scrollbar-width:none), never functionally disabled.
-  // Ctrl/Meta+wheel (now the pan gesture) is always taken over regardless — panning the whole board
-  // is never what's meant while the cursor is sitting over a scrollable note/checklist/table.
+  // Ctrl/Meta+wheel (always zoom, see above) is taken over regardless — zooming the whole board is
+  // never what's meant while the cursor is sitting over a scrollable note/checklist/table; a plain
+  // trackpad pan over the same content is let through for the same reason, just the other direction.
   if(!(e.ctrlKey||e.metaKey)){
     const scrollTarget=e.target.closest && e.target.closest('.note-body, .checklist-items, .table-scroll');
     if(scrollTarget && scrollTarget.scrollHeight>scrollTarget.clientHeight+1){
@@ -12068,13 +12132,42 @@ viewport.addEventListener('wheel',(e)=>{
     }
   }
   e.preventDefault();
-  if(e.ctrlKey||e.metaKey){
+  if(willZoom){
+    if(e.deltaY===0) return; // e.g. a tilt-wheel's sideways click — nothing to zoom by
+    // A trackpad pinch (synthetic ctrlKey, many small continuous deltas) zooms proportionally to how far
+    // the fingers actually moved — a fixed step per event made it jump, and its size depended on how
+    // many events the browser happened to emit. A real notch of a mouse wheel (with or without a held
+    // Ctrl) keeps the fixed step it always had.
+    const factor=(ctrlOrPinch && kind==='trackpad')
+      ? clamp(Math.exp(-e.deltaY*0.01),0.8,1.25)
+      : (e.deltaY<0 ? 1.08 : 0.92);
+    zoomAt(e.clientX,e.clientY,factor);
+  }else{
     state.view.x-=e.deltaX; state.view.y-=e.deltaY;
     applyView(); persistView();
-  }else{
-    zoomAt(e.clientX,e.clientY, e.deltaY<0 ? 1.08 : 0.92);
   }
 },{passive:false});
+// Safari on macOS never sends a trackpad pinch as wheel+ctrlKey like Chrome/Firefox/Edge do — it sends its
+// own non-standard gesturestart/gesturechange/gestureend events (scale is relative to the gesture's
+// start, clientX/Y is the pinch center), and zooms the whole PAGE unless these are cancelled. This is
+// what made pinch on a Mac (Safari) not behave. iOS Safari fires the same events for a two-finger touch
+// pinch, but that case is already fully handled by the pointer-based pinch below (which also pans), so
+// it is skipped here whenever two touches are down to avoid zooming twice.
+let gestureBaseZoom=null;
+viewport.addEventListener('gesturestart',(e)=>{
+  e.preventDefault();
+  gestureBaseZoom=(activeTouches.size>=2) ? null : state.view.zoom;
+});
+viewport.addEventListener('gesturechange',(e)=>{
+  e.preventDefault();
+  if(gestureBaseZoom==null || activeTouches.size>=2 || !(e.scale>0)) return;
+  const r=viewport.getBoundingClientRect();
+  const cx=Number.isFinite(e.clientX) ? e.clientX : r.left+r.width/2;
+  const cy=Number.isFinite(e.clientY) ? e.clientY : r.top+r.height/2;
+  const target=clamp(gestureBaseZoom*e.scale,0.2,2.5);
+  zoomAt(cx,cy,target/state.view.zoom);
+});
+viewport.addEventListener('gestureend',(e)=>{ e.preventDefault(); gestureBaseZoom=null; });
 
 function zoomInAtCenter(){ const r=viewport.getBoundingClientRect(); smoothViewJump(()=>zoomAt(r.left+r.width/2,r.top+r.height/2,1.2)); }
 function zoomOutAtCenter(){ const r=viewport.getBoundingClientRect(); smoothViewJump(()=>zoomAt(r.left+r.width/2,r.top+r.height/2,0.82)); }
@@ -12379,6 +12472,34 @@ viewport.addEventListener('pointerdown',(e)=>{
     viewport.setPointerCapture(e.pointerId);
   }
 });
+// Tom, 06.10: "Scroll-Funktion auf PC am besten über Mausradklick — klickt man das Mausrad, soll man das
+// ganze Grid bewegen können." The pan branch above (button===1) only ever ran for a press on EMPTY canvas
+// — a middle-click that landed on a card (most of a busy board) was simply ignored, since the handler
+// above bails out for anything inside .card before it gets that far. This capture-phase listener runs
+// before any of that (and before cards/inputs that stopPropagation() their own pointerdown), so a
+// middle-button press pans from anywhere on the board — over cards, text, images — except over the
+// toolbar/zoom controls/inspector, which keep their own behaviour. The mousedown/auxclick guards stop the
+// OS from reacting to the same click as well (Windows autoscroll cursor, Linux middle-click paste, a
+// middle-click opening a link inside a card in a new tab).
+viewport.addEventListener('pointerdown',(e)=>{
+  if(e.pointerType==='touch' || e.button!==1) return;
+  if(e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
+  panState={sx:e.clientX,sy:e.clientY,ox:state.view.x,oy:state.view.y};
+  viewport.classList.add('panning-active');
+  try{ viewport.setPointerCapture(e.pointerId); }catch(err){}
+  e.preventDefault();
+  e.stopPropagation();
+},true);
+viewport.addEventListener('mousedown',(e)=>{
+  if(e.button!==1) return;
+  if(e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
+  e.preventDefault();
+},true);
+viewport.addEventListener('auxclick',(e)=>{
+  if(e.button!==1) return;
+  if(e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
+  e.preventDefault();
+},true);
 viewport.addEventListener('pointermove',(e)=>{
   state.lastPointer=screenToCanvas(e.clientX,e.clientY);
   if(panState){
@@ -16456,8 +16577,11 @@ function buildColorpickerCard(card){
   hexInput.addEventListener('blur',()=>{ if(!commitHex(hexInput.value)) refreshDisplay(); });
   wireEnterConfirms(hexInput);
 
-  // Chrome/Edge only (as of this writing) — feature-detected rather than UA-sniffed, and simply
-  // disabled with an explanatory title on every browser that doesn't have it yet.
+  // Chrome/Edge only (as of this writing) — feature-detected rather than UA-sniffed. Every other
+  // browser (Safari included — no EyeDropper API there at all, and none planned as of this writing)
+  // gets the button styled as disabled AND a click handler that says so via a toast — see
+  // .cp-eyedrop-btn.cp-eyedrop-unsupported's own CSS comment for why this is deliberately NOT the
+  // native `disabled` attribute (that swallowed clicks with zero feedback beyond a cursor icon).
   if(window.EyeDropper){
     eyedropBtn.addEventListener('click',async ()=>{
       try{
@@ -16466,8 +16590,9 @@ function buildColorpickerCard(card){
       }catch(err){ /* user cancelled the pick — nothing to do */ }
     });
   }else{
-    eyedropBtn.disabled=true;
+    eyedropBtn.classList.add('cp-eyedrop-unsupported');
     eyedropBtn.title=t('colorpicker_eyedrop_unsupported');
+    eyedropBtn.addEventListener('click',()=>showToast(t('colorpicker_eyedrop_unsupported')));
   }
 
   el.querySelectorAll('.cp-copy-btn').forEach(btn=>{
