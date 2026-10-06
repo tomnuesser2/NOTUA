@@ -5144,6 +5144,7 @@ const I18N={
   lf_o_border_accent:{de:"Akzent|in Akzentfarbe",en:"Accent|in accent color"},
   lf_o_landing_plain:{de:"Ruhig|keine Animation",en:"Calm|no animation"},
   lf_o_landing_fireflies:{de:"Glühwürmchen|leises Glimmen",en:"Fireflies|quiet glow"},
+  lf_o_landing_seasons:{de:"Jahreszeiten|Regen und Schnee im Wechsel",en:"Seasons|rain and snow, alternating"},
   lf_o_landing_space:{de:"Sternenhimmel|funkelnde Sterne",en:"Starry sky|twinkling stars"},
   lf_o_landing_aurora:{de:"Nordlicht|weiche Farbbänder",en:"Aurora|soft color bands"},
   lf_o_landing_bubbles:{de:"Blasen|zum Zerplatzen",en:"Bubbles|pop them"},
@@ -5474,8 +5475,7 @@ const I18N={
   design_landing:{de:'Landingpage-Animation',en:'Landing animation'},
   design_land_none:{de:'Aus',en:'Off'},
   design_land_space:{de:'Weltraum',en:'Space'},
-  design_land_rain:{de:'Regen',en:'Rain'},
-  design_land_snow:{de:'Schnee',en:'Snow'},
+  design_land_seasons:{de:'Jahreszeiten',en:'Seasons'},
   design_land_fireflies:{de:'Glühwürmchen',en:'Fireflies'},
   design_land_matrix:{de:'Matrix',en:'Matrix'},
   design_land_aurora:{de:'Polarlicht',en:'Aurora'},
@@ -8731,7 +8731,7 @@ const GRID_SIZE=18;
 // gespeichert (localStorage). Snap-to-Grid bleibt bewusst bei GRID_SIZE, nur die Darstellung ändert sich.
 const GRID_STYLE_KEY='notua-grid-style';
 const GRID_SHAPES=['circle','star','rect','triangle'];
-const LANDING_MODES=['none','space','rain','snow','fireflies','matrix','aurora','warp','bubbles','blobs','sakura','retro','liquid','ferro','floatlines','linewaves'];
+const LANDING_MODES=['none','space','seasons','fireflies','matrix','aurora','warp','bubbles','blobs','sakura','retro','liquid','ferro','floatlines','linewaves'];
 const FX_TRAILS=['off','stars','sparks','line','comet','bubbles','confetti','hearts','pixels'];
 const FX_CLICKS=['off','sparks','stars','ring','ripple','confetti','hearts','bubbles','firework'];
 const gridStyle=(()=>{
@@ -8742,7 +8742,8 @@ const gridStyle=(()=>{
       if(GRID_SHAPES.includes(r.shape)) d.shape=r.shape;
       if(typeof r.size==='number') d.size=Math.min(3,Math.max(0.5,r.size));
       if(typeof r.spacing==='number') d.spacing=Math.min(3,Math.max(0.5,r.spacing));
-      if(LANDING_MODES.includes(r.landingMode)) d.landingMode=r.landingMode;
+      if(r.landingMode==='rain' || r.landingMode==='snow') d.landingMode='seasons'; // Regen/Schnee sind jetzt eine gemeinsame Einstellung: Jahreszeiten
+      else if(LANDING_MODES.includes(r.landingMode)) d.landingMode=r.landingMode;
       else if(r.landingAnim) d.landingMode='space'; // v2.4.72-Einstellung migrieren
       if(typeof r.landingSpeed==='number') d.landingSpeed=Math.min(2,Math.max(0.4,r.landingSpeed));
       if(typeof r.landingDensity==='number') d.landingDensity=Math.min(2,Math.max(0.4,r.landingDensity));
@@ -10331,7 +10332,22 @@ function buildAccentPointerCursorValue(hex){
 function updateCustomCursor(){
   try{
     const accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-    const leftDuoColor=currentDuoOtherColor(accent);
+    let leftDuoColor=currentDuoOtherColor(accent);
+    // "im Lightmode bei Mono ist der Mauszeiger weiß ohne Rahmen, da wäre schwarz gut" — a custom theme's
+    // cursor takes the theme's BACKGROUND color, which in every light theme is a pale tint sitting on a
+    // pale canvas: fill ≈ canvas, and the outline (picked from the canvas color for light fills) vanishes too,
+    // so the pointer turned invisible/white. When fill and canvas are both light, fall back to the theme's
+    // dark ink (or near-black) — the outline then automatically becomes white (pickOutlineColorFor).
+    try{
+      const canvasHex=getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim();
+      if(/^#[0-9a-fA-F]{6}$/.test(canvasHex) && /^#[0-9a-fA-F]{6}$/.test(leftDuoColor)
+         && ((relativeLuminance(canvasHex)>0.5 && relativeLuminance(leftDuoColor)>0.35)
+             || Math.abs(relativeLuminance(canvasHex)-relativeLuminance(leftDuoColor))<0.2)){
+        const inkHex=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+        leftDuoColor=(/^#[0-9a-fA-F]{6}$/.test(inkHex) && relativeLuminance(inkHex)<0.2) ? inkHex : '#1B2027';
+      }
+    }catch(e){}
+    document.documentElement.dataset.cursorFill=leftDuoColor;
     document.documentElement.style.setProperty('--custom-cursor', buildAccentCursorValue(leftDuoColor));
     document.documentElement.style.setProperty('--custom-pointer-cursor', buildAccentPointerCursorValue(leftDuoColor));
   }catch(e){} // purely cosmetic — never worth interrupting anything else over
@@ -11053,8 +11069,22 @@ function landingFxNew(canvas){ return {canvas,ctx:canvas.getContext('2d'),raf:0,
 function landingFxRand(a,b){ return a+Math.random()*(b-a); }
 const MATRIX_CHARS='ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉ0123456789ABCDEF';
 function landingFxBuild(L=landingFx){
-  const dn=gridStyle.landingDensity, mode=gridStyle.landingMode, area=L.w*L.h;
-  L.mode=mode; L.stars=[]; L.rocks=[]; L.drops=[]; L.flakes=[]; L.flies=[]; L.cols=[]; L.bands=[]; L.warp=[]; L.bubs=[]; L.blobs=[]; L.petals=[]; L.shoot=null;
+  const dn=gridStyle.landingDensity, mode0=gridStyle.landingMode, area=L.w*L.h;
+  // "Jahreszeiten": ein einziger Modus, der zufällig und abwechselnd Regen und Schnee zeigt (L.mode bleibt
+  // 'seasons', damit der Rebuild-Check in landingFxTick stimmt; gezeichnet/gebaut wird die aktuelle Jahreszeit).
+  let mode=mode0;
+  if(mode0==='seasons'){
+    if(L.ci==null) L.ci=(Math.random()*4)|0;               // Ablauf: Sonne → Regen → Sonne → Schnee → …
+    L.season=['sun','rain','sun','snow'][L.ci];
+    L.seasonAt=performance.now()+(L.season==='sun'?landingFxRand(9000,16000):landingFxRand(14000,28000));
+    mode=L.season;
+    if(!L.clouds || !L.clouds.length || L.cloudsW!==L.w){
+      L.cloudsW=L.w; L.clouds=[];
+      const n=Math.round(Math.min(9,Math.max(4,L.w/230)));
+      for(let i=0;i<n;i++) L.clouds.push({x:Math.random()*(L.w+300)-150,y:L.h*landingFxRand(0.04,0.42),s:landingFxRand(0.7,1.5),v:landingFxRand(5,16),ph:Math.random()*6.28});
+    }
+  }
+  L.mode=mode0; L.stars=[]; L.rocks=[]; L.drops=[]; L.flakes=[]; L.flies=[]; L.cols=[]; L.bands=[]; L.warp=[]; L.bubs=[]; L.blobs=[]; L.petals=[]; L.shoot=null;
   if(mode==='space'){
     const n=Math.round(Math.min(220,Math.max(45,area/9500*dn)));
     for(let i=0;i<n;i++) L.stars.push({x:Math.random()*L.w,y:Math.random()*L.h,z:landingFxRand(0.2,1),ph:Math.random()*6.28,sp:landingFxRand(0.6,1.6)});
@@ -11166,6 +11196,34 @@ function landingFxDrawSpace(dt,now,c,col,L=landingFx){
     c.strokeStyle=grad; c.lineWidth=1.4; c.beginPath(); c.moveTo(s.x,s.y); c.lineTo(ex,ey); c.stroke();
     if(s.life>0.9) L.shoot=null;
   }
+}
+// Jahreszeiten: weiche Wolken, die immer langsam durchs Bild ziehen (dichter bei Regen/Schnee, zart bei Sonne)
+function landingFxDrawClouds(dt,now,c,col,L,phase){
+  if(!L.clouds) return;
+  const a=phase==='sun'?0.09:(phase==='rain'?0.2:0.15), t=now/1000;
+  for(const k of L.clouds){
+    k.x+=k.v*dt; if(k.x>L.w+190) k.x=-190;
+    const w=110*k.s, y=k.y+Math.sin(t*0.25+k.ph)*4;
+    c.fillStyle=col(a);
+    const puffs=[[0,0,0.34],[0.42,-0.14,0.44],[0.9,-0.02,0.36],[1.28,0.06,0.28],[0.55,0.1,0.38]];
+    c.beginPath();
+    for(const [px,py,pr] of puffs){ c.moveTo(k.x+px*w+pr*w,y+py*w); c.arc(k.x+px*w,y+py*w,pr*w,0,6.283); }
+    c.fill();
+  }
+}
+// Jahreszeiten: Sonne mit warmem Schimmer und langsam rotierenden Strahlen (Akzentfarbe des Themes)
+function landingFxDrawSun(dt,now,c,col,L){
+  const t=now/1000, R=Math.min(L.w,L.h)*0.11, x=L.w*0.8, y=L.h*0.2, [r,g,b]=L.acc||[255,190,80];
+  const pulse=1+Math.sin(t*0.9)*0.04;
+  const gr=c.createRadialGradient(x,y,R*0.2,x,y,R*3.2*pulse);
+  gr.addColorStop(0,`rgba(${r},${g},${b},0.28)`); gr.addColorStop(0.45,`rgba(${r},${g},${b},0.09)`); gr.addColorStop(1,`rgba(${r},${g},${b},0)`);
+  c.fillStyle=gr; c.beginPath(); c.arc(x,y,R*3.2*pulse,0,6.283); c.fill();
+  c.strokeStyle=`rgba(${r},${g},${b},0.22)`; c.lineWidth=2; c.lineCap='round';
+  for(let i=0;i<14;i++){
+    const an=t*0.12+i*(6.283/14), r1=R*1.35, r2=R*(i%2?1.75:2.1);
+    c.beginPath(); c.moveTo(x+Math.cos(an)*r1,y+Math.sin(an)*r1); c.lineTo(x+Math.cos(an)*r2*pulse,y+Math.sin(an)*r2*pulse); c.stroke();
+  }
+  c.fillStyle=`rgba(${r},${g},${b},0.5)`; c.beginPath(); c.arc(x,y,R*pulse,0,6.283); c.fill();
 }
 function landingFxDrawRain(dt,now,c,col,L=landingFx){
   c.lineWidth=1; c.lineCap='round';
@@ -11498,7 +11556,16 @@ function landingFxDraw(dt,now,L=landingFx){
   const isGl=(L.mode==='liquid'||L.mode==='ferro');
   if(L.glc) L.glc.style.display=isGl?'':'none';
   if(isGl){ landingFxDrawGL(d,now,L,L.mode); return; }
-  ({space:landingFxDrawSpace,rain:landingFxDrawRain,snow:landingFxDrawSnow,fireflies:landingFxDrawFlies,matrix:landingFxDrawMatrix,aurora:landingFxDrawAurora,warp:landingFxDrawWarp,bubbles:landingFxDrawBubbles,blobs:landingFxDrawBlobs,sakura:landingFxDrawSakura,retro:landingFxDrawRetro,floatlines:landingFxDrawFloatLines,linewaves:landingFxDrawLineWaves}[L.mode]||(()=>{}))(d,now,c,col,L);
+  let fxKey=L.mode;
+  if(L.mode==='seasons'){
+    if(now>(L.seasonAt||0) && L.seasonSwitched!==undefined){ L.ci=((L.ci||0)+1)%4; landingFxBuild(L); L.seasonSwitchAt=now; }
+    if(L.seasonSwitched===undefined) L.seasonSwitched=true;
+    fxKey=L.season||'sun';
+    c.globalAlpha=Math.min(1,Math.max(0,(now-(L.seasonSwitchAt||-1e9))/1600)); // sanftes Einblenden nach dem Wechsel
+  }
+  if(L.mode==='seasons') landingFxDrawClouds(d,now,c,col,L,fxKey);
+  ({sun:landingFxDrawSun,space:landingFxDrawSpace,rain:landingFxDrawRain,snow:landingFxDrawSnow,fireflies:landingFxDrawFlies,matrix:landingFxDrawMatrix,aurora:landingFxDrawAurora,warp:landingFxDrawWarp,bubbles:landingFxDrawBubbles,blobs:landingFxDrawBlobs,sakura:landingFxDrawSakura,retro:landingFxDrawRetro,floatlines:landingFxDrawFloatLines,linewaves:landingFxDrawLineWaves}[fxKey]||(()=>{}))(d,now,c,col,L);
+  c.globalAlpha=1;
 }
 function landingFxTick(now){
   const L=landingFx; L.raf=0;
@@ -12468,6 +12535,7 @@ const LF_QUESTIONS=[
     {id:'plain',     landing:'none'},
     {id:'fireflies', landing:'fireflies'},
     {id:'space',     landing:'space'},
+    {id:'seasons',   landing:'seasons'},
     {id:'aurora',    landing:'aurora'},
     {id:'bubbles',   landing:'bubbles'},
     {id:'waves',     landing:'linewaves'},
@@ -14416,7 +14484,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.86';
+const APP_VERSION='2.4.87';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
