@@ -1259,6 +1259,175 @@ try{
   .tour-tooltip.tt-arrow-down .tour-tooltip-arrow{ bottom:-8px; border-left:8px solid transparent; border-right:8px solid transparent; border-top:8px solid var(--surface); }
   .tour-tooltip.tt-arrow-up .tour-tooltip-arrow{ top:-8px; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:8px solid var(--surface); }
   .tour-modal-scrim .modal{ max-width:380px; }
+  /* ===== Onboarding 2.0 (v2.4.80): Tour-Finger, Look-Finder, Steuerungs-Guide ===== */
+  .tour-finger{position:fixed; z-index:100002; width:34px; height:40px; pointer-events:none; opacity:0; transition:opacity .25s ease; will-change:left,top;}
+  .tour-finger.show{opacity:1;}
+  .tour-finger.zap{transition:opacity .25s ease, left .6s cubic-bezier(.2,1.25,.4,1), top .6s cubic-bezier(.2,1.25,.4,1);}
+  .tour-finger svg{width:100%; height:100%; display:block; filter:drop-shadow(0 3px 5px rgba(0,0,0,.4)); animation:tourTap 1.5s ease-in-out infinite; transform-origin:15px 2px;}
+  .tour-finger::after{content:''; position:absolute; left:3px; top:-12px; width:24px; height:24px; border-radius:50%; border:2px solid var(--accent); opacity:0; animation:tourRipple 1.5s ease-out infinite;}
+  @keyframes tourTap{0%,55%,100%{transform:translate(0,0) scale(1);} 68%{transform:translate(0,3px) scale(.9);} 80%{transform:translate(0,0) scale(1);}}
+  @keyframes tourRipple{0%,62%{opacity:0; transform:scale(.4);} 68%{opacity:.95;} 100%{opacity:0; transform:scale(2.4);}}
+  .tour-click-hint{display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--muted); margin:8px 0 0; line-height:1.35;}
+  .tour-click-hint svg{flex:none; color:var(--accent);}
+  @media (prefers-reduced-motion:reduce){ .tour-finger svg,.tour-finger::after{animation:none;} }
+
+  /* Look-Finder */
+  .lf-scrim{background:rgba(8,10,16,.24) !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; z-index:100003;}
+  .modal.lf-modal{width:min(600px,94vw); max-height:92vh; overflow-y:auto; gap:16px; padding:22px 22px 18px;}
+  .lf-head{display:flex; align-items:center; gap:12px;}
+  .lf-step{font-size:0.72rem; font-weight:700; letter-spacing:.03em; color:var(--accent); white-space:nowrap;}
+  .lf-prog{flex:1; height:4px; border-radius:2px; background:var(--surface-2); overflow:hidden;}
+  .lf-prog i{display:block; height:100%; background:var(--accent); border-radius:2px; transition:width .35s cubic-bezier(.22,1,.36,1);}
+  .modal.lf-modal h4.lf-q{font-size:1.2rem; line-height:1.25;}
+  .lf-opts{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+  .lf-opt{display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; padding:12px; border:1.5px solid var(--border); border-radius:12px; background:var(--surface-2); color:var(--ink); font:inherit; cursor:var(--custom-pointer-cursor,pointer); transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease, background .15s ease;}
+  .lf-opt:hover{border-color:var(--border-strong); transform:translateY(-1px);}
+  .lf-opt.sel{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px var(--accent);}
+  .lf-opt b{font-size:0.9rem; font-weight:650;}
+  .lf-opt small{font-size:0.75rem; color:var(--muted); line-height:1.35;}
+  .lf-vis{display:flex; align-items:center; height:42px; margin-bottom:4px;}
+  .lf-sw{position:relative; width:58px; height:34px; display:block;}
+  .lf-sw i{position:absolute; top:0; width:34px; height:34px; border-radius:50%; border:2px solid var(--surface); box-shadow:0 0 0 1px var(--border);}
+  .lf-sw i:first-child{left:0;} .lf-sw i:last-child{left:22px;}
+  .lf-win{display:block; width:56px; height:36px; border-radius:8px; border:1px solid #c9ced8; background:#fff; position:relative;}
+  .lf-win::before{content:''; position:absolute; left:8px; top:8px; width:55%; height:6px; border-radius:3px; background:#232733;}
+  .lf-win::after{content:''; position:absolute; left:8px; top:19px; width:35%; height:6px; border-radius:3px; background:var(--accent);}
+  .lf-win.dk{background:#1b1f27; border-color:#3a4150;} .lf-win.dk::before{background:#e8ebf2;}
+  .lf-shape{display:flex; align-items:center; justify-content:center; width:58px; height:36px; border:2px solid var(--accent); background:var(--surface); color:var(--ink); font-size:0.95rem; font-weight:600;}
+  .lf-depth{display:block; width:58px; height:34px; background:var(--surface); border-radius:9px; border:1px solid var(--border);}
+  .lf-mo{display:flex; align-items:center; gap:5px; height:34px;}
+  .lf-mo i{display:block; width:9px; height:9px; border-radius:50%; background:var(--accent);}
+  .lf-mo-calm i{animation:lfFade 2.6s ease-in-out infinite;} .lf-mo-calm i:nth-child(2){animation-delay:.5s;} .lf-mo-calm i:nth-child(3){animation-delay:1s;}
+  .lf-mo-lively i{animation:lfBounce 1s ease-in-out infinite;} .lf-mo-lively i:nth-child(2){animation-delay:.15s;} .lf-mo-lively i:nth-child(3){animation-delay:.3s;}
+  .lf-mo-playful i{animation:lfRise 1.8s ease-in infinite;} .lf-mo-playful i:nth-child(2){animation-delay:.45s; width:12px; height:12px;} .lf-mo-playful i:nth-child(3){animation-delay:.9s; width:7px; height:7px;}
+  .lf-mo-tech i{width:16px; height:3px; border-radius:1px; animation:lfScan 1.4s linear infinite;} .lf-mo-tech i:nth-child(2){animation-delay:.2s;} .lf-mo-tech i:nth-child(3){animation-delay:.4s;}
+  .lf-mo-flow i{animation:lfWave 2.2s ease-in-out infinite;} .lf-mo-flow i:nth-child(2){animation-delay:.25s;} .lf-mo-flow i:nth-child(3){animation-delay:.5s;}
+  @keyframes lfFade{0%,100%{opacity:.25;} 50%{opacity:1;}}
+  @keyframes lfBounce{0%,100%{transform:translateY(0);} 50%{transform:translateY(-9px);}}
+  @keyframes lfRise{0%{transform:translateY(8px); opacity:0;} 40%{opacity:1;} 100%{transform:translateY(-12px); opacity:0;}}
+  @keyframes lfScan{0%{transform:translateX(-6px); opacity:.2;} 50%{opacity:1;} 100%{transform:translateX(6px); opacity:.2;}}
+  @keyframes lfWave{0%,100%{transform:translateY(5px);} 50%{transform:translateY(-5px);}}
+  .lf-foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .lf-foot .lf-spacer{flex:1;}
+  .lf-foot button{padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.84rem; cursor:var(--custom-pointer-cursor,pointer);}
+  .lf-foot button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink,#fff); font-weight:600;}
+  .lf-foot button.primary:disabled{opacity:.4; cursor:default;}
+  .lf-foot button.lf-later{border:none; background:none; color:var(--muted); text-decoration:underline; padding-left:0;}
+  .lf-foot button.lf-later:hover{color:var(--ink);}
+  /* Ergebnis: "Look-Karte" mit Mini-Vorschau + Aufzählung aller Entscheidungen */
+  .lf-pass{border:1px solid var(--border); border-radius:16px; background:var(--surface-2); overflow:hidden; animation:lfPassIn .5s cubic-bezier(.2,1.2,.4,1);}
+  @keyframes lfPassIn{from{opacity:0; transform:translateY(10px) scale(.97);} to{opacity:1; transform:none;}}
+  .lf-pass-top{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:0;}
+  @media (max-width:520px){ .lf-pass-top{grid-template-columns:1fr;} }
+  .lf-prev{position:relative; min-height:168px; background:var(--canvas); background-image:radial-gradient(circle, var(--canvas-dot) 1.2px, transparent 1.5px); background-size:16px 16px; overflow:hidden;}
+  .lf-prev .lf-pc{position:absolute; background:var(--surface); border:1px solid var(--border); border-radius:var(--d-radius,8px); box-shadow:var(--d-shadow,0 1px 3px rgba(0,0,0,.12)); padding:calc(8px + var(--d-inset,0px)); font-size:0.7rem; color:var(--ink); line-height:1.3; font-family:var(--d-font,inherit);}
+  .lf-prev .lf-pc b{display:block; font-size:0.74rem; margin-bottom:4px;}
+  .lf-prev .lf-pc i{display:block; height:5px; border-radius:3px; background:var(--border-strong); margin-top:5px;}
+  .lf-prev .lf-pc i.ac{background:var(--accent); width:46%;}
+  .lf-prev .c1{left:6%; top:10%; width:46%;} .lf-prev .c2{left:44%; top:46%; width:50%;} .lf-prev .c3{left:60%; top:8%; width:32%; background:var(--accent); border-color:var(--accent); color:var(--accent-ink,#fff);}
+  html[data-d-bw] .lf-prev .lf-pc{border-width:var(--d-bw);} html[data-d-border="strong"] .lf-prev .lf-pc{border-color:var(--ink);}
+  .lf-prev .lf-spark{position:absolute; width:7px; height:7px; border-radius:50%; background:var(--accent); opacity:.7; animation:lfRise 2.4s ease-in infinite;}
+  .lf-info{padding:16px; display:flex; flex-direction:column; gap:6px; justify-content:center;}
+  .lf-rname{font-size:1.25rem; font-weight:750; line-height:1.15; color:var(--ink);}
+  .lf-rcode{font-size:0.74rem; color:var(--accent); font-weight:700; letter-spacing:.06em;}
+  .lf-rsub{font-size:0.78rem; color:var(--muted); line-height:1.4;}
+  .lf-items{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:1px; background:var(--border); border-top:1px solid var(--border);}
+  .lf-item{background:var(--surface); padding:10px 12px; display:flex; flex-direction:column; gap:3px; animation:lfItemIn .45s ease both;}
+  .lf-item:nth-child(2){animation-delay:.07s;} .lf-item:nth-child(3){animation-delay:.14s;} .lf-item:nth-child(4){animation-delay:.21s;} .lf-item:nth-child(5){animation-delay:.28s;}
+  @keyframes lfItemIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  .lf-item span{font-size:0.66rem; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:700;}
+  .lf-item b{font-size:0.84rem; color:var(--ink);}
+  .lf-beta{display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border-radius:12px; background:var(--accent-soft); border:1px dashed color-mix(in srgb, var(--accent) 55%, transparent); font-size:0.78rem; line-height:1.45; color:var(--ink);}
+  .lf-beta svg{flex:none; margin-top:1px; color:var(--accent);}
+  @media (prefers-reduced-motion:reduce){ .lf-pass,.lf-item,.lf-mo i,.lf-prev .lf-spark{animation:none;} }
+
+  /* Steuerungs-Guide: animierte Maus-/Finger-Demos */
+  .modal.gs-modal{width:min(460px,94vw); gap:12px;}
+  .tour-modal-scrim .modal.gs-modal{max-width:460px;}
+  .gs-tabs{display:flex; gap:4px; padding:3px; border-radius:10px; background:var(--surface-2); align-self:stretch;}
+  .gs-tabs button{flex:1; border:none; background:none; padding:7px 8px; border-radius:8px; font:inherit; font-size:0.8rem; font-weight:600; color:var(--muted); cursor:var(--custom-pointer-cursor,pointer);}
+  .gs-tabs button.on{background:var(--surface); color:var(--accent); box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  .gs-stage{position:relative; height:196px; border-radius:14px; overflow:hidden; border:1px solid var(--border); background:var(--canvas); background-image:radial-gradient(circle, var(--canvas-dot) 1.2px, transparent 1.5px); background-size:18px 18px; flex:none;}
+  .gs-board{position:absolute; inset:0; transform-origin:50% 50%;}
+  .gs-card{position:absolute; border-radius:9px; background:var(--surface); border:1px solid var(--border-strong); box-shadow:0 3px 8px -4px var(--shadow-lg);}
+  .gs-card::before{content:''; position:absolute; left:10px; top:10px; width:52%; height:5px; border-radius:3px; background:var(--border-strong);}
+  .gs-card::after{content:''; position:absolute; left:10px; top:22px; width:34%; height:5px; border-radius:3px; background:var(--accent); opacity:.8;}
+  .gs-card.c1{left:8%; top:14%; width:28%; height:32%;} .gs-card.c2{left:40%; top:50%; width:30%; height:32%;} .gs-card.c3{left:66%; top:16%; width:26%; height:30%;}
+  .gs-finger{position:absolute; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%; background:color-mix(in srgb, var(--accent) 30%, transparent); border:2px solid var(--accent); opacity:0; z-index:3;}
+  .gs-finger::after{content:''; position:absolute; inset:9px; border-radius:50%; background:var(--accent);}
+  .gs-cursor{position:absolute; width:22px; height:26px; margin:-2px 0 0 -4px; z-index:3; opacity:0; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));}
+  .gs-mouse{position:absolute; right:12px; bottom:10px; width:34px; height:51px; z-index:3;}
+  .gs-mouse .mb{fill:transparent;} .gs-mouse .mw{fill:var(--border-strong);}
+  .gs-ripple{position:absolute; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%; border:2px solid var(--accent); opacity:0; z-index:2;}
+  .gs-menu{position:absolute; width:96px; padding:7px; border-radius:10px; background:var(--surface); border:1px solid var(--border); box-shadow:0 10px 24px -8px var(--shadow-lg); opacity:0; z-index:4; display:flex; flex-direction:column; gap:5px;}
+  .gs-menu i{display:block; height:7px; border-radius:3px; background:var(--border-strong);} .gs-menu i:first-child{background:var(--accent);}
+  .gs-marq{position:absolute; border:1.5px dashed var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); opacity:0; z-index:2; left:34%; top:10%; width:0; height:0;}
+  .gs-title{margin:0; font-size:1.02rem;}
+  .modal .gs-text{min-height:3.9em;}
+  .gs-dots{display:flex; gap:6px; justify-content:center;}
+  .gs-dots i{width:7px; height:7px; border-radius:50%; background:var(--border-strong); cursor:var(--custom-pointer-cursor,pointer); transition:background .15s ease, transform .15s ease;}
+  .gs-dots i.on{background:var(--accent); transform:scale(1.25);}
+  .gs-actions{display:flex; justify-content:flex-end; gap:8px;}
+  .gs-actions button{padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.84rem; cursor:var(--custom-pointer-cursor,pointer);}
+  .gs-actions button.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink,#fff); font-weight:600;}
+  .gs-actions button:disabled{opacity:.4; cursor:default;}
+  /* --- Slide-Animationen (jeweils 3.6 s Schleife) --- */
+  .gs-a-tap .gs-finger{left:20%; top:30%; animation:gsTapF 3.6s ease-in-out infinite;}
+  .gs-a-tap .c1{animation:gsSel 3.6s ease-in-out infinite;}
+  .gs-a-pan .gs-board{animation:gsPanB 3.6s ease-in-out infinite;}
+  .gs-a-pan .gs-finger{left:70%; top:66%; animation:gsPanF 3.6s ease-in-out infinite;}
+  .gs-a-pinch .gs-board{animation:gsZoomB 3.6s ease-in-out infinite;}
+  .gs-a-pinch .gs-finger.f1{left:45%; top:50%; animation:gsPinchA 3.6s ease-in-out infinite;}
+  .gs-a-pinch .gs-finger.f2{left:55%; top:50%; animation:gsPinchB 3.6s ease-in-out infinite;}
+  .gs-a-dtap .gs-board{animation:gsZoomDt 3.6s ease-in-out infinite;}
+  .gs-a-dtap .gs-finger{left:52%; top:48%; animation:gsDtapF 3.6s ease-in-out infinite;}
+  .gs-a-dtap .gs-ripple{left:52%; top:48%;} .gs-a-dtap .gs-ripple.r1{animation:gsRip1 3.6s ease-out infinite;} .gs-a-dtap .gs-ripple.r2{animation:gsRip2 3.6s ease-out infinite;}
+  .gs-a-hold .gs-finger{left:48%; top:46%; animation:gsHoldF 3.6s ease-in-out infinite;}
+  .gs-a-hold .gs-ripple{left:48%; top:46%; animation:gsHoldRing 3.6s ease-out infinite;}
+  .gs-a-hold .gs-menu{left:54%; top:44%; transform-origin:0 0; animation:gsMenuPop 3.6s ease-out infinite;}
+  .gs-a-wheel .gs-board{animation:gsZoomB 3.6s ease-in-out infinite;}
+  .gs-a-wheel .gs-cursor{left:50%; top:46%; opacity:1;}
+  .gs-a-wheel .mw{animation:gsWheel 3.6s ease-in-out infinite;}
+  .gs-a-mid .gs-board{animation:gsPanB 3.6s ease-in-out infinite;}
+  .gs-a-mid .gs-cursor{left:70%; top:62%; animation:gsPanC 3.6s ease-in-out infinite;}
+  .gs-a-mid .mw{fill:var(--accent);}
+  .gs-a-click .gs-cursor{left:60%; top:75%; animation:gsClickC 3.6s ease-in-out infinite;}
+  .gs-a-click .c1{animation:gsSel2 3.6s ease-in-out infinite;}
+  .gs-a-click .mb-l{animation:gsBtn 3.6s ease-in-out infinite;}
+  .gs-a-dbl .gs-cursor{left:52%; top:40%; opacity:1;}
+  .gs-a-dbl .gs-ripple{left:52%; top:40%;} .gs-a-dbl .gs-ripple.r1{animation:gsRip1 3.6s ease-out infinite;} .gs-a-dbl .gs-ripple.r2{animation:gsRip2 3.6s ease-out infinite;}
+  .gs-a-dbl .mb-l{animation:gsBtnD 3.6s ease-in-out infinite;}
+  .gs-a-dbl .gs-menu{left:54%; top:42%; transform-origin:0 0; animation:gsMenuPop2 3.6s ease-out infinite;}
+  .gs-a-drag .gs-cursor{left:34%; top:10%; animation:gsMarqC 3.6s ease-in-out infinite;}
+  .gs-a-drag .gs-marq{animation:gsMarq 3.6s ease-in-out infinite;}
+  .gs-a-drag .c2{animation:gsSel3 3.6s ease-in-out infinite;} .gs-a-drag .c3{animation:gsSel3 3.6s ease-in-out infinite;}
+  .gs-a-drag .mb-l{animation:gsBtnDrag 3.6s ease-in-out infinite;}
+  @keyframes gsTapF{0%{opacity:0; transform:scale(1.5);} 10%{opacity:1; transform:scale(1);} 20%{transform:scale(.78);} 30%{transform:scale(1);} 78%{opacity:1;} 92%,100%{opacity:0;}}
+  @keyframes gsSel{0%,18%{box-shadow:0 3px 8px -4px var(--shadow-lg);} 24%,76%{box-shadow:0 0 0 3px var(--accent), 0 3px 8px -4px var(--shadow-lg);} 92%,100%{box-shadow:0 3px 8px -4px var(--shadow-lg);}}
+  @keyframes gsSel2{0%,36%{box-shadow:0 3px 8px -4px var(--shadow-lg);} 42%,80%{box-shadow:0 0 0 3px var(--accent), 0 3px 8px -4px var(--shadow-lg);} 94%,100%{box-shadow:0 3px 8px -4px var(--shadow-lg);}}
+  @keyframes gsSel3{0%,52%{box-shadow:0 3px 8px -4px var(--shadow-lg);} 60%,82%{box-shadow:0 0 0 3px var(--accent), 0 3px 8px -4px var(--shadow-lg);} 94%,100%{box-shadow:0 3px 8px -4px var(--shadow-lg);}}
+  @keyframes gsPanB{0%,12%{transform:translate(0,0);} 55%,76%{transform:translate(-64px,-30px);} 100%{transform:translate(0,0);}}
+  @keyframes gsPanF{0%{opacity:0; left:70%; top:66%; transform:scale(1.4);} 10%{opacity:1; left:70%; top:66%; transform:scale(1);} 55%,76%{opacity:1; left:calc(70% - 64px); top:calc(66% - 30px); transform:scale(1);} 92%,100%{opacity:0; left:calc(70% - 64px); top:calc(66% - 30px);}}
+  @keyframes gsPanC{0%{opacity:0; left:70%; top:62%;} 10%{opacity:1; left:70%; top:62%;} 55%,76%{opacity:1; left:calc(70% - 64px); top:calc(62% - 30px);} 92%,100%{opacity:0; left:calc(70% - 64px); top:calc(62% - 30px);}}
+  @keyframes gsZoomB{0%,12%{transform:scale(1);} 48%,72%{transform:scale(1.55);} 100%{transform:scale(1);}}
+  @keyframes gsPinchA{0%{opacity:0; left:45%; top:50%;} 10%{opacity:1; left:45%; top:50%;} 48%,72%{opacity:1; left:26%; top:24%;} 90%,100%{opacity:0; left:26%; top:24%;}}
+  @keyframes gsPinchB{0%{opacity:0; left:55%; top:50%;} 10%{opacity:1; left:55%; top:50%;} 48%,72%{opacity:1; left:74%; top:76%;} 90%,100%{opacity:0; left:74%; top:76%;}}
+  @keyframes gsZoomDt{0%,30%{transform:scale(1);} 42%,76%{transform:scale(1.55);} 100%{transform:scale(1);}}
+  @keyframes gsDtapF{0%{opacity:0; transform:scale(1.5);} 8%{opacity:1; transform:scale(1);} 14%{transform:scale(.78);} 20%{transform:scale(1);} 26%{transform:scale(.78);} 32%,70%{transform:scale(1); opacity:1;} 86%,100%{opacity:0;}}
+  @keyframes gsRip1{0%,12%{opacity:0; transform:scale(.4);} 14%{opacity:.9;} 30%,100%{opacity:0; transform:scale(2);}}
+  @keyframes gsRip2{0%,24%{opacity:0; transform:scale(.4);} 26%{opacity:.9;} 42%,100%{opacity:0; transform:scale(2);}}
+  @keyframes gsHoldF{0%{opacity:0; transform:scale(1.4);} 8%{opacity:1; transform:scale(1);} 14%,62%{transform:scale(.86); opacity:1;} 72%{transform:scale(1); opacity:1;} 86%,100%{opacity:0;}}
+  @keyframes gsHoldRing{0%,10%{opacity:0; transform:scale(.6);} 12%{opacity:.9; transform:scale(.6);} 50%{opacity:.9; transform:scale(2);} 54%,100%{opacity:0; transform:scale(2.2);}}
+  @keyframes gsMenuPop{0%,52%{opacity:0; transform:scale(.6);} 62%,84%{opacity:1; transform:scale(1);} 94%,100%{opacity:0; transform:scale(.9);}}
+  @keyframes gsMenuPop2{0%,36%{opacity:0; transform:scale(.6);} 46%,82%{opacity:1; transform:scale(1);} 94%,100%{opacity:0; transform:scale(.9);}}
+  @keyframes gsWheel{0%,8%{transform:translateY(0);} 18%{transform:translateY(5px);} 28%{transform:translateY(0);} 38%{transform:translateY(5px);} 48%,72%{transform:translateY(0);} 82%{transform:translateY(-5px);} 100%{transform:translateY(0);}}
+  @keyframes gsClickC{0%{opacity:0; left:60%; top:75%;} 10%{opacity:1; left:60%; top:75%;} 30%,86%{opacity:1; left:20%; top:30%;} 100%{opacity:0; left:20%; top:30%;}}
+  @keyframes gsBtn{0%,34%{fill:transparent;} 38%,46%{fill:var(--accent);} 52%,100%{fill:transparent;}}
+  @keyframes gsBtnD{0%,12%{fill:transparent;} 14%,18%{fill:var(--accent);} 20%,24%{fill:transparent;} 26%,30%{fill:var(--accent);} 32%,100%{fill:transparent;}}
+  @keyframes gsBtnDrag{0%,10%{fill:transparent;} 12%,56%{fill:var(--accent);} 60%,100%{fill:transparent;}}
+  @keyframes gsMarqC{0%{opacity:0; left:34%; top:10%;} 10%{opacity:1; left:34%; top:10%;} 56%,80%{opacity:1; left:92%; top:80%;} 94%,100%{opacity:0; left:92%; top:80%;}}
+  @keyframes gsMarq{0%,10%{opacity:0; width:0; height:0;} 12%{opacity:1; width:0; height:0;} 56%,80%{opacity:1; width:58%; height:70%;} 94%,100%{opacity:0; width:58%; height:70%;}}
+  @media (prefers-reduced-motion:reduce){ .gs-stage *{animation-duration:0.01ms !important; animation-iteration-count:1 !important;} }
   /* Desktop-only "leichtes Hover-Lift" — gated on (hover:hover)+(pointer:fine) like every other
      hover-only affordance in this file (see e.g. .trash-tile:hover), since a touch "hover" is really
      just the tap itself landing and releasing, which would otherwise flash this on every tap. Skipped
@@ -3757,6 +3926,10 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16c2-7 5-11 8-11s6 4 8 11" stroke-linecap="round"/><circle cx="4" cy="16" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
+      <button type="button" class="tools-sheet-card" id="toolsLookItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 2-.9 2-1.8 0-1.4-1.2-1.5-1.2-2.6 0-.9.7-1.5 1.7-1.5H17a3.5 3.5 0 0 0 3.5-3.5C20.5 7 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11.2" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.4" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
       <button type="button" class="tools-sheet-card tools-sheet-card-danger" id="toolsTrashItem">
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/></svg></span>
         <span class="tools-sheet-card-label"></span>
@@ -4196,6 +4369,10 @@ try{
       <div class="vsep" id="dynamicSep"></div>
       <button id="exportImgBtn" title="Board als Bild oder PDF herunterladen">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+      </button>
+      <div class="vsep"></div>
+      <button id="controlsHelpBtn" title="Steuerung &amp; Gesten">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4c0-1.3 1.1-2.1 2.4-2.1 1.4 0 2.5.7 2.5 1.9 0 1.5-2.3 1.5-2.3 3.1"/><circle cx="12" cy="16.6" r="0.9" fill="currentColor" stroke="none"/></svg>
       </button>
       <div class="vsep"></div>
       <button id="themeFab" title="Dunkelmodus umschalten" aria-label="Dunkelmodus umschalten">
@@ -4807,14 +4984,14 @@ const I18N={
   tour_welcome_switch_label:{de:'Tooltips anzeigen',en:'Show tooltips'},
   tour_welcome_ok:{de:'Los geht\'s',en:'Let\'s go'},
   tour_settings_title:{de:'Tooltip-Tour',en:'Tooltip tour'},
-  tour_settings_intro:{de:'Schaltest du sie ein, beginnt die geführte Tour von vorne. Schaltest du sie aus, werden keine Tooltips mehr angezeigt.',en:'Turning it on restarts the guided tour from the beginning. Turning it off stops showing tooltips.'},
+  tour_settings_intro:{de:"Die Einführung startet beim ersten Besuch automatisch. Hier kannst du sie jederzeit neu starten oder einzelne Teile direkt öffnen.",en:"The introduction starts automatically on your first visit. Restart it here any time or open individual parts directly."},
   tour_settings_switch_label:{de:'Tooltips anzeigen',en:'Show tooltips'},
   tour_next:{de:'Weiter',en:'Next'},
   tour_close_title:{de:'Tour beenden',en:'End tour'},
   tour_end_title:{de:'Tour beenden',en:'End tour'},
   tour_newboard:{de:'Hier erstellst du dein Board. Alle Notizen, Gedanken und kreativen Projekte werden hier bearbeitet.',en:'This is where you create your board. All your notes, ideas and creative projects are edited here.'},
   tour_folder:{de:'Verbindest du hier einen Ordner auf deinem Gerät, speichert NOTUA deine Boards dort als Dateien — portabel und jederzeit exportierbar, auch ganz ohne Internet.',en:'Connect a folder on your device here and NOTUA stores your boards there as files — portable and exportable any time, even fully offline.'},
-  tour_settings:{de:'Über das Zahnrad erreichst du die Werkzeuge: Papierkorb, Static/Dynamic UI — und, sobald du sie gefunden hast, geheime Einstellungen.',en:'The gear icon opens the tools: trash, Static/Dynamic UI — and, once you\'ve found them, secret settings.'},
+  tour_settings:{de:"Über das Zahnrad erreichst du die Werkzeuge: Papierkorb, Static/Dynamic UI, den Look-Finder für dein eigenes Design — und, sobald du sie gefunden hast, geheime Einstellungen.",en:"The gear icon opens the tools: trash, Static/Dynamic UI, the look finder for your own design — and, once you find them, secret settings."},
   tour_toboard_intro:{de:'Schauen wir uns jetzt gemeinsam an, was du innerhalb eines Boards alles machen kannst.',en:'Now let\'s take a look together at everything you can do inside a board.'},
   tour_createel:{de:'Per Doppelklick auf das Board legst du direkt los. Am Desktop findest du dieselben Werkzeuge auch unten in der Werkzeugleiste, auf dem Smartphone über das Menü-Symbol oben links.',en:'Double-click the board to jump right in. On desktop the same tools also sit in the toolbar below; on your phone you\'ll find them via the menu icon top left.'},
   tour_props:{de:'Wählst du ein Element aus, öffnet sich oben rechts das Eigenschaften-Fenster. Dort kannst du Farbe, Größe und weitere Einstellungen bearbeiten — probier es einfach aus.',en:'Selecting an element opens its properties panel in the top right, where you can edit color, size and more — just try it out.'},
@@ -4835,6 +5012,94 @@ const I18N={
   tour_ready_title:{de:'Du bist bereit!',en:'You\'re ready!'},
   tour_ready_body:{de:'Das war\'s mit der Einführung. Alles andere findest du beim Ausprobieren — NOTUA ist selbsterklärend.',en:'That\'s the tour. Everything else you\'ll figure out as you go — NOTUA is self-explanatory.'},
   tour_ready_ok:{de:'Zur Übersicht',en:'Go to overview'},
+  lf_q1:{de:"Welche Stimmung passt zu dir?",en:"Which mood suits you?"},
+  lf_q1_sub:{de:"Deine Farbwelt: Hintergrund und Akzentfarbe der ganzen App bauen darauf auf.",en:"Your color world: background and accent of the whole app build on it."},
+  lf_q2:{de:"Wie hell darf es sein?",en:"How bright should it be?"},
+  lf_q2_sub:{de:"Licht oder Schatten – umschalten kannst du jederzeit.",en:"Light or shadow – you can switch any time."},
+  lf_q3:{de:"Welche Formen magst du?",en:"Which shapes do you like?"},
+  lf_q3_sub:{de:"Das bestimmt Ecken, Innenabstände und die Schrift.",en:"This sets corners, padding and typeface."},
+  lf_q4:{de:"Wie viel Tiefe soll die Oberfläche haben?",en:"How much depth should surfaces have?"},
+  lf_q4_sub:{de:"Schatten und Rahmen der Karten.",en:"Shadows and borders of cards."},
+  lf_q5:{de:"Wie lebendig soll NOTUA sein?",en:"How alive should NOTUA feel?"},
+  lf_q5_sub:{de:"Hintergrund, Cursor-Spur und Klick-Effekte – alles lässt sich später im Design-Menü feinjustieren.",en:"Background, cursor trail and click effects – all fine-tunable later in the design menu."},
+  lf_o_palette_ocean:{de:"Ozean|kühl & klar",en:"Ocean|cool & clear"},
+  lf_o_palette_sunset:{de:"Sonnenuntergang|warm & kräftig",en:"Sunset|warm & bold"},
+  lf_o_palette_forest:{de:"Wald|ruhig & natürlich",en:"Forest|calm & natural"},
+  lf_o_palette_berry:{de:"Beere|saftig & mutig",en:"Berry|juicy & daring"},
+  lf_o_palette_lilac:{de:"Lavendel|sanft & kreativ",en:"Lavender|soft & creative"},
+  lf_o_palette_graphite:{de:"Graphit|neutral & fokussiert",en:"Graphite|neutral & focused"},
+  lf_o_light_light:{de:"Hell|klar wie Papier",en:"Light|crisp like paper"},
+  lf_o_light_dark:{de:"Dunkel|ruhig für die Augen",en:"Dark|easy on the eyes"},
+  lf_o_shape_sharp:{de:"Eckig & klar|scharfe Kanten",en:"Sharp & clear|crisp edges"},
+  lf_o_shape_soft:{de:"Weich|sanft gerundet",en:"Soft|gently rounded"},
+  lf_o_shape_round:{de:"Rund & freundlich|große Radien, runde Schrift",en:"Round & friendly|big radii, rounded type"},
+  lf_o_shape_pill:{de:"Kapsel|maximal rund",en:"Capsule|as round as it gets"},
+  lf_o_shape_editorial:{de:"Editorial|eckig mit Serifenschrift",en:"Editorial|sharp with serif type"},
+  lf_o_depth_flat:{de:"Flach|ohne Schatten",en:"Flat|no shadows"},
+  lf_o_depth_soft:{de:"Sanft|weiche Schatten",en:"Soft|gentle shadows"},
+  lf_o_depth_float:{de:"Schwebend|Karten heben ab",en:"Floating|cards lift off"},
+  lf_o_depth_outline:{de:"Konturiert|kräftige Rahmen",en:"Outlined|strong borders"},
+  lf_o_motion_still:{de:"Still|ganz ohne Animationen",en:"Still|no animations at all"},
+  lf_o_motion_calm:{de:"Dezent|leises Glühen im Hintergrund",en:"Subtle|quiet glow in the background"},
+  lf_o_motion_lively:{de:"Lebendig|Nordlicht & Kometen-Spur",en:"Lively|aurora & comet trail"},
+  lf_o_motion_playful:{de:"Verspielt|Blasen, Sterne, Konfetti",en:"Playful|bubbles, stars, confetti"},
+  lf_o_motion_tech:{de:"Technisch|Linienwellen & Raster",en:"Technical|line waves & grid"},
+  lf_o_motion_flow:{de:"Fließend|flüssiger Hintergrund",en:"Flowing|liquid background"},
+  lf_step:{de:"Frage {n} von {m}",en:"Question {n} of {m}"},
+  lf_next:{de:"Weiter",en:"Next"},
+  lf_back:{de:"Zurück",en:"Back"},
+  lf_show_result:{de:"Mein Look ansehen",en:"See my look"},
+  lf_later:{de:"Später / Standard-Look",en:"Later / default look"},
+  lf_cancel:{de:"Abbrechen",en:"Cancel"},
+  lf_done_step:{de:"Dein Look steht",en:"Your look is ready"},
+  lf_again:{de:"Nochmal von vorn",en:"Start over"},
+  lf_apply:{de:"Übernehmen",en:"Apply"},
+  lf_apply_first:{de:"Los geht's",en:"Let's go"},
+  lf_toast:{de:"Look „{name}“ übernommen",en:"Look “{name}” applied"},
+  lf_name_light:{de:"{p} am Tag",en:"{p} by day"},
+  lf_name_dark:{de:"{p} bei Nacht",en:"{p} by night"},
+  lf_code_label:{de:"Dein Look",en:"Your look"},
+  lf_result_sub:{de:"Aus deinen 5 Antworten gebaut – einer von {n} möglichen Looks.",en:"Built from your 5 answers – one of {n} possible looks."},
+  lf_cat_palette:{de:"Farbwelt",en:"Colors"},
+  lf_cat_light:{de:"Licht",en:"Light"},
+  lf_cat_shape:{de:"Formen",en:"Shapes"},
+  lf_cat_depth:{de:"Tiefe",en:"Depth"},
+  lf_cat_motion:{de:"Leben",en:"Motion"},
+  lf_prev_card1:{de:"Notiz",en:"Note"},
+  lf_prev_card2:{de:"Checkliste",en:"Checklist"},
+  lf_beta_hint:{de:"Beta-Tipp: In NOTUA stecken versteckte Codes. Gib sie über den geheimen Button unten rechts in der Ecke ein, dann schaltest du weitere Customization frei – z. B. das komplette Design-Menü mit Dropdowns, Slidern und Live-Vorschau. Such sie dir zusammen, solange wir in der Beta sind!",en:"Beta tip: NOTUA hides secret codes. Enter them via the secret button in the bottom-right corner to unlock more customization – e.g. the full design menu with dropdowns, sliders and live preview. Go find them while we're in beta!"},
+  tools_look_item:{de:"Look-Finder",en:"Look finder"},
+  controls_btn_title:{de:"Steuerung & Gesten",en:"Controls & gestures"},
+  tour_click_hint_mouse:{de:"Klicke auf das markierte Element – oder auf „Weiter“.",en:"Click the highlighted element – or press “Next”."},
+  tour_click_hint_touch:{de:"Tippe auf das markierte Element – oder auf „Weiter“.",en:"Tap the highlighted element – or press “Next”."},
+  tour_btn_look:{de:"Look-Finder (5 Fragen)",en:"Look finder (5 questions)"},
+  tour_btn_guide_mouse:{de:"Steuerung erklärt: Maus & Tastatur",en:"Controls explained: mouse & keyboard"},
+  tour_btn_guide_touch:{de:"Steuerung erklärt: Handy & Tablet",en:"Controls explained: phone & tablet"},
+  g_tab_mouse:{de:"Maus & Tastatur",en:"Mouse & keyboard"},
+  g_tab_touch:{de:"Handy & Tablet",en:"Phone & tablet"},
+  g_prev:{de:"Zurück",en:"Back"},
+  g_next:{de:"Weiter",en:"Next"},
+  g_done:{de:"Fertig",en:"Done"},
+  g_m1_t:{de:"Mausrad drehen: Zoomen",en:"Scroll wheel: zoom"},
+  g_m1:{de:"Dreh das Mausrad, um in das Board hinein- oder herauszuzoomen – genau um die Stelle, auf die du zeigst. Am Trackpad: zwei Finger bewegen = Board verschieben, auseinanderziehen = zoomen.",en:"Turn the scroll wheel to zoom in or out right where your pointer is. On a trackpad: two fingers move the board, pinching zooms."},
+  g_m2_t:{de:"Mausrad gedrückt halten: Board verschieben",en:"Hold the wheel: move the board"},
+  g_m2:{de:"Halte das Mausrad gedrückt und zieh – das Board folgt dir, auch wenn du über einem Element startest. Alternativ: Leertaste halten und mit der linken Maustaste ziehen.",en:"Hold the wheel down and drag – the board follows, even if you start on top of an element. Alternatively: hold Space and drag with the left button."},
+  g_m3_t:{de:"Linksklick: Auswählen",en:"Left click: select"},
+  g_m3:{de:"Ein Klick auf ein Element wählt es aus – oben rechts erscheinen dann seine Eigenschaften. Ziehen verschiebt das Element.",en:"Click an element to select it – its properties appear at the top right. Dragging moves it."},
+  g_m4_t:{de:"Doppelklick: Neues Element",en:"Double click: new element"},
+  g_m4:{de:"Ein Doppelklick auf eine leere Stelle öffnet das Erstellen-Menü – Notiz, Bild, Checkliste und mehr.",en:"Double-click an empty spot to open the create menu – note, image, checklist and more."},
+  g_m5_t:{de:"Auf leerer Fläche ziehen: mehrere markieren",en:"Drag on empty space: select several"},
+  g_m5:{de:"Zieh mit gedrückter linker Maustaste einen Rahmen über mehrere Elemente, um sie gemeinsam zu markieren.",en:"Drag a frame with the left button over several elements to select them together."},
+  g_t1_t:{de:"Tippen: Auswählen",en:"Tap: select"},
+  g_t1:{de:"Tipp ein Element kurz an, um es auszuwählen. Die Eigenschaften erscheinen dann oben.",en:"Tap an element to select it. Its properties then show up at the top."},
+  g_t2_t:{de:"Ein Finger ziehen: Board verschieben",en:"One finger: move the board"},
+  g_t2:{de:"Wisch mit einem Finger über eine leere Stelle – das Board wandert mit.",en:"Swipe one finger across an empty spot – the board moves with it."},
+  g_t3_t:{de:"Zwei Finger: Zoomen",en:"Two fingers: zoom"},
+  g_t3:{de:"Zieh zwei Finger auseinander zum Hineinzoomen, zusammen zum Herauszoomen. Dabei kannst du gleich mitverschieben.",en:"Spread two fingers to zoom in, pinch to zoom out. You can pan at the same time."},
+  g_t4_t:{de:"Doppeltippen: Schnell hineinzoomen",en:"Double tap: quick zoom"},
+  g_t4:{de:"Zweimal schnell auf eine leere Stelle tippen zoomt hinein – nochmal doppeltippen zoomt zurück.",en:"Tap an empty spot twice quickly to zoom in – double-tap again to zoom back."},
+  g_t5_t:{de:"Lange drücken: Neues Element",en:"Long press: new element"},
+  g_t5:{de:"Halte den Finger auf einer leeren Stelle gedrückt (ein kurzes Vibrieren bestätigt es) und lass los – das Erstellen-Menü öffnet sich. Ziehst du stattdessen weiter, markierst du mehrere Elemente mit einem Rahmen.",en:"Hold your finger on an empty spot (a short buzz confirms it) and let go – the create menu opens. Keep dragging instead to select several elements with a frame."},
   mobile_dock_label:{de:'Kompaktes Menü (mobil)',en:'Compact menu (mobile)',es:'Menú compacto (móvil)',da:'Kompakt menu (mobil)'},
   mobile_dock_on_toast:{de:'Kompaktes Werkzeug-Menü aktiviert',en:'Compact tools menu turned on',es:'Menú de herramientas compacto activado',da:'Kompakt værktøjsmenu aktiveret'},
   mobile_dock_off_toast:{de:'Kompaktes Werkzeug-Menü deaktiviert — wieder die seitliche Leiste',en:'Compact tools menu turned off — back to the side panel',es:'Menú de herramientas compacto desactivado — de vuelta a la barra lateral',da:'Kompakt værktøjsmenu deaktiveret — tilbage til sidepanelet'},
@@ -5782,6 +6047,8 @@ function applyI18n(){
     ['#dockCustomizeBtn','title',t('dock_customize_btn_title')],
     ['#toolsAnimControlItem .tools-sheet-card-label','text',t('anim_control_label')],
     ['#toolsTooltipTourItem .tools-sheet-card-label','text',t('tools_secret_tooltip_item')],
+    ['#toolsLookItem .tools-sheet-card-label','text',t('tools_look_item')],
+    ['#controlsHelpBtn','title',t('controls_btn_title')],
     ['#familyBtn','title',t('family_btn_title')],['#familyPanelTitle','text',t('family_panel_title')],
     ['#familyPanelHint','text',t('family_panel_hint')],['#familyCarouselBtnLabel','text',t('family_carousel_btn')],
     ['#zoomOut','title',t('zoom_out_title')],['#zoomIn','title',t('zoom_in_title')],['#fitBtn','title',t('fit_title')],
@@ -11399,6 +11666,7 @@ const TOUR_STEPS=[
   {id:'calendar', target:()=>document.getElementById('homeCalendarBtn'), textKey:'tour_calendar'},
   {id:'toboard_intro', target:null, textKey:'tour_toboard_intro', transition:'toBoard'},
   {id:'createel', target:()=>isMobileViewport()?document.getElementById('menuBtn'):document.getElementById('dock'), textKey:'tour_createel'},
+  {id:'controls', target:null, textKey:null, custom:'guide'},
   {id:'props', target:null, textKey:'tour_props'},
   {id:'el_note', target:()=>tourDockOrDrawerTarget('note'), textKey:'tour_el_note'},
   {id:'el_media', target:()=>tourDockOrDrawerTarget('media'), textKey:'tour_el_media'},
@@ -11416,7 +11684,7 @@ const TOUR_STEPS=[
 ];
 // Steps whose target only exists inside an open board (used by resumeTourIfNeeded to know whether a
 // saved step needs a board reopened first, or is fine to show directly on the home screen).
-const TOUR_BOARD_CONTEXT_IDS=['createel','props','el_note','el_media','el_media_family','el_youtube','el_column','el_checklist','el_table','el_colorpicker','el_draw','el_board','backhome'];
+const TOUR_BOARD_CONTEXT_IDS=['createel','controls','props','el_note','el_media','el_media_family','el_youtube','el_column','el_checklist','el_table','el_colorpicker','el_draw','el_board','backhome'];
 // Steps whose live target sits INSIDE the mobile hamburger drawer (#mobileDrawer) rather than the
 // desktop #dock — renderTourStep() opens the drawer automatically right before one of these renders on
 // a phone-sized viewport, and closes it again the moment the tour moves past el_board to a step whose
@@ -11496,6 +11764,7 @@ function tourWaitForView(viewId,then){
   tourObserver.observe(el,{attributes:true, attributeFilter:['hidden']});
 }
 function teardownTourObserver(){
+  tourRemoveClickGuard();
   if(tourObserver){ tourObserver.disconnect(); tourObserver=null; }
   if(tourRepositionBound){
     window.removeEventListener('resize',tourRepositionBound);
@@ -11525,6 +11794,7 @@ function stopTour(disable){
   tourRunning=false;
   teardownTourObserver();
   removeTourUI();
+  destroyTourFinger();
   tourCloseMobileDrawerIfOpen();
   if(disable) saveTourEnabled(false);
 }
@@ -11532,6 +11802,7 @@ function finishTour(){
   tourRunning=false;
   teardownTourObserver();
   removeTourUI();
+  destroyTourFinger();
   tourCloseMobileDrawerIfOpen();
   saveTourEnabled(false);
   saveTourStep(0);
@@ -11569,6 +11840,7 @@ function positionTourSpotlight(ring,tip,rect){
     const arrowX=Math.max(16, Math.min(rect.left+rect.width/2-left, tw-16));
     arrowEl.style.left=arrowX+'px';
   }
+  tourPlaceFinger(rect);
 }
 function repositionTourSpotlight(){
   if(!tourCurrentTargetEl || !tourCurrentTargetEl.isConnected) return;
@@ -11578,6 +11850,54 @@ function repositionTourSpotlight(){
   positionTourSpotlight(ring,tip,tourCurrentTargetEl.getBoundingClientRect());
 }
 
+// ---- Onboarding 2.0: "direkt hinzappen" — ein Zeige-Finger springt von Schritt zu Schritt zum Element, und ein
+// Klick/Tipp auf das markierte Element geht wirklich weiter (die eigentliche Aktion wird dabei unterdrückt, damit
+// die Tour nie etwas anlegt/öffnet; "Weiter" bleibt als Alternative). Schritte mit echter Navigation
+// (transition) lassen den echten Klick durch.
+const TOUR_HINT_SVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.8 1.8 0 0 1 3.6 0V11"/><path d="M12.6 10.2a1.7 1.7 0 0 1 3.3.4M15.9 11.2a1.7 1.7 0 0 1 3.2.6"/><path d="M19.1 11.8V17a5 5 0 0 1-5 5h-1.6a5 5 0 0 1-4.1-2.1L5 15.4a1.7 1.7 0 0 1 2.6-2.1L9 15"/></svg>';
+const TOUR_FINGER_SVG='<svg viewBox="0 0 24 28" fill="#fff" stroke="#1d1d1f" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"><path d="M9 2.8a1.8 1.8 0 0 1 3.6 0V11l1.4-.4a1.7 1.7 0 0 1 2.2 1.3l.2.4 1-.2a1.7 1.7 0 0 1 2 1.4l.1.5.9-.1c1-.1 1.8.7 1.8 1.7v4.7c0 2.8-2.2 5.2-5 5.2h-4c-1.8 0-3.4-.9-4.3-2.4L4.2 17c-.6-1 0-2.3 1.1-2.5.7-.1 1.4.2 1.8.8L9 16.6z"/></svg>';
+let tourFingerEl=null, tourFingerZapNext=false, tourGuardFn=null;
+const TOUR_GUARD_EVENTS=['pointerdown','mousedown','touchstart','pointerup','mouseup','touchend','dblclick','contextmenu','click'];
+function tourPlaceFinger(rect){
+  if(!tourRunning) return;
+  if(!tourFingerEl){
+    tourFingerEl=document.createElement('div'); tourFingerEl.className='tour-finger'; tourFingerEl.innerHTML=TOUR_FINGER_SVG;
+    document.body.appendChild(tourFingerEl);
+  }
+  const x=Math.min(window.innerWidth-14,Math.max(14,rect.left+rect.width*0.55)), y=Math.min(window.innerHeight-14,Math.max(14,rect.top+rect.height*0.55));
+  if(tourFingerZapNext){
+    tourFingerZapNext=false;
+    tourFingerEl.classList.add('zap');
+    clearTimeout(tourFingerEl._zt); tourFingerEl._zt=setTimeout(()=>{ if(tourFingerEl) tourFingerEl.classList.remove('zap'); },700);
+  }
+  tourFingerEl.style.left=(x-15)+'px'; tourFingerEl.style.top=(y-2)+'px';
+  tourFingerEl.classList.add('show');
+}
+function tourHideFinger(){ if(tourFingerEl) tourFingerEl.classList.remove('show'); }
+function destroyTourFinger(){ if(tourFingerEl){ tourFingerEl.remove(); tourFingerEl=null; } }
+function tourInstallClickGuard(step,targetEl){
+  tourRemoveClickGuard();
+  if(step.transition) return;
+  tourGuardFn=(e)=>{
+    if(!tourRunning || tourCurrentTargetEl!==targetEl) return;
+    const n=e.target;
+    if(!n || n.nodeType!==1 || !(targetEl===n || targetEl.contains(n))) return;
+    e.stopPropagation();
+    if(e.type==='click'){
+      e.preventDefault();
+      setTimeout(()=>{ if(tourRunning && tourCurrentTargetEl===targetEl) tourAdvance(); },0);
+    }else if(e.type==='contextmenu'){ e.preventDefault(); }
+  };
+  TOUR_GUARD_EVENTS.forEach(tp=>window.addEventListener(tp,tourGuardFn,true));
+}
+function tourRemoveClickGuard(){
+  if(!tourGuardFn) return;
+  TOUR_GUARD_EVENTS.forEach(tp=>window.removeEventListener(tp,tourGuardFn,true));
+  tourGuardFn=null;
+}
+function renderTourGuide(step){
+  showControlsGuide({inTour:true,onDone:()=>{ if(tourRunning) tourAdvance(); }});
+}
 function renderTourStep(){
   teardownTourObserver();
   removeTourUI();
@@ -11607,9 +11927,10 @@ function renderTourStep(){
   }
   tourStepIndex=idx;
   saveTourStep(tourStepIndex);
-  if(step.final){ renderTourFinalModal(); return; }
+  if(step.final){ tourHideFinger(); renderTourFinalModal(); return; }
+  if(step.custom==='guide'){ tourHideFinger(); renderTourGuide(step); return; }
   if(targetEl) renderTourSpotlight(step,targetEl);
-  else renderTourCentered(step);
+  else{ tourHideFinger(); renderTourCentered(step); }
 }
 function tourAdvance(){ tourStepIndex++; saveTourStep(tourStepIndex); renderTourStep(); }
 function renderTourSpotlight(step,targetEl){
@@ -11623,10 +11944,13 @@ function renderTourSpotlight(step,targetEl){
     <div class="tour-tooltip-close" data-a="close" title="${t('tour_close_title')}">&times;</div>
     <div class="tour-tooltip-step">${tourStepIndex+1}/${TOUR_STEPS.length}</div>
     <p class="tour-tooltip-text">${t(step.textKey)}</p>
+    <p class="tour-click-hint">${TOUR_HINT_SVG}<span>${t(isTouchPrimary()?'tour_click_hint_touch':'tour_click_hint_mouse')}</span></p>
     <div class="tour-tooltip-actions"><button type="button" class="tour-tooltip-next" data-a="next">${t('tour_next')}</button></div>
     <div class="tour-tooltip-arrow"></div>`;
   document.body.appendChild(tip);
+  tourFingerZapNext=true;
   positionTourSpotlight(ring,tip,targetEl.getBoundingClientRect());
+  tourInstallClickGuard(step,targetEl);
   tip.querySelector('[data-a="close"]').addEventListener('click',()=>stopTour(true));
   tip.querySelector('[data-a="next"]').addEventListener('click',()=>{
     if(step.transition) triggerTourTransition(step.transition);
@@ -11730,7 +12054,7 @@ function showTooltipTourWelcomeIfNeeded(onDone){
 // whichever board the tour was last in (saved as notua-tooltip-tour-board-id) before showing it; a
 // step on the home screen (0, or 12+) just shows directly since revealToHome() already put us there.
 function resumeTourIfNeeded(){
-  if(!isBetaFeatureUnlocked('tooltip') || tourRunning) return;
+  if(tourRunning) return;
   if(!loadTourEnabled()) return;
   const step=loadTourStep();
   if(step<=0 || !TOUR_BOARD_CONTEXT_IDS.includes((TOUR_STEPS[step]||{}).id)){
@@ -11755,10 +12079,18 @@ function showTooltipTourSettingsModal(){
       <span>${t('tour_settings_switch_label')}</span>
       <button type="button" class="insp-switch${enabled?' on':''}" id="tourSettingsSwitch"></button>
     </div>
-    <div class="modal-actions"><button data-a="close" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('modal_done')}</button></div>
+    <div class="modal-actions" style="flex-direction:column;align-items:stretch;gap:8px;">
+      <button data-a="look">${t('tour_btn_look')}</button>
+      <button data-a="gm">${t('tour_btn_guide_mouse')}</button>
+      <button data-a="gt">${t('tour_btn_guide_touch')}</button>
+      <button data-a="close" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('modal_done')}</button>
+    </div>
   </div>`;
   bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
+  scrim.querySelector('[data-a="look"]').addEventListener('click',()=>{ scrim.remove(); showLookFinder({firstRun:false}); });
+  scrim.querySelector('[data-a="gm"]').addEventListener('click',()=>{ scrim.remove(); showControlsGuide({tab:'mouse'}); });
+  scrim.querySelector('[data-a="gt"]').addEventListener('click',()=>{ scrim.remove(); showControlsGuide({tab:'touch'}); });
   const sw=scrim.querySelector('#tourSettingsSwitch');
   sw.addEventListener('click',()=>{
     const on=!sw.classList.contains('on');
@@ -11779,6 +12111,276 @@ function showTooltipTourSettingsModal(){
 }
 const toolsTooltipTourItem=document.getElementById('toolsTooltipTourItem');
 if(toolsTooltipTourItem) toolsTooltipTourItem.addEventListener('click',()=>{ closeToolsSheet(); showTooltipTourSettingsModal(); });
+
+/* ============================================================
+   ONBOARDING 2.0 (v2.4.80)
+   - Look-Finder: 5 Geschmacksfragen (Farbwelt, Licht, Formen, Tiefe, Lebendigkeit) bauen aus der Auswahl ein
+     Look-Schema (Theme-Palette + Hell/Dunkel + Radius/Schrift + Schatten/Rahmen + Hintergrund/Animationen).
+     6×2×5×4×6 = 1.440 Kombinationen. Jede Antwort wird live auf die echte App angewendet (nur Vorschau,
+     erst "Übernehmen" speichert); "Später / Standard-Look" stellt den Zustand von vor dem Quiz wieder her.
+   - Steuerungs-Guide: animierte Maus- und Finger-Demos (Zoomen, Verschieben, Auswählen, Erstellen-Menü …)
+     — als Tour-Schritt im Board, über den ?-Button im Board und im Secret-Tab (functiontooltip).
+   - Ablauf beim allerersten Start (einmal pro Gerät/Nutzer): Willkommen → Look-Finder → Tour (jetzt immer an,
+     nicht mehr nur per Geheimcode). Danach nur noch über Look-Finder-Button (Werkzeuge) und das Secret-Menü.
+   ============================================================ */
+const LF_DONE_KEY='notua-lookfinder-done', LF_ANS_KEY='notua-look-answers', TOUR_V2_KEY='notua-tour-v2-seen';
+const LF_QUESTIONS=[
+  {id:'palette', q:'lf_q1', sub:'lf_q1_sub', opts:[
+    {id:'ocean',  bg:'#CFE4F7', accent:'#1F6FEB'},
+    {id:'sunset', bg:'#FFE0CC', accent:'#E8530E'},
+    {id:'forest', bg:'#D6EBDA', accent:'#1E7A46'},
+    {id:'berry',  bg:'#F4D6EE', accent:'#B3197E'},
+    {id:'lilac',  bg:'#E2DBF8', accent:'#6B4EE0'},
+    {id:'graphite',bg:'#E3E6EB', accent:'#3B4658'}]},
+  {id:'light', q:'lf_q2', sub:'lf_q2_sub', opts:[
+    {id:'light', theme:'light'},
+    {id:'dark',  theme:'dark'}]},
+  {id:'shape', q:'lf_q3', sub:'lf_q3_sub', opts:[
+    {id:'sharp',     radius:3,  font:'default'},
+    {id:'soft',      radius:12, font:'default'},
+    {id:'round',     radius:22, font:'rounded'},
+    {id:'pill',      radius:30, font:'rounded'},
+    {id:'editorial', radius:4,  font:'serif'}]},
+  {id:'depth', q:'lf_q4', sub:'lf_q4_sub', opts:[
+    {id:'flat',    shadow:'none',   shadowAmt:1,   border:'default', borderW:null},
+    {id:'soft',    shadow:'soft',   shadowAmt:1,   border:'default', borderW:null},
+    {id:'float',   shadow:'strong', shadowAmt:1.15,border:'default', borderW:null},
+    {id:'outline', shadow:'none',   shadowAmt:1,   border:'strong',  borderW:2}]},
+  {id:'motion', q:'lf_q5', sub:'lf_q5_sub', opts:[
+    {id:'still',   landing:'none',      bg:'grid',     gridShape:'circle', move:false, trail:'off',      click:'off',     dynamic:false},
+    {id:'calm',    landing:'fireflies', bg:'grid',     gridShape:'circle', move:false, trail:'off',      click:'off',     dynamic:true},
+    {id:'lively',  landing:'aurora',    bg:'gradient', gridShape:'circle', move:true,  trail:'comet',    click:'ripple',  dynamic:true},
+    {id:'playful', landing:'bubbles',   bg:'grid',     gridShape:'star',   move:true,  trail:'confetti', click:'confetti',dynamic:true},
+    {id:'tech',    landing:'linewaves', bg:'lines',    gridShape:'rect',   move:false, trail:'line',     click:'ring',    dynamic:true},
+    {id:'flow',    landing:'liquid',    bg:'gradient', gridShape:'circle', move:true,  trail:'sparks',   click:'sparks',  dynamic:true}]},
+];
+function lfOpt(qid,oid){ const q=LF_QUESTIONS.find(x=>x.id===qid); return q?q.opts.find(o=>o.id===oid):null; }
+function lfParts(qid,oid){ const p=t('lf_o_'+qid+'_'+oid).split('|'); return {label:p[0], desc:p[1]||''}; }
+function lfCode(ans){ let h=7; Object.keys(ans).sort().forEach(k=>{ (k+ans[k]).split('').forEach(c=>{ h=(h*31+c.charCodeAt(0))>>>0; }); }); return h.toString(36).toUpperCase().padStart(4,'0').slice(-4); }
+function lfName(ans){
+  const pal=ans.palette?lfParts('palette',ans.palette).label:'NOTUA';
+  return t(ans.light==='dark'?'lf_name_dark':'lf_name_light',{p:pal});
+}
+function lfSnapshot(){
+  let custom=null; try{ custom=localStorage.getItem('notua-custom-theme'); }catch(e){}
+  return {design:JSON.stringify(designStyle), grid:JSON.stringify(gridStyle), theme:document.documentElement.getAttribute('data-theme'), custom, ui:isUiDynamicEnabled()};
+}
+function lfSetUiDynamicQuiet(on){
+  try{ localStorage.setItem('notua-ui-dynamic',on?'1':'0'); }catch(e){}
+  try{ refreshDockMagnify(); applyDynamicAnimSettings(); refreshUiDynamicToggleUI(); }catch(e){}
+}
+function lfApplyAll(ans,final){
+  const root=document.documentElement;
+  const l=lfOpt('light',ans.light), p=lfOpt('palette',ans.palette), s=lfOpt('shape',ans.shape), d=lfOpt('depth',ans.depth), m=lfOpt('motion',ans.motion);
+  if(l) root.setAttribute('data-theme',l.theme);
+  if(p) applyCustomTheme({background:p.bg,accent:p.accent},false);
+  else if(l){ try{ reapplyCustomThemeForCurrentMode(); }catch(e){} }
+  try{ syncThemeUI(); }catch(e){}
+  if(s){ designStyle.radius=s.radius; designStyle.font=s.font; }
+  if(d){ designStyle.shadow=d.shadow; designStyle.shadowAmt=d.shadowAmt; designStyle.border=d.border; designStyle.borderW=d.borderW; }
+  if(m){
+    gridStyle.landingMode=m.landing; gridStyle.shape=m.gridShape;
+    designStyle.bg=m.bg; designStyle.bgMove=m.move; designStyle.trail=m.trail; designStyle.clickFx=m.click;
+    if(final) lfSetUiDynamicQuiet(m.dynamic);
+  }
+  try{ applyDesign(); landingFxSync(); fxSync(); }catch(e){}
+}
+function lfRestore(snap){
+  const root=document.documentElement;
+  if(snap.theme) root.setAttribute('data-theme',snap.theme); else root.removeAttribute('data-theme');
+  if(snap.custom){ try{ applyCustomTheme(JSON.parse(snap.custom),false); }catch(e){} }
+  else{ const st=root.style; THEME_OVERRIDE_VARS.forEach(k=>st.removeProperty(k)); try{ updateCustomCursor(); }catch(e){} }
+  try{ syncThemeUI(); }catch(e){}
+  Object.assign(designStyle,JSON.parse(snap.design)); Object.assign(gridStyle,JSON.parse(snap.grid));
+  try{ applyDesign(); landingFxSync(); fxSync(); }catch(e){}
+  if(state.screen==='board' && typeof renderAllCards==='function') renderAllCards();
+}
+function lfFinish(ans){
+  lfApplyAll(ans,true);
+  const p=lfOpt('palette',ans.palette), l=lfOpt('light',ans.light);
+  if(p) applyCustomTheme({background:p.bg,accent:p.accent},true);
+  if(l) setTheme(l.theme);
+  saveDesignStyle(); saveGridStyle();
+  try{ localStorage.setItem(LF_ANS_KEY,JSON.stringify(ans)); }catch(e){}
+}
+function lfVisual(qid,o){
+  if(qid==='palette') return `<span class="lf-sw"><i style="background:${o.bg}"></i><i style="background:${o.accent}"></i></span>`;
+  if(qid==='light') return `<span class="lf-win${o.id==='dark'?' dk':''}"></span>`;
+  if(qid==='shape'){ const ff=o.font==='default'?'inherit':DESIGN_FONTS[o.font]; return `<span class="lf-shape" style="border-radius:${o.radius}px;font-family:${ff}">Aa</span>`; }
+  if(qid==='depth'){
+    const sh=designShadowCss(o.shadow,o.shadowAmt), bd=o.border==='strong'?'2px solid var(--ink)':'1px solid var(--border)';
+    return `<span class="lf-depth" style="box-shadow:${sh};border:${bd}"></span>`;
+  }
+  return `<span class="lf-mo lf-mo-${o.id}"><i></i><i></i><i></i></span>`;
+}
+const LF_LOCK_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none"/></svg>';
+function showLookFinder(opts){
+  opts=opts||{};
+  const first=!!opts.firstRun, snap=lfSnapshot();
+  let ans={}, step=0, closed=false;
+  const scrim=document.createElement('div'); scrim.className='modal-scrim lf-scrim';
+  scrim.innerHTML='<div class="modal lf-modal"></div>';
+  const box=scrim.firstChild, N=LF_QUESTIONS.length;
+  const done=()=>{ if(closed) return; closed=true; document.removeEventListener('keydown',onKey,true); scrim.remove(); if(opts.onDone) opts.onDone(); };
+  const markDone=()=>{ try{ localStorage.setItem(LF_DONE_KEY,'1'); }catch(e){} };
+  const cancel=()=>{ lfRestore(snap); if(first) markDone(); done(); };
+  function onKey(e){ if(e.key==='Escape' && !first){ e.stopPropagation(); cancel(); } }
+  document.addEventListener('keydown',onKey,true);
+  function render(){
+    if(step<N) renderQuestion(); else renderResult();
+  }
+  function renderQuestion(){
+    const q=LF_QUESTIONS[step];
+    box.innerHTML=`
+      <div class="lf-head"><span class="lf-step">${t('lf_step',{n:step+1,m:N})}</span><div class="lf-prog"><i style="width:${Math.round(step/N*100)}%"></i></div></div>
+      <div><h4 class="lf-q">${t(q.q)}</h4><p style="margin-top:4px;">${t(q.sub)}</p></div>
+      <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
+      <div class="lf-foot">
+        <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button><span class="lf-spacer"></span>
+        ${step>0?`<button type="button" data-a="back">${t('lf_back')}</button>`:''}
+        <button type="button" class="primary" data-a="next"${ans[q.id]?'':' disabled'}>${t(step===N-1?'lf_show_result':'lf_next')}</button>
+      </div>`;
+    requestAnimationFrame(()=>{ const bar=box.querySelector('.lf-prog i'); if(bar) bar.style.width=Math.round((step+1)/N*100)+'%'; });
+    box.querySelectorAll('.lf-opt').forEach(b=>b.addEventListener('click',()=>{
+      ans[q.id]=b.dataset.id;
+      box.querySelectorAll('.lf-opt').forEach(x=>x.classList.toggle('sel',x===b));
+      box.querySelector('[data-a="next"]').disabled=false;
+      lfApplyAll(ans,false);
+    }));
+    box.querySelector('[data-a="later"]').addEventListener('click',cancel);
+    const bk=box.querySelector('[data-a="back"]'); if(bk) bk.addEventListener('click',()=>{ step--; render(); });
+    box.querySelector('[data-a="next"]').addEventListener('click',()=>{ if(!ans[q.id]) return; step++; render(); });
+  }
+  function renderResult(){
+    const name=lfName(ans), code=lfCode(ans);
+    const sparks=ans.motion && ans.motion!=='still' ? '<i class="lf-spark" style="left:18%;bottom:6%"></i><i class="lf-spark" style="left:52%;bottom:2%;animation-delay:.8s"></i><i class="lf-spark" style="left:84%;bottom:8%;animation-delay:1.5s"></i>' : '';
+    const items=LF_QUESTIONS.map(q=>{ const pt=lfParts(q.id,ans[q.id]); return `<div class="lf-item"><span>${t('lf_cat_'+q.id)}</span><b>${pt.label}</b></div>`; }).join('');
+    box.innerHTML=`
+      <div class="lf-head"><span class="lf-step">${t('lf_done_step')}</span><div class="lf-prog"><i style="width:100%"></i></div></div>
+      <div class="lf-pass">
+        <div class="lf-pass-top">
+          <div class="lf-prev">
+            <div class="lf-pc c1"><b>${t('lf_prev_card1')}</b><i></i><i class="ac"></i></div>
+            <div class="lf-pc c2"><b>${t('lf_prev_card2')}</b><i></i><i></i><i class="ac"></i></div>
+            <div class="lf-pc c3"><b>NOTUA</b></div>
+            ${sparks}
+          </div>
+          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')} #${code}</div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{n:'1.440'})}</div></div>
+        </div>
+        <div class="lf-items">${items}</div>
+      </div>
+      <div class="lf-beta">${LF_LOCK_SVG}<span>${t('lf_beta_hint')}</span></div>
+      <div class="lf-foot">
+        <button type="button" data-a="again">${t('lf_again')}</button><span class="lf-spacer"></span>
+        <button type="button" class="primary" data-a="apply">${t(first?'lf_apply_first':'lf_apply')}</button>
+      </div>`;
+    box.querySelector('[data-a="again"]').addEventListener('click',()=>{ lfRestore(snap); ans={}; step=0; render(); });
+    box.querySelector('[data-a="apply"]').addEventListener('click',()=>{
+      lfFinish(ans); markDone(); done();
+      try{ showToast(t('lf_toast',{name})); }catch(e){}
+    });
+  }
+  document.body.appendChild(scrim);
+  render();
+}
+function showLookFinderIfNeeded(cb){
+  let seen=false; try{ seen=localStorage.getItem(LF_DONE_KEY)==='1'; }catch(e){}
+  if(seen){ cb(); return; }
+  showLookFinder({firstRun:true,onDone:cb});
+}
+
+/* ---------- Steuerungs-Guide (Maus + Finger) ---------- */
+function isTouchPrimary(){ try{ return !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches); }catch(e){ return false; } }
+const GS_SLIDES={
+  mouse:[
+    {anim:'wheel', t:'g_m1_t', x:'g_m1'},
+    {anim:'mid',   t:'g_m2_t', x:'g_m2'},
+    {anim:'click', t:'g_m3_t', x:'g_m3'},
+    {anim:'dbl',   t:'g_m4_t', x:'g_m4'},
+    {anim:'drag',  t:'g_m5_t', x:'g_m5'}],
+  touch:[
+    {anim:'tap',   t:'g_t1_t', x:'g_t1'},
+    {anim:'pan',   t:'g_t2_t', x:'g_t2'},
+    {anim:'pinch', t:'g_t3_t', x:'g_t3'},
+    {anim:'dtap',  t:'g_t4_t', x:'g_t4'},
+    {anim:'hold',  t:'g_t5_t', x:'g_t5'}]
+};
+function gsStageHtml(anim){
+  const cards='<div class="gs-board"><i class="gs-card c1"></i><i class="gs-card c2"></i><i class="gs-card c3"></i></div>';
+  const cursor='<svg class="gs-cursor" viewBox="0 0 20 24"><path d="M3 2l13 9.5-5.9 1.2L13.6 19l-2.5 1.1-3-6.2L3 17z" fill="#fff" stroke="#1d1d1f" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  const mouse='<svg class="gs-mouse" viewBox="0 0 36 54"><rect x="2" y="2" width="32" height="50" rx="16" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/><path class="mb mb-l" d="M18 2A16 16 0 0 0 2 18v2h16z"/><path class="mb mb-r" d="M18 2a16 16 0 0 1 16 16v2H18z"/><path d="M2 20h32M18 2v18" stroke="var(--ink)" stroke-width="1.4" fill="none"/><rect class="mw" x="15" y="7" width="6" height="11" rx="3"/></svg>';
+  const f='<i class="gs-finger"></i>', rip='<i class="gs-ripple r1"></i><i class="gs-ripple r2"></i>', menu='<div class="gs-menu"><i></i><i></i><i></i></div>';
+  switch(anim){
+    case 'wheel': case 'mid': case 'click': return cards+cursor+mouse;
+    case 'dbl':   return cards+cursor+mouse+rip+menu;
+    case 'drag':  return cards+'<i class="gs-marq"></i>'+cursor+mouse;
+    case 'tap': case 'pan': return cards+f;
+    case 'pinch': return cards+'<i class="gs-finger f1"></i><i class="gs-finger f2"></i>';
+    case 'dtap':  return cards+f+rip;
+    case 'hold':  return cards+f+'<i class="gs-ripple"></i>'+menu;
+  }
+  return cards;
+}
+function showControlsGuide(opts){
+  opts=opts||{};
+  let tab=opts.tab||(isTouchPrimary()?'touch':'mouse'), i=0, closed=false;
+  const scrim=document.createElement('div'); scrim.className='modal-scrim gs-scrim'+(opts.inTour?' tour-modal-scrim':'');
+  scrim.style.zIndex=opts.inTour?'':'100003';
+  scrim.innerHTML='<div class="modal gs-modal"></div>';
+  const box=scrim.firstChild;
+  const done=()=>{ if(closed) return; closed=true; document.removeEventListener('keydown',onKey,true); scrim.remove(); if(opts.onDone) opts.onDone(); };
+  function onKey(e){ if(e.key==='Escape'){ e.stopPropagation(); done(); } }
+  document.addEventListener('keydown',onKey,true);
+  function render(){
+    const list=GS_SLIDES[tab], s=list[i], last=i===list.length-1;
+    box.innerHTML=`
+      <div class="gs-tabs"><button type="button" data-tab="mouse" class="${tab==='mouse'?'on':''}">${t('g_tab_mouse')}</button><button type="button" data-tab="touch" class="${tab==='touch'?'on':''}">${t('g_tab_touch')}</button></div>
+      <div class="gs-stage gs-a-${s.anim}">${gsStageHtml(s.anim)}</div>
+      <div><h4 class="gs-title">${t(s.t)}</h4><p class="gs-text" style="margin-top:6px;">${t(s.x)}</p></div>
+      <div class="gs-dots">${list.map((_,k)=>`<i class="${k===i?'on':''}" data-k="${k}"></i>`).join('')}</div>
+      <div class="gs-actions"><button type="button" data-a="prev"${i?'':' disabled'}>${t('g_prev')}</button><button type="button" class="primary" data-a="next">${last?t(opts.inTour?'tour_next':'g_done'):t('g_next')}</button></div>`;
+    box.querySelectorAll('.gs-tabs button').forEach(b=>b.addEventListener('click',()=>{ tab=b.dataset.tab; i=0; render(); }));
+    box.querySelectorAll('.gs-dots i').forEach(d=>d.addEventListener('click',()=>{ i=+d.dataset.k; render(); }));
+    box.querySelector('[data-a="prev"]').addEventListener('click',()=>{ if(i>0){ i--; render(); } });
+    box.querySelector('[data-a="next"]').addEventListener('click',()=>{ if(last) done(); else{ i++; render(); } });
+  }
+  bindScrimDismiss(scrim,done);
+  document.body.appendChild(scrim);
+  render();
+  return scrim;
+}
+const controlsHelpBtn=document.getElementById('controlsHelpBtn');
+if(controlsHelpBtn) controlsHelpBtn.addEventListener('click',()=>showControlsGuide());
+const toolsLookItem=document.getElementById('toolsLookItem');
+if(toolsLookItem) toolsLookItem.addEventListener('click',()=>{ closeToolsSheet(); showLookFinder({firstRun:false}); });
+
+/* ---------- Ablauf beim ersten Start ---------- */
+let firstRunFlowStarted=false;
+function waitNoBlockingModal(cb,tries){
+  tries=tries||0;
+  const blocking=document.querySelector('.modal-scrim:not(.tour-modal-scrim):not([hidden])');
+  if(!blocking || tries>75){ cb(); return; }
+  setTimeout(()=>waitNoBlockingModal(cb,tries+1),400);
+}
+function startFirstTourIfNeeded(){
+  if(tourRunning) return;
+  let seen=false; try{ seen=localStorage.getItem(TOUR_V2_KEY)==='1'; }catch(e){}
+  if(!seen){
+    try{ localStorage.setItem(TOUR_V2_KEY,'1'); }catch(e){}
+    saveTourEnabled(true); saveTourStep(0); saveTourBoardId(null);
+    setTimeout(()=>{ if(state.screen==='home') startTour(0); },350);
+  }else{
+    resumeTourIfNeeded();
+  }
+}
+function runFirstRunFlow(){
+  if(firstRunFlowStarted) return;
+  firstRunFlowStarted=true;
+  showOnboardingModal(()=>{
+    showStorageNotice();
+    waitNoBlockingModal(()=>showLookFinderIfNeeded(()=>waitNoBlockingModal(startFirstTourIfNeeded)));
+  });
+}
 
 /* ============================================================
    HOME VIEW
@@ -13268,7 +13870,7 @@ function revealToHome(originEl){
     state.screen='home';
     pushNavState();
   }, ()=>document.querySelector('#homeWordmark .logo-dot'));
-  setTimeout(()=>showTooltipTourWelcomeIfNeeded(()=>showOnboardingModal(showStorageNotice)),1300);
+  setTimeout(()=>runFirstRunFlow(),1300);
 }
 function revealToLanding(originEl){
   irisTransition(originEl, ()=>{
@@ -13380,7 +13982,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.79';
+const APP_VERSION = '2.4.80';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
