@@ -1317,6 +1317,29 @@ try{
   .lf-depth{display:block; width:58px; height:34px; background:var(--surface); border-radius:9px; border:1px solid var(--border);}
   .lf-vis.w{width:100%; height:56px;}
   .lf-vis.mb{height:84px;}
+  .lf-shape-live{display:flex; flex-direction:column; gap:12px;}
+  .lf-sl-board{position:relative; height:176px; border-radius:12px; overflow:hidden; background-color:var(--canvas); background-image:radial-gradient(var(--border-strong) 1px, transparent 1.2px); background-size:14px 14px; border:1px solid var(--border);}
+  .lf-sl-card{position:absolute; background:var(--surface); border:1px solid var(--border); border-radius:var(--lf-r); box-shadow:0 3px 10px rgba(0,0,0,.12); box-sizing:border-box; overflow:hidden; transition:border-radius .14s ease;}
+  .lf-sl-card.a{left:5%; top:16px; width:44%; height:104px; padding:14px 16px;}
+  .lf-sl-card.a b{display:block; font-size:0.95rem; font-weight:700; color:var(--ink);}
+  .lf-sl-card.a em{display:block; margin-top:6px; font-style:normal; font-size:0.78rem; color:var(--muted); line-height:1.3;}
+  .lf-sl-card.a i{display:block; margin-top:10px; height:6px; width:48%; border-radius:calc(var(--lf-r) * .25); background:var(--accent); transition:border-radius .14s ease;}
+  .lf-sl-card.b{right:6%; top:26px; width:36%; height:92px; padding:14px 14px; display:flex; flex-direction:column; gap:12px; justify-content:center;}
+  .lf-sl-card.b u{display:block; position:relative; height:7px; margin-left:18px; border-radius:4px; background:var(--border-strong);}
+  .lf-sl-card.b u::before{content:""; position:absolute; left:-18px; top:-3px; width:13px; height:13px; box-sizing:border-box; border:2px solid var(--accent); border-radius:calc(var(--lf-r) * .4); transition:border-radius .14s ease;}
+  .lf-sl-card.b u.on::before{background:var(--accent);}
+  .lf-sl-card.c{left:5%; bottom:12px; width:70%; height:38px; padding:0 10px; display:flex; align-items:center; gap:8px; border-radius:var(--lf-r);}
+  .lf-sl-btn{padding:5px 14px; font-size:0.76rem; font-weight:650; background:var(--accent); color:var(--accent-ink,#fff); border-radius:calc(var(--lf-r) * .7); transition:border-radius .14s ease;}
+  .lf-sl-chip{padding:4px 10px; font-size:0.72rem; background:var(--surface-2); color:var(--ink); border:1px solid var(--border); border-radius:calc(var(--lf-r) * .9); transition:border-radius .14s ease;}
+  .lf-sl-chip.ac{background:var(--accent-soft); border-color:transparent; color:var(--accent);}
+  .lf-sl-ctl{display:flex; flex-direction:column; gap:8px;}
+  .lf-sl-lab{font-size:0.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);}
+  .lf-slider{-webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px; outline:none; background:linear-gradient(to right, var(--accent) var(--p,40%), var(--surface-2) var(--p,40%)); border:1px solid var(--border); cursor:var(--custom-pointer-cursor,pointer);}
+  .lf-slider::-webkit-slider-thumb{-webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--accent); border:3px solid var(--surface); box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:var(--custom-pointer-cursor,pointer);}
+  .lf-slider::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:var(--accent); border:3px solid var(--surface); box-shadow:0 1px 4px rgba(0,0,0,.35);}
+  .lf-sl-text{display:flex; align-items:baseline; gap:10px; min-height:1.4em; flex-wrap:wrap;}
+  .lf-sl-text b{font-size:1rem; font-weight:700; color:var(--ink);}
+  .lf-sl-text span{font-size:0.82rem; color:var(--muted);}
   .lf-mb{position:relative; display:block; width:100%; height:100%; border-radius:9px; overflow:hidden; background-color:var(--canvas); background-image:radial-gradient(var(--border-strong) 1px, transparent 1.2px); background-size:12px 12px;}
   .lf-mb .mc{position:absolute; background:var(--surface); box-sizing:border-box; overflow:hidden;}
   .lf-mb .mc.a{left:8%; top:11px; width:50%; height:58px; padding:8px 9px;}
@@ -5169,11 +5192,18 @@ const I18N={
   lf_q13_sub:{de:"Der Effekt beim Klicken – wieder mit Mini-Demo.",en:"The click effect – again with a mini demo."},
   lf_o_light_light:{de:"Hell|klar wie Papier",en:"Light|crisp like paper"},
   lf_o_light_dark:{de:"Dunkel|ruhig für die Augen",en:"Dark|easy on the eyes"},
-  lf_o_shape_square:{de:"Eckig|0 – kantig & klar",en:"Square|0 – crisp & clear"},
-  lf_o_shape_sharp:{de:"Kantig|leicht gebrochen",en:"Sharp|slightly softened"},
-  lf_o_shape_soft:{de:"Weich|sanft gerundet",en:"Soft|gently rounded"},
-  lf_o_shape_round:{de:"Rund|große Radien",en:"Round|big radii"},
-  lf_o_shape_pill:{de:"Kapsel|maximal rund",en:"Capsule|as round as it gets"},
+  lf_o_shape_r0:{de:"Messerscharf|0 px – wie gestanzt",en:"Razor sharp|0 px – like stamped"},
+  lf_o_shape_r3:{de:"Fast scharf|3 px – nur ein Hauch",en:"Almost sharp|3 px – just a hint"},
+  lf_o_shape_r6:{de:"Kantig|6 px – klare Linien",en:"Crisp|6 px – clean lines"},
+  lf_o_shape_r9:{de:"Dezent|9 px – leicht gebrochen",en:"Subtle|9 px – slightly softened"},
+  lf_o_shape_r12:{de:"Weich|12 px – freundlich & ausgewogen",en:"Soft|12 px – friendly & balanced"},
+  lf_o_shape_r15:{de:"Sanft|15 px – schon richtig rund",en:"Gentle|15 px – properly round"},
+  lf_o_shape_r18:{de:"Rund|18 px – wie Kieselsteine",en:"Round|18 px – like pebbles"},
+  lf_o_shape_r21:{de:"Sehr rund|21 px – fast verspielt",en:"Very round|21 px – almost playful"},
+  lf_o_shape_r24:{de:"Seifig|24 px – große Radien",en:"Bubbly|24 px – big radii"},
+  lf_o_shape_r28:{de:"Fast Kapsel|28 px – kaum noch Ecken",en:"Almost capsule|28 px – hardly any corners"},
+  lf_o_shape_r32:{de:"Kapsel|32 px – maximal rund",en:"Capsule|32 px – as round as it gets"},
+  lf_shape_live_label:{de:"Ecken-Radius",en:"Corner radius"},
   lf_o_font_default:{de:"Standard|neutral & gut lesbar",en:"Default|neutral & readable"},
   lf_o_font_rounded:{de:"Rund|freundliche Rundungen",en:"Rounded|friendly curves"},
   lf_o_font_serif:{de:"Serif|editorial & ruhig",en:"Serif|editorial & calm"},
@@ -12568,11 +12598,17 @@ const LF_QUESTIONS=[
     {id:'dark',  theme:'dark'}]},
   // --- Formen ---
   {id:'shape', q:'lf_q4', sub:'lf_q4_sub', opts:[
-    {id:'square', radius:0},
-    {id:'sharp',  radius:4},
-    {id:'soft',   radius:12},
-    {id:'round',  radius:22},
-    {id:'pill',   radius:30}]},
+    {id:'r0', radius:0},
+    {id:'r3', radius:3},
+    {id:'r6', radius:6},
+    {id:'r9', radius:9},
+    {id:'r12', radius:12},
+    {id:'r15', radius:15},
+    {id:'r18', radius:18},
+    {id:'r21', radius:21},
+    {id:'r24', radius:24},
+    {id:'r28', radius:28},
+    {id:'r32', radius:32}]},
   {id:'font', q:'lf_q5', sub:'lf_q5_sub', opts:[
     {id:'default', font:'default'},
     {id:'rounded', font:'rounded'},
@@ -12778,6 +12814,36 @@ function lfFinish(ans){
   saveDesignStyle(); saveGridStyle();
   try{ localStorage.setItem(LF_ANS_KEY,JSON.stringify(ans)); const c=lfEncode(ans); if(c) localStorage.setItem('notua-look-code',c); }catch(e){}
 }
+/* Ecken-Frage: große Live-Ansicht (Notiz, Checkliste, Buttons, Chips) + Schieberegler für den Radius und ein kleiner
+   Text, der sich mit dem Regler verändert. Die elf Rasterstufen entsprechen den Antwort-Optionen (Look-Code bleibt gültig). */
+function lfShapeUi(selId){
+  const q=LF_QUESTIONS.find(x=>x.id==='shape'); let i=q.opts.findIndex(o=>o.id===selId); if(i<0) i=4;
+  const o=q.opts[i], p=lfParts('shape',o.id);
+  return `<div class="lf-shape-live" style="--lf-r:${o.radius}px">
+    <div class="lf-sl-board">
+      <span class="lf-sl-card a"><b>Notiz</b><em>Hier landen deine Ideen.</em><i></i></span>
+      <span class="lf-sl-card b"><u></u><u></u><u class="on"></u></span>
+      <span class="lf-sl-card c"><span class="lf-sl-btn">Speichern</span><span class="lf-sl-chip">Idee</span><span class="lf-sl-chip ac">Wichtig</span></span>
+    </div>
+    <div class="lf-sl-ctl">
+      <span class="lf-sl-lab">${t('lf_shape_live_label')}</span>
+      <input type="range" class="lf-slider" min="0" max="${q.opts.length-1}" step="1" value="${i}" aria-label="${t('lf_shape_live_label')}">
+      <div class="lf-sl-text"><b class="n">${p.label}</b><span class="d">${p.desc}</span></div>
+    </div></div>`;
+}
+function lfBindShapeUi(box,q,ans,onChange){
+  const wrap=box.querySelector('.lf-shape-live'), sl=box.querySelector('.lf-slider'); if(!wrap||!sl) return;
+  const upd=()=>{
+    const o=q.opts[+sl.value], p=lfParts('shape',o.id);
+    wrap.style.setProperty('--lf-r',o.radius+'px');
+    wrap.querySelector('.n').textContent=p.label; wrap.querySelector('.d').textContent=p.desc;
+    const pct=(+sl.value)/(q.opts.length-1)*100; sl.style.setProperty('--p',pct+'%');
+    ans.shape=o.id; onChange();
+  };
+  sl.addEventListener('input',upd);
+  if(!ans.shape){ ans.shape=q.opts[+sl.value].id; onChange(); }
+  sl.style.setProperty('--p',(+sl.value)/(q.opts.length-1)*100+'%');
+}
 function lfVisual(qid,o){
   if(qid==='palette') return `<span class="lf-pal" style="background:${o.bg}"><i class="c"></i><i class="p" style="background:${o.accent}"></i><i class="l" style="background:${o.accent}"></i><i class="d" style="background:${o.accent}"></i></span>`;
   if(qid==='light') return `<span class="lf-win${o.id==='dark'?' dk':''}"></span>`;
@@ -12859,7 +12925,8 @@ function showLookFinder(opts){
     box.innerHTML=`
       <div class="lf-head"><span class="lf-step">${t('lf_step',{n:step+1,m:N})}</span><div class="lf-prog"><i style="width:${Math.round(step/N*100)}%"></i></div></div>
       <div><h4 class="lf-q">${t(q.q)}</h4><p style="margin-top:4px;">${t(q.sub)}</p></div>
-      <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}${LF_BOARDPREV.has(q.id)?' mb':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
+      ${q.id==='shape'?lfShapeUi(ans[q.id]):''}
+      <div class="lf-opts"${q.id==='shape'?' hidden':''}>${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}${LF_BOARDPREV.has(q.id)?' mb':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
       <div class="lf-foot">
         <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>
         <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button>
@@ -12875,6 +12942,7 @@ function showLookFinder(opts){
       box.querySelector('[data-a="next"]').disabled=false;
       lfApplyAll(ans,false);
     }));
+    if(q.id==='shape') lfBindShapeUi(box,q,ans,()=>{ box.querySelector('[data-a="next"]').disabled=false; lfApplyAll(ans,false); });
     box.querySelector('[data-a="later"]').addEventListener('click',cancel);
     box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
     const bk=box.querySelector('[data-a="back"]'); if(bk) bk.addEventListener('click',()=>{ step--; render(); });
@@ -14662,7 +14730,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.93';
+const APP_VERSION='2.4.94';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
