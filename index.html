@@ -1364,6 +1364,8 @@ try{
   .lf-foot button.primary:disabled{opacity:.4; cursor:default;}
   .lf-foot button.lf-later{border:none; background:none; color:var(--muted); text-decoration:underline; padding-left:0;}
   .lf-foot button.lf-later:hover{color:var(--ink);}
+  .lf-foot button.lf-rand{display:inline-flex; align-items:center; gap:6px; color:var(--accent); border-color:color-mix(in srgb, var(--accent) 45%, var(--border));}
+  .lf-foot button.lf-rand:hover{background:var(--accent-soft);}
   /* Ergebnis: "Look-Karte" mit Mini-Vorschau + Aufzählung aller Entscheidungen */
   .lf-pass{border:1px solid var(--border); border-radius:16px; background:var(--surface-2); overflow:hidden; animation:lfPassIn .5s cubic-bezier(.2,1.2,.4,1);}
   @keyframes lfPassIn{from{opacity:0; transform:translateY(10px) scale(.97);} to{opacity:1; transform:none;}}
@@ -3642,6 +3644,10 @@ try{
     font:inherit; font-size:0.86rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer); text-align:center;
   }
   .theme-menu-random-btn:hover{filter:brightness(0.97);}
+  .theme-preset-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .theme-preset-btn{display:inline-flex; align-items:center; gap:9px; padding:7px 12px 7px 8px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.86rem; cursor:var(--custom-pointer-cursor,pointer);}
+  .theme-preset-btn:hover{border-color:var(--accent);}
+  .theme-preset-btn .tp-sw{display:flex;} .theme-preset-btn .tp-sw i{display:block; width:20px; height:20px; border-radius:50%; border:2px solid var(--surface); box-shadow:0 0 0 1px var(--border);} .theme-preset-btn .tp-sw i+i{margin-left:-7px;}
   .theme-palette-preview{display:flex; gap:5px; margin-top:2px;}
   .theme-palette-preview span{flex:1; height:16px; border-radius:4px; border:1px solid var(--border);}
   /* The 9 curated Duo palettes (see THEME_DUO_PALETTES) are no longer browsable as a grid — "sollen
@@ -5084,15 +5090,18 @@ const I18N={
   tour_ready_ok:{de:'Zur Übersicht',en:'Go to overview'},
   lf_q1:{de:"Welche Farbwelt passt zu dir?",en:"Which color world suits you?"},
   lf_q1_sub:{de:"Acht Looks aus Hintergrund- und Akzentfarbe – vom Matcha-Trend bis Monochrom. Alles färbt sich sofort ein.",en:"Eight looks of background and accent – from the matcha trend to monochrome. Everything re-tints instantly."},
-  lf_o_palette_matcha:{de:"Iced Matcha Latte|Erdbeermilch trifft Matcha",en:"Iced Matcha Latte|strawberry milk meets matcha"},
+  lf_o_palette_matcha:{de:"Iced Matcha Latte|Rosa & Matcha – nachts andersrum",en:"Iced Matcha Latte|pink & matcha – flipped at night"},
   lf_o_palette_cherry:{de:"Kirschrosé|Rosa mit kräftigem Kirschrot",en:"Cherry Rosé|pink with bold cherry red"},
-  lf_o_palette_mono:{de:"Monochrom|Hellgrau & Dunkelgrau",en:"Monochrome|light & dark grey"},
+  lf_o_palette_mono:{de:"Mono|Hellgrau & Dunkelgrau",en:"Mono|light & dark grey"},
   lf_o_palette_blue:{de:"Klassisch Blau|klar & verlässlich",en:"Classic Blue|clear & reliable"},
   lf_o_palette_green:{de:"Waldgrün|ruhig & natürlich",en:"Forest Green|calm & natural"},
   lf_o_palette_orange:{de:"Sunset Orange|warm & energiegeladen",en:"Sunset Orange|warm & energetic"},
-  lf_o_palette_butter:{de:"Butter & Kobalt|gelb trifft Blau",en:"Butter & Cobalt|yellow meets blue"},
+  lf_o_palette_lilac:{de:"Lavendel Dream|sanft & verträumt",en:"Lavender Dream|soft & dreamy"},
   lf_o_palette_mocha:{de:"Mocha Mousse|weich & erdig",en:"Mocha Mousse|soft & earthy"},
   lf_cat_palette:{de:"Farbwelt",en:"Color world"},
+  lf_rand:{de:"Zufall",en:"Random"},
+  lf_rand_title:{de:"Alles komplett zufällig würfeln – auch ganz neue Farben",en:"Roll everything completely at random – even brand-new colors"},
+  lf_rand_palette:{de:"Zufallsfarben",en:"Random colors"},
   lf_q3:{de:"Wie hell darf es sein?",en:"How bright should it be?"},
   lf_q3_sub:{de:"Licht oder Schatten – umschalten kannst du jederzeit.",en:"Light or shadow – you can switch any time."},
   lf_q4:{de:"Welche Ecken magst du?",en:"Which corners do you like?"},
@@ -9728,7 +9737,10 @@ const THEME_OVERRIDE_VARS=['--canvas','--canvas-dot','--surface','--surface-rgb'
 // reduced to the two most contrasting of the three, the odd one out simply dropped rather than mixed
 // in. No longer shown as a browsable grid (see showThemeMenuModal) — only the random-palette button
 // draws from this list now.
+// Mono: neutrales Hellgrau + dunkles Grau (der Akzent-Soft-Ton wird daraus zum zarten Blau). Als erstes Theme direkt wählbar (Theme-Menü) und im Zufalls-Pool.
+const THEME_MONO={name:'Mono', background:'#F4F4F5', accent:'#2B2D33'};
 const THEME_DUO_PALETTES=[
+  THEME_MONO,
   {name:'Smaragd & Seide',    background:'#F1E3D3', accent:'#1F3B2C'},
   {name:'Kirschcreme',        background:'#FFF6E8', accent:'#C1121F'},
   {name:'Königslila',         background:'#FFFBFF', accent:'#460B6A'},
@@ -9871,11 +9883,20 @@ function deriveThemeTokens(main,accent,background,dark){
 // in either mode and stays correct if that's toggled afterward (see reapplyCustomThemeForCurrentMode(),
 // called from setTheme()).
 function applyCustomTheme(theme,persist){
-  const tokens=deriveThemeTokens(theme.background,theme.accent,theme.background,currentThemeIsDark());
+  // Optionale Zusatzfelder (Look-Finder, z. B. "Iced Matcha Latte"): text = Farbton der Schrift, ink = exakte Schriftfarbe,
+  // dark = eigene Farben für den Dunkelmodus (Hintergrund/Akzent/Schrift "andersrum"). Ohne diese Felder: wie bisher.
+  const isDark=currentThemeIsDark();
+  const cur=(isDark && theme.dark)?Object.assign({},theme,theme.dark):theme;
+  const tokens=deriveThemeTokens(cur.text||cur.background,cur.accent,cur.background,isDark);
+  if(cur.ink) tokens['--ink']=cur.ink;
   const rootStyle=document.documentElement.style;
   Object.keys(tokens).forEach(k=>rootStyle.setProperty(k,tokens[k]));
   if(persist!==false){
-    try{ localStorage.setItem('notua-custom-theme',JSON.stringify({background:theme.background,accent:theme.accent})); }catch(e){}
+    try{
+      const save={background:theme.background,accent:theme.accent};
+      ['text','ink','dark'].forEach(k=>{ if(theme[k]) save[k]=theme[k]; });
+      localStorage.setItem('notua-custom-theme',JSON.stringify(save));
+    }catch(e){}
   }
   updateCustomCursor();
   syncThemeMetaColor();
@@ -10262,7 +10283,7 @@ function pickRandomPalette(){
 function themeSwatchColorsForCurrentMode(theme){
   const dark=currentThemeIsDark();
   const [bh,bs]=hexToHslArr(theme.background);
-  const previewSat=Math.min(Math.max(bs,45),85);
+  const previewSat=bs<12 ? bs : Math.min(Math.max(bs,45),85); // fast graue Themes (Mono) bleiben grau in der Vorschau
   const background=dark ? hslToHex(bh,previewSat,26) : hslToHex(bh,previewSat,80);
   return {background, accent:theme.accent};
 }
@@ -10274,6 +10295,7 @@ function showThemeMenuModal(){
     <p>${t('theme_menu_intro')}</p>
     <div class="theme-menu-section">
       <h5>${t('theme_menu_presets_title')}</h5>
+      <div class="theme-preset-row"><button type="button" class="theme-preset-btn" id="themeMonoBtn"><span class="tp-sw"><i style="background:${THEME_MONO.background}"></i><i style="background:${THEME_MONO.accent}"></i></span><b>${THEME_MONO.name}</b></button></div>
       <button type="button" class="theme-menu-random-btn" id="themeRandomBtn">${t('theme_menu_random_btn')}</button>
     </div>
     <div class="theme-menu-section">
@@ -10313,6 +10335,7 @@ function showThemeMenuModal(){
     showToast(t('theme_menu_applied_toast'));
   }
   scrim.querySelector('#themeRandomBtn').addEventListener('click',()=>applyAndAnnounce(pickRandomPalette()));
+  scrim.querySelector('#themeMonoBtn').addEventListener('click',()=>applyAndAnnounce({background:THEME_MONO.background,accent:THEME_MONO.accent}));
   scrim.querySelector('[data-a="apply"]').addEventListener('click',()=>{
     applyAndAnnounce({accent:accentInput.value,background:bgInput.value});
   });
@@ -12261,13 +12284,15 @@ const LF_DONE_KEY='notua-lookfinder-done', LF_ANS_KEY='notua-look-answers', TOUR
 const LF_QUESTIONS=[
   // --- Farben: Hintergrundton × Akzentfarbe × Hell/Dunkel ---
   {id:'palette', q:'lf_q1', sub:'lf_q1_sub', opts:[
-    {id:'matcha',  bg:'#F4DCE6', accent:'#5E8F3E'},
+    {id:'mono',    bg:'#F4F4F5', accent:'#2B2D33'},
+    // Iced Matcha Latte: Hell = zartes Rosa + Matcha-Grün in Schrift & Akzent; Dunkel = andersrum (dunkles Matcha-Grün, Rosa)
+    {id:'matcha',  bg:'#FDE9F1', accent:'#5E8F3E', text:'#46692C', ink:'#3A5A22',
+      dark:{background:'#1E2B16', accent:'#F58DB2', text:'#F7C8DA', ink:'#F8D5E2'}},
     {id:'cherry',  bg:'#FADADD', accent:'#D1122F'},
-    {id:'mono',    bg:'#E4E4E6', accent:'#2B2D33'},
     {id:'blue',    bg:'#D6E4F7', accent:'#1F5FE0'},
     {id:'green',   bg:'#D9E8D8', accent:'#1B7A43'},
-    {id:'orange',  bg:'#FFE6D2', accent:'#F26A1B'},
-    {id:'butter',  bg:'#FBF0B8', accent:'#2F4DD8'},
+    {id:'orange',  bg:'#F8C79C', accent:'#F26A1B'},
+    {id:'lilac',   bg:'#E9E1FB', accent:'#7B4DFF'},
     {id:'mocha',   bg:'#EBDCCB', accent:'#7A4A2B'}]},
   {id:'light', q:'lf_q3', sub:'lf_q3_sub', opts:[
     {id:'light', theme:'light'},
@@ -12344,12 +12369,25 @@ const LF_QUESTIONS=[
     {id:'firework', click:'firework'}]},
 ];
 const LF_WIDE=new Set(['palette','landing','board','boardmove','uianim','trail','click']);
-function lfOpt(qid,oid){ const q=LF_QUESTIONS.find(x=>x.id===qid); return q?q.opts.find(o=>o.id===oid):null; }
-function lfParts(qid,oid){ const p=t('lf_o_'+qid+'_'+oid).split('|'); return {label:p[0], desc:p[1]||''}; }
+function lfOpt(qid,oid){
+  // Zufalls-Farben: 'rnd:<bg>:<accent>' (siehe lfRandomAnswers)
+  if(qid==='palette' && typeof oid==='string' && oid.startsWith('rnd:')){ const pt=oid.split(':'); return {id:oid,bg:pt[1],accent:pt[2]}; }
+  const q=LF_QUESTIONS.find(x=>x.id===qid); return q?q.opts.find(o=>o.id===oid):null; }
+function lfParts(qid,oid){ if(qid==='palette' && typeof oid==='string' && oid.startsWith('rnd:')) return {label:t('lf_rand_palette'),desc:''}; const p=t('lf_o_'+qid+'_'+oid).split('|'); return {label:p[0], desc:p[1]||''}; }
 function lfCode(ans){ let h=7; Object.keys(ans).sort().forEach(k=>{ (k+ans[k]).split('').forEach(c=>{ h=(h*31+c.charCodeAt(0))>>>0; }); }); return h.toString(36).toUpperCase().padStart(4,'0').slice(-4); }
 function lfName(ans){
   const pal=ans.palette?lfParts('palette',ans.palette).label:'NOTUA';
   return t(ans.light==='dark'?'lf_name_dark':'lf_name_light',{p:pal});
+}
+// Wirklich zufällig: jede Frage bekommt eine zufällige Option, und die Farbwelt sind frei gewürfelte Farben (nicht nur die 8 Presets).
+function lfRandomAnswers(){
+  const R=(a,b)=>a+Math.random()*(b-a), pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
+  const ans={};
+  LF_QUESTIONS.forEach(q=>{ ans[q.id]=pick(q.opts).id; });
+  const h=Math.random()*360, h2=Math.random()*360;
+  const bg=hslToHex(h,R(35,90),R(86,95)), ac=hslToHex(h2,R(55,92),R(36,52));
+  ans.palette='rnd:'+bg+':'+ac;
+  return ans;
 }
 function lfSnapshot(){
   let custom=null; try{ custom=localStorage.getItem('notua-custom-theme'); }catch(e){}
@@ -12364,7 +12402,10 @@ function lfSetUiAnimQuiet(o){
 }
 function lfColors(ans){
   const p=lfOpt('palette',ans.palette);
-  return p?{background:p.bg,accent:p.accent}:null;
+  if(!p) return null;
+  const c={background:p.bg,accent:p.accent};
+  ['text','ink','dark'].forEach(k=>{ if(p[k]) c[k]=p[k]; });
+  return c;
 }
 function lfApplyAll(ans,final){
   const root=document.documentElement;
@@ -12458,6 +12499,7 @@ function lfStartCursorPreviews(box){
   requestAnimationFrame(loop);
 }
 const LF_LOCK_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none"/></svg>';
+const LF_DICE_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><circle cx="8.5" cy="8.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.1" fill="currentColor" stroke="none"/></svg>';
 function showLookFinder(opts){
   opts=opts||{};
   const first=!!opts.firstRun, snap=lfSnapshot();
@@ -12470,6 +12512,7 @@ function showLookFinder(opts){
   const cancel=()=>{ lfRestore(snap); if(first) markDone(); done(); };
   function onKey(e){ if(e.key==='Escape' && !first){ e.stopPropagation(); cancel(); } }
   document.addEventListener('keydown',onKey,true);
+  function randomize(){ ans=lfRandomAnswers(); lfApplyAll(ans,false); step=N; render(); }
   function render(){
     if(step<N) renderQuestion(); else renderResult();
   }
@@ -12480,7 +12523,8 @@ function showLookFinder(opts){
       <div><h4 class="lf-q">${t(q.q)}</h4><p style="margin-top:4px;">${t(q.sub)}</p></div>
       <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
       <div class="lf-foot">
-        <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button><span class="lf-spacer"></span>
+        <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>
+        <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button><span class="lf-spacer"></span>
         ${step>0?`<button type="button" data-a="back">${t('lf_back')}</button>`:''}
         <button type="button" class="primary" data-a="next"${ans[q.id]?'':' disabled'}>${t(step===N-1?'lf_show_result':'lf_next')}</button>
       </div>`;
@@ -12493,6 +12537,7 @@ function showLookFinder(opts){
       lfApplyAll(ans,false);
     }));
     box.querySelector('[data-a="later"]').addEventListener('click',cancel);
+    box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
     const bk=box.querySelector('[data-a="back"]'); if(bk) bk.addEventListener('click',()=>{ step--; render(); });
     box.querySelector('[data-a="next"]').addEventListener('click',()=>{ if(!ans[q.id]) return; step++; render(); });
   }
@@ -12516,10 +12561,12 @@ function showLookFinder(opts){
       </div>
       <div class="lf-beta">${LF_LOCK_SVG}<span>${t('lf_beta_hint')}</span></div>
       <div class="lf-foot">
-        <button type="button" data-a="again">${t('lf_again')}</button><span class="lf-spacer"></span>
+        <button type="button" data-a="again">${t('lf_again')}</button>
+        <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button><span class="lf-spacer"></span>
         <button type="button" class="primary" data-a="apply">${t(first?'lf_apply_first':'lf_apply')}</button>
       </div>`;
     box.querySelector('[data-a="again"]').addEventListener('click',()=>{ lfRestore(snap); ans={}; step=0; render(); });
+    box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
     box.querySelector('[data-a="apply"]').addEventListener('click',()=>{
       lfFinish(ans); markDone(); done();
       try{ showToast(t('lf_toast',{name})); }catch(e){}
@@ -14227,7 +14274,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION = '2.4.84';
+const APP_VERSION = '2.4.85';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
