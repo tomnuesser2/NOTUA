@@ -1296,9 +1296,11 @@ try{
   .lf-shape{display:block; position:relative; width:58px; height:36px; border:2px solid var(--accent); background:var(--surface);}
   .lf-shape i{position:absolute; left:9px; height:4px; border-radius:2px; background:var(--border-strong);} .lf-shape i:first-child{top:10px; width:55%;} .lf-shape i:last-child{top:19px; width:32%; background:var(--accent);}
   .lf-font{display:flex; align-items:baseline; gap:6px; color:var(--ink);} .lf-font b{font-size:1.6rem; line-height:1; font-weight:600;} .lf-font small{font-size:0.8rem; color:var(--muted);}
-  .lf-bgc{display:block; position:relative; width:64px; height:38px; border-radius:9px; border:1px solid color-mix(in srgb, var(--ink) 18%, transparent);}
-  .lf-bgc i{position:absolute; top:8px; height:22px; width:22px; border-radius:5px; background:rgba(255,255,255,.72); border:1px solid rgba(0,0,0,.08);} .lf-bgc i:first-child{left:8px;} .lf-bgc i:last-child{left:34px; top:12px;}
-  .lf-acc{display:flex; align-items:center; gap:7px;} .lf-acc b{display:flex; align-items:center; justify-content:center; width:32px; height:24px; border-radius:7px; color:#fff; font-size:0.78rem;} .lf-acc i{display:block; width:14px; height:14px; border-radius:50%;} .lf-acc u{display:block; width:20px; height:0; border-top:3px solid; border-radius:2px;}
+  .lf-pal{display:block; position:relative; width:100%; height:56px; border-radius:9px; overflow:hidden; border:1px solid color-mix(in srgb, #000 12%, transparent);}
+  .lf-pal i{position:absolute; display:block;}
+  .lf-pal .c{left:9px; top:9px; width:46%; height:38px; border-radius:7px; background:rgba(255,255,255,.78); box-shadow:0 2px 6px -3px rgba(0,0,0,.25);}
+  .lf-pal .c::before{content:''; position:absolute; left:7px; top:8px; width:55%; height:4px; border-radius:2px; background:rgba(0,0,0,.16);} .lf-pal .c::after{content:''; position:absolute; left:7px; top:17px; width:34%; height:4px; border-radius:2px; background:rgba(0,0,0,.1);}
+  .lf-pal .p{right:9px; top:11px; width:34%; height:15px; border-radius:8px;} .lf-pal .l{right:9px; top:33px; width:22%; height:4px; border-radius:2px; opacity:.85;} .lf-pal .d{right:36%; top:35px; width:8px; height:8px; border-radius:50%; margin-right:-4px;}
   .lf-depth{display:block; width:58px; height:34px; background:var(--surface); border-radius:9px; border:1px solid var(--border);}
   .lf-vis.w{width:100%; height:56px;}
   .lf-bgp,.lf-ui,.lf-cur{display:block; position:relative; width:100%; height:56px; border-radius:9px; overflow:hidden; border:1px solid var(--border); background:var(--canvas);}
@@ -3669,6 +3671,9 @@ try{
   html[data-d-radius] .project-tile, html[data-d-radius] .project-panel{border-radius:var(--d-radius);}
   html[data-d-radius] .project-mini-chip{border-radius:calc(var(--d-radius) * 0.5);}
   html[data-d-shadow] .card:not(.dragging), html[data-d-shadow] .dp-card{box-shadow:var(--d-shadow);}
+  /* Auswahl-Ring bleibt IMMER sichtbar: die Regel oben (höhere Spezifität als .card.selected) hat den Ring bei
+     eigenem Schatten-Design (auch "Flach"/Look-Finder) überschrieben → Ring + gewählter Schatten kombinieren. */
+  html[data-d-shadow] .card.selected:not(.dragging){box-shadow:0 0 0 2px var(--accent), var(--d-shadow-sel,0 0 0 0 transparent);}
   html[data-d-bw] .card, html[data-d-bw] .dp-card{border-width:var(--d-bw);}
   html[data-d-go] .grid-layer, html[data-d-go] .dp-grid{opacity:var(--d-go);}
   /* Ecken → Innenabstand (--d-inset, siehe applyDesign): Text/Icons rücken mit runderen Ecken vom Rand weg */
@@ -5077,10 +5082,17 @@ const I18N={
   tour_ready_title:{de:'Du bist bereit!',en:'You\'re ready!'},
   tour_ready_body:{de:'Das war\'s mit der Einführung. Alles andere findest du beim Ausprobieren — NOTUA ist selbsterklärend.',en:'That\'s the tour. Everything else you\'ll figure out as you go — NOTUA is self-explanatory.'},
   tour_ready_ok:{de:'Zur Übersicht',en:'Go to overview'},
-  lf_q1:{de:"Welcher Hintergrundton gefällt dir?",en:"Which background tone do you like?"},
-  lf_q1_sub:{de:"Die Grundfarbe der ganzen Oberfläche – Boards, Menüs und Flächen färben sich darauf ein.",en:"The base color of the whole interface – boards, menus and surfaces tint to it."},
-  lf_q2:{de:"Und welche Akzentfarbe dazu?",en:"And which accent color with it?"},
-  lf_q2_sub:{de:"Buttons, Markierungen und Highlights. Die Vorschau kombiniert sie schon mit deinem Hintergrundton.",en:"Buttons, selections and highlights. The preview already combines it with your background tone."},
+  lf_q1:{de:"Welche Farbwelt passt zu dir?",en:"Which color world suits you?"},
+  lf_q1_sub:{de:"Acht Looks aus Hintergrund- und Akzentfarbe – vom Matcha-Trend bis Monochrom. Alles färbt sich sofort ein.",en:"Eight looks of background and accent – from the matcha trend to monochrome. Everything re-tints instantly."},
+  lf_o_palette_matcha:{de:"Iced Matcha Latte|Erdbeermilch trifft Matcha",en:"Iced Matcha Latte|strawberry milk meets matcha"},
+  lf_o_palette_cherry:{de:"Kirschrosé|Rosa mit kräftigem Kirschrot",en:"Cherry Rosé|pink with bold cherry red"},
+  lf_o_palette_mono:{de:"Monochrom|Hellgrau & Dunkelgrau",en:"Monochrome|light & dark grey"},
+  lf_o_palette_blue:{de:"Klassisch Blau|klar & verlässlich",en:"Classic Blue|clear & reliable"},
+  lf_o_palette_green:{de:"Waldgrün|ruhig & natürlich",en:"Forest Green|calm & natural"},
+  lf_o_palette_orange:{de:"Sunset Orange|warm & energiegeladen",en:"Sunset Orange|warm & energetic"},
+  lf_o_palette_butter:{de:"Butter & Kobalt|gelb trifft Blau",en:"Butter & Cobalt|yellow meets blue"},
+  lf_o_palette_mocha:{de:"Mocha Mousse|weich & erdig",en:"Mocha Mousse|soft & earthy"},
+  lf_cat_palette:{de:"Farbwelt",en:"Color world"},
   lf_q3:{de:"Wie hell darf es sein?",en:"How bright should it be?"},
   lf_q3_sub:{de:"Licht oder Schatten – umschalten kannst du jederzeit.",en:"Light or shadow – you can switch any time."},
   lf_q4:{de:"Welche Ecken magst du?",en:"Which corners do you like?"},
@@ -5103,22 +5115,6 @@ const I18N={
   lf_q12_sub:{de:"Beim Bewegen der Maus – in jeder Vorschau läuft eine Mini-Demo.",en:"While moving the mouse – every preview runs a mini demo."},
   lf_q13:{de:"Und was passiert bei einem Klick?",en:"And what happens on a click?"},
   lf_q13_sub:{de:"Der Effekt beim Klicken – wieder mit Mini-Demo.",en:"The click effect – again with a mini demo."},
-  lf_o_bgcolor_fog:{de:"Morgennebel|kühl & klar",en:"Morning fog|cool & clear"},
-  lf_o_bgcolor_peach:{de:"Pfirsichhaut|warm & weich",en:"Peach skin|warm & soft"},
-  lf_o_bgcolor_sage:{de:"Salbei|ruhig & natürlich",en:"Sage|calm & natural"},
-  lf_o_bgcolor_lavender:{de:"Lavendeldunst|sanft & kreativ",en:"Lavender haze|soft & creative"},
-  lf_o_bgcolor_sand:{de:"Sand|sonnig & erdig",en:"Sand|sunny & earthy"},
-  lf_o_bgcolor_rose:{de:"Rosenquarz|zart & verspielt",en:"Rose quartz|delicate & playful"},
-  lf_o_bgcolor_mint:{de:"Minze|frisch & luftig",en:"Mint|fresh & airy"},
-  lf_o_bgcolor_stone:{de:"Beton|neutral & fokussiert",en:"Concrete|neutral & focused"},
-  lf_o_accent_coral:{de:"Koralle|lebendig & warm",en:"Coral|lively & warm"},
-  lf_o_accent_cobalt:{de:"Kobalt|klar & verlässlich",en:"Cobalt|clear & reliable"},
-  lf_o_accent_emerald:{de:"Smaragd|frisch & stark",en:"Emerald|fresh & strong"},
-  lf_o_accent_magenta:{de:"Magenta|mutig & auffällig",en:"Magenta|bold & striking"},
-  lf_o_accent_saffron:{de:"Safran|golden & freundlich",en:"Saffron|golden & friendly"},
-  lf_o_accent_violet:{de:"Violett|kreativ & tief",en:"Violet|creative & deep"},
-  lf_o_accent_teal:{de:"Petrol|kühl & elegant",en:"Petrol|cool & elegant"},
-  lf_o_accent_ink:{de:"Tinte|zurückhaltend & edel",en:"Ink|understated & refined"},
   lf_o_light_light:{de:"Hell|klar wie Papier",en:"Light|crisp like paper"},
   lf_o_light_dark:{de:"Dunkel|ruhig für die Augen",en:"Dark|easy on the eyes"},
   lf_o_shape_square:{de:"Eckig|0 – kantig & klar",en:"Square|0 – crisp & clear"},
@@ -5176,8 +5172,6 @@ const I18N={
   lf_o_click_hearts:{de:"Herzen|verspielt",en:"Hearts|playful"},
   lf_o_click_bubbles:{de:"Blasen|steigen auf",en:"Bubbles|rise up"},
   lf_o_click_firework:{de:"Feuerwerk|Strahlen",en:"Firework|rays"},
-  lf_cat_bgcolor:{de:"Hintergrundton",en:"Background"},
-  lf_cat_accent:{de:"Akzent",en:"Accent"},
   lf_cat_light:{de:"Licht",en:"Light"},
   lf_cat_shape:{de:"Ecken",en:"Corners"},
   lf_cat_font:{de:"Schrift",en:"Typeface"},
@@ -5211,7 +5205,7 @@ const I18N={
   controls_btn_title:{de:"Steuerung & Gesten",en:"Controls & gestures"},
   tour_click_hint_mouse:{de:"Klicke auf das markierte Element – oder auf „Weiter“.",en:"Click the highlighted element – or press “Next”."},
   tour_click_hint_touch:{de:"Tippe auf das markierte Element – oder auf „Weiter“.",en:"Tap the highlighted element – or press “Next”."},
-  tour_btn_look:{de:"Look-Finder (13 Fragen)",en:"Look finder (13 questions)"},
+  tour_btn_look:{de:"Look-Finder (12 Fragen)",en:"Look finder (12 questions)"},
   tour_btn_guide_mouse:{de:"Steuerung erklärt: Maus & Tastatur",en:"Controls explained: mouse & keyboard"},
   tour_btn_guide_touch:{de:"Steuerung erklärt: Handy & Tablet",en:"Controls explained: phone & tablet"},
   g_tab_mouse:{de:"Maus & Tastatur",en:"Mouse & keyboard"},
@@ -8686,6 +8680,7 @@ function applyDesign(){
   sv('--d-inset',D.radius!==null?(Math.max(0,D.radius-6)*0.4).toFixed(1)+'px':null);
   const shOn=D.shadow!=='default'||D.shadowAmt!==1;
   set('data-d-shadow',shOn,'1'); sv('--d-shadow',shOn?designShadowCss(D.shadow,D.shadowAmt):null);
+  sv('--d-shadow-sel',shOn?(designShadowCss(D.shadow,D.shadowAmt)==='none'?'0 0 0 0 transparent':designShadowCss(D.shadow,D.shadowAmt)):null);
   set('data-d-border',D.border!=='default',D.border);
   set('data-d-bw',D.borderW!==null,'1'); sv('--d-bw',D.borderW!==null?D.borderW+'px':null);
   set('data-d-font',D.font!=='default',D.font);
@@ -11407,7 +11402,7 @@ function showDesignMenuModal(){
     landingMode:{get:()=>gridStyle.landingMode,set:v=>{gridStyle.landingMode=v;},list:LANDING_MODES.map(v=>({v,label:t('design_land_'+v)}))},
     trail:{get:()=>D.trail,set:v=>{D.trail=v;},list:FX_TRAILS.map(v=>({v,label:t('design_trail_'+v)}))},
     clickFx:{get:()=>D.clickFx,set:v=>{D.clickFx=v;},list:FX_CLICKS.map(v=>({v,label:t('design_click_'+v)}))},
-    wheel:{get:()=>wheelPref,set:v=>{ wheelPref=v; try{ if(v==='auto') localStorage.removeItem('notua-wheel-pref'); else localStorage.setItem('notua-wheel-pref',v); }catch(e){} },list:['auto','zoom','pan'].map(v=>({v,label:t('style_wheel_'+v)}))}
+    wheel:{get:()=>wheelPref,set:v=>{ wheelPref=v; try{ localStorage.setItem('notua-wheel-pref',v); }catch(e){} },list:['zoom','auto','pan'].map(v=>({v,label:t('style_wheel_'+v)}))}
   };
   const field=(label,inner,attrs='')=>`<div class="dm-field" ${attrs}><label>${label}</label>${inner}</div>`;
   const dd=(key,label,attrs='')=>field(label,`<div class="dd" data-dd="${key}"><button type="button" class="dd-btn"><span class="dd-cur"></span>${CHEV}</button></div>`,attrs);
@@ -11584,7 +11579,7 @@ function showDesignMenuModal(){
   scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
     Object.assign(D,{radius:null,shadow:'default',shadowAmt:1,border:'default',borderW:null,font:'default',fontScale:1,bg:'grid',bgMove:false,gridOpacity:1,trail:'off',trailAmt:1,clickFx:'off',clickAmt:1});
     Object.assign(gridStyle,{shape:'circle',size:1,spacing:1,landingMode:'none',landingSpeed:1,landingDensity:1});
-    DD.wheel.set('auto');
+    DD.wheel.set('zoom');
     sync(); commit();
   });
 
@@ -12265,24 +12260,15 @@ if(toolsTooltipTourItem) toolsTooltipTourItem.addEventListener('click',()=>{ clo
 const LF_DONE_KEY='notua-lookfinder-done', LF_ANS_KEY='notua-look-answers', TOUR_V2_KEY='notua-tour-v2-seen';
 const LF_QUESTIONS=[
   // --- Farben: Hintergrundton × Akzentfarbe × Hell/Dunkel ---
-  {id:'bgcolor', q:'lf_q1', sub:'lf_q1_sub', opts:[
-    {id:'fog',      hex:'#D9E4F2'},
-    {id:'peach',    hex:'#FFDFCC'},
-    {id:'sage',     hex:'#D5EAD2'},
-    {id:'lavender', hex:'#E4DAF8'},
-    {id:'sand',     hex:'#F0E0BC'},
-    {id:'rose',     hex:'#F8D6E4'},
-    {id:'mint',     hex:'#C9F0E6'},
-    {id:'stone',    hex:'#E2E1DD'}]},
-  {id:'accent', q:'lf_q2', sub:'lf_q2_sub', opts:[
-    {id:'coral',   hex:'#F2573D'},
-    {id:'cobalt',  hex:'#2457F5'},
-    {id:'emerald', hex:'#0E9F6E'},
-    {id:'magenta', hex:'#D4268E'},
-    {id:'saffron', hex:'#E08A00'},
-    {id:'violet',  hex:'#7B4DFF'},
-    {id:'teal',    hex:'#0B7C8F'},
-    {id:'ink',     hex:'#222A3A'}]},
+  {id:'palette', q:'lf_q1', sub:'lf_q1_sub', opts:[
+    {id:'matcha',  bg:'#F4DCE6', accent:'#5E8F3E'},
+    {id:'cherry',  bg:'#FADADD', accent:'#D1122F'},
+    {id:'mono',    bg:'#E4E4E6', accent:'#2B2D33'},
+    {id:'blue',    bg:'#D6E4F7', accent:'#1F5FE0'},
+    {id:'green',   bg:'#D9E8D8', accent:'#1B7A43'},
+    {id:'orange',  bg:'#FFE6D2', accent:'#F26A1B'},
+    {id:'butter',  bg:'#FBF0B8', accent:'#2F4DD8'},
+    {id:'mocha',   bg:'#EBDCCB', accent:'#7A4A2B'}]},
   {id:'light', q:'lf_q3', sub:'lf_q3_sub', opts:[
     {id:'light', theme:'light'},
     {id:'dark',  theme:'dark'}]},
@@ -12357,13 +12343,12 @@ const LF_QUESTIONS=[
     {id:'bubbles',  click:'bubbles'},
     {id:'firework', click:'firework'}]},
 ];
-const LF_WIDE=new Set(['landing','board','boardmove','uianim','trail','click']);
+const LF_WIDE=new Set(['palette','landing','board','boardmove','uianim','trail','click']);
 function lfOpt(qid,oid){ const q=LF_QUESTIONS.find(x=>x.id===qid); return q?q.opts.find(o=>o.id===oid):null; }
 function lfParts(qid,oid){ const p=t('lf_o_'+qid+'_'+oid).split('|'); return {label:p[0], desc:p[1]||''}; }
 function lfCode(ans){ let h=7; Object.keys(ans).sort().forEach(k=>{ (k+ans[k]).split('').forEach(c=>{ h=(h*31+c.charCodeAt(0))>>>0; }); }); return h.toString(36).toUpperCase().padStart(4,'0').slice(-4); }
 function lfName(ans){
-  const bgn=ans.bgcolor?lfParts('bgcolor',ans.bgcolor).label:'', acn=ans.accent?lfParts('accent',ans.accent).label:'';
-  const pal=(bgn&&acn)?bgn+' & '+acn:(bgn||acn||'NOTUA');
+  const pal=ans.palette?lfParts('palette',ans.palette).label:'NOTUA';
   return t(ans.light==='dark'?'lf_name_dark':'lf_name_light',{p:pal});
 }
 function lfSnapshot(){
@@ -12377,11 +12362,9 @@ function lfSetUiAnimQuiet(o){
   }catch(e){}
   try{ refreshDockMagnify(); applyDynamicAnimSettings(); refreshUiDynamicToggleUI(); }catch(e){}
 }
-// Farbpaar aus den bisherigen Antworten; was noch nicht gewählt wurde, bleibt neutral/Standard (für die Live-Vorschau)
 function lfColors(ans){
-  const b=lfOpt('bgcolor',ans.bgcolor), a=lfOpt('accent',ans.accent);
-  if(!b && !a) return null;
-  return {background:b?b.hex:'#E7E9EE', accent:a?a.hex:'#FF6B57'};
+  const p=lfOpt('palette',ans.palette);
+  return p?{background:p.bg,accent:p.accent}:null;
 }
 function lfApplyAll(ans,final){
   const root=document.documentElement;
@@ -12422,8 +12405,7 @@ function lfFinish(ans){
   try{ localStorage.setItem(LF_ANS_KEY,JSON.stringify(ans)); }catch(e){}
 }
 function lfVisual(qid,o){
-  if(qid==='bgcolor') return `<span class="lf-bgc" style="background:${o.hex}"><i></i><i></i></span>`;
-  if(qid==='accent') return `<span class="lf-acc"><b style="background:${o.hex}">Aa</b><i style="background:${o.hex}"></i><u style="border-color:${o.hex}"></u></span>`;
+  if(qid==='palette') return `<span class="lf-pal" style="background:${o.bg}"><i class="c"></i><i class="p" style="background:${o.accent}"></i><i class="l" style="background:${o.accent}"></i><i class="d" style="background:${o.accent}"></i></span>`;
   if(qid==='light') return `<span class="lf-win${o.id==='dark'?' dk':''}"></span>`;
   if(qid==='shape') return `<span class="lf-shape" style="border-radius:${o.radius}px"><i></i><i></i></span>`;
   if(qid==='font'){ const ff=o.font==='default'?'inherit':DESIGN_FONTS[o.font]; return `<span class="lf-font" style="font-family:${ff}"><b>Aa</b><small>Notiz</small></span>`; }
@@ -14245,7 +14227,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION = '2.4.82';
+const APP_VERSION = '2.4.84';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -15320,8 +15302,10 @@ viewport.addEventListener('focusout',()=>{
 //      with whatever kind it turns out to be, so nothing is lost.
 // Manuelle Einstellung (Secret-Menü "Anpassen"): 'auto' = Erkennung unten, 'zoom'/'pan' erzwingt es für
 // jedes Mausrad-/Wisch-Ereignis ohne Strg — der sichere Ausweg, falls ein Gerät doch falsch erkannt wird.
-let wheelPref='auto';
-try{ const v=localStorage.getItem('notua-wheel-pref'); if(v==='zoom'||v==='pan') wheelPref=v; }catch(e){}
+let wheelPref='zoom';
+// Standard: Mausrad hoch/runter = zoomen (Tom). 'auto' (Mausrad vs. Trackpad erraten) und 'pan' bleiben im Design-Menü wählbar;
+// gespeichert wird jetzt jede Wahl explizit, damit "Automatisch" nicht mehr mit "nichts gewählt" verwechselt wird.
+try{ const v=localStorage.getItem('notua-wheel-pref'); if(v==='zoom'||v==='pan'||v==='auto') wheelPref=v; }catch(e){}
 const WHEEL_BURST_GAP_MS=220, WHEEL_TRACKPAD_STICKY_MS=1500, WHEEL_PENDING_MS=45;
 let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0, wheelPending=null;
 function wheelApply(kind,x,y,dx,dy){
