@@ -4067,6 +4067,11 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5h16v11H9l-4 4v-4H4z"/><path d="M9.6 9.4c0-1.3 1.1-2.1 2.4-2.1 1.4 0 2.5.7 2.5 1.9 0 1.5-2.3 1.5-2.3 3.1" stroke-linecap="round"/><circle cx="12" cy="14.5" r="0.9" fill="currentColor" stroke="none"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
+      <!-- Hidden-code-gated (password 'functionlook'): Look-Code — eigener Code (12 Zeichen) für das eigene UI. -->
+      <button type="button" class="tools-sheet-card" id="toolsLookCodeItem" data-beta="look" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5M15 7l5 5-5 5M13.5 5 10.5 19"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
     </div>
   </div>
 
@@ -5071,6 +5076,13 @@ const I18N={
   // same name for the step list/engine. Only `de` (+ a rough `en`) provided on purpose for now: this
   // is a hidden beta feature, and t() already falls back to `de` for any language without its own
   // entry, so es/da simply show the German text until/unless this becomes a public feature.
+  tools_secret_look_item:{de:'Look-Code',en:'Look code'},
+  beta_look_unlocked_toast:{de:'Look-Code freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Look code unlocked — find it in the overview\'s Secret Settings'},
+  lf_codemenu_title:{de:'Look-Code',en:'Look code'},
+  lf_codemenu_intro:{de:'Dein UI als 12-stelliger Code. Kopiere ihn, um deinen Look zu sichern, oder löse einen Code ein, um ihn auf diesem Gerät zu laden.',en:'Your UI as a 12-character code. Copy it to keep your look, or enter a code to load it on this device.'},
+  lf_codemenu_none:{de:'Noch kein Look gespeichert — wähle zuerst einen im Look-Finder.',en:'No look saved yet — pick one in the Look-Finder first.'},
+  lf_codemenu_finder:{de:'Look-Finder öffnen',en:'Open Look-Finder'},
+  lf_codemenu_done:{de:'Look geladen',en:'Look loaded'},
   tools_secret_tooltip_item:{de:'Tooltip-Tour',en:'Tooltip tour'},
   tour_ask_title:{de:'Onboarding-Tour machen?',en:'Take the onboarding tour?'},
   tour_ask_body:{de:'Eine kurze Tour zeigt dir Schritt für Schritt, wo alles ist. Du kannst sie jederzeit über Werkzeuge → Tooltip-Tour starten.',en:'A short tour shows you where everything is, step by step. You can start it any time via Tools → Tooltip tour.'},
@@ -6233,6 +6245,7 @@ function applyI18n(){
     ['#dockCustomizeBtn','title',t('dock_customize_btn_title')],
     ['#toolsAnimControlItem .tools-sheet-card-label','text',t('anim_control_label')],
     ['#toolsTooltipTourItem .tools-sheet-card-label','text',t('tools_secret_tooltip_item')],
+    ['#toolsLookCodeItem .tools-sheet-card-label','text',t('tools_secret_look_item')],
     ['#toolsLookItem .tools-sheet-card-label','text',t('tools_look_item')],
     ['#controlsHelpBtn','title',t('controls_btn_title')],
     ['#familyBtn','title',t('family_btn_title')],['#familyPanelTitle','text',t('family_panel_title')],
@@ -10567,7 +10580,7 @@ function applyBetaFeatureVisibility(){
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -11080,6 +11093,7 @@ function showSecretPasswordModal(){
     // sehen" — the whole guided tooltip tour (see the TOOLTIP ONBOARDING TOUR section) stays fully
     // invisible to every normal user until this code is entered once, same unlock-forever-on-this-
     // device pattern as strava/wow/control/template above.
+    else if(v==='functionlook'){ scrim.remove(); unlockBetaFeature('look'); showToast(t('beta_look_unlocked_toast')); }
     else if(v==='functiontooltip'){ scrim.remove(); unlockBetaFeature('tooltip'); showToast(t('beta_tooltip_unlocked_toast')); }
     // Neu (v2.4.71): Grid-Formen + Landingpage-Animation — öffnet ein kleines Anpassen-Menü.
     // v2.4.73: Karten-Look, Schrift, Board-Hintergrund, Landing-Animationen, Cursor-Effekte.
@@ -12749,7 +12763,7 @@ function lfFinish(ans){
   if(col) applyCustomTheme(col,true);
   if(l) setTheme(l.theme);
   saveDesignStyle(); saveGridStyle();
-  try{ localStorage.setItem(LF_ANS_KEY,JSON.stringify(ans)); }catch(e){}
+  try{ localStorage.setItem(LF_ANS_KEY,JSON.stringify(ans)); const c=lfEncode(ans); if(c) localStorage.setItem('notua-look-code',c); }catch(e){}
 }
 function lfVisual(qid,o){
   if(qid==='palette') return `<span class="lf-pal" style="background:${o.bg}"><i class="c"></i><i class="p" style="background:${o.accent}"></i><i class="l" style="background:${o.accent}"></i><i class="d" style="background:${o.accent}"></i></span>`;
@@ -12809,9 +12823,7 @@ const LF_DICE_SVG='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" s
 function showLookFinder(opts){
   opts=opts||{};
   const first=!!opts.firstRun, snap=lfSnapshot();
-  // Startbasis des Look-Finders: Mono im Lightmode mit allen Standardeinstellungen (nur Vorschau, nichts gespeichert).
-  // "Später" stellt über lfRestore(snap) den Standard-Look (blau/orange) wieder her.
-  if(first){ try{ document.documentElement.setAttribute('data-theme','light'); applyCustomTheme(THEME_MONO,false); syncThemeUI(); }catch(e){} }
+  // Der Look-Finder startet NICHT mit einem anderen Look: bis zur ersten Antwort bleibt das normale Standard-UI (blau/orange).
   let ans={}, step=0, closed=false;
   const scrim=document.createElement('div'); scrim.className='modal-scrim lf-scrim';
   scrim.innerHTML='<div class="modal lf-modal"></div>';
@@ -12825,19 +12837,6 @@ function showLookFinder(opts){
   function render(){
     if(step<N) renderQuestion(); else renderResult();
   }
-  function renderCodeEntry(){
-    box.innerHTML=`
-      <div><h4 class="lf-q">${t('lf_code_title')}</h4><p style="margin-top:4px;">${t('lf_code_hint')}</p></div>
-      <input type="text" class="lf-code-input" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX">
-      <p class="lf-code-err" hidden>${t('lf_code_bad')}</p>
-      <div class="lf-foot"><button type="button" data-a="back">${t('lf_back')}</button><span class="lf-spacer"></span><button type="button" class="primary" data-a="go">${t('lf_code_apply')}</button></div>`;
-    const inp=box.querySelector('input'), err=box.querySelector('.lf-code-err');
-    const go=()=>{ const a=lfDecode(inp.value); if(!a){ err.hidden=false; return; } ans=a; lfApplyAll(ans,false); step=N; render(); };
-    box.querySelector('[data-a="back"]').addEventListener('click',render);
-    box.querySelector('[data-a="go"]').addEventListener('click',go);
-    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } });
-    setTimeout(()=>inp.focus(),30);
-  }
   function renderQuestion(){
     const q=LF_QUESTIONS[step];
     box.innerHTML=`
@@ -12847,7 +12846,7 @@ function showLookFinder(opts){
       <div class="lf-foot">
         <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>
         <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button>
-        <button type="button" data-a="code">${t('lf_code_enter')}</button><span class="lf-spacer"></span>
+<span class="lf-spacer"></span>
         ${step>0?`<button type="button" data-a="back">${t('lf_back')}</button>`:''}
         <button type="button" class="primary" data-a="next"${ans[q.id]?'':' disabled'}>${t(step===N-1?'lf_show_result':'lf_next')}</button>
       </div>`;
@@ -12861,7 +12860,6 @@ function showLookFinder(opts){
     }));
     box.querySelector('[data-a="later"]').addEventListener('click',cancel);
     box.querySelector('[data-a="rand"]').addEventListener('click',randomize);
-    box.querySelector('[data-a="code"]').addEventListener('click',renderCodeEntry);
     const bk=box.querySelector('[data-a="back"]'); if(bk) bk.addEventListener('click',()=>{ step--; render(); });
     box.querySelector('[data-a="next"]').addEventListener('click',()=>{ if(!ans[q.id]) return; step++; render(); });
   }
@@ -12879,7 +12877,7 @@ function showLookFinder(opts){
             <div class="lf-pc c3"><b>NOTUA</b></div>
             ${sparks}
           </div>
-          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')}<div class="lf-code-row"><span class="lf-code-txt">${code}</span><button type="button" class="lf-copy" data-a="copy" title="${t('lf_copy_title')}">${t('lf_copy')}</button></div></div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{k:N,n:LF_QUESTIONS.reduce((a,q)=>a*q.opts.length,1).toLocaleString(document.documentElement.lang==='en'?'en-US':'de-DE')})}</div></div>
+          <div class="lf-info"><div class="lf-rcode">${t('lf_code_label')}${isBetaFeatureUnlocked('look')?`<div class="lf-code-row"><span class="lf-code-txt">${code}</span><button type="button" class="lf-copy" data-a="copy" title="${t('lf_copy_title')}">${t('lf_copy')}</button></div>`:''}</div><div class="lf-rname">${name}</div><div class="lf-rsub">${t('lf_result_sub',{k:N,n:LF_QUESTIONS.reduce((a,q)=>a*q.opts.length,1).toLocaleString(document.documentElement.lang==='en'?'en-US':'de-DE')})}</div></div>
         </div>
         <div class="lf-items">${items}</div>
       </div>
@@ -12973,6 +12971,38 @@ function showControlsGuide(opts){
 }
 const controlsHelpBtn=document.getElementById('controlsHelpBtn');
 if(controlsHelpBtn) controlsHelpBtn.addEventListener('click',()=>showControlsGuide());
+function showLookCodeModal(){
+  let cur=''; try{ cur=localStorage.getItem('notua-look-code')||''; }catch(e){}
+  if(!cur){ try{ const a=JSON.parse(localStorage.getItem(LF_ANS_KEY)||'null'); if(a) cur=lfEncode(a)||''; }catch(e){} }
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('lf_codemenu_title')}</h4><p>${t('lf_codemenu_intro')}</p>
+    <div class="lf-code-row" style="margin:12px 0 4px;">${cur?`<span class="lf-code-txt" style="font-size:1.1rem;">${cur}</span><button type="button" class="lf-copy" data-a="copy">${t('lf_copy')}</button>`:`<span style="color:var(--muted);font-size:0.86rem;">${t('lf_codemenu_none')}</span>`}</div>
+    <input type="text" class="lf-code-input" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" style="margin-top:12px;">
+    <p class="lf-code-err" hidden>${t('lf_code_bad')}</p>
+    <div class="modal-actions"><button data-a="finder">${t('lf_codemenu_finder')}</button><button data-a="close">${t('modal_cancel')}</button><button data-a="go" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('lf_code_apply')}</button></div></div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  const inp=scrim.querySelector('input'), err=scrim.querySelector('.lf-code-err');
+  scrim.querySelector('[data-a="close"]').addEventListener('click',()=>scrim.remove());
+  scrim.querySelector('[data-a="finder"]').addEventListener('click',()=>{ scrim.remove(); showLookFinder({firstRun:false}); });
+  const cp=scrim.querySelector('[data-a="copy"]');
+  if(cp) cp.addEventListener('click',async()=>{
+    let ok=false; try{ await navigator.clipboard.writeText(cur); ok=true; }catch(e){}
+    if(!ok){ try{ const ta=document.createElement('textarea'); ta.value=cur; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok=document.execCommand('copy'); ta.remove(); }catch(e){} }
+    cp.textContent=t(ok?'lf_copied':'lf_copy'); if(ok) setTimeout(()=>{ if(cp.isConnected) cp.textContent=t('lf_copy'); },1600);
+  });
+  const go=()=>{
+    const a=lfDecode(inp.value); if(!a){ err.hidden=false; return; }
+    lfFinish(a); try{ localStorage.setItem(LF_DONE_KEY,'1'); }catch(e){}
+    scrim.remove(); try{ showToast(t('lf_codemenu_done')); }catch(e){}
+  };
+  scrim.querySelector('[data-a="go"]').addEventListener('click',go);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } });
+  document.body.appendChild(scrim);
+  setTimeout(()=>inp.focus(),30);
+}
+const toolsLookCodeItem=document.getElementById('toolsLookCodeItem');
+if(toolsLookCodeItem) toolsLookCodeItem.addEventListener('click',()=>{ closeToolsSheet(); showLookCodeModal(); });
 const toolsLookItem=document.getElementById('toolsLookItem');
 if(toolsLookItem) toolsLookItem.addEventListener('click',()=>{ closeToolsSheet(); showLookFinder({firstRun:false}); });
 
@@ -14615,7 +14645,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.89';
+const APP_VERSION='2.4.91';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
