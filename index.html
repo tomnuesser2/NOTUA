@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="NOTUA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
 <!-- EmailJS: sends the feedback form (see showFeedbackModal, opened from the "Über NOTUA" dialog)
      straight from the browser, no backend needed — only the Public Key ever reaches this file; that
      key is meant to be public (EmailJS's own client-side model), the account's Private Key is
@@ -5133,7 +5133,7 @@ const I18N={
   lf_o_font_rounded:{de:"Rund|freundliche Rundungen",en:"Rounded|friendly curves"},
   lf_o_font_serif:{de:"Serif|editorial & ruhig",en:"Serif|editorial & calm"},
   lf_o_font_mono:{de:"Mono|technisch & präzise",en:"Mono|technical & precise"},
-  lf_o_font_hand:{de:"Handschrift|persönlich & locker",en:"Handwriting|personal & relaxed"},
+  lf_o_font_helvetica:{de:"Helvetica|der Klassiker, zeitlos",en:"Helvetica|the timeless classic"},
   lf_o_shadow_flat:{de:"Flach|kein Schatten",en:"Flat|no shadow"},
   lf_o_shadow_soft:{de:"Sanft|weiche Schatten",en:"Soft|gentle shadows"},
   lf_o_shadow_float:{de:"Schwebend|Karten heben ab",en:"Floating|cards lift off"},
@@ -5462,7 +5462,7 @@ const I18N={
   design_text:{de:'Schrift',en:'Typography'},
   design_font_serif:{de:'Serif',en:'Serif'},
   design_font_mono:{de:'Mono',en:'Mono'},
-  design_font_hand:{de:'Handschrift',en:'Handwriting'},
+  design_font_helvetica:{de:'Helvetica',en:'Helvetica'},
   design_font_rounded:{de:'Rund',en:'Rounded'},
   design_font_size:{de:'Größe',en:'Size'},
   design_bg:{de:'Board-Hintergrund',en:'Board background'},
@@ -8758,7 +8758,7 @@ const DESIGN_KEY='notua-design';
 const DESIGN_FONTS={
   serif:"'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif",
   mono:"'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace",
-  hand:"'Segoe Print','Bradley Hand','Marker Felt','Comic Sans MS',cursive",
+  helvetica:"'Helvetica Neue',Helvetica,'Inter',Arial,sans-serif",
   rounded:"ui-rounded,'SF Pro Rounded','Nunito','Varela Round','Segoe UI',system-ui,sans-serif"
 };
 const designStyle=(()=>{
@@ -8773,7 +8773,8 @@ const designStyle=(()=>{
       d.shadowAmt=num(r.shadowAmt,0,3,1);
       if(['default','none','strong','accent'].includes(r.border)) d.border=r.border;
       d.borderW=r.borderW==null?null:num(r.borderW,0,6,null);
-      if(r.font==='default'||DESIGN_FONTS[r.font]) d.font=r.font;
+      if(r.font==='hand') d.font='helvetica'; // Handschrift entfernt → Helvetica
+      else if(r.font==='default'||DESIGN_FONTS[r.font]) d.font=r.font;
       d.fontScale=num(r.fontScale,0.85,1.3,1);
       if(['grid','lines','cross','paper','gradient','plain'].includes(r.bg)) d.bg=r.bg;
       d.bgMove=!!r.bgMove;
@@ -11628,7 +11629,7 @@ function showDesignMenuModal(){
   const DD={
     shadow:{get:()=>D.shadow,set:v=>{D.shadow=v;},list:['default','none','soft','strong'].map(v=>({v,label:t('design_opt_'+v)}))},
     border:{get:()=>D.border,set:v=>{D.border=v;},list:['default','none','strong','accent'].map(v=>({v,label:t('design_opt_'+v)}))},
-    font:{get:()=>D.font,set:v=>{D.font=v;},list:['default','serif','mono','hand','rounded'].map(v=>({v,label:v==='default'?t('design_opt_default'):t('design_font_'+v),style:v==='default'?'':`font-family:${DESIGN_FONTS[v]}`}))},
+    font:{get:()=>D.font,set:v=>{D.font=v;},list:['default','serif','mono','helvetica','rounded'].map(v=>({v,label:v==='default'?t('design_opt_default'):t('design_font_'+v),style:v==='default'?'':`font-family:${DESIGN_FONTS[v]}`}))},
     bg:{get:()=>D.bg,set:v=>{D.bg=v;},list:['grid','lines','cross','paper','gradient','plain'].map(v=>({v,label:t('design_bg_'+v)}))},
     shape:{get:()=>gridStyle.shape,set:v=>{gridStyle.shape=v;},list:GRID_SHAPES.map(v=>({v,label:t('style_shape_'+v),ico:shapeIco(v)}))},
     landingMode:{get:()=>gridStyle.landingMode,set:v=>{gridStyle.landingMode=v;},list:LANDING_MODES.map(v=>({v,label:t('design_land_'+v)}))},
@@ -12518,7 +12519,7 @@ const LF_QUESTIONS=[
     {id:'rounded', font:'rounded'},
     {id:'serif',   font:'serif'},
     {id:'mono',    font:'mono'},
-    {id:'hand',    font:'hand'}]},
+    {id:'helvetica', font:'helvetica'}]},
   // --- Tiefe ---
   {id:'shadow', q:'lf_q6', sub:'lf_q6_sub', opts:[
     {id:'flat',  shadow:'none',   shadowAmt:1},
@@ -14484,7 +14485,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.87';
+const APP_VERSION='2.4.88';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
