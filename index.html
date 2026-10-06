@@ -2528,6 +2528,21 @@ try{
     font-size:0.78rem; color:var(--muted); cursor:var(--custom-pointer-cursor,pointer); user-select:none;
   }
   .export-transparent-row input[type=checkbox]{accent-color:var(--accent); cursor:var(--custom-pointer-cursor,pointer); flex:none;}
+  /* PDF export dialog (openPdfExportDialog) */
+  .pdf-dlg{width:420px; max-width:calc(100vw - 32px);}
+  .pdf-dlg-scope{margin:0; font-size:0.82rem; color:var(--muted);}
+  .pdf-dlg-group{display:flex; flex-direction:column; gap:8px; margin:10px 0 6px;}
+  .pdf-dlg-opt{display:flex; gap:10px; align-items:flex-start; padding:9px 11px; border:1px solid var(--border); border-radius:10px; cursor:var(--custom-pointer-cursor,pointer);}
+  .pdf-dlg-opt:has(input:checked){border-color:var(--accent); background:var(--surface-2);}
+  .pdf-dlg-opt input{margin-top:3px; accent-color:var(--accent); flex:none;}
+  .pdf-dlg-opt span{display:flex; flex-direction:column; gap:2px; font-size:0.88rem;}
+  .pdf-dlg-opt small{color:var(--muted); font-size:0.76rem; line-height:1.35;}
+  .pdf-dlg-paper{display:flex; align-items:center; gap:14px; font-size:0.86rem; margin:6px 0;}
+  .pdf-dlg-paper > span{color:var(--muted);}
+  .pdf-dlg-paper label{display:flex; align-items:center; gap:6px; cursor:var(--custom-pointer-cursor,pointer);}
+  .pdf-dlg-paper input{accent-color:var(--accent);}
+  .pdf-dlg-preview{width:100%; height:150px; display:block; border:1px solid var(--border); border-radius:10px; background:var(--surface-2);}
+  .pdf-dlg-summary{margin:6px 0 2px; font-size:0.82rem; color:var(--muted); text-align:center;}
   .create-ghost{
     position:fixed; z-index:200; pointer-events:none; display:flex; align-items:center; gap:6px;
     background:var(--surface); border:1px solid var(--accent); border-radius:8px; padding:6px 10px; font-size:0.8rem;
@@ -3089,6 +3104,59 @@ try{
      so it never covers it. Reference-counted via showBusy/hideBusy so several overlapping background
      operations (board delete/restore, import, sync) share one pill instead of flickering it open/
      closed. Purely a progress *signal* — it never blocks input. */
+  /* ---- Cloud Sync V2: Statussymbol, Detailansicht, Bild-Platzhalter ---- */
+  .sync-chip{
+    position:fixed; right:10px; bottom:76px; z-index:61; width:34px; height:34px; padding:0;
+    display:flex; align-items:center; justify-content:center; border-radius:50%;
+    background:var(--surface); border:1px solid var(--border); color:var(--ink-soft,var(--ink));
+    box-shadow:0 8px 20px -8px var(--shadow-lg); cursor:pointer; opacity:.92;
+  }
+  .sync-chip[hidden]{display:none}
+  .sync-chip:hover{opacity:1}
+  .sync-chip-ico svg{width:17px; height:17px; display:block}
+  .sync-chip-dot{position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid var(--surface); background:#3fb97b}
+  .sync-chip[data-k="busy"] .sync-chip-dot{background:#4d8dff; animation:syncPulse 1s ease-in-out infinite}
+  .sync-chip[data-k="pending"] .sync-chip-dot{background:#e0a03a}
+  .sync-chip[data-k="offline"] .sync-chip-dot{background:#8a8f98}
+  .sync-chip[data-k="error"] .sync-chip-dot, .sync-chip[data-k="worker"] .sync-chip-dot{background:var(--danger,#d9534f)}
+  @keyframes syncPulse{0%,100%{opacity:1; transform:scale(1)}50%{opacity:.4; transform:scale(.8)}}
+  .sync-panel{
+    position:fixed; right:10px; bottom:118px; z-index:62; width:min(320px,calc(100vw - 20px)); max-height:min(70vh,520px);
+    display:none; flex-direction:column; gap:8px; padding:14px; overflow:hidden;
+    background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:0 18px 40px -12px var(--shadow-lg);
+    font-size:13px; color:var(--ink);
+  }
+  .sync-panel.show{display:flex}
+  .sync-panel-head{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .sync-panel-title{font-weight:600; font-size:14px}
+  .sync-panel-state{font-size:12px; padding:2px 9px; border-radius:999px; background:var(--border); color:var(--ink)}
+  .sync-panel-state[data-k="ok"]{background:rgba(63,185,123,.18)}
+  .sync-panel-state[data-k="busy"]{background:rgba(80,140,255,.18)}
+  .sync-panel-state[data-k="pending"]{background:rgba(224,160,58,.2)}
+  .sync-panel-state[data-k="error"], .sync-panel-state[data-k="worker"]{background:rgba(217,83,79,.2)}
+  .sync-panel-meta{font-size:12px; opacity:.7}
+  .sync-panel-stats{display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; opacity:.85}
+  .sync-note{font-size:12px; padding:8px 10px; border-radius:10px; background:rgba(217,83,79,.12)}
+  .sync-rows{overflow:auto; display:flex; flex-direction:column; gap:2px; min-height:0; margin:0 -4px; padding:0 4px}
+  .sync-row{display:flex; align-items:center; gap:8px; padding:4px 0}
+  .sync-row-dot{flex:none; width:8px; height:8px; border-radius:50%; background:#3fb97b}
+  .sync-row[data-k="busy"] .sync-row-dot{background:#4d8dff}
+  .sync-row[data-k="pending"] .sync-row-dot{background:#e0a03a}
+  .sync-row[data-k="error"] .sync-row-dot{background:var(--danger,#d9534f)}
+  .sync-row-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .sync-row-state{flex:none; font-size:11.5px; opacity:.65}
+  .sync-empty{opacity:.6; padding:6px 0}
+  .sync-err{font-size:11.5px; color:var(--danger,#d9534f); word-break:break-word}
+  .sync-panel-actions{display:flex; justify-content:flex-end}
+  .sync-now{font:inherit; font-size:12.5px; padding:6px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer}
+  .sync-now:disabled{opacity:.5; cursor:default}
+  .img-loading, .img-missing{position:absolute; inset:0; border-radius:inherit; min-height:48px;
+    background:linear-gradient(100deg,var(--border) 30%,var(--surface) 50%,var(--border) 70%); background-size:220% 100%; animation:imgShimmer 1.3s linear infinite; opacity:.75}
+  .img-missing{animation:none; opacity:.4; background:var(--border)}
+  img.img-pending{display:inline-block; min-width:120px; min-height:80px; border-radius:8px;
+    background:linear-gradient(100deg,var(--border) 30%,var(--surface) 50%,var(--border) 70%); background-size:220% 100%; animation:imgShimmer 1.3s linear infinite}
+  img.img-missing-el{display:inline-block; min-width:60px; min-height:40px; background:var(--border); opacity:.5}
+  @keyframes imgShimmer{from{background-position:120% 0}to{background-position:-120% 0}}
   .busy-bar{
     position:absolute; right:10px; bottom:32px; z-index:60;
     display:flex; align-items:center; gap:7px; max-width:min(62vw,230px);
@@ -4474,6 +4542,23 @@ const I18N={
   // background color set (see openFormatMenu()); only ever applies to the PNG format (JPEG/PDF have no
   // alpha channel).
   export_transparent_bg_label:{de:'Transparent exportieren (PNG)',en:'Export transparent (PNG)',es:'Exportar transparente (PNG)',da:'Eksportér transparent (PNG)'},
+  // PDF export dialog (openPdfExportDialog) — Tom, 06.10
+  pdf_dialog_title:{de:'Als PDF exportieren',en:'Export as PDF',es:'Exportar como PDF',da:'Eksportér som PDF'},
+  pdf_scope_selection:{de:'{n} markierte Elemente',en:'{n} selected elements',es:'{n} elementos seleccionados',da:'{n} markerede elementer'},
+  pdf_scope_board:{de:'Ganzes Board ({n} Elemente)',en:'Whole board ({n} elements)',es:'Tablero completo ({n} elementos)',da:'Hele tavlen ({n} elementer)'},
+  pdf_mode_fit:{de:'Ganzes Board auf 1 Seite',en:'Whole board on 1 page',es:'Todo el tablero en 1 página',da:'Hele tavlen på 1 side'},
+  pdf_mode_fit_hint:{de:'Hochauflösend, alles skaliert auf eine Seite.',en:'High resolution, everything scaled onto one page.',es:'Alta resolución, todo escalado a una página.',da:'Høj opløsning, alt skaleret til én side.'},
+  pdf_mode_auto:{de:'Automatisch lesbar',en:'Automatically readable',es:'Automático y legible',da:'Automatisk læsbar'},
+  pdf_mode_auto_hint:{de:'Große Lücken werden gekürzt, die Elemente in gut lesbarer Größe auf Seiten verteilt.',en:'Large gaps are shortened and elements are spread over pages at a readable size.',es:'Se acortan los huecos grandes y los elementos se reparten en páginas con un tamaño legible.',da:'Store mellemrum forkortes, og elementerne fordeles på sider i en læsbar størrelse.'},
+  pdf_paper_label:{de:'Papierformat',en:'Paper size',es:'Tamaño de papel',da:'Papirstørrelse'},
+  pdf_summary:{de:'{orient} · {n} {pages}',en:'{orient} · {n} {pages}',es:'{orient} · {n} {pages}',da:'{orient} · {n} {pages}'},
+  pdf_orient_portrait:{de:'Hochformat',en:'Portrait',es:'Vertical',da:'Stående'},
+  pdf_orient_landscape:{de:'Querformat',en:'Landscape',es:'Horizontal',da:'Liggende'},
+  pdf_page_one:{de:'Seite',en:'page',es:'página',da:'side'},
+  pdf_page_many:{de:'Seiten',en:'pages',es:'páginas',da:'sider'},
+  pdf_create:{de:'PDF erstellen',en:'Create PDF',es:'Crear PDF',da:'Opret PDF'},
+  pdf_creating:{de:'Seite {i}/{n} …',en:'Page {i}/{n} …',es:'Página {i}/{n} …',da:'Side {i}/{n} …'},
+  pdf_too_many_pages:{de:'Zu viele Seiten (max. {max}). Bitte weniger Elemente markieren.',en:'Too many pages (max {max}). Please select fewer elements.',es:'Demasiadas páginas (máx. {max}). Selecciona menos elementos.',da:'For mange sider (maks. {max}). Markér færre elementer.'},
   insp_export_title:{de:'Auswahl als PNG/JPEG/PDF exportieren',en:'Export selection as PNG/JPEG/PDF',es:'Exportar selección como PNG/JPEG/PDF',da:'Eksportér markering som PNG/JPEG/PDF'},
   cluster_create_title:{de:'Cluster erstellen (gemeinsam verschieben)',en:'Create cluster (move together)',es:'Crear grupo (se mueve todo junto)',da:'Opret klynge (flyt sammen)'},
   cluster_dissolve_title:{de:'Cluster auflösen',en:'Dissolve cluster',es:'Disolver grupo',da:'Opløs klynge'},
@@ -4644,6 +4729,35 @@ const I18N={
   busy_restoring_board:{de:'Stellt wieder her …',en:'Restoring …',es:'Restaurando…',da:'Gendanner …'},
   busy_deleting_board_forever:{de:'Löscht endgültig …',en:'Deleting for good …',es:'Eliminando definitivamente…',da:'Sletter permanent …'},
   busy_importing:{de:'Importiert …',en:'Importing …',es:'Importando…',da:'Importerer …'},
+  sync2_chip_title:{de:'Cloud-Sync-Status',en:'Cloud sync status',es:'Estado de la sincronización',da:'Cloud-sync-status'},
+  sync2_ok:{de:'Alles synchronisiert',en:'Everything synced',es:'Todo sincronizado',da:'Alt synkroniseret'},
+  sync2_syncing:{de:'Synchronisiert …',en:'Syncing …',es:'Sincronizando…',da:'Synkroniserer …'},
+  sync2_pending:{de:'{n} Board(s) warten auf Upload',en:'{n} board(s) waiting to upload',es:'{n} tablero(s) esperando subida',da:'{n} board(s) venter på upload'},
+  sync2_images:{de:'Bilder werden übertragen ({n})',en:'Transferring images ({n})',es:'Transfiriendo imágenes ({n})',da:'Overfører billeder ({n})'},
+  sync2_offline:{de:'Offline – wartet auf Verbindung',en:'Offline – waiting for connection',es:'Sin conexión: esperando',da:'Offline – venter på forbindelse'},
+  sync2_offline_pending:{de:'Offline – {n} Änderung(en) gemerkt',en:'Offline – {n} change(s) saved',es:'Sin conexión: {n} cambio(s) guardados',da:'Offline – {n} ændring(er) gemt'},
+  sync2_error:{de:'Sync-Fehler – wird erneut versucht',en:'Sync error – will retry',es:'Error de sincronización: se reintentará',da:'Sync-fejl – prøver igen'},
+  sync2_needs_worker:{de:'Worker-Update nötig (alte Sync-Engine aktiv)',en:'Worker update needed (old sync engine active)',es:'Falta actualizar el Worker (motor antiguo activo)',da:'Worker-opdatering nødvendig (gammel sync aktiv)'},
+  sync2_worker_hint:{de:'Der Cloudflare-Worker kennt die neue Sync-Version noch nicht. Bis er aktualisiert ist, läuft der bisherige Sync weiter – nichts geht verloren.',en:'The Cloudflare Worker does not know the new sync version yet. Until it is updated the previous sync keeps running – nothing is lost.',es:'El Worker de Cloudflare aún no conoce la nueva versión. Hasta actualizarlo sigue la sincronización anterior; no se pierde nada.',da:'Cloudflare-Worker kender endnu ikke den nye version. Indtil den opdateres kører den tidligere sync – intet går tabt.'},
+  sync2_panel_title:{de:'Cloud-Sync',en:'Cloud sync',es:'Sincronización en la nube',da:'Cloud-sync'},
+  sync2_last:{de:'Zuletzt erfolgreich: {time}',en:'Last success: {time}',es:'Último éxito: {time}',da:'Sidst lykkedes: {time}'},
+  sync2_just_now:{de:'gerade eben',en:'just now',es:'ahora mismo',da:'lige nu'},
+  sync2_sec_ago:{de:'vor {n} s',en:'{n}s ago',es:'hace {n} s',da:'for {n} s siden'},
+  sync2_min_ago:{de:'vor {n} min',en:'{n} min ago',es:'hace {n} min',da:'for {n} min siden'},
+  sync2_hour_ago:{de:'vor {n} h',en:'{n} h ago',es:'hace {n} h',da:'for {n} t siden'},
+  sync2_stat_pending:{de:'Ausstehend: {n}',en:'Pending: {n}',es:'Pendientes: {n}',da:'Afventer: {n}'},
+  sync2_stat_img_up:{de:'Bilder hoch: {n}',en:'Images up: {n}',es:'Imágenes subir: {n}',da:'Billeder op: {n}'},
+  sync2_stat_img_down:{de:'Bilder runter: {n}',en:'Images down: {n}',es:'Imágenes bajar: {n}',da:'Billeder ned: {n}'},
+  sync2_b_synced:{de:'synchron',en:'in sync',es:'sincronizado',da:'synkroniseret'},
+  sync2_b_syncing:{de:'gleicht ab …',en:'syncing …',es:'sincronizando…',da:'synkroniserer …'},
+  sync2_b_loading:{de:'lädt …',en:'loading …',es:'cargando…',da:'indlæser …'},
+  sync2_b_pending:{de:'wartet',en:'waiting',es:'en espera',da:'venter'},
+  sync2_b_new:{de:'neu',en:'new',es:'nuevo',da:'ny'},
+  sync2_b_error:{de:'Fehler',en:'error',es:'error',da:'fejl'},
+  sync2_b_trash:{de:'Papierkorb',en:'trash',es:'papelera',da:'papirkurv'},
+  sync2_no_boards:{de:'Noch keine Boards',en:'No boards yet',es:'Aún no hay tableros',da:'Ingen boards endnu'},
+  sync2_now:{de:'Jetzt synchronisieren',en:'Sync now',es:'Sincronizar ahora',da:'Synkroniser nu'},
+  sync2_image_missing:{de:'Bild noch nicht in der Cloud',en:'Image not in the cloud yet',es:'La imagen aún no está en la nube',da:'Billedet er endnu ikke i skyen'},
   busy_syncing:{de:'Synchronisiert …',en:'Syncing …',es:'Sincronizando…',da:'Synkroniserer …'},
   busy_pulling:{de:'Holt Änderungen …',en:'Fetching changes …',es:'Obteniendo cambios…',da:'Henter ændringer …'},
   sync_conflict_title:{de:'Unterschiedliche Versionen',en:'Different versions',es:'Versiones diferentes',da:'Forskellige versioner'},
@@ -5078,6 +5192,8 @@ const I18N={
   whatsnew_item_transparentexport_desc:{de:'Der Hintergrund-Button wählt jetzt nur noch die Farbe — beim Exportieren als PNG kann der Hintergrund stattdessen transparent gemacht werden.',en:'The background button now only picks the color — when exporting as PNG, the background can instead be made transparent.',es:'El botón de fondo ahora solo elige el color — al exportar como PNG, el fondo puede hacerse transparente en su lugar.',da:'Baggrundsknappen vælger nu kun farven — ved eksport som PNG kan baggrunden i stedet gøres transparent.'},
   whatsnew_item_stopmotionredesign_title:{de:'Überarbeitetes Stop-Motion-Menü',en:'Redesigned stop-motion menu',es:'Menú de stop-motion renovado',da:'Nyt stop-motion-menu'},
   whatsnew_item_stopmotionredesign_desc:{de:'Bild, Wiedergabe und Aktionen sind jetzt übersichtlich in eigenen Bereichen sortiert, und das Menü fährt beim Öffnen elegant aus.',en:'Frame, playback and actions are now neatly grouped into their own sections, and the menu now fans open elegantly.',es:'Fotograma, reproducción y acciones están ahora ordenados en secciones propias, y el menú se despliega ahora con elegancia.',da:'Billede, afspilning og handlinger er nu overskueligt grupperet i egne afsnit, og menuen folder sig nu elegant ud.'},
+  whatsnew_item_cloudsync2_title:{de:'Neuer Cloud-Sync: schneller & ohne Versionskonflikte',en:'New cloud sync: faster & no version conflicts',es:'Nueva sincronización: más rápida y sin conflictos',da:'Ny cloud-sync: hurtigere og uden versionskonflikter'},
+  whatsnew_item_cloudsync2_desc:{de:'Boards laden sofort, Texte kommen zuerst, Bilder folgen mit Platzhalter. Änderungen von Handy und PC werden still pro Eigenschaft zusammengeführt – auch nach Offline-Arbeit. Das Wolken-Symbol unten rechts zeigt den Status.',en:'Boards load instantly, text arrives first and images follow with a placeholder. Changes from phone and PC are merged silently per property – even after working offline. The cloud icon at the bottom right shows the status.',es:'Los tableros cargan al instante, primero el texto y luego las imágenes con marcador. Los cambios del móvil y del PC se fusionan en silencio, incluso tras trabajar sin conexión. El icono de nube abajo a la derecha muestra el estado.',da:'Boards indlæses straks, tekst kommer først og billeder følger med pladsholder. Ændringer fra mobil og pc flettes stille pr. egenskab – også efter offline-arbejde. Sky-ikonet nederst til højre viser status.'},
   whatsnew_item_sliderpos_title:{de:'Feste Regler für Glätten & Stärke',en:'Fixed sliders for smoothing & thickness',es:'Controles fijos para suavizado y grosor',da:'Faste skydere til udjævning & tykkelse'},
   whatsnew_item_sliderpos_desc:{de:'Die Regler für Kantenglättung und Strichstärke öffnen sich jetzt immer an fester Position über dem jeweiligen Knopf — mit eigener kleiner Animation.',en:'The smoothing and thickness sliders now always open in a fixed position above their own button — with their own small animation.',es:'Los controles de suavizado y grosor ahora siempre se abren en una posición fija sobre su propio botón — con su propia pequeña animación.',da:'Skyderne til kantudjævning og stregtykkelse åbner nu altid på en fast plads over deres egen knap — med sin egen lille animation.'},
   whatsnew_item_blanket_title:{de:'Neu: Leinwand zum Zeichnen',en:'New: Blanket drawing canvas',es:'Nuevo: lienzo para dibujar',da:'Nyt: Lærred til tegning'},
@@ -6577,6 +6693,7 @@ async function r2ResetCloudData(){
   r2ForgetLocalKey();
   try{ localStorage.removeItem('notua-r2-device-token'); }catch(e){}
   r2State.encKey=null; r2State.cache.clear(); r2State.writers.clear(); r2State.boardIds=null;
+  try{ await v2ResetLocalState(); }catch(e){}
 }
 // Silent-only: resolves from this device's own cached key, or (only for a genuinely brand-new
 // account) generates the very first one — never prompts, never touches the QR/code linking flow, so
@@ -6978,7 +7095,7 @@ async function setR2SyncEnabled(on){
     }
   }
   try{ localStorage.setItem('notua-r2-sync',on?'1':'0'); }catch(e){}
-  if(!on){ r2State.cache.clear(); r2State.writers.clear(); r2State.boardIds=null; r2State.encKey=null; }
+  if(!on){ r2State.cache.clear(); r2State.writers.clear(); r2State.boardIds=null; r2State.encKey=null; clearTimeout(V2.timer); v2RenderChipSoon(); }
   refreshR2SyncToggleUI();
   refreshR2LinkDeviceUI();
   showToast(on?t('r2_sync_on_toast'):t('r2_sync_off_toast'));
@@ -7187,7 +7304,7 @@ function backendFor(src){
 async function resolveBoardSources(boardId){
   const checks=[['idb',IDB_DB]];
   if(fsState.root) checks.push(['fs',FS_DB]);
-  if(isR2SyncEnabled() && r2State.encKey) checks.push(['r2',R2_DB]);
+  if(isR2SyncEnabled() && r2State.encKey && r2Mode()==='legacy') checks.push(['r2',R2_DB]);
   const results=await Promise.all(checks.map(async ([src,backend])=>{
     try{ const b=await backend.getBoard(boardId); return b ? {src,updatedAt:b.updatedAt||0} : null; }
     catch(e){ return null; }
@@ -7232,6 +7349,7 @@ function activeBackend(){ return IDB_DB; }
 function markBoardDirty(boardId){
   if(!boardId) return;
   state.dirtyBoards.set(boardId, Date.now());
+  v2MarkDirty(boardId); // neue Cloud-Sync-Engine (siehe "CLOUD SYNC V2"): merkt sich Board + Änderungszeitpunkt
   scheduleSyncSoon();
 }
 // Squeezes any image blob down to IMAGE_STORAGE_MAX_BYTES before it's ever handed to a backend — the
@@ -7347,7 +7465,10 @@ async function pushBundleToBackend(bundle,backend){
 async function mergedBoardsFrom(methodName){
   const checks=[['idb',IDB_DB]];
   if(fsState.root) checks.push(['fs',FS_DB]);
-  if(isR2SyncEnabled() && r2State.encKey) checks.push(['r2',R2_DB]);
+  // Mit der neuen Engine liegt der Cloud-Stand ohnehin spiegelgleich in IndexedDB (siehe CLOUD SYNC V2) —
+  // die Startseite muss die Cloud nicht mehr Board für Board durchlesen. Das war der Hauptgrund für die
+  // langsame Startseite.
+  if(isR2SyncEnabled() && r2State.encKey && r2Mode()==='legacy') checks.push(['r2',R2_DB]);
   const lists=await Promise.all(checks.map(async ([src,backend])=>{
     try{ return {src, boards:await backend[methodName]()}; }catch(e){ return {src, boards:[]}; }
   }));
@@ -7363,7 +7484,11 @@ async function mergedBoardsFrom(methodName){
     }
   }
   if(!state.boardSources) state.boardSources=new Map();
-  for(const [id,v] of map){ state.boardSources.set(id,{sources:v.sources, bestSrc:v.bestSrc}); }
+  const v2On=r2Mode()==='v2';
+  for(const [id,v] of map){
+    if(v2On && V2.bases.has(id)) v.sources.add('r2'); // dieses Board wird mit der Cloud abgeglichen
+    state.boardSources.set(id,{sources:v.sources, bestSrc:v.bestSrc});
+  }
   return applyBoardOverrides([...map.values()].map(v=>v.board));
 }
 async function mergedAllBoards(){ return mergedBoardsFrom('allBoards'); }
@@ -7425,7 +7550,10 @@ async function runSyncEngine(){
   if(syncEngineRunning) return; // a run is already in flight — whatever asked for this one is either
                                   // already covered by it (still sitting in state.dirtyBoards) or will
                                   // be picked up by the steady reschedule right below; never lost.
-  const targets=syncTargets();
+  // Cloud-Sync (R2) läuft, sobald der Worker es kann, in der neuen Engine (v2Kick ist nicht-blockierend und
+  // hat seinen eigenen Takt) — die alte Engine hier kümmert sich dann nur noch um den verbundenen Ordner.
+  { const m=r2Mode(); if(m==='v2' || m==='wait') v2Kick(); }
+  const targets=legacyOnly(syncTargets());
   if(!targets.length){ scheduleSyncSoon(30000); return; } // nothing connected — just keep idling
   if(typeof navigator!=='undefined' && navigator.onLine===false){ scheduleSyncSoon(15000); return; }
   syncEngineRunning=true;
@@ -7467,6 +7595,9 @@ async function checkRemoteConflict(boardId,target,backend){
 // deleteBundle() right after a delete — see the comment there for why deleteBundle can't just leave
 // this to the background pass alone.
 async function pushBoardDeletionToTargets(boardId,targets){
+  if((targets||[]).includes('r2') && r2Mode()==='v2'){ v2MarkDirty(boardId); v2Kick(); } // Löschmarker im Index — erledigt die neue Engine
+  targets=legacyOnly(targets);
+  if(!targets.length){ state.dirtyBoards.delete(boardId); return true; }
   let anyFailed=false;
   for(const target of targets){
     const backend=backendFor(target);
@@ -7482,8 +7613,10 @@ async function pushBoardDeletionToTargets(boardId,targets){
 // that target is deferred (queued for the user) rather than risking overwriting a change we don't
 // know about, while the other target (if any) still proceeds normally.
 async function pushDirtyBoards(targets){
+  targets=legacyOnly(targets);
   const ids=[...state.dirtyBoards.keys()];
   if(!ids.length) return;
+  if(!targets.length){ state.dirtyBoards.clear(); return; } // nur noch die neue Engine (V2.dirty) ist zuständig
   await withBusy(t('busy_syncing'), async ()=>{
     for(const boardId of ids){
       const board=await IDB_DB.getBoard(boardId);
@@ -7533,6 +7666,7 @@ async function pushDirtyBoards(targets){
 // own data straight back at it). A board IndexedDB doesn't have at all yet (first time this device
 // sees it) mirrors in fully too, sub-boards included.
 async function pullRemoteChanges(targets){
+  targets=legacyOnly(targets);
   const toMirror=[]; // {id,target,backend}
   for(const target of targets){
     const backend=backendFor(target);
@@ -7618,8 +7752,19 @@ async function collectBoardBundleFrom(boardId,backend){
 // stale or missing local copy. Never blocks opening a board that's already fine locally: the common
 // case (board already in IndexedDB and current) does one cheap getBoard-per-target check and returns.
 async function ensureBoardMirroredAndFresh(boardId){
-  const targets=syncTargets();
+  let targets=syncTargets();
   if(!targets.length) return; // nothing connected — IndexedDB is the only copy there is
+  if(r2Mode()==='v2'){
+    // Neue Engine: Ist von diesem Board hier noch gar nichts angekommen (nie abgeglichen, keine Karten),
+    // wird genau dieses eine Board SOFORT geholt (ein kleines Dokument, keine Bilder — die kommen danach
+    // mit Platzhaltern). Sonst nur "dieses Board zuerst" vormerken — das Öffnen wartet nie auf das Netz.
+    const hasBase=V2.bases.has(boardId);
+    const hasCards=(await IDB_DB.cardsForBoard(boardId).catch(()=>[])).length>0;
+    if(!hasBase && !hasCards) await v2SyncBoardNow(boardId).catch(()=>{});
+    else v2Prioritize(boardId);
+  }
+  targets=legacyOnly(targets);
+  if(!targets.length) return;
   const local=await IDB_DB.getBoard(boardId);
   for(const target of targets){
     const backend=backendFor(target);
@@ -7729,6 +7874,29 @@ async function autoMergeBoard(boardId,target,backend){
   if(state.screen==='home') refreshHome();
 }
 
+// Statt eines (noch) fehlenden Bilds einen Lade-Platzhalter zeigen, bis der Cloud-Sync es nachgeliefert hat
+// (Texte/Struktur kommen zuerst, Bilder danach — siehe CLOUD SYNC V2). host bekommt den Platzhalter,
+// onUrl(url) setzt das fertige Bild ein. Ist das Bild lokal da, passiert alles sofort, ohne Platzhalter.
+function withImagePlaceholder(imageId,host,onUrl){
+  getImageUrl(imageId).then(url=>{
+    if(url){ onUrl(url); return; }
+    if(r2Mode()!=='v2') return;
+    const ph=document.createElement('div'); ph.className='img-loading'; host.appendChild(ph);
+    getImageUrlWhenReady(imageId).then(u=>{
+      if(u){ ph.remove(); onUrl(u); }
+      else{ ph.className='img-missing'; ph.title=t('sync2_image_missing'); }
+    });
+  });
+}
+// Variante für ein bereits vorhandenes <img> (Notiz-Bilder, Spalten-Cover): bekommt eine Shimmer-Klasse
+function withImgElPlaceholder(imageId,img){
+  getImageUrl(imageId).then(url=>{
+    if(url){ img.src=url; return; }
+    if(r2Mode()!=='v2') return;
+    img.classList.add('img-pending');
+    getImageUrlWhenReady(imageId).then(u=>{ img.classList.remove('img-pending'); if(u) img.src=u; else img.classList.add('img-missing-el'); });
+  });
+}
 const imgUrlCache=new Map();
 async function getImageUrl(imageId){
   if(imgUrlCache.has(imageId)) return imgUrlCache.get(imageId);
@@ -7782,6 +7950,897 @@ const state={
 const GRID_SIZE=18;
 
 function boardById(id){return state.boards.find(b=>b.id===id);}
+
+/* ============================================================
+   CLOUD SYNC V2 — die neue Sync-Engine für den Cloud-Sync (R2)
+
+   Warum es das gibt ("der Sync ist klunky, Boards laden zu langsam, Versionen sollen nie Probleme
+   machen"): die alte Engine hat pro Board EINE verschlüsselte Datei überschrieben, per Uhrzeit
+   verglichen (updatedAt), beim Start jedes Board komplett nacheinander geladen und Bilder blockierend
+   mitgezogen. Die neue arbeitet so:
+
+   1. Versionierte Dokumente statt "ganzes Board überschreiben". Jedes Board ist ein Dokument
+      (v2/boards/<id>.json) aus einzelnen Datensätzen (Karte, Verbindung) mit EINER Version pro
+      Eigenschaft ([Wert, Version, Gerät]). Zusätzlich gibt es ein kleines Index-Dokument
+      (v2/index.json) mit den Board-Metadaten (Name, Farbe, Papierkorb …) — die Startseite braucht nur
+      das, nicht jedes Board.
+   2. Stiller Merge pro Eigenschaft (Toms Wahl): ändert das Handy den Text einer Karte und der PC ihre
+      Position, bleiben BEIDE Änderungen. Nur wenn exakt dieselbe Eigenschaft auf beiden Geräten
+      geändert wurde, gewinnt die jüngere Änderung. Löschen gewinnt weiterhin (wie bisher) — es sei
+      denn, die Karte wird danach bewusst wiederhergestellt (Rückgängig).
+   3. Kein verlorenes Update mehr: jeder Schreibvorgang ist bedingt (If-Match/ETag, siehe Worker). Hat
+      zwischendurch ein anderes Gerät geschrieben, lehnt der Worker mit 412 ab, der Browser lädt die
+      neue Fassung, führt beide zusammen und schreibt erneut. Dieses Zusammenführen ist deterministisch
+      und idempotent — die Reihenfolge, in der Geräte syncen, ändert das Ergebnis nicht.
+   4. Texte und Struktur zuerst, Bilder danach: Dokumente sind klein (gzip + AES-GCM). Bilder werden
+      von einer eigenen Warteschlange im Hintergrund hoch-/heruntergeladen; solange ein Bild fehlt,
+      zeigt die Karte einen Lade-Platzhalter und füllt sich von selbst.
+   5. Alles im Hintergrund: kein Busy-Balken, kein Blockieren. Ein kleines Statussymbol (unten rechts)
+      zeigt den Zustand, ein Klick öffnet die Detailansicht.
+
+   Alte Cloud-Daten (boards/<id>.json) werden beim ersten Start einmalig mit dem alten Code in die
+   lokale Datenbank geholt und dann als v2-Dokumente hochgeladen; die alten Dateien bleiben als
+   Sicherung liegen. Solange der Worker noch nicht aktualisiert ist (GET /version → 404), bleibt die
+   alte Engine aktiv — nichts geht kaputt, wenn die App vor dem Worker aktualisiert wird.
+   ============================================================ */
+const V2_INDEX_KEY='v2/index.json';
+function v2BoardKey(id){ return 'v2/boards/'+id+'.json'; }
+const V2_TOMBSTONE_TTL=365*24*3600*1000; // Löschmarker älter als ein Jahr werden aus den Dokumenten entfernt
+const V2_LOCAL_ONLY_AFTER_CREATE=new Set(['view']); // Ansicht (Zoom/Position) ist pro Gerät — wird nur beim allerersten Anlegen mitgegeben
+const V2_PROBE_FLAG='notua-r2-proto2';
+const V2_MIGRATED_FLAG='notua-r2-v2-migrated';
+function v2LoadDeviceId(){
+  try{
+    let id=localStorage.getItem('notua-device-id');
+    if(!id){ id=Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,6); localStorage.setItem('notua-device-id',id); }
+    return id;
+  }catch(e){ return 'dev'+Math.random().toString(36).slice(2,8); }
+}
+const V2={
+  ready:(()=>{ try{ return localStorage.getItem(V2_PROBE_FLAG)==='1'; }catch(e){ return false; } })(),
+  probeDone:false,        // wird unten aus ready abgeleitet
+  needsWorker:false,      // Worker kennt /version nicht → alte Engine bleibt aktiv
+  probedAt:0,
+  migratingLegacy:false,  // true, solange der einmalige Import der alten Cloud-Daten läuft (siehe r2Mode)
+  deviceId:v2LoadDeviceId(),
+  loaded:false, loading:null,
+  running:false, again:false, timer:null, fail:0,
+  bases:new Map(),        // boardId (oder '#index') -> {doc, etag} — Stand beim letzten erfolgreichen Abgleich
+  dirty:new Map(),        // boardId -> Zeitpunkt der letzten lokalen Änderung (überlebt Neustarts)
+  imgUp:new Set(),        // Bild-IDs, die nachweislich in der Cloud liegen
+  upQ:new Set(),          // Bild-IDs, die noch hochgeladen werden müssen (überlebt Neustarts)
+  downQ:new Map(),        // Bild-ID -> {tries,nextAt,prio} — Bilder, die noch heruntergeladen werden müssen
+  imgExt:new Map(),       // Bild-ID -> Dateiendung in der Cloud
+  imgListAt:0,
+  imgRunning:false, imgTimer:null, imgActive:0,
+  boardState:new Map(),   // boardId -> {s:'synced'|'syncing'|'loading'|'error', at, err}
+  locks:new Map(),        // boardId -> Promise-Kette (nie zwei Abgleiche desselben Boards gleichzeitig)
+  priority:null,          // Board, das zuerst dran sein soll (das gerade geöffnete)
+  scanned:false,
+  stats:{pushed:0,pulled:0},
+  status:{phase:'idle',lastOkAt:0,lastError:null,errors:[]},
+  waiters:new Map(),      // Bild-ID -> Set(resolve) — Karten, die auf ihr Bild warten (Platzhalter)
+};
+V2.probeDone=V2.ready;
+// ---------- Modus-Weiche: wer ist für 'r2' zuständig? ----------
+//  'off'    — Cloud-Sync aus / noch kein Schlüssel
+//  'wait'   — an, aber der Worker wurde noch nicht gefragt, was er kann (kurz nach dem Start)
+//  'v2'     — neue Engine
+//  'legacy' — alter Worker (oder einmaliger Import der alten Daten läuft): alte Engine wie bisher
+function r2Mode(){
+  if(!(isR2SyncEnabled() && r2State.encKey)) return 'off';
+  if(V2.migratingLegacy) return 'legacy';
+  if(V2.ready) return 'v2';
+  return V2.probeDone ? 'legacy' : 'wait';
+}
+// true, wenn als Sync-Ziel nur die neue Cloud-Engine im Spiel ist — die arbeitet still im Hintergrund,
+// ohne den "Holt Änderungen …"-Balken (siehe CLOUD SYNC V2)
+function quietCloudOnly(){ return r2Mode()==='v2' && !fsState.root; }
+function legacyOnly(targets){ return (targets||[]).filter(x=>x!=='r2' || r2Mode()==='legacy'); }
+// ---------- lokale Hilfsdatenbank (Abgleich-Stand, nicht die Boards selbst) ----------
+let v2DbPromise=null;
+function v2OpenDb(){
+  if(v2DbPromise) return v2DbPromise;
+  v2DbPromise=new Promise((res,rej)=>{
+    const rq=indexedDB.open('notua-sync2',1);
+    rq.onupgradeneeded=()=>{ const db=rq.result; db.createObjectStore('base'); db.createObjectStore('kv'); };
+    rq.onsuccess=()=>res(rq.result);
+    rq.onerror=()=>rej(rq.error);
+  });
+  return v2DbPromise;
+}
+async function v2DbGet(store,key){ const db=await v2OpenDb(); return new Promise((res,rej)=>{ const r=db.transaction(store,'readonly').objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function v2DbPut(store,key,val){ const db=await v2OpenDb(); return new Promise((res,rej)=>{ const tr=db.transaction(store,'readwrite'); tr.objectStore(store).put(val,key); tr.oncomplete=()=>res(); tr.onerror=()=>rej(tr.error); }); }
+async function v2DbDel(store,key){ const db=await v2OpenDb(); return new Promise((res,rej)=>{ const tr=db.transaction(store,'readwrite'); tr.objectStore(store).delete(key); tr.oncomplete=()=>res(); tr.onerror=()=>rej(tr.error); }); }
+async function v2DbAll(store){
+  const db=await v2OpenDb();
+  return new Promise((res,rej)=>{
+    const out=[]; const rq=db.transaction(store,'readonly').objectStore(store).openCursor();
+    rq.onsuccess=()=>{ const c=rq.result; if(c){ out.push([c.key,c.value]); c.continue(); } else res(out); };
+    rq.onerror=()=>rej(rq.error);
+  });
+}
+async function v2DbClearAll(){
+  const db=await v2OpenDb();
+  return new Promise((res,rej)=>{ const tr=db.transaction(['base','kv'],'readwrite'); tr.objectStore('base').clear(); tr.objectStore('kv').clear(); tr.oncomplete=()=>res(); tr.onerror=()=>rej(tr.error); });
+}
+async function v2KeyFingerprint(){
+  const raw=await crypto.subtle.exportKey('raw',r2State.encKey);
+  const h=new Uint8Array(await crypto.subtle.digest('SHA-256',raw));
+  return Array.from(h.slice(0,8)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+// Lädt den gespeicherten Abgleich-Stand. Gehört er zu einem anderen Cloud-Schlüssel (anderes Konto,
+// zurückgesetzte Cloud), wird er verworfen — sonst würden alte Löschmarker/Stände fremde Daten betreffen.
+function v2EnsureLoaded(){
+  if(V2.loaded) return Promise.resolve();
+  if(V2.loading) return V2.loading;
+  V2.loading=(async()=>{
+    const fp=await v2KeyFingerprint();
+    const savedFp=await v2DbGet('kv','fp').catch(()=>null);
+    if(savedFp && savedFp!==fp){ await v2DbClearAll().catch(()=>{}); try{ localStorage.removeItem(V2_MIGRATED_FLAG); }catch(e){} }
+    await v2DbPut('kv','fp',fp).catch(()=>{});
+    for(const [k,v] of await v2DbAll('base')) V2.bases.set(k,v);
+    const d=await v2DbGet('kv','dirty').catch(()=>null); if(d) for(const k in d) V2.dirty.set(k,d[k]);
+    const iu=await v2DbGet('kv','imgUp').catch(()=>null); if(iu) iu.forEach(x=>V2.imgUp.add(x));
+    const uq=await v2DbGet('kv','upQ').catch(()=>null); if(uq) uq.forEach(x=>V2.upQ.add(x));
+    V2.loaded=true;
+  })();
+  return V2.loading;
+}
+const v2PersistSoon=debounce(()=>{
+  try{
+    const d={}; V2.dirty.forEach((v,k)=>{ d[k]=v; });
+    v2DbPut('kv','dirty',d).catch(()=>{});
+    v2DbPut('kv','imgUp',[...V2.imgUp]).catch(()=>{});
+    v2DbPut('kv','upQ',[...V2.upQ]).catch(()=>{});
+  }catch(e){}
+},800);
+// Wird aus markBoardDirty() aufgerufen (siehe dort) — merkt sich Board + Zeitpunkt der Änderung. Der
+// Zeitpunkt wird später als Version der geänderten Eigenschaften benutzt: so gewinnt bei einem echten
+// Konflikt die tatsächlich zuletzt gemachte Änderung, nicht die, die zuletzt synchronisiert hat.
+function v2MarkDirty(boardId){
+  if(!boardId || !isR2SyncEnabled()) return;
+  V2.dirty.set(boardId,Date.now());
+  v2PersistSoon();
+  v2RenderChipSoon();
+}
+async function v2ResetLocalState(){
+  V2.bases.clear(); V2.dirty.clear(); V2.imgUp.clear(); V2.upQ.clear(); V2.downQ.clear(); V2.imgExt.clear(); V2.boardState.clear();
+  V2.ready=false; V2.probeDone=false; V2.needsWorker=false; V2.scanned=false;
+  try{ localStorage.removeItem(V2_PROBE_FLAG); localStorage.removeItem(V2_MIGRATED_FLAG); }catch(e){}
+  try{ await v2DbClearAll(); }catch(e){}
+  V2.loaded=false; V2.loading=null;
+  v2RenderChipSoon();
+}
+// ---------- Dokument-Modell ----------
+//  Dokument:   {v:2, r:{ "<c|k|b>:<id>": Datensatz }}
+//  Datensatz:  {f:{ <Eigenschaft>:[Wert,Version,Gerät] | [null,Version,Gerät,1] }, x?:[Version,Gerät,gelöscht 0/1]}
+//  Eine Eigenschaft mit 4. Element 1 wurde entfernt. x ist die "Existenz": [.., .., 1] = gelöscht.
+//  Karten-"data" wird eine Ebene tief in Eigenschaften "d.<name>" aufgelöst — so lassen sich z.B.
+//  Notiztext und Farbe einer Karte unabhängig voneinander mergen.
+function v2Stable(v){
+  if(v===null || typeof v!=='object') return JSON.stringify(v);
+  if(Array.isArray(v)) return '['+v.map(v2Stable).join(',')+']';
+  return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+v2Stable(v[k])).join(',')+'}';
+}
+function v2Gt(av,ad,bv,bd){ return av>bv || (av===bv && ad>bd); }
+function v2IsDead(rec){ return !!(rec && rec.x && rec.x[2]===1); }
+function v2MaxVer(rec){
+  let m=rec.x?rec.x[0]:0;
+  for(const k in rec.f){ if(rec.f[k][1]>m) m=rec.f[k][1]; }
+  return m;
+}
+function v2Flatten(obj){
+  const f={};
+  for(const k of Object.keys(obj)){
+    if(k==='id' || k==='boardId') continue;
+    const v=obj[k];
+    if(v===undefined) continue;
+    if(k==='data' && v && typeof v==='object' && !Array.isArray(v)){ for(const dk of Object.keys(v)){ if(v[dk]!==undefined) f['d.'+dk]=v[dk]; } }
+    else f[k]=v;
+  }
+  return f;
+}
+function v2Unflatten(id,boardId,flat){
+  const o={id}; if(boardId) o.boardId=boardId;
+  for(const k in flat){
+    if(k.startsWith('d.')){ if(!o.data || typeof o.data!=='object') o.data={}; o.data[k.slice(2)]=flat[k]; }
+    else o[k]=flat[k];
+  }
+  return o;
+}
+function v2Materialize(rec){
+  if(!rec || v2IsDead(rec)) return null;
+  const o={};
+  for(const k in rec.f){ const e=rec.f[k]; if(e[3]!==1) o[k]=e[0]; }
+  return o;
+}
+function v2MergeRec(a,b){
+  if(!a) return b; if(!b) return a;
+  const f={};
+  const keys=new Set([...Object.keys(a.f||{}),...Object.keys(b.f||{})]);
+  for(const k of keys){
+    const fa=a.f&&a.f[k], fb=b.f&&b.f[k];
+    f[k]=!fa?fb : !fb?fa : (v2Gt(fa[1],fa[2],fb[1],fb[2])?fa:fb);
+  }
+  const out={f};
+  const xa=a.x, xb=b.x;
+  const x=!xa?xb : !xb?xa : (v2Gt(xa[0],xa[1],xb[0],xb[1])?xa:xb);
+  if(x) out.x=x;
+  return out;
+}
+function v2MergeDocs(a,b){
+  const r={};
+  const ids=new Set([...Object.keys(a.r),...Object.keys(b.r)]);
+  const cutoff=Date.now()-V2_TOMBSTONE_TTL;
+  for(const id of ids){
+    const m=v2MergeRec(a.r[id],b.r[id]);
+    if(v2IsDead(m)){ m.f={}; if(m.x[0]<cutoff) continue; }
+    r[id]=m;
+  }
+  return {v:2,r};
+}
+function v2RecDiffers(a,b){
+  if(!!a!==!!b) return true;
+  if((a.x?a.x.join('|'):'')!==(b.x?b.x.join('|'):'')) return true;
+  const ka=Object.keys(a.f), kb=Object.keys(b.f);
+  if(ka.length!==kb.length) return true;
+  for(const k of ka){ const x=a.f[k], y=b.f[k]; if(!y || x[1]!==y[1] || x[2]!==y[2]) return true; }
+  return false;
+}
+function v2DocDiffers(m,remote){
+  for(const id in m.r){ const rr=remote.r[id]; if(!rr || v2RecDiffers(m.r[id],rr)) return true; }
+  return false;
+}
+// Legt lokale Änderungen als neue Versionen über den letzten bekannten Stand (baseDoc). items:
+// Map Schlüssel -> flache Eigenschaften der lokal VORHANDENEN Datensätze; tsFor(schlüssel) liefert den
+// Änderungszeitpunkt. Jede neue Version ist mindestens "alte Version + 1" — eine eigene Änderung ist
+// damit immer jünger als das, was sie überschreibt, egal wie die Geräteuhren gehen.
+function v2ApplyLocalDiff(baseDoc,items,tsFor){
+  const dev=V2.deviceId;
+  const r=Object.assign({},baseDoc.r);
+  let changed=false;
+  const deleted=[];
+  for(const [id,fields] of items){
+    const br=baseDoc.r[id];
+    const editTs=tsFor(id);
+    if(!br || v2IsDead(br)){
+      const baseMax=br?v2MaxVer(br):0;
+      const ts=Math.max(editTs,baseMax+1);
+      const rec={f:{}};
+      for(const k in fields) rec.f[k]=[fields[k],ts,dev];
+      if(br) rec.x=[ts,dev,0]; // vorher gelöscht, jetzt wieder da (Rückgängig) — bewusste Wiederherstellung
+      r[id]=rec; changed=true; continue;
+    }
+    let nr=null;
+    const bf=br.f;
+    for(const k in fields){
+      const e=bf[k];
+      if(!e || e[3]===1 || v2Stable(e[0])!==v2Stable(fields[k])){
+        if(e && V2_LOCAL_ONLY_AFTER_CREATE.has(k)) continue;
+        if(!nr) nr={f:Object.assign({},bf)}; if(!nr.x && br.x) nr.x=br.x;
+        nr.f[k]=[fields[k],Math.max(editTs,(e?e[1]:0)+1),dev];
+      }
+    }
+    for(const k in bf){
+      if(!(k in fields) && bf[k][3]!==1 && !V2_LOCAL_ONLY_AFTER_CREATE.has(k)){
+        if(!nr) nr={f:Object.assign({},bf)}; if(!nr.x && br.x) nr.x=br.x;
+        nr.f[k]=[null,Math.max(editTs,bf[k][1]+1),dev,1];
+      }
+    }
+    if(nr){ r[id]=nr; changed=true; }
+  }
+  for(const id in baseDoc.r){
+    if(items.has(id) || v2IsDead(baseDoc.r[id])) continue;
+    const ts=Math.max(tsFor(id),v2MaxVer(baseDoc.r[id])+1);
+    r[id]={f:{},x:[ts,dev,1]}; changed=true; deleted.push(id);
+  }
+  return {doc:{v:2,r},changed,deleted};
+}
+const V2_EMPTY=()=>({v:2,r:{}});
+// ---------- Netzwerk ----------
+async function v2Gzip(bytes){
+  if(typeof CompressionStream==='undefined') return null;
+  try{ const cs=new CompressionStream('gzip'); const w=cs.writable.getWriter(); w.write(bytes); w.close(); return new Uint8Array(await new Response(cs.readable).arrayBuffer()); }catch(e){ return null; }
+}
+async function v2Gunzip(bytes){
+  const ds=new DecompressionStream('gzip'); const w=ds.writable.getWriter(); w.write(bytes); w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+function v2CleanEtag(v){ return String(v||'').replace(/^W\//,'').replace(/^"|"$/g,''); }
+// Liest ein Dokument. null = gibt es nicht (404); sonst {doc,etag}. Wirft bei Netzwerk-/Serverfehlern.
+async function v2GetDoc(key){
+  const res=await r2Fetch('/object/'+key);
+  if(res.status===404) return null;
+  if(!res.ok) throw new Error('v2-get-'+res.status);
+  const buf=new Uint8Array(await res.arrayBuffer());
+  const plain=await r2DecryptBytes(buf);
+  const body=plain.slice(1);
+  const bytes=plain[0]===1 ? await v2Gunzip(body) : body;
+  const doc=JSON.parse(new TextDecoder().decode(bytes));
+  if(!doc || !doc.r) return {doc:V2_EMPTY(),etag:v2CleanEtag(res.headers.get('ETag'))};
+  return {doc,etag:v2CleanEtag(res.headers.get('ETag'))};
+}
+// Schreibt bedingt. etag=null → nur anlegen, wenn es das Dokument noch nicht gibt. Rückgabe:
+// {etag} bei Erfolg, {conflict:true} wenn zwischendurch jemand anderes geschrieben hat.
+async function v2PutDoc(key,doc,etag){
+  const raw=new TextEncoder().encode(JSON.stringify(doc));
+  const gz=await v2Gzip(raw);
+  const payload=new Uint8Array((gz?gz.length:raw.length)+1);
+  payload[0]=gz?1:0; payload.set(gz||raw,1);
+  const enc=await r2EncryptBytes(payload);
+  const headers={'Content-Type':'application/octet-stream'};
+  if(etag) headers['If-Match']=etag; else headers['If-None-Match']='*';
+  const res=await r2Fetch('/object/'+key,{method:'PUT',headers,body:enc});
+  if(res.status===412) return {conflict:true};
+  if(res.status===413||res.status===402){ r2ReportQuotaExceeded(); throw new Error('v2-quota'); }
+  if(!res.ok) throw new Error('v2-put-'+res.status);
+  const j=await res.json().catch(()=>({}));
+  return {etag:v2CleanEtag(j.etag)};
+}
+async function v2ListHeads(){
+  const res=await r2Fetch('/list?prefix=v2/');
+  if(!res.ok) throw new Error('v2-list-'+res.status);
+  const list=await res.json();
+  const m=new Map();
+  for(const o of list) m.set(o.key,v2CleanEtag(o.etag));
+  return m;
+}
+// ---------- Status ----------
+function v2SetPhase(p,err){
+  V2.status.phase=p;
+  if(err){ V2.status.lastError=String(err&&err.message||err); V2.status.errors.unshift({at:Date.now(),msg:V2.status.lastError}); V2.status.errors.length=Math.min(V2.status.errors.length,8); }
+  v2RenderChipSoon();
+}
+function v2SetBoardState(id,s,err){ V2.boardState.set(id,{s,at:Date.now(),err:err?String(err.message||err):null}); }
+// ---------- lokale Daten lesen/schreiben (immer direkt IndexedDB — nie über DB.*, sonst würde jeder
+// aus der Cloud übernommene Stand das Board wieder als "lokal geändert" markieren) ----------
+async function v2AllLocalBoards(){ const t=await tx('boards','readonly'); return reqp(t.objectStore('boards').getAll()); }
+async function v2HasLocalImage(id){ try{ const t=await tx('images','readonly'); const k=await reqp(t.objectStore('images').getKey(id)); return k!==undefined; }catch(e){ return false; } }
+function v2BoardImageRefs(meta){
+  const out=[];
+  if(meta) for(const k of Object.keys(meta)){ if(/ImageId$/.test(k) && typeof meta[k]==='string' && meta[k]) out.push(meta[k]); }
+  return out;
+}
+function v2Lock(id,fn){
+  const prev=V2.locks.get(id)||Promise.resolve();
+  const next=prev.catch(()=>{}).then(fn);
+  V2.locks.set(id,next);
+  next.catch(()=>{}).then(()=>{ if(V2.locks.get(id)===next) V2.locks.delete(id); });
+  return next;
+}
+// ---------- Index: Board-Metadaten ----------
+// hintEtag: der aktuelle Stand laut Listenabfrage dieses Durchlaufs. Entspricht er dem zuletzt
+// abgeglichenen Stand, ist das Dokument unverändert — dann spart sich der erste Versuch das erneute
+// Laden (ein Schreiben mit veraltetem ETag würde ohnehin mit 412 abgelehnt und neu geladen).
+async function v2SyncIndex(hintEtag){
+  for(let attempt=0;attempt<5;attempt++){
+    const base=V2.bases.get('#index');
+    const remote=(attempt===0 && base && hintEtag && hintEtag===base.etag) ? {doc:base.doc,etag:base.etag} : await v2GetDoc(V2_INDEX_KEY);
+    const boards=await v2AllLocalBoards();
+    const snap=new Map(boards.map(b=>[b.id,v2Stable(b)]));
+    const items=new Map();
+    for(const b of boards) items.set('b:'+b.id,v2Flatten(b));
+    const L=v2ApplyLocalDiff(base?base.doc:V2_EMPTY(),items,(rid)=>{
+      const bid=rid.slice(2);
+      const br=base&&base.doc.r[rid];
+      if(br) return V2.dirty.get(bid)||Date.now();
+      const b=boards.find(x=>x.id===bid);
+      return (b&&b.updatedAt)||1; // erstmals gesehenes (z.B. altes) Board: sein eigenes Alter, nicht "jetzt" — ein neuerer Stand aus der Cloud soll gewinnen dürfen
+    });
+    const merged=v2MergeDocs(remote?remote.doc:V2_EMPTY(),L.doc);
+    let etag=remote?remote.etag:null;
+    if(!remote || v2DocDiffers(merged,remote.doc)){
+      const res=await v2PutDoc(V2_INDEX_KEY,merged,remote?remote.etag:null);
+      if(res.conflict) continue;
+      etag=res.etag;
+      V2.stats.pushed++;
+    }
+    await v2ApplyIndexToLocal(merged,boards,snap);
+    V2.bases.set('#index',{doc:merged,etag});
+    await v2DbPut('base','#index',{doc:merged,etag}).catch(()=>{});
+    // Bestätigte Löschungen: das Board-Dokument selbst ist jetzt überflüssig
+    for(const rid of L.deleted) r2Fetch('/object/'+v2BoardKey(rid.slice(2)),{method:'DELETE'}).catch(()=>{});
+    return;
+  }
+  throw new Error('v2-index-conflict');
+}
+async function v2ApplyIndexToLocal(merged,boards,snap){
+  const local=new Map(boards.map(b=>[b.id,b]));
+  let touched=false, openMeta=null;
+  for(const rid in merged.r){
+    const id=rid.slice(2);
+    const flat=v2Materialize(merged.r[rid]);
+    const cur=local.get(id);
+    if(!flat){
+      if(cur && v2Stable(cur)===snap.get(id)){ await v2DeleteLocalBoard(id); touched=true; }
+      continue;
+    }
+    const next=v2Unflatten(id,null,flat);
+    if(cur){
+      if(v2Stable(cur)!==snap.get(id)) continue; // wurde während des Abgleichs lokal geändert — gewinnt, wird beim nächsten Lauf gepusht
+      if(cur.view!==undefined) next.view=cur.view; // Ansicht bleibt pro Gerät
+      if(v2Stable(cur)===v2Stable(next)) continue;
+    }
+    await IDB_DB.putBoard(next); touched=true;
+    if(state.currentBoardId===id) openMeta=next;
+  }
+  if(touched) v2AfterIndexApplied(openMeta);
+}
+async function v2DeleteLocalBoard(id){
+  const [cards,conns]=await Promise.all([IDB_DB.cardsForBoard(id),IDB_DB.connectorsForBoard(id)]);
+  for(const cn of conns) await IDB_DB.deleteConnector(cn.id);
+  for(const c of cards) await IDB_DB.deleteCard(c.id);
+  await IDB_DB.deleteBoard(id);
+  V2.bases.delete(id); V2.dirty.delete(id); V2.boardState.delete(id);
+  v2DbDel('base',id).catch(()=>{});
+}
+const v2AfterIndexApplied=(()=>{
+  let timer=null, pendingMeta=null;
+  return (openMeta)=>{
+    if(openMeta) pendingMeta=openMeta;
+    clearTimeout(timer);
+    timer=setTimeout(()=>{
+      try{
+        if(state.screen==='home') refreshHome();
+        else if(state.screen==='trash') refreshTrash();
+        else if(state.screen==='board' && pendingMeta && state.currentBoardId===pendingMeta.id){ try{ renderCrumbs(pendingMeta); }catch(e){} }
+        if(state.screen==='board' && state.currentBoardId && !(state.boards||[]).length){ /* nichts */ }
+      }catch(e){}
+      pendingMeta=null;
+    },250);
+  };
+})();
+// ---------- Ein Board abgleichen ----------
+async function v2SyncBoard(boardId,hintEtag){
+  return v2Lock(boardId,()=>v2SyncBoardLocked(boardId,hintEtag));
+}
+async function v2SyncBoardLocked(boardId,hintEtag){
+  const key=v2BoardKey(boardId);
+  const startedAt=Date.now();
+  const hadBase=V2.bases.has(boardId);
+  v2SetBoardState(boardId,hadBase?'syncing':'loading'); v2RenderChipSoon();
+  try{
+    for(let attempt=0;attempt<5;attempt++){
+      const localBoard=await IDB_DB.getBoard(boardId);
+      if(!localBoard){ V2.boardState.delete(boardId); return {skipped:true}; }
+      const base=V2.bases.get(boardId);
+      const remote=(attempt===0 && base && hintEtag && hintEtag===base.etag) ? {doc:base.doc,etag:base.etag} : await v2GetDoc(key);
+      const [cards,conns]=await Promise.all([IDB_DB.cardsForBoard(boardId),IDB_DB.connectorsForBoard(boardId)]);
+      const items=new Map();
+      for(const c of cards) items.set('c:'+c.id,v2Flatten(c));
+      for(const c of conns) items.set('k:'+c.id,v2Flatten(c));
+      const editTs=base ? (V2.dirty.get(boardId)||Date.now()) : (localBoard.updatedAt||1);
+      const L=v2ApplyLocalDiff(base?base.doc:V2_EMPTY(),items,()=>editTs);
+      const merged=v2MergeDocs(remote?remote.doc:V2_EMPTY(),L.doc);
+      let etag=remote?remote.etag:null, pushed=false;
+      if((!remote && Object.keys(merged.r).length) || (remote && v2DocDiffers(merged,remote.doc))){
+        const res=await v2PutDoc(key,merged,remote?remote.etag:null);
+        if(res.conflict) continue;
+        etag=res.etag; pushed=true; V2.stats.pushed++;
+      }
+      const snap={cards,conns};
+      const applied=await v2ApplyBoardDoc(boardId,merged,snap);
+      V2.bases.set(boardId,{doc:merged,etag});
+      await v2DbPut('base',boardId,{doc:merged,etag}).catch(()=>{});
+      if(V2.dirty.has(boardId) && V2.dirty.get(boardId)<startedAt){ V2.dirty.delete(boardId); v2PersistSoon(); }
+      if(applied.changed) V2.stats.pulled++;
+      // Bilder: lokal vorhandene, noch nicht hochgeladene → hoch; referenzierte, aber lokal fehlende → runter
+      const refs=new Set();
+      for(const c of applied.cards) cardBlobRefs(c).forEach(i=>refs.add(i));
+      v2BoardImageRefs(localBoard).forEach(i=>refs.add(i));
+      await v2QueueImagesFor(refs);
+      v2SetBoardState(boardId,'synced');
+      return {pushed,pulled:applied.changed};
+    }
+    throw new Error('v2-board-conflict');
+  }catch(e){
+    v2SetBoardState(boardId,'error',e);
+    throw e;
+  }
+}
+// Schreibt den zusammengeführten Stand in die lokale Datenbank — aber nur, was sich wirklich geändert
+// hat UND lokal seit dem Lesen nicht gerade verändert wurde (läuft parallel jemand mit der Maus,
+// gewinnt dessen Änderung und geht beim nächsten Lauf ganz normal in die Cloud).
+async function v2ApplyBoardDoc(boardId,merged,snap){
+  const [nowCards,nowConns]=await Promise.all([IDB_DB.cardsForBoard(boardId),IDB_DB.connectorsForBoard(boardId)]);
+  const curC=new Map(nowCards.map(c=>[c.id,c])), curK=new Map(nowConns.map(c=>[c.id,c]));
+  const snapC=new Map(snap.cards.map(c=>[c.id,v2Stable(c)])), snapK=new Map(snap.conns.map(c=>[c.id,v2Stable(c)]));
+  const writeC=[], writeK=[], delC=[], delK=[], aliveCards=[];
+  for(const rid in merged.r){
+    const kind=rid[0], id=rid.slice(2);
+    const flat=v2Materialize(merged.r[rid]);
+    if(kind==='c'){
+      const cur=curC.get(id);
+      if(!flat){ if(cur && v2Stable(cur)===snapC.get(id)) delC.push(id); continue; }
+      const next=v2Unflatten(id,boardId,flat);
+      aliveCards.push(next);
+      if(cur){
+        if(v2Stable(cur)!==snapC.get(id)) continue;
+        if(v2Stable(cur)===v2Stable(next)) continue;
+      }
+      writeC.push(next);
+    }else if(kind==='k'){
+      const cur=curK.get(id);
+      if(!flat){ if(cur && v2Stable(cur)===snapK.get(id)) delK.push(id); continue; }
+      const next=v2Unflatten(id,boardId,flat);
+      if(cur){
+        if(v2Stable(cur)!==snapK.get(id)) continue;
+        if(v2Stable(cur)===v2Stable(next)) continue;
+      }
+      writeK.push(next);
+    }
+  }
+  if(writeC.length) await IDB_DB.putCards(writeC);
+  for(const k of writeK) await IDB_DB.putConnector(k);
+  for(const id of delC) await IDB_DB.deleteCard(id);
+  for(const id of delK) await IDB_DB.deleteConnector(id);
+  const changed=!!(writeC.length||writeK.length||delC.length||delK.length);
+  if(changed && state.currentBoardId===boardId) v2RefreshOpenBoard(boardId);
+  return {changed,cards:aliveCards};
+}
+// Aktualisiert das gerade geöffnete Board — aber nie mitten in einer Eingabe oder Mausgeste, das würde
+// den Cursor wegreißen. In dem Fall wird in kurzen Abständen erneut versucht.
+let v2PointerDown=false;
+document.addEventListener('pointerdown',()=>{ v2PointerDown=true; },true);
+document.addEventListener('pointerup',()=>{ v2PointerDown=false; },true);
+document.addEventListener('pointercancel',()=>{ v2PointerDown=false; },true);
+let v2UiTimer=null;
+function v2RefreshOpenBoard(boardId,tries){
+  tries=tries||0;
+  if(state.currentBoardId!==boardId || state.screen!=='board') return;
+  let busy=false;
+  try{ busy=v2PointerDown || isEditingTarget(document.activeElement); }catch(e){}
+  if(busy){ if(tries<40){ clearTimeout(v2UiTimer); v2UiTimer=setTimeout(()=>v2RefreshOpenBoard(boardId,tries+1),700); } return; }
+  (async()=>{
+    const cards=await IDB_DB.cardsForBoard(boardId), conns=await IDB_DB.connectorsForBoard(boardId);
+    if(state.currentBoardId!==boardId) return;
+    state.cards=cards; state.connectors=conns;
+    const ids=new Set(cards.map(c=>c.id));
+    for(const id of [...state.selection]) if(!ids.has(id)) state.selection.delete(id);
+    renderAllCards();
+    try{ updateEmptyHint(); }catch(e){}
+  })().catch(()=>{});
+}
+// ---------- Bilder ----------
+function v2NotifyImage(id,ok){
+  const s=V2.waiters.get(id); if(!s) return;
+  V2.waiters.delete(id);
+  if(ok) getImageUrl(id).then(u=>s.forEach(r=>r(u)));
+  else s.forEach(r=>r(null));
+}
+async function v2QueueImagesFor(refs){
+  for(const id of refs){
+    if(await v2HasLocalImage(id)){
+      if(!V2.imgUp.has(id)){ V2.upQ.add(id); }
+    }else{
+      if(!V2.downQ.has(id)) V2.downQ.set(id,{tries:0,nextAt:0,prio:0});
+    }
+  }
+  v2PersistSoon();
+  v2KickImages();
+}
+// Karte wartet auf ein Bild → nach vorne in die Download-Schlange
+function v2PrioritizeImage(id){
+  const j=V2.downQ.get(id);
+  if(j){ j.prio=1; j.nextAt=0; } else V2.downQ.set(id,{tries:0,nextAt:0,prio:1});
+  v2KickImages();
+}
+async function v2RefreshImageList(force){
+  if(!force && Date.now()-V2.imgListAt<60000) return;
+  const res=await r2Fetch('/list?prefix=images/');
+  if(!res.ok) throw new Error('v2-imglist-'+res.status);
+  const list=await res.json();
+  for(const o of list){
+    const m=/^images\/([^/]+?)(\.[A-Za-z0-9]+)$/.exec(o.key);
+    if(m){ V2.imgExt.set(m[1],m[2]); V2.imgUp.add(m[1]); V2.upQ.delete(m[1]); }
+  }
+  V2.imgListAt=Date.now();
+}
+function v2KickImages(){
+  if(V2.imgRunning || r2Mode()!=='v2') return;
+  clearTimeout(V2.imgTimer);
+  V2.imgTimer=setTimeout(v2ImageWorker,30);
+}
+async function v2ImageWorker(){
+  if(V2.imgRunning) return;
+  V2.imgRunning=true; v2RenderChipSoon();
+  try{
+    await v2EnsureLoaded();
+    try{ await v2RefreshImageList(false); }catch(e){}
+    const workers=[];
+    const next=()=>{
+      // Downloads zuerst (der Nutzer wartet darauf), priorisierte vorn; Uploads danach.
+      const now=Date.now();
+      let pick=null;
+      for(const [id,j] of V2.downQ){ if(j.nextAt<=now && !j.busy && (!pick || j.prio>pick.j.prio)) pick={id,j}; }
+      if(pick){ pick.j.busy=true; return ()=>v2DownloadImage(pick.id,pick.j); }
+      for(const id of V2.upQ){ if(!V2.upBusy) V2.upBusy=new Set(); if(!V2.upBusy.has(id)){ V2.upBusy.add(id); return ()=>v2UploadImage(id).finally(()=>V2.upBusy.delete(id)); } }
+      return null;
+    };
+    const lane=async()=>{ for(;;){ const job=next(); if(!job) return; V2.imgActive++; v2RenderChipSoon(); try{ await job(); }catch(e){} V2.imgActive--; } };
+    for(let i=0;i<3;i++) workers.push(lane());
+    await Promise.all(workers);
+  }finally{
+    V2.imgRunning=false; v2RenderChipSoon();
+    // Wartende Wiederholungen (Bild noch nicht in der Cloud) → später erneut
+    let soonest=Infinity; for(const j of V2.downQ.values()) if(!j.busy && j.nextAt<soonest) soonest=j.nextAt;
+    if(soonest<Infinity){ clearTimeout(V2.imgTimer); V2.imgTimer=setTimeout(()=>v2KickImages(),Math.max(500,soonest-Date.now())); }
+  }
+}
+async function v2DownloadImage(id,job){
+  try{
+    if(await v2HasLocalImage(id)){ V2.downQ.delete(id); V2.imgUp.add(id); v2NotifyImage(id,true); return; }
+    let ext=V2.imgExt.get(id);
+    if(!ext){ await v2RefreshImageList(job.tries>0); ext=V2.imgExt.get(id); }
+    if(!ext) throw new Error('not-in-cloud-yet');
+    const res=await r2Fetch('/object/images/'+id+ext);
+    if(!res.ok) throw new Error('img-'+res.status);
+    const plain=await r2DecryptBytes(new Uint8Array(await res.arrayBuffer()));
+    await IDB_DB.putImage(id,new Blob([plain],{type:mimeForExt(ext)}));
+    V2.downQ.delete(id); V2.imgUp.add(id); v2PersistSoon();
+    v2NotifyImage(id,true);
+  }catch(e){
+    job.busy=false; job.tries++;
+    // Noch nicht in der Cloud (anderes Gerät lädt es gerade erst hoch)? Mit wachsendem Abstand erneut
+    // versuchen. Erst nach vielen Versuchen aufgeben — dann sieht die Karte "Bild fehlt".
+    job.nextAt=Date.now()+Math.min(120000,4000*Math.pow(2,Math.min(job.tries,5)));
+    if(job.tries>=8){ V2.downQ.delete(id); v2NotifyImage(id,false); }
+  }
+}
+async function v2UploadImage(id){
+  try{
+    if(V2.imgUp.has(id)){ V2.upQ.delete(id); v2PersistSoon(); return; }
+    const rec=await IDB_DB.getImage(id);
+    if(!rec || !rec.blob){ V2.upQ.delete(id); v2PersistSoon(); return; } // lokal nicht vorhanden — nicht unsere Sache
+    const ext=extForBlob(rec.blob);
+    const head=await r2Fetch('/object/images/'+id+ext,{method:'HEAD'});
+    if(head.ok){ V2.imgUp.add(id); V2.imgExt.set(id,ext); V2.upQ.delete(id); v2PersistSoon(); return; }
+    const enc=await r2EncryptBytes(new Uint8Array(await rec.blob.arrayBuffer()));
+    const res=await r2Fetch('/object/images/'+id+ext,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:enc});
+    if(res.status===413||res.status===402){ r2ReportQuotaExceeded(); V2.upQ.delete(id); v2PersistSoon(); return; }
+    if(!res.ok) throw new Error('img-up-'+res.status);
+    V2.imgUp.add(id); V2.imgExt.set(id,ext); V2.upQ.delete(id); v2PersistSoon();
+  }catch(e){ /* bleibt in upQ — nächster Lauf */ }
+}
+// Wird von den Karten aufgerufen, wenn ihr Bild lokal (noch) nicht da ist
+function getImageUrlWhenReady(imageId){
+  return getImageUrl(imageId).then(url=>{
+    if(url || r2Mode()!=='v2') return url;
+    return new Promise(res=>{
+      let s=V2.waiters.get(imageId); if(!s){ s=new Set(); V2.waiters.set(imageId,s); }
+      s.add(res);
+      v2PrioritizeImage(imageId);
+    });
+  });
+}
+// ---------- Einmalige Übernahme der alten Cloud-Daten ----------
+async function v2MigrateOnce(){
+  let done=false; try{ done=localStorage.getItem(V2_MIGRATED_FLAG)==='1'; }catch(e){}
+  if(done) return;
+  const idx=await v2GetDoc(V2_INDEX_KEY);
+  if(!idx){
+    // Noch niemand auf v2 — die alten Cloud-Boards (boards/<id>.json) EINMAL mit dem alten Code in die
+    // lokale Datenbank holen, damit gleich beim ersten v2-Upload nichts fehlt.
+    V2.migratingLegacy=true; v2SetPhase('syncing');
+    try{ await pullRemoteChanges(['r2']); }
+    finally{ V2.migratingLegacy=false; r2State.cache.clear(); r2State.boardIds=null; }
+  }
+  try{ localStorage.setItem(V2_MIGRATED_FLAG,'1'); }catch(e){}
+}
+// ---------- Fähigkeiten-Abfrage beim Worker ----------
+async function v2EnsureReady(){
+  if(V2.ready) return true;
+  if(V2.needsWorker && Date.now()-V2.probedAt<300000) return false;
+  V2.probedAt=Date.now();
+  let res;
+  try{ res=await r2Fetch('/version'); }
+  catch(e){ return false; } // offline o. ä. — NICHT "Worker zu alt"; später erneut fragen
+  if(res.ok){
+    let j=null; try{ j=await res.json(); }catch(e){}
+    if(j && j.proto>=2){
+      V2.ready=true; V2.probeDone=true; V2.needsWorker=false;
+      try{ localStorage.setItem(V2_PROBE_FLAG,'1'); }catch(e){}
+      return true;
+    }
+  }
+  if(res.status===404 || res.ok){ V2.needsWorker=true; V2.probeDone=true; scheduleSyncSoon(200); r2RunFullCheckupOnce().catch(()=>{}); }
+  return false;
+}
+// Grobe Vorabschätzung "gibt es überhaupt etwas zu tun?" — nur fürs Statussymbol (kein Flackern, wenn
+// ein Durchlauf nichts findet).
+function todoPreview(boards,heads,force){
+  if(force || V2.dirty.size) return true;
+  for(const b of boards){ if(!V2.bases.has(b.id)) return true; }
+  for(const [id,base] of V2.bases){ if(id!=='#index' && heads.get(v2BoardKey(id))!==base.etag) return true; }
+  return false;
+}
+// ---------- Ein kompletter Durchlauf ----------
+function v2Kick(){
+  if(r2Mode()==='off') return;
+  if(V2.running){ V2.again=true; return; }
+  v2RunPass().catch(()=>{});
+}
+function v2Prioritize(boardId){ V2.priority=boardId; v2Kick(); }
+async function v2SyncBoardNow(boardId){
+  if(!(await IDB_DB.getBoard(boardId))) await v2SyncIndex().catch(()=>{});
+  return v2SyncBoard(boardId);
+}
+async function v2RunPass(force){
+  if(V2.running){ V2.again=true; return V2.runPromise; }
+  V2.running=true;
+  V2.runPromise=(async()=>{
+    V2.stats={pushed:0,pulled:0};
+    clearTimeout(V2.timer);
+    let delay=document.hidden?60000:15000;
+    try{
+      if(r2Mode()==='off') return;
+      if(typeof navigator!=='undefined' && navigator.onLine===false){ v2SetPhase('offline'); delay=15000; return; }
+      await v2EnsureLoaded();
+      // Lokale Änderungen aus einer früheren Sitzung (z.B. offline gemacht, dann App beendet) VOR dem
+      // Netzwerk erkennen — damit der Änderungszeitpunkt (= updatedAt des Boards) erhalten bleibt und
+      // eine ältere Offline-Änderung bei einem Konflikt nicht fälschlich "jünger" wird.
+      if(!V2.scanned){ V2.scanned=true; await v2StartupScan().catch(()=>{}); }
+      if(!(await v2EnsureReady())){ v2SetPhase(V2.needsWorker?'needs-worker':'offline'); delay=V2.needsWorker?300000:30000; return; }
+      await v2MigrateOnce();
+      const heads=await v2ListHeads();
+      const boards=await v2AllLocalBoards();
+      // Boards, die dieses Gerät noch nie abgeglichen hat, gelten als "geändert" (erste Übertragung).
+      // Wichtig, wenn Cloud-Sync angeschaltet wird, während schon Boards da sind.
+      for(const b of boards){ if(!V2.bases.has(b.id) && !V2.dirty.has(b.id)) V2.dirty.set(b.id,b.updatedAt||Date.now()); }
+      if(force) for(const b of boards) V2.dirty.set(b.id,V2.dirty.get(b.id)||Date.now());
+      // 1) Index (Board-Liste/Metadaten) — nur wenn er sich geändert hat oder lokal etwas dazukam
+      const idxBase=V2.bases.get('#index');
+      let needIndex=force || !idxBase || heads.get(V2_INDEX_KEY)!==idxBase.etag;
+      if(!needIndex){
+        const items=new Map(); for(const b of boards) items.set('b:'+b.id,v2Flatten(b));
+        needIndex=v2ApplyLocalDiff(idxBase.doc,items,()=>0).changed;
+      }
+      if(needIndex || todoPreview(boards,heads,force)){ v2SetPhase('syncing'); }
+      if(needIndex) await v2SyncIndex(heads.get(V2_INDEX_KEY));
+      // 2) Board-Dokumente
+      const idx=V2.bases.get('#index');
+      const alive=[];
+      if(idx) for(const rid in idx.doc.r){ if(!v2IsDead(idx.doc.r[rid])) alive.push(rid.slice(2)); }
+      const byUpdated=new Map(boards.map(b=>[b.id,b.updatedAt||0]));
+      const todo=alive.filter(id=>{
+        const base=V2.bases.get(id);
+        const head=heads.get(v2BoardKey(id));
+        return force || V2.dirty.has(id) || !base || head!==base.etag;
+      });
+      todo.sort((a,b)=>{
+        const pa=(a===V2.priority?4:0)+(V2.dirty.has(a)?2:0)+(state.currentBoardId===a?4:0);
+        const pb=(b===V2.priority?4:0)+(V2.dirty.has(b)?2:0)+(state.currentBoardId===b?4:0);
+        return pb-pa || (byUpdated.get(b)||0)-(byUpdated.get(a)||0);
+      });
+      V2.priority=null;
+      let idxi=0, firstErr=null;
+      if(todo.length) v2SetPhase('syncing');
+      // Löschmarker für Boards, die es weder lokal noch im Index gibt, brauchen kein "ungeändert"-Flag mehr
+      const localIds=new Set(boards.map(b=>b.id)), aliveSet=new Set(alive);
+      for(const id of [...V2.dirty.keys()]) if(!aliveSet.has(id) && !localIds.has(id)) V2.dirty.delete(id);
+      const lane=async()=>{ while(idxi<todo.length){ const id=todo[idxi++]; try{ await v2SyncBoard(id,heads.get(v2BoardKey(id))); }catch(e){ if(!firstErr) firstErr=e; } } };
+      await Promise.all([lane(),lane(),lane()]);
+      if(firstErr) throw firstErr;
+      V2.fail=0; V2.status.lastOkAt=Date.now(); V2.status.lastError=null;
+      v2SetPhase('idle');
+      v2KickImages();
+    }catch(e){
+      V2.fail++;
+      const offline=(typeof navigator!=='undefined' && navigator.onLine===false) || (e && /Failed to fetch|NetworkError|Load failed|r2-not-signed-in/i.test(String(e.message||e)));
+      v2SetPhase(offline?'offline':'error',offline?null:e);
+      delay=Math.min(120000,15000*Math.pow(2,Math.min(V2.fail,3)));
+    }finally{
+      V2.running=false;
+      clearTimeout(V2.timer);
+      if(r2Mode()!=='off') V2.timer=setTimeout(v2Kick,V2.again?300:delay);
+      V2.again=false;
+      if(typeof state!=='undefined' && state.screen==='home'){ /* Startseite zeigt immer den lokalen Stand — nichts nachzuladen */ }
+      v2RenderChipSoon();
+    }
+  })();
+  return V2.runPromise;
+}
+// Nach dem Start einmal im Hintergrund prüfen: gibt es lokale Änderungen, die vor dem Beenden nicht
+// mehr hochgeladen wurden, und fehlen Bilder lokal (für Offline-Nutzung vorladen)?
+async function v2StartupScan(){
+  const boards=await v2AllLocalBoards();
+  for(const b of boards){
+    const base=V2.bases.get(b.id); if(!base) continue;
+    const [cards,conns]=await Promise.all([IDB_DB.cardsForBoard(b.id),IDB_DB.connectorsForBoard(b.id)]);
+    const items=new Map(); cards.forEach(c=>items.set('c:'+c.id,v2Flatten(c))); conns.forEach(c=>items.set('k:'+c.id,v2Flatten(c)));
+    if(v2ApplyLocalDiff(base.doc,items,()=>0).changed && !V2.dirty.has(b.id)){ V2.dirty.set(b.id,Math.min(Date.now(),b.updatedAt||Date.now())); v2PersistSoon(); }
+    const refs=new Set(); cards.forEach(c=>cardBlobRefs(c).forEach(i=>refs.add(i))); v2BoardImageRefs(b).forEach(i=>refs.add(i));
+    await v2QueueImagesFor(refs);
+    await new Promise(r=>setTimeout(r,20)); // dem UI Luft lassen
+  }
+}
+// ---------- Statusanzeige (kleines Symbol + Detailansicht) ----------
+let v2ChipEl=null, v2PanelEl=null, v2ChipRaf=0;
+function v2ChipSummary(){
+  const ph=V2.status.phase;
+  const pending=V2.dirty.size, imgs=V2.upQ.size+V2.downQ.size;
+  if(V2.needsWorker || ph==='needs-worker') return {k:'worker',label:t('sync2_needs_worker')};
+  if(ph==='error') return {k:'error',label:t('sync2_error')};
+  if(ph==='offline') return {k:'offline',label:pending?t('sync2_offline_pending',{n:pending}):t('sync2_offline')};
+  if(V2.running && ph==='syncing') return {k:'busy',label:t('sync2_syncing')};
+  if(pending) return {k:'pending',label:t('sync2_pending',{n:pending})};
+  if(imgs || V2.imgActive) return {k:'busy',label:t('sync2_images',{n:imgs||V2.imgActive})};
+  return {k:'ok',label:t('sync2_ok')};
+}
+function v2RenderChipSoon(){
+  if(v2ChipRaf) return;
+  v2ChipRaf=requestAnimationFrame(()=>{ v2ChipRaf=0; try{ v2RenderChip(); }catch(e){} });
+}
+function v2EnsureChip(){
+  if(v2ChipEl) return v2ChipEl;
+  v2ChipEl=document.createElement('button');
+  v2ChipEl.type='button'; v2ChipEl.id='syncChip'; v2ChipEl.className='sync-chip';
+  v2ChipEl.addEventListener('click',(e)=>{ e.stopPropagation(); v2TogglePanel(); });
+  document.body.appendChild(v2ChipEl);
+  return v2ChipEl;
+}
+function v2RenderChip(){
+  const show=r2Mode()==='v2' || (isR2SyncEnabled() && V2.needsWorker && !!r2State.encKey);
+  if(!show){ if(v2ChipEl) v2ChipEl.hidden=true; if(v2PanelEl) v2PanelEl.classList.remove('show'); return; }
+  const el=v2EnsureChip(); el.hidden=false;
+  const s=v2ChipSummary();
+  el.dataset.k=s.k; el.title=s.label;
+  el.innerHTML='<span class="sync-chip-ico">'+iconCloudSync()+'</span><span class="sync-chip-dot"></span>';
+  if(v2PanelEl && v2PanelEl.classList.contains('show')) v2FillPanel();
+}
+function v2TogglePanel(){
+  if(!v2PanelEl){
+    v2PanelEl=document.createElement('div'); v2PanelEl.className='sync-panel'; v2PanelEl.id='syncPanel';
+    document.body.appendChild(v2PanelEl);
+    v2PanelEl.addEventListener('pointerdown',(e)=>e.stopPropagation());
+    document.addEventListener('pointerdown',(e)=>{ if(v2PanelEl.classList.contains('show') && !e.target.closest('#syncPanel') && !e.target.closest('#syncChip')) v2PanelEl.classList.remove('show'); });
+  }
+  const open=!v2PanelEl.classList.contains('show');
+  v2PanelEl.classList.toggle('show',open);
+  if(open) v2FillPanel();
+}
+function v2TimeAgo(ts){
+  if(!ts) return '–';
+  const s=Math.max(0,Math.round((Date.now()-ts)/1000));
+  if(s<5) return t('sync2_just_now');
+  if(s<60) return t('sync2_sec_ago',{n:s});
+  if(s<3600) return t('sync2_min_ago',{n:Math.round(s/60)});
+  return t('sync2_hour_ago',{n:Math.round(s/3600)});
+}
+async function v2FillPanel(){
+  if(!v2PanelEl) return;
+  const sum=v2ChipSummary();
+  let boards=[]; try{ boards=await v2AllLocalBoards(); }catch(e){}
+  boards=boards.filter(b=>!b.isTemplate).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const rows=boards.slice(0,60).map(b=>{
+    const bs=V2.boardState.get(b.id);
+    let k='ok', txt=t('sync2_b_synced');
+    if(bs && bs.s==='error'){ k='error'; txt=t('sync2_b_error'); }
+    else if(bs && (bs.s==='syncing')){ k='busy'; txt=t('sync2_b_syncing'); }
+    else if(bs && bs.s==='loading'){ k='busy'; txt=t('sync2_b_loading'); }
+    else if(V2.dirty.has(b.id)){ k='pending'; txt=t('sync2_b_pending'); }
+    else if(!V2.bases.has(b.id)){ k='pending'; txt=t('sync2_b_new'); }
+    return '<div class="sync-row" data-k="'+k+'"><span class="sync-row-dot"></span><span class="sync-row-name">'+escapeHtml(b.name||'—')+(b.trashed?' ('+escapeHtml(t('sync2_b_trash'))+')':'')+'</span><span class="sync-row-state">'+escapeHtml(txt)+'</span></div>';
+  }).join('');
+  const errs=V2.status.errors.slice(0,3).map(e=>'<div class="sync-err">'+escapeHtml(v2TimeAgo(e.at)+': '+e.msg)+'</div>').join('');
+  v2PanelEl.innerHTML=
+    '<div class="sync-panel-head"><span class="sync-panel-title">'+escapeHtml(t('sync2_panel_title'))+'</span><span class="sync-panel-state" data-k="'+sum.k+'">'+escapeHtml(sum.label)+'</span></div>'
+    +'<div class="sync-panel-meta">'+escapeHtml(t('sync2_last',{time:v2TimeAgo(V2.status.lastOkAt)}))+'</div>'
+    +'<div class="sync-panel-stats">'
+      +'<span>'+escapeHtml(t('sync2_stat_pending',{n:V2.dirty.size}))+'</span>'
+      +'<span>'+escapeHtml(t('sync2_stat_img_up',{n:V2.upQ.size}))+'</span>'
+      +'<span>'+escapeHtml(t('sync2_stat_img_down',{n:V2.downQ.size}))+'</span>'
+    +'</div>'
+    +(V2.needsWorker?'<div class="sync-note">'+escapeHtml(t('sync2_worker_hint'))+'</div>':'')
+    +'<div class="sync-rows">'+(rows||'<div class="sync-empty">'+escapeHtml(t('sync2_no_boards'))+'</div>')+'</div>'
+    +errs
+    +'<div class="sync-panel-actions"><button type="button" class="sync-now">'+escapeHtml(t('sync2_now'))+'</button></div>';
+  const btn=v2PanelEl.querySelector('.sync-now');
+  if(btn) btn.addEventListener('click',async()=>{ btn.disabled=true; try{ await v2RunPass(true); }catch(e){} btn.disabled=false; v2FillPanel(); });
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && r2Mode()!=='off') scheduleSyncSoon(300); });
+window.addEventListener('focus',()=>{ if(r2Mode()!=='off') scheduleSyncSoon(300); });
 
 /* ============================================================
    SECRET THEME MENU (hidden easter egg — password "tomistcool")
@@ -9561,18 +10620,25 @@ async function refreshHome(){
   // finished, which is exactly what read as "jede Änderung dauert ultra lange". A plain idb-only
   // setup has nothing slow to hide behind, so it skips straight to the one fast render below.
   const hasRemoteSource=!!(fsState.root || isR2SyncEnabled());
+  // Nur Cloud-Sync mit der neuen Engine: die Startseite liest ausschließlich den lokalen Stand (schnell) —
+  // kein Netzwerk-Warten und kein "Synchronisiert …"-Balken mehr bei jedem Aufruf.
+  const slowRemote=!!(fsState.root || (isR2SyncEnabled() && r2Mode()!=='v2'));
   if(hasRemoteSource && state.boards.length) await paintHomeGrid(applyBoardOverrides(state.boards));
   const doMerge=async ()=>{
     const all=await mergedAllBoards();
     state.boards=all;
-    if(hasRemoteSource) await pullProjectsFromTargets().catch(()=>{});
+    if(hasRemoteSource){
+      const pp=pullProjectsFromTargets().catch(()=>false);
+      if(slowRemote) await pp;
+      else pp.then(ch=>{ if(ch && state.screen==='home') paintHomeGrid(applyBoardOverrides(state.boards)); });
+    }
     // Same overlay the instant first paint above already applies (see applyBoardOverrides's own
     // comment) — without it here too, a rename made moments ago could flash back to its old value
     // AGAIN right as this slower, real merge lands, if a not-yet-caught-up FS/Drive source is still
     // what mergedAllBoards() picked as that board's "best" copy at this exact instant.
     await paintHomeGrid(applyBoardOverrides(all));
   };
-  if(hasRemoteSource) await withBusy(t('busy_syncing'), doMerge);
+  if(slowRemote) await withBusy(t('busy_syncing'), doMerge);
   else await doMerge();
 }
 // "Ordnerstruktur" panel's Local|Alle|Drive filter (see showFolderStructureModal) — purely a
@@ -11080,8 +12146,9 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.67';
+const APP_VERSION='2.4.70';
 const WHATSNEW_ITEMS=[
+  {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
   // var(--accent), same reasoning as the real icon's fill="currentColor"), so this literally shows the
   // new Füller icon rather than a generic pen glyph.
@@ -11558,7 +12625,7 @@ async function openBoard(id, skipCrumbAnim){
   // remote copy from there, without making every single board open wait on a network round-trip.
   const hasLocalCopy = resolved ? resolved.all.includes('idb') : true; // no fs/drive connected at all → idb was always the only possible source
   if(!hasLocalCopy){
-    await withBusy(t('busy_pulling'), ()=>ensureBoardMirroredAndFresh(id).catch(()=>{}));
+    await (quietCloudOnly() ? ensureBoardMirroredAndFresh(id).catch(()=>{}) : withBusy(t('busy_pulling'), ()=>ensureBoardMirroredAndFresh(id).catch(()=>{})));
   }
   const board=await DB.getBoard(id);
   if(!board) return goHome();
@@ -11641,7 +12708,7 @@ async function openBoard(id, skipCrumbAnim){
   // path just finished the exact same pull synchronously, moments ago, so doing it again here would
   // only be a wasted extra round-trip.
   if(hasLocalCopy){
-    chainBoardOp(id, ()=>withBusy(t('busy_pulling'), async ()=>{
+    chainBoardOp(id, ()=>(quietCloudOnly() ? (fn=>fn()) : (fn=>withBusy(t('busy_pulling'), fn)))(async ()=>{
       try{ await ensureBoardMirroredAndFresh(id); }catch(e){ return; }
       if(state.currentBoardId!==id || state.dirtyBoards.has(id)) return;
       const freshBoard=await DB.getBoard(id).catch(()=>null);
@@ -12091,32 +13158,60 @@ viewport.addEventListener('focusout',()=>{
 // A real notch from a mouse wheel is always either lines-mode (Firefox) or an integer >=40 whose legacy
 // wheelDeltaY is a multiple of 120 (Chrome/Edge/Safari on a real wheel). Ctrl/Cmd+wheel always zooms,
 // regardless — that's also the guaranteed fallback if a particular mouse is ever misclassified.
-const WHEEL_BURST_GAP_MS=140, WHEEL_TRACKPAD_STICKY_MS=1500;
-let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0;
+// Tom, 06.10 (zweite Runde): "wenn man ganz schnell hoch runter scrollt wechselt man von zoom in scroll,
+// das soll ja nicht" — the first version of classifyWheel() decided PER EVENT: a big integer delta at the
+// start of a fast swipe/spin looked like a mouse notch (→ zoom), and the very next small/fractional frame
+// of the SAME gesture looked like a trackpad (→ pan), so one fast scroll switched from zooming to
+// scrolling halfway through. Two changes fix that for good:
+//   1. One gesture = one kind. The first event of a burst (events less than WHEEL_BURST_GAP_MS apart)
+//      decides, and the whole burst keeps that kind — a later small or large delta can never flip it.
+//      Only a physical wheel's lines-mode (Firefox) can still override, since only a mouse sends that.
+//   2. An event that could be either (large vertical delta, no trackpad seen recently) is no longer
+//      guessed from its own numbers. It is held back for WHEEL_PENDING_MS: a lone mouse notch is followed
+//      by silence and then zooms (the delay is imperceptible), while a trackpad flick is followed by the
+//      next frame ~16ms later with a DIFFERENT magnitude. A fast-spun mouse wheel sends the same notch
+//      size again, so identical magnitudes still mean "mouse". Either way, the held event is applied
+//      with whatever kind it turns out to be, so nothing is lost.
+const WHEEL_BURST_GAP_MS=220, WHEEL_TRACKPAD_STICKY_MS=1500, WHEEL_PENDING_MS=45;
+let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0, wheelPending=null;
+function wheelApply(kind,x,y,dx,dy){
+  if(kind==='mouse'){
+    if(dy===0) return; // e.g. a tilt-wheel's sideways click — nothing to zoom by
+    zoomAt(x,y, dy<0 ? 1.08 : 0.92);
+  }else{
+    state.view.x-=dx; state.view.y-=dy;
+    applyView(); persistView();
+  }
+}
+function wheelResolvePending(kind){
+  if(!wheelPending) return;
+  const p=wheelPending; wheelPending=null; clearTimeout(p.timer);
+  wheelBurstKind=kind;
+  if(kind==='trackpad') wheelTrackpadTs=performance.now();
+  wheelApply(kind,p.x,p.y,p.dx,p.dy);
+}
+// Returns 'mouse' | 'trackpad' | null (null = held back as pending, nothing to apply for this event yet).
 function classifyWheel(e,now){
   const gap=now-wheelLastTs; wheelLastTs=now;
-  const inBurst=!!wheelBurstKind && gap<=WHEEL_BURST_GAP_MS;
+  if(gap>WHEEL_BURST_GAP_MS && !wheelPending) wheelBurstKind=null; // a new gesture starts here
   const adx=Math.abs(e.deltaX), ady=Math.abs(e.deltaY);
-  let kind;
-  if(e.deltaMode!==0){
-    kind='mouse'; // lines/pages mode (Firefox): only a physical wheel does this
-  }else if(adx!==0 || !Number.isInteger(e.deltaX) || !Number.isInteger(e.deltaY) || ady<40){
-    kind='trackpad'; wheelTrackpadTs=now; // fractional / diagonal / small continuous deltas
-  }else if(inBurst){
-    kind=wheelBurstKind; // integer>=40 in the middle of a burst — keep whatever the burst already was
-  }else if(now-wheelTrackpadTs<WHEEL_TRACKPAD_STICKY_MS){
-    kind='trackpad'; // looks like a notch, but a trackpad was just in use — most likely a flick's first frame
-  }else{
-    const wd=e.wheelDeltaY;
-    kind=(typeof wd==='number' && !(wd!==0 && wd%120===0)) ? 'trackpad' : 'mouse';
+  if(wheelPending){
+    // The held event's follow-up has arrived — same notch size again means a spinning wheel, anything
+    // else (the ramp-up/decay of a trackpad swipe) means trackpad.
+    const same=(e.deltaMode===0 && e.deltaX===0 && ady===wheelPending.ady);
+    wheelResolvePending(same?'mouse':'trackpad');
   }
-  wheelBurstKind=kind;
-  return kind;
+  if(e.deltaMode!==0){ wheelBurstKind='mouse'; return 'mouse'; } // lines/pages mode: only a physical wheel
+  if(wheelBurstKind) return wheelBurstKind;                       // the burst already has its kind — keep it
+  if(adx!==0 || ady<40){ wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; } // small/diagonal = clearly trackpad
+  // Large, purely vertical: could be a mouse notch OR the first frame of a hard trackpad flick.
+  if(now-wheelTrackpadTs<WHEEL_TRACKPAD_STICKY_MS){ wheelBurstKind='trackpad'; return 'trackpad'; }
+  const wd=e.wheelDeltaY;
+  if(typeof wd==='number' && !(wd!==0 && wd%120===0)){ wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; }
+  return null; // genuinely ambiguous — the handler below holds it back and decides on the next event/timeout
 }
 viewport.addEventListener('wheel',(e)=>{
-  const kind=classifyWheel(e,performance.now());
   const ctrlOrPinch=e.ctrlKey||e.metaKey;
-  const willZoom=ctrlOrPinch||kind==='mouse';
   // Let the wheel event fall through to native scrolling when it started over content that can
   // scroll itself (a non-dynamic note whose text overflows its box, a checklist's item list, a
   // table's own scroll area) — without this, preventDefault() below fired unconditionally and ate
@@ -12125,27 +13220,31 @@ viewport.addEventListener('wheel',(e)=>{
   // Ctrl/Meta+wheel (always zoom, see above) is taken over regardless — zooming the whole board is
   // never what's meant while the cursor is sitting over a scrollable note/checklist/table; a plain
   // trackpad pan over the same content is let through for the same reason, just the other direction.
-  if(!(e.ctrlKey||e.metaKey)){
+  if(!ctrlOrPinch){
     const scrollTarget=e.target.closest && e.target.closest('.note-body, .checklist-items, .table-scroll');
     if(scrollTarget && scrollTarget.scrollHeight>scrollTarget.clientHeight+1){
       return;
     }
   }
   e.preventDefault();
-  if(willZoom){
-    if(e.deltaY===0) return; // e.g. a tilt-wheel's sideways click — nothing to zoom by
+  if(ctrlOrPinch){
+    if(e.deltaY===0) return;
     // A trackpad pinch (synthetic ctrlKey, many small continuous deltas) zooms proportionally to how far
     // the fingers actually moved — a fixed step per event made it jump, and its size depended on how
-    // many events the browser happened to emit. A real notch of a mouse wheel (with or without a held
-    // Ctrl) keeps the fixed step it always had.
-    const factor=(ctrlOrPinch && kind==='trackpad')
-      ? clamp(Math.exp(-e.deltaY*0.01),0.8,1.25)
-      : (e.deltaY<0 ? 1.08 : 0.92);
+    // many events the browser happened to emit. A real notch of a mouse wheel with a held Ctrl (lines
+    // mode, or a large whole-number delta) keeps the fixed step it always had.
+    const notch=(e.deltaMode!==0) || (e.deltaX===0 && Math.abs(e.deltaY)>=40 && Number.isInteger(e.deltaY));
+    const factor=notch ? (e.deltaY<0 ? 1.08 : 0.92) : clamp(Math.exp(-e.deltaY*0.01),0.8,1.25);
     zoomAt(e.clientX,e.clientY,factor);
-  }else{
-    state.view.x-=e.deltaX; state.view.y-=e.deltaY;
-    applyView(); persistView();
+    return;
   }
+  const kind=classifyWheel(e,performance.now());
+  if(kind===null){
+    wheelPending={x:e.clientX,y:e.clientY,dx:e.deltaX,dy:e.deltaY,ady:Math.abs(e.deltaY),
+      timer:setTimeout(()=>wheelResolvePending('mouse'),WHEEL_PENDING_MS)};
+    return;
+  }
+  wheelApply(kind,e.clientX,e.clientY,e.deltaX,e.deltaY);
 },{passive:false});
 // Safari on macOS never sends a trackpad pinch as wheel+ctrlKey like Chrome/Firefox/Edge do — it sends its
 // own non-standard gesturestart/gesturechange/gestureend events (scale is relative to the gesture's
@@ -14178,7 +15277,7 @@ function resolveNoteImages(bodyEl){
   bodyEl.querySelectorAll('img[data-image-id]').forEach(img=>{
     if(img.dataset.resolved) return;
     img.dataset.resolved='1';
-    getImageUrl(img.dataset.imageId).then(url=>{ if(url) img.src=url; });
+    withImgElPlaceholder(img.dataset.imageId,img);
   });
 }
 function serializeNoteHtml(bodyEl){
@@ -14326,7 +15425,7 @@ function buildColumnCard(card){
   `;
   if(hasCover){
     const coverImg=el.querySelector('.card-column-cover img');
-    getImageUrl(card.data.coverImageId).then(url=>{ if(url) coverImg.src=url; });
+    withImgElPlaceholder(card.data.coverImageId,coverImg);
     const removeBtn=el.querySelector('.cc-remove-cover');
     removeBtn.addEventListener('pointerdown',(e)=>e.stopPropagation());
     removeBtn.addEventListener('click',(e)=>{ e.stopPropagation(); removeColumnCover(card); });
@@ -14733,9 +15832,7 @@ function buildImageCard(card){
   const slot=el.querySelector('.img-slot');
   slot.style.cssText='flex:1;position:relative;overflow:hidden;';
   if(card.data.imageId){
-    getImageUrl(card.data.imageId).then(url=>{
-      if(url){ const img=document.createElement('img'); img.src=url; img.alt=''; slot.appendChild(img); }
-    });
+    withImagePlaceholder(card.data.imageId,slot,(url)=>{ const img=document.createElement('img'); img.src=url; img.alt=''; slot.appendChild(img); });
   }else{
     slot.innerHTML=`<div class="img-drop-overlay">${typeChipIconBig()}<span>${t('image_drop_hint')}</span></div>`;
   }
@@ -14780,8 +15877,7 @@ function buildCarouselCard(card){
     const item=document.createElement('div');
     item.className='cs-item'+(i===card.data.index?' active':'');
     track.appendChild(item);
-    getImageUrl(id).then(url=>{
-      if(!url) return;
+    withImagePlaceholder(id,item,(url)=>{
       const img=document.createElement('img');
       img.alt=''; img.src=url;
       item.appendChild(img);
@@ -22215,11 +23311,18 @@ async function getEmbeddedFontFaceCSS(){
   }
   return cachedFontFaceCSS;
 }
-async function renderCardsToCanvas(cards,opts){
-  const transparentBlanketBg=!!(opts && opts.transparentBlanketBg);
+// Builds the export's vector snapshot (an SVG <foreignObject> image of the given cards) WITHOUT rasterizing
+// it to a final canvas yet, so one snapshot can be drawn to a single canvas (PNG/JPEG, "Ganzes Board auf 1
+// Seite") or sliced into many page-sized canvases (PDF "Automatisch lesbar") without re-serializing every
+// card per page. opts: transparentBlanketBg, theme ('light'|'dark' pins the theme the snapshot is drawn in —
+// used by the PDF modes, which always print on white paper), transparentBg (no board background painted
+// into the snapshot itself), pad (px of empty margin around the content, default 48).
+async function buildExportImage(cards,opts){
+  opts=opts||{};
+  const transparentBlanketBg=!!opts.transparentBlanketBg;
   const bounds=contentBoundsOf(cards);
   if(!bounds) return null;
-  const pad=48;
+  const pad=(typeof opts.pad==='number') ? opts.pad : 48;
   const minX=bounds.minX-pad, minY=bounds.minY-pad;
   const width=Math.max(1,Math.ceil(bounds.maxX-bounds.minX+pad*2));
   const height=Math.max(1,Math.ceil(bounds.maxY-bounds.minY+pad*2));
@@ -22239,6 +23342,7 @@ async function renderCardsToCanvas(cards,opts){
   if(!themeAttr){
     themeAttr=(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
   }
+  if(opts.theme) themeAttr=opts.theme;
 
   // Built as real DOM nodes and serialized with XMLSerializer, rather than assembled as an HTML
   // string: a raw outerHTML string is HTML, not well-formed XML, so an unclosed void element
@@ -22257,21 +23361,23 @@ async function renderCardsToCanvas(cards,opts){
   marker.setAttribute('id','exportArrow'); marker.setAttribute('markerWidth','12'); marker.setAttribute('markerHeight','12');
   marker.setAttribute('refX','10.2'); marker.setAttribute('refY','6'); marker.setAttribute('orient','auto'); marker.setAttribute('markerUnits','userSpaceOnUse');
   const markerPath=document.createElementNS(svgNS,'path');
-  markerPath.setAttribute('d','M0,1 L10.2,6 L0,11 L2.8,6 Z'); markerPath.setAttribute('fill',faint);
+  markerPath.setAttribute('d','M0,1 L10.2,6 L0,11 L2.8,6 Z'); markerPath.setAttribute('style','fill:var(--faint)');
   marker.appendChild(markerPath); defs.appendChild(marker); svgRoot.appendChild(defs);
 
   // Connectors whose both ends are inside the exported set, redrawn in the export's local space.
   const linesSvg=document.createElementNS(svgNS,'svg');
   linesSvg.setAttribute('style','position:absolute;left:0;top:0;overflow:visible;pointer-events:none;');
   state.connectors.forEach(cn=>{
-    const a=state.cards.find(c=>c.id===cn.fromId), b=state.cards.find(c=>c.id===cn.toId);
-    if(!a||!b||!ids.has(a.id)||!ids.has(b.id)) return;
+    // Looked up in the CARDS PASSED IN (not state.cards): the PDF "Automatisch lesbar" mode hands in copies
+    // whose x/y were moved closer together, and the connector lines must follow those new positions.
+    const a=cards.find(c=>c.id===cn.fromId), b=cards.find(c=>c.id===cn.toId);
+    if(!a||!b) return;
     const ca=cardCenter(a), cb=cardCenter(b);
     const p1=edgePoint(a,cb.x,cb.y), p2=edgePoint(b,ca.x,ca.y);
     const line=document.createElementNS(svgNS,'line');
     line.setAttribute('x1',p1.x-minX); line.setAttribute('y1',p1.y-minY);
     line.setAttribute('x2',p2.x-minX); line.setAttribute('y2',p2.y-minY);
-    line.setAttribute('stroke',faint); line.setAttribute('stroke-width','2'); line.setAttribute('stroke-linecap','round');
+    line.setAttribute('style','stroke:var(--faint)'); line.setAttribute('stroke-width','2'); line.setAttribute('stroke-linecap','round');
     if(cn.arrowhead!==false) line.setAttribute('marker-end','url(#exportArrow)');
     linesSvg.appendChild(line);
   });
@@ -22285,10 +23391,20 @@ async function renderCardsToCanvas(cards,opts){
   // normal page. The export's wrap div stands in for <body> here but was never given that same
   // `color`, so text fell back to the plain browser default (black) regardless of theme, which only
   // ever looked "right" by coincidence in light mode (ink there is #1B2027, already near-black).
-  const ink=(rootStyle.getPropertyValue('--ink')||'#1B2027').trim();
+  // Same class of bug again, this time for the TYPEFACE (Tom, 06.10: "in den runtergeladenen Exports ist
+  // immer eine falsche Schriftart"): the app sets font-family / font-size / line-height on <body> only
+  // (see `body{...}` near the top of the stylesheet) and every card just inherits them. The export's wrap
+  // div stands in for <body> but never received them, and the cloned `body{...}` rule can't match a div —
+  // so all card text fell back to the browser default (a serif). The embedded IBM Plex @font-face rules
+  // below were therefore loaded but never actually USED. The wrap now carries the live <body>'s resolved
+  // typography explicitly. Colors/background use var() instead of the live page's resolved values, so a
+  // theme pinned via opts.theme (the PDF modes always print in the light theme) resolves correctly.
+  const bodyCS=getComputedStyle(document.body);
+  const typo=`font-family:${bodyCS.fontFamily};font-size:${bodyCS.fontSize};font-weight:${bodyCS.fontWeight};line-height:${bodyCS.lineHeight};letter-spacing:${bodyCS.letterSpacing};-webkit-font-smoothing:antialiased;text-size-adjust:100%;`;
+  const wrapBg=opts.transparentBg ? 'transparent' : 'var(--canvas)';
   const wrap=document.createElementNS(xhtmlNS,'div');
   wrap.setAttribute('xmlns',xhtmlNS);
-  wrap.setAttribute('style',`width:${width}px;height:${height}px;background:${bg};color:${ink};position:relative;`);
+  wrap.setAttribute('style',`width:${width}px;height:${height}px;background:${wrapBg};color:var(--ink);position:relative;${typo}`);
   const styleEl=document.createElementNS(xhtmlNS,'style');
   styleEl.textContent=[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n');
   wrap.appendChild(styleEl);
@@ -22397,58 +23513,314 @@ async function renderCardsToCanvas(cards,opts){
   const svgDataUrl='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgMarkup)));
   const img=new Image();
   await new Promise((res,rej)=>{ img.onload=res; img.onerror=()=>rej(new Error('svg render failed')); img.src=svgDataUrl; });
-  // Cap the raster resolution so huge boards don't produce unworkably large files, while still
-  // rendering at up to 2x for crispness on smaller boards.
-  const MAX_DIM=4000;
-  let scale=Math.min(2, window.devicePixelRatio||1);
-  if(width*scale>MAX_DIM || height*scale>MAX_DIM) scale=Math.max(1, Math.min(scale, MAX_DIM/Math.max(width,height)));
+  // Warm-up: an SVG image's embedded data: fonts (see getEmbeddedFontFaceCSS) are decoded lazily, and the
+  // very first drawImage() of a fresh SVG can run before they're ready — Safari in particular then paints
+  // the fallback typeface once. Drawing it once to a throwaway canvas and giving the font pipeline a
+  // moment guarantees the REAL draw(s) afterwards already use IBM Plex.
+  try{
+    const warm=document.createElement('canvas'); warm.width=8; warm.height=8;
+    warm.getContext('2d').drawImage(img,0,0,8,8);
+    await new Promise(r=>setTimeout(r,120));
+  }catch(e){}
+  return {img,width,height,bg,minX,minY,pad};
+}
+// Rasterizes (part of) an export snapshot. `scale` = canvas pixels per snapshot pixel; `src` optionally
+// limits it to a rectangle of the snapshot (a PDF page's slice); `fill` = solid color painted first, or
+// null to leave the canvas fully transparent (PNG).
+function drawExportImageToCanvas(info,scale,fill,src){
+  const sx=src?src.x:0, sy=src?src.y:0, sw=src?src.w:info.width, sh=src?src.h:info.height;
   const canvas=document.createElement('canvas');
-  canvas.width=Math.round(width*scale); canvas.height=Math.round(height*scale);
+  canvas.width=Math.max(1,Math.round(sw*scale)); canvas.height=Math.max(1,Math.round(sh*scale));
   const ctx=canvas.getContext('2d');
-  ctx.scale(scale,scale);
-  ctx.fillStyle=bg; ctx.fillRect(0,0,width,height);
-  ctx.drawImage(img,0,0,width,height);
+  if(fill){ ctx.fillStyle=fill; ctx.fillRect(0,0,canvas.width,canvas.height); }
+  ctx.drawImage(info.img,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
   return canvas;
 }
-function buildPdfFromJpeg(jpegBytes,imgW,imgH){
-  const enc=new TextEncoder();
-  const maxDim=14000; // PDF spec caps MediaBox edges around 14400 units
-  let pageW=imgW, pageH=imgH;
-  if(pageW>maxDim || pageH>maxDim){
-    const s=maxDim/Math.max(pageW,pageH);
-    pageW=Math.round(pageW*s); pageH=Math.round(pageH*s);
+// Keeps a raster inside what browsers can actually allocate (iOS Safari caps a canvas at ~16.7M pixels,
+// desktop Chromium/Firefox allow far more but a 100M-pixel PNG is useless anyway).
+function clampExportScale(w,h,scale,maxPixels,maxDim){
+  const byArea=Math.sqrt(maxPixels/Math.max(1,w*h));
+  const byDim=maxDim/Math.max(w,h);
+  return Math.max(0.05, Math.min(scale,byArea,byDim));
+}
+// PNG/JPEG (and anything else wanting a single canvas of the whole snapshot).
+// opts.transparentBg: PNG — leave the board background out entirely; otherwise the board's own canvas
+// color is painted (JPEG has no alpha channel, so it needs a real fill to avoid black).
+async function renderCardsToCanvas(cards,opts){
+  opts=opts||{};
+  const info=await buildExportImage(cards,opts);
+  if(!info) return null;
+  const scale=clampExportScale(info.width,info.height,2,36e6,8000);
+  return drawExportImageToCanvas(info,scale,opts.transparentBg?null:info.bg);
+}
+/* ---------------------------------------------------------------------------------------------
+   PDF EXPORT (Tom, 06.10) — two modes, A4/A5, always printed WITHOUT board background on white paper
+   (rendered in the light theme, otherwise a dark-mode board's light text would vanish on paper):
+     'fit'  "Ganzes Board auf 1 Seite" — the whole export set scaled onto ONE page, high resolution (300dpi).
+     'auto' "Automatisch lesbar"      — big empty gaps between elements are shortened to at most
+            PDF_GAP_SLOTS grid cells (connector lines follow, since they're redrawn from the new
+            positions), the result is scaled to a READABLE size (never smaller than PDF_READ_MIN pt per
+            board px) and split over as many pages as needed, cutting through empty bands wherever
+            possible so a note is never sliced in half if it can be avoided. Page orientation is chosen
+            automatically (whichever needs fewer pages / reads larger).
+   Both honour "was man markiert hat, oder sonst das ganze Board" (the caller passes exportTargetCards()).
+   Text stays as sharp as the page needs it: the vector snapshot is rasterized once per PAGE straight at
+   the printed size (220/300 dpi) rather than shrunk from one oversized bitmap.
+   --------------------------------------------------------------------------------------------- */
+const PDF_PAPERS={A4:{w:595.28,h:841.89}, A5:{w:419.53,h:595.28}};
+const PDF_MARGIN=28.35;                 // 10 mm
+const PDF_GAP_SLOTS=4;                  // "Lücken ... auf min. 4 Slots" — a slot is one grid cell (GRID_SIZE px)
+const PDF_READ_MIN=0.5, PDF_READ_MAX=1.15; // points per board pixel in 'auto' mode (1px=0.75pt is 100% screen size)
+const PDF_MAX_PAGES=150;
+// Returns a function mapping a card to its new coordinate on ONE axis after shortening every empty gap
+// wider than maxGap down to maxGap. Cards are grouped into clusters of overlapping/touching extents first,
+// so a long card spanning a "gap" of a neighbouring row can never be torn apart.
+function pdfCompactAxis(cards,posKey,sizeKey,maxGap){
+  const iv=cards.map(c=>({a:c[posKey],b:c[posKey]+c[sizeKey]})).sort((p,q)=>p.a-q.a);
+  const clusters=[];
+  iv.forEach(i=>{ const last=clusters[clusters.length-1]; if(last && i.a<=last.b) last.b=Math.max(last.b,i.b); else clusters.push({a:i.a,b:i.b}); });
+  const shifts=[]; let shrink=0;
+  clusters.forEach((cl,idx)=>{
+    if(idx>0){ const gap=cl.a-clusters[idx-1].b; if(gap>maxGap) shrink+=gap-maxGap; }
+    shifts.push(shrink);
+  });
+  return (c)=>{
+    const v=c[posKey]; let idx=clusters.findIndex(cl=>v>=cl.a && v<=cl.b);
+    if(idx<0) idx=0;
+    return v-shifts[idx];
+  };
+}
+function pdfCompactCards(cards){
+  const G=GRID_SIZE*PDF_GAP_SLOTS;
+  const fx=pdfCompactAxis(cards,'x','w',G), fy=pdfCompactAxis(cards,'y','h',G);
+  return cards.map(c=>({...c, x:fx(c), y:fy(c)}));
+}
+// Page break positions along one axis: [0, cut1, cut2, ..., total]. Prefers a cut inside an empty band of
+// the layout (nothing sliced), falling back to a hard cut at the page limit only when no band is available.
+function pdfChooseCuts(total,maxSeg,occupied){
+  const cuts=[0];
+  if(total<=maxSeg+1e-6){ cuts.push(total); return cuts; }
+  const occ=occupied.map(o=>[Math.max(0,o[0]),Math.min(total,o[1])]).filter(o=>o[1]>o[0]).sort((p,q)=>p[0]-q[0]);
+  const merged=[];
+  occ.forEach(o=>{ const l=merged[merged.length-1]; if(l && o[0]<=l[1]) l[1]=Math.max(l[1],o[1]); else merged.push([o[0],o[1]]); });
+  const bands=[]; let cur=0;
+  merged.forEach(m=>{ if(m[0]>cur) bands.push([cur,m[0]]); cur=Math.max(cur,m[1]); });
+  if(cur<total) bands.push([cur,total]);
+  let pos=0, guard=0;
+  while(total-pos>maxSeg+1e-6 && guard++<500){
+    const limit=pos+maxSeg, minCut=pos+maxSeg*0.35;
+    let best=null;
+    bands.forEach(bd=>{
+      const lo=Math.max(bd[0],minCut), hi=Math.min(bd[1],limit);
+      if(hi<lo) return;
+      const cut = (hi===limit) ? limit : hi-Math.min(hi-lo,8);
+      if(best===null || cut>best) best=cut;
+    });
+    const cut=(best===null)?limit:best;
+    cuts.push(cut); pos=cut;
   }
+  cuts.push(total);
+  return cuts;
+}
+// Pure layout planning (no DOM, no rendering) — used for both the real export and the dialog's mini preview.
+function planPdfPages(cards,mode,paperKey){
+  const paper=PDF_PAPERS[paperKey]||PDF_PAPERS.A4;
+  const layoutCards=(mode==='auto') ? pdfCompactCards(cards) : cards;
+  const pad=(mode==='auto') ? 24 : 48;
+  const bnd=contentBoundsOf(layoutCards);
+  if(!bnd) return {pages:[],layoutCards,pad,mode,paper,orient:'portrait',scale:1,W:1,H:1,rects:[]};
+  const W=Math.max(1,Math.ceil(bnd.maxX-bnd.minX+pad*2)), H=Math.max(1,Math.ceil(bnd.maxY-bnd.minY+pad*2));
+  const rects=layoutCards.map(c=>({x:c.x-bnd.minX+pad,y:c.y-bnd.minY+pad,w:c.w,h:c.h}));
+  const byId=new Map(layoutCards.map(c=>[c.id,c]));
+  const lines=[];
+  state.connectors.forEach(cn=>{
+    const a=byId.get(cn.fromId), b=byId.get(cn.toId); if(!a||!b) return;
+    const ca=cardCenter(a), cb=cardCenter(b);
+    lines.push({x1:ca.x-bnd.minX+pad,y1:ca.y-bnd.minY+pad,x2:cb.x-bnd.minX+pad,y2:cb.y-bnd.minY+pad});
+  });
+  const cands=['portrait','landscape'].map(orient=>{
+    const pageW=(orient==='portrait')?paper.w:paper.h, pageH=(orient==='portrait')?paper.h:paper.w;
+    const pw=pageW-2*PDF_MARGIN, ph=pageH-2*PDF_MARGIN;
+    let scale, cols, rows;
+    if(mode==='fit'){
+      scale=Math.min(pw/W,ph/H); cols=[0,W]; rows=[0,H];
+    }else{
+      scale=Math.min(PDF_READ_MAX,Math.max(PDF_READ_MIN,pw/W));
+      cols=pdfChooseCuts(W,pw/scale,rects.map(r=>[r.x,r.x+r.w]));
+      rows=pdfChooseCuts(H,ph/scale,rects.map(r=>[r.y,r.y+r.h]));
+    }
+    const pages=[];
+    for(let ri=0;ri<rows.length-1;ri++) for(let ci=0;ci<cols.length-1;ci++){
+      const cell={x0:cols[ci],x1:cols[ci+1],y0:rows[ri],y1:rows[ri+1]};
+      if(mode==='auto'){
+        const hit=rects.some(r=>r.x<cell.x1 && r.x+r.w>cell.x0 && r.y<cell.y1 && r.y+r.h>cell.y0)
+          || lines.some(l=>Math.min(l.x1,l.x2)<cell.x1 && Math.max(l.x1,l.x2)>cell.x0 && Math.min(l.y1,l.y2)<cell.y1 && Math.max(l.y1,l.y2)>cell.y0);
+        if(!hit) continue; // no empty pages
+      }
+      pages.push(cell);
+    }
+    return {orient,pageW,pageH,scale,pages};
+  });
+  cands.sort((c1,c2)=> (c1.pages.length-c2.pages.length) || (c2.scale-c1.scale) || (c1.orient==='portrait'?-1:1));
+  const best=cands[0];
+  return {mode,paper,layoutCards,pad,W,H,rects,lines,orient:best.orient,pageW:best.pageW,pageH:best.pageH,scale:best.scale,pages:best.pages};
+}
+// Multi-page PDF, one JPEG per page (pages[i] = {jpeg,pxW,pxH,pageW,pageH,x,y,w,h}, all in PDF points
+// except pxW/pxH; x/y = top-left of the image on the page).
+function buildPdfFromPages(pages){
+  const enc=new TextEncoder();
   const parts=[]; const offsets=[]; let pos=0;
   function push(chunk){ const b=(typeof chunk==='string')?enc.encode(chunk):chunk; parts.push(b); pos+=b.length; }
+  const n=pages.length;
   push('%PDF-1.4\n');
   offsets[1]=pos; push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-  offsets[2]=pos; push('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
-  offsets[3]=pos; push(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>\nendobj\n`);
-  const content=`q ${pageW} 0 0 ${pageH} 0 0 cm /Im0 Do Q`;
-  const contentBytes=enc.encode(content);
-  offsets[4]=pos; push(`4 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`); push(contentBytes); push('\nendstream\nendobj\n');
-  offsets[5]=pos; push(`5 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);
-  push(jpegBytes);
-  push('\nendstream\nendobj\n');
+  const kids=pages.map((_,i)=>`${3+3*i} 0 R`).join(' ');
+  offsets[2]=pos; push(`2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${n} >>\nendobj\n`);
+  pages.forEach((p,i)=>{
+    const po=3+3*i, co=po+1, io=po+2;
+    offsets[po]=pos;
+    push(`${po} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${p.pageW.toFixed(2)} ${p.pageH.toFixed(2)}] /Resources << /XObject << /Im0 ${io} 0 R >> >> /Contents ${co} 0 R >>\nendobj\n`);
+    const content=`q ${p.w.toFixed(3)} 0 0 ${p.h.toFixed(3)} ${p.x.toFixed(3)} ${(p.pageH-p.y-p.h).toFixed(3)} cm /Im0 Do Q`;
+    const contentBytes=enc.encode(content);
+    offsets[co]=pos; push(`${co} 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`); push(contentBytes); push('\nendstream\nendobj\n');
+    offsets[io]=pos;
+    push(`${io} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${p.pxW} /Height ${p.pxH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>\nstream\n`);
+    push(p.jpeg); push('\nendstream\nendobj\n');
+  });
+  const total=2+3*n;
   const xrefStart=pos;
-  let xref='xref\n0 6\n0000000000 65535 f \n';
-  for(let i=1;i<=5;i++) xref+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+  let xref=`xref\n0 ${total+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<=total;i++) xref+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
   push(xref);
-  push(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`);
-  const total=parts.reduce((a,p)=>a+p.length,0);
-  const out=new Uint8Array(total);
-  let o=0; parts.forEach(p=>{ out.set(p,o); o+=p.length; });
+  push(`trailer\n<< /Size ${total+1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`);
+  const len=parts.reduce((acc,pt)=>acc+pt.length,0);
+  const out=new Uint8Array(len);
+  let o=0; parts.forEach(pt=>{ out.set(pt,o); o+=pt.length; });
   return out;
+}
+async function exportCardsAsPdf(cards,opts,onProgress){
+  const plan=planPdfPages(cards,opts.mode,opts.paper);
+  if(!plan.pages.length) throw new Error('nothing to export');
+  if(plan.pages.length>PDF_MAX_PAGES) throw new Error('too many pages');
+  const info=await buildExportImage(plan.layoutCards,{theme:'light',transparentBg:true,pad:plan.pad});
+  if(!info) throw new Error('render failed');
+  const pxPerPt=((plan.mode==='fit')?300:220)/72;
+  const outPages=[];
+  for(let i=0;i<plan.pages.length;i++){
+    if(onProgress) onProgress(i+1,plan.pages.length);
+    const cell=plan.pages[i];
+    const cw=cell.x1-cell.x0, ch=cell.y1-cell.y0;
+    const sc=clampExportScale(cw,ch,plan.scale*pxPerPt,30e6,9000);
+    const canvas=drawExportImageToCanvas(info,sc,'#ffffff',{x:cell.x0,y:cell.y0,w:cw,h:ch});
+    const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.93));
+    if(!blob) throw new Error('jpeg failed');
+    const jpeg=new Uint8Array(await blob.arrayBuffer());
+    const w=cw*plan.scale, h=ch*plan.scale;
+    outPages.push({jpeg,pxW:canvas.width,pxH:canvas.height,pageW:plan.pageW,pageH:plan.pageH,
+      x:(plan.mode==='fit')?(plan.pageW-w)/2:PDF_MARGIN, y:(plan.mode==='fit')?(plan.pageH-h)/2:PDF_MARGIN, w, h});
+    canvas.width=1; canvas.height=1; // release the page bitmap right away
+    await new Promise(r=>setTimeout(r,0)); // let the progress label repaint between pages
+  }
+  const board=boardById(state.currentBoardId);
+  const filename=slugify(board?board.name:'Board')+'.pdf';
+  const ok=await downloadOrSaveFile(filename, buildPdfFromPages(outPages), 'application/pdf');
+  if(ok) showToast(t('toast_export_success',{filename}));
+  return ok;
+}
+// Mini-preview: the planned pages as little white sheets with the (shortened) element blocks on them.
+function drawPdfPreview(canvas,plan){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const cssW=canvas.clientWidth||340, cssH=canvas.clientHeight||150;
+  canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,cssW,cssH);
+  const cs=getComputedStyle(document.documentElement);
+  const accent=(cs.getPropertyValue('--accent')||'#4C7CF0').trim(), border=(cs.getPropertyValue('--border')||'#ccc').trim();
+  const shown=plan.pages.slice(0,8);
+  if(!shown.length) return;
+  const gap=8, n=shown.length;
+  const aspect=plan.pageW/plan.pageH;
+  let ph=cssH-8, pw=ph*aspect;
+  if(n*pw+(n-1)*gap>cssW-8){ pw=(cssW-8-(n-1)*gap)/n; ph=pw/aspect; }
+  const total=n*pw+(n-1)*gap; let ox=(cssW-total)/2; const oy=(cssH-ph)/2;
+  const k=pw/plan.pageW; // preview px per PDF point
+  shown.forEach(cell=>{
+    ctx.fillStyle='#ffffff'; ctx.strokeStyle=border; ctx.lineWidth=1;
+    ctx.fillRect(ox,oy,pw,ph); ctx.strokeRect(ox+0.5,oy+0.5,pw-1,ph-1);
+    const w=(cell.x1-cell.x0)*plan.scale, h=(cell.y1-cell.y0)*plan.scale;
+    const ix=(plan.mode==='fit')?(plan.pageW-w)/2:PDF_MARGIN, iy=(plan.mode==='fit')?(plan.pageH-h)/2:PDF_MARGIN;
+    ctx.save(); ctx.beginPath(); ctx.rect(ox+ix*k,oy+iy*k,w*k,h*k); ctx.clip();
+    ctx.strokeStyle='#9aa0a6'; ctx.lineWidth=1;
+    plan.lines.forEach(l=>{ ctx.beginPath(); ctx.moveTo(ox+(ix+(l.x1-cell.x0)*plan.scale)*k,oy+(iy+(l.y1-cell.y0)*plan.scale)*k);
+      ctx.lineTo(ox+(ix+(l.x2-cell.x0)*plan.scale)*k,oy+(iy+(l.y2-cell.y0)*plan.scale)*k); ctx.stroke(); });
+    ctx.fillStyle=accent; ctx.globalAlpha=0.35;
+    plan.rects.forEach(r=>{ ctx.fillRect(ox+(ix+(r.x-cell.x0)*plan.scale)*k,oy+(iy+(r.y-cell.y0)*plan.scale)*k,r.w*plan.scale*k,r.h*plan.scale*k); });
+    ctx.globalAlpha=1; ctx.restore();
+    ox+=pw+gap;
+  });
+}
+function openPdfExportDialog(cards){
+  if(!cards || !cards.length){ showToast(t('toast_export_impossible')); return; }
+  const isSelection=state.selection.size>0;
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal modal-wide pdf-dlg">
+    <h4>${t('pdf_dialog_title')}</h4>
+    <p class="pdf-dlg-scope">${isSelection ? t('pdf_scope_selection',{n:cards.length}) : t('pdf_scope_board',{n:cards.length})}</p>
+    <div class="pdf-dlg-group">
+      <label class="pdf-dlg-opt"><input type="radio" name="pdfMode" value="fit" checked><span><b>${t('pdf_mode_fit')}</b><small>${t('pdf_mode_fit_hint')}</small></span></label>
+      <label class="pdf-dlg-opt"><input type="radio" name="pdfMode" value="auto"><span><b>${t('pdf_mode_auto')}</b><small>${t('pdf_mode_auto_hint')}</small></span></label>
+    </div>
+    <div class="pdf-dlg-paper"><span>${t('pdf_paper_label')}</span>
+      <label><input type="radio" name="pdfPaper" value="A4" checked> A4</label>
+      <label><input type="radio" name="pdfPaper" value="A5"> A5</label>
+    </div>
+    <canvas class="pdf-dlg-preview"></canvas>
+    <p class="pdf-dlg-summary"></p>
+    <div class="modal-actions">
+      <button data-a="cancel">${t('modal_cancel')}</button>
+      <button data-a="go" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('pdf_create')}</button>
+    </div></div>`;
+  bindScrimDismiss(scrim,()=>{ if(!busy) scrim.remove(); });
+  const cancelBtn=scrim.querySelector('[data-a="cancel"]'), goBtn=scrim.querySelector('[data-a="go"]');
+  const summaryEl=scrim.querySelector('.pdf-dlg-summary'), previewEl=scrim.querySelector('.pdf-dlg-preview');
+  let busy=false;
+  const val=(name)=>scrim.querySelector(`input[name="${name}"]:checked`).value;
+  function refresh(){
+    const plan=planPdfPages(cards,val('pdfMode'),val('pdfPaper'));
+    const tooMany=plan.pages.length>PDF_MAX_PAGES;
+    summaryEl.textContent = tooMany ? t('pdf_too_many_pages',{max:PDF_MAX_PAGES})
+      : t('pdf_summary',{orient:t(plan.orient==='portrait'?'pdf_orient_portrait':'pdf_orient_landscape'), n:plan.pages.length, pages:t(plan.pages.length===1?'pdf_page_one':'pdf_page_many')});
+    goBtn.disabled=tooMany || !plan.pages.length;
+    drawPdfPreview(previewEl,plan);
+  }
+  scrim.querySelectorAll('input').forEach(i=>i.addEventListener('change',refresh));
+  cancelBtn.addEventListener('click',()=>{ if(!busy) scrim.remove(); });
+  goBtn.addEventListener('click',async()=>{
+    busy=true; goBtn.disabled=true; cancelBtn.disabled=true;
+    try{
+      await exportCardsAsPdf(cards,{mode:val('pdfMode'),paper:val('pdfPaper')},(i,n)=>{ goBtn.textContent=t('pdf_creating',{i,n}); });
+      scrim.remove();
+    }catch(err){
+      busy=false; cancelBtn.disabled=false; goBtn.disabled=false; goBtn.textContent=t('pdf_create');
+      showToast(t('toast_export_failed'));
+    }
+  });
+  document.body.appendChild(scrim);
+  refresh();
 }
 async function exportCardsAsFile(cards,format,transparentBg){
   if(!cards || !cards.length){ showToast(t('toast_export_impossible')); return; }
+  if(format==='pdf'){ openPdfExportDialog(cards); return; }
   // JPEG/PDF have no alpha channel — a transparent canvas encoded as either just fills the empty
   // areas solid black (a JPEG/canvas spec quirk, not a bug here), so the "transparent exportieren"
   // choice only ever actually applies to PNG; silently ignored for the other two rather than
   // producing a surprise black background.
   const effectiveTransparent=format==='png' && !!transparentBg;
+  // Tom, 06.10: PNG export must have a transparent background (it used to always get the board's canvas
+  // color painted in — pure dark in dark mode, which read as "schwarz"), JPEG keeps the board's own
+  // background color, and PDF is handled by exportCardsAsPdf() (never reaches this function).
   let canvas;
-  try{ canvas=await renderCardsToCanvas(cards,{transparentBlanketBg:effectiveTransparent}); }
+  try{ canvas=await renderCardsToCanvas(cards,{transparentBlanketBg:effectiveTransparent, transparentBg:format==='png'}); }
   catch(e){ showToast(t('toast_export_failed')); return; }
   if(!canvas){ showToast(t('toast_export_failed')); return; }
   const board=boardById(state.currentBoardId);
@@ -22463,11 +23835,6 @@ async function exportCardsAsFile(cards,format,transparentBg){
     canvas.toBlob(blob=>finish(blob, baseName+'.png', 'image/png'), 'image/png');
   }else if(format==='jpeg'){
     canvas.toBlob(blob=>finish(blob, baseName+'.jpg', 'image/jpeg'), 'image/jpeg', 0.92);
-  }else if(format==='pdf'){
-    canvas.toBlob(blob=>finish(blob, baseName+'.pdf', 'application/pdf', async b=>{
-      const jpegBytes=new Uint8Array(await b.arrayBuffer());
-      return buildPdfFromJpeg(jpegBytes, canvas.width, canvas.height);
-    }), 'image/jpeg', 0.92);
   }
 }
 const formatMenuEl=document.createElement('div');
@@ -22786,7 +24153,13 @@ async function syncBoardToTargets(boardId,targets){
   if(!targets || !targets.length) return false;
   const bundle=await withBoardBackend(boardId, ()=>collectBoardBundle(boardId));
   if(!bundle.boards.length) return false;
-  for(const target of targets) await pushBundleToBackend(bundle, backendFor(target));
+  if(targets.includes('r2') && r2Mode()==='v2'){
+    // Neue Engine: das Board (samt Unterboards) einfach als "geändert" markieren und einen Durchlauf abwarten
+    for(const b of bundle.boards) V2.dirty.set(b.id,V2.dirty.get(b.id)||Date.now());
+    v2PersistSoon();
+    await v2RunPass(true).catch(()=>{});
+  }
+  for(const target of legacyOnly(targets)) await pushBundleToBackend(bundle, backendFor(target));
   if(!state.boardSources) state.boardSources=new Map();
   for(const b of bundle.boards){
     const info=state.boardSources.get(b.id) || {sources:new Set(['idb']), bestSrc:'idb'};
@@ -22882,12 +24255,17 @@ async function syncAllBoards(opts){
   opts=opts||{};
   const targets=syncTargets();
   if(!targets.length){ if(!opts.silent) showToast(t('toast_sync_no_targets')); return 0; }
+  let count=0;
+  if(targets.includes('r2') && r2Mode()==='v2'){
+    // Neue Engine: kompletter Abgleich beider Richtungen (auch noch nie geladene Boards der Cloud)
+    await v2RunPass(true).catch(()=>{});
+    count+=V2.stats.pushed+V2.stats.pulled;
+  }
   await pushDirtyBoards(targets); // any pending local edit not yet pushed — already wraps itself in withBusy()
   const all=await mergedAllBoards();
-  let count=0;
   for(const b of all){
     const info=state.boardSources && state.boardSources.get(b.id);
-    const need=targets.filter(tk=>!(info && info.sources.has(tk)));
+    const need=legacyOnly(targets).filter(tk=>!(info && info.sources.has(tk)));
     if(!need.length) continue;
     const ok=await syncBoardToTargets(b.id,need); // a clean board simply missing on a target — pushDirtyBoards above only looks at dirty ones
     if(ok) count++;
@@ -22925,6 +24303,12 @@ function markR2FullCheckupDone(){ try{ localStorage.setItem('notua-r2-full-check
 async function r2RunFullCheckupOnce(){
   if(!isR2SyncEnabled() || !r2State.encKey) return;
   if(r2FullCheckupDone()) return;
+  // Wer für Cloud-Sync zuständig ist, steht erst fest, wenn der Worker nach seinen Fähigkeiten gefragt
+  // wurde (siehe r2Mode): noch unklar → später nochmal; neue Engine → die gleicht nie abgeglichene Boards
+  // ohnehin selbst ab, dieser einmalige Sweep ist dann überflüssig.
+  { const m=r2Mode();
+    if(m==='wait') return;
+    if(m==='v2'){ markR2FullCheckupDone(); return; } }
   try{ await syncAllBoards({silent:true}); }catch(e){}
   markR2FullCheckupDone(); // marked done even on a partial/failed pass — a genuinely offline first run
                             // retries plenty via the normal dirty-board engine and the manual button;

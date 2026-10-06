@@ -70,11 +70,46 @@ const QUOTA_BYTES = 100 * 1024 * 1024; // 100MB pro Nutzer — Toms Vorgabe
 const MAX_OBJECT_BYTES = 8 * 1024 * 1024; // Sicherheitsgrenze pro einzelner Datei — Bilder sind zu diesem Zeitpunkt schon <=150KB (siehe compressImageForStorage in index.html), Board-JSONs sind winzig; das hier fängt nur etwas kaputtes/riesiges ab, bevor es überhaupt versucht wird
 const RELAY_MAX_BYTES = 4096; // /relay-Objekte sind winzig (ein öffentlicher ECDH-Schlüssel + etwas Chiffretext, ~150 Bytes) — großzügig genug für alles Legitime, eng genug um anonyme Ablage großer Dateien darüber zu verhindern
 
+// Sync-Protokoll-Version, die dieser Worker versteht. index.html fragt sie über GET /version ab: ab
+// Protokoll 2 schaltet die App auf die neue Cloud-Sync-Engine (versionierte Dokumente pro Board,
+// bedingte Writes per ETag, stiller Merge pro Eigenschaft). Ein älterer Worker kennt /version nicht
+// (404) — die App bleibt dann automatisch bei der alten Engine, bis dieser Worker eingespielt ist.
+const SYNC_PROTOCOL = 2;
+
+// ETags werden nach außen immer ohne Anführungszeichen und ohne W/-Präfix geführt (so, wie R2 sie in
+// obj.etag liefert) — der Browser schickt sie 1:1 in If-Match zurück, hier wird nur noch einmal
+// defensiv bereinigt, falls ein Proxy dazwischen sie in Anführungszeichen gesetzt hat.
+function cleanEtag(v) { return String(v || '').replace(/^W\//, '').replace(/^"|"$/g, ''); }
+
+// Verbrauchs-Cache pro Nutzer (lebt nur innerhalb eines Worker-Isolates). Vorher wurde bei JEDEM
+// Schreibvorgang der komplette Bucket-Bereich des Nutzers neu durchgezählt (list über alle Objekte) —
+// das wurde mit wachsender Objektzahl immer langsamer und war einer der Gründe, warum sich Sync zäh
+// anfühlte. Jetzt wird höchstens alle 20 Sekunden wirklich gezählt und dazwischen mitgerechnet; wird
+// das Limit nach Cache-Stand überschritten, zählt der Worker vor dem Ablehnen noch einmal live nach,
+// damit ein veralteter Cache nie fälschlich "Speicher voll" melden kann.
+const USAGE_CACHE_MS = 20000;
+const usageCache = new Map();
+function invalidateUsage(uid) { usageCache.delete(uid); }
+async function reserveQuota(env, uid, delta) {
+  let c = usageCache.get(uid);
+  if (!c || Date.now() - c.at > USAGE_CACHE_MS) {
+    c = { bytes: await userUsageBytes(env, uid), at: Date.now() };
+    usageCache.set(uid, c);
+  }
+  if (c.bytes + delta > QUOTA_BYTES) {
+    c.bytes = await userUsageBytes(env, uid); c.at = Date.now();
+    if (c.bytes + delta > QUOTA_BYTES) return false;
+  }
+  c.bytes += delta;
+  return true;
+}
+
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,PUT,DELETE,HEAD,OPTIONS',
-    'Access-Control-Allow-Headers': 'Authorization,Content-Type',
+    'Access-Control-Allow-Headers': 'Authorization,Content-Type,If-Match,If-None-Match',
+    'Access-Control-Expose-Headers': 'ETag',
     'Access-Control-Max-Age': '86400',
   };
 }
@@ -123,7 +158,7 @@ async function verifyUser(request, env) {
   return uid || null;
 }
 
-// Nur "boards/...", "images/..." und "meta/..." sind je gültige Keys (siehe R2_DB/die ENCRYPTION-
+// Nur "boards/...", "images/...", "meta/..." und "v2/..." (neue Sync-Engine) sind je gültige Keys (siehe R2_DB/die ENCRYPTION-
 // Kommentare in index.html — "meta/setup.json" ist der kleine, unverschlüsselte Marker, der anzeigt
 // "für dieses Konto existiert schon ein Schlüssel") — alles andere (insbesondere ".." oder ein
 // führendes "/", die aus dem users/<uid>/-Präfix ausbrechen könnten) wird abgelehnt, bevor der Key
@@ -133,7 +168,7 @@ function safeKey(rawKey) {
   let key;
   try { key = decodeURIComponent(rawKey); } catch (e) { return null; }
   if (key.includes('..') || key.startsWith('/') || key.length > 300) return null;
-  if (!/^(boards|images|meta)\//.test(key)) return null;
+  if (!/^(boards|images|meta|v2)\//.test(key)) return null;
   return key;
 }
 
@@ -207,8 +242,13 @@ export default {
     const uid = await verifyUser(request, env);
     if (!uid) return err(401, 'unauthorized');
 
+    if (url.pathname === '/version' && request.method === 'GET') {
+      return json({ proto: SYNC_PROTOCOL });
+    }
+
     if (url.pathname === '/usage' && request.method === 'GET') {
       const bytes = await userUsageBytes(env, uid);
+      usageCache.set(uid, { bytes, at: Date.now() });
       return json({ bytes, limit: QUOTA_BYTES });
     }
 
@@ -247,6 +287,7 @@ export default {
         for (const obj of listed.objects) { await env.NOTUA_BUCKET.delete(obj.key); deleted++; }
         cursor = listed.truncated ? listed.cursor : undefined;
       } while (cursor);
+      invalidateUsage(uid);
       return json({ ok: true, deleted });
     }
 
@@ -256,7 +297,7 @@ export default {
       let cursor, out = [];
       do {
         const listed = await env.NOTUA_BUCKET.list({ prefix: 'users/' + uid + '/' + prefix, cursor, limit: 1000 });
-        for (const obj of listed.objects) out.push({ key: obj.key.slice(('users/' + uid + '/').length), size: obj.size, uploaded: obj.uploaded });
+        for (const obj of listed.objects) out.push({ key: obj.key.slice(('users/' + uid + '/').length), size: obj.size, uploaded: obj.uploaded, etag: cleanEtag(obj.etag) });
         cursor = listed.truncated ? listed.cursor : undefined;
       } while (cursor);
       return json(out);
@@ -272,26 +313,42 @@ export default {
         if (!obj) return err(404, 'not found');
         const headers = Object.assign({}, corsHeaders());
         if (obj.httpMetadata && obj.httpMetadata.contentType) headers['Content-Type'] = obj.httpMetadata.contentType;
+        headers['ETag'] = '"' + cleanEtag(obj.etag) + '"';
         return new Response(obj.body, { status: 200, headers });
       }
       if (request.method === 'HEAD') {
         const obj = await env.NOTUA_BUCKET.head(fullKey);
         if (!obj) return new Response(null, { status: 404, headers: corsHeaders() });
-        return new Response(null, { status: 200, headers: Object.assign({ 'Content-Length': String(obj.size) }, corsHeaders()) });
+        return new Response(null, { status: 200, headers: Object.assign({ 'Content-Length': String(obj.size), 'ETag': '"' + cleanEtag(obj.etag) + '"' }, corsHeaders()) });
       }
       if (request.method === 'PUT') {
         const body = await request.arrayBuffer();
         if (body.byteLength > MAX_OBJECT_BYTES) return err(413, 'object too large');
         const existing = await env.NOTUA_BUCKET.head(fullKey);
-        const usage = await userUsageBytes(env, uid);
+        // Bedingte Writes (Grundlage der neuen Sync-Engine): "If-Match: <etag>" schreibt nur, wenn das
+        // Objekt seit dem Lesen unverändert ist; "If-None-Match: *" nur, wenn es noch gar nicht
+        // existiert. Schlägt die Bedingung fehl, antwortet der Worker 412 — der Browser lädt dann die
+        // neue Fassung, führt beide zusammen und schreibt erneut. So kann kein Gerät mehr unbemerkt die
+        // Änderung eines anderen überschreiben ("lost update").
+        const ifMatch = request.headers.get('If-Match');
+        const ifNone = request.headers.get('If-None-Match');
+        const putOpts = { httpMetadata: { contentType: request.headers.get('Content-Type') || 'application/octet-stream' } };
+        if (ifMatch) {
+          if (!existing || cleanEtag(existing.etag) !== cleanEtag(ifMatch)) return json({ error: 'precondition failed' }, 412);
+          putOpts.onlyIf = { etagMatches: cleanEtag(ifMatch) };
+        } else if (ifNone === '*') {
+          if (existing) return json({ error: 'precondition failed' }, 412);
+          putOpts.onlyIf = { etagDoesNotMatch: '*' };
+        }
         const delta = body.byteLength - (existing ? existing.size : 0); // ein Überschreiben zählt nur die Differenz, nicht die volle neue Größe nochmal oben drauf
-        if (usage + delta > QUOTA_BYTES) return err(413, 'quota exceeded');
-        const contentType = request.headers.get('Content-Type') || 'application/octet-stream';
-        await env.NOTUA_BUCKET.put(fullKey, body, { httpMetadata: { contentType } });
-        return json({ ok: true, size: body.byteLength });
+        if (delta > 0 && !(await reserveQuota(env, uid, delta))) return err(413, 'quota exceeded');
+        const written = await env.NOTUA_BUCKET.put(fullKey, body, putOpts);
+        if (written === null) return json({ error: 'precondition failed' }, 412); // jemand war zwischen head() und put() schneller
+        return json({ ok: true, size: body.byteLength, etag: cleanEtag(written && written.etag) });
       }
       if (request.method === 'DELETE') {
         await env.NOTUA_BUCKET.delete(fullKey);
+        invalidateUsage(uid);
         return json({ ok: true });
       }
       return err(405, 'method not allowed');
