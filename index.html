@@ -3455,7 +3455,11 @@ try{
   html[data-d-radius] :is(.card-note,.card-checklist,.card-table,.card-boardlink,.card-colorpicker,.card-wowpvp,.card-file){padding:var(--d-inset);}
   html[data-d-radius] .modal:not(.dm-prev):not(.dm-menu){padding:calc(22px + var(--d-inset));}
   html[data-d-radius] .dp-card{padding:calc(9px + var(--d-inset)) calc(11px + var(--d-inset));}
-  html[data-d-radius] .board-tile, html[data-d-radius] .create-menu{padding:calc(var(--d-inset) * 0.6);}
+  /* Zum bestehenden Innenabstand ADDIEREN (nicht ersetzen) — sonst rutscht der Inhalt an den Rand. */
+  html[data-d-radius] .board-tile{padding:calc(18px + var(--d-inset)) calc(18px + var(--d-inset)) calc(16px + var(--d-inset));}
+  html[data-d-radius] .board-tile{height:calc(158px + var(--d-inset) * 2);}
+  html[data-d-radius] .project-panel-grid .board-tile{height:calc(152px + var(--d-inset) * 2);}
+  html[data-d-radius] .create-menu{padding:calc(6px + var(--d-inset) * 0.6);}
   html[data-d-border="none"] .card, html[data-d-border="none"] .dp-card{border-color:transparent;}
   html[data-d-border="strong"] .card, html[data-d-border="strong"] .dp-card{border-color:var(--border-strong);}
   html[data-d-border="accent"] .card, html[data-d-border="accent"] .dp-card{border-color:var(--accent);}
@@ -10533,13 +10537,24 @@ function landingFxResize(){
   landingFxBuild();
 }
 function landingFxColor(now,L=landingFx){
-  if(now-L.rgbAt<1500) return; L.rgbAt=now;
+  if(now-L.rgbAt<1500 && L.pal) return; L.rgbAt=now;
   try{
     const cs=getComputedStyle(document.documentElement);
     const v=cs.getPropertyValue('--ink').trim(); if(v.startsWith('#')) L.rgb=hexToRgbArr(v);
     const ac=cs.getPropertyValue('--accent').trim(); if(ac.startsWith('#')) L.acc=hexToRgbArr(ac);
     L.hsl=rgbToHsl(L.acc[0],L.acc[1],L.acc[2]);
+    // Hintergrundfarbe: nächster Vorfahr mit sichtbarem Hintergrund (Landingpage bzw. Vorschau-Kachel)
+    let bg=null, el=L.canvas?L.canvas.parentNode:null;
+    while(el && el.nodeType===1){ const m=getComputedStyle(el).backgroundColor.match(/[\d.]+/g); if(m && m.length>=3 && (m.length<4||+m[3]>0.05)){ bg=[+m[0],+m[1],+m[2]]; break; } el=el.parentNode; }
+    if(!bg){ const m=(getComputedStyle(document.body).backgroundColor||'').match(/[\d.]+/g); bg=m?[+m[0],+m[1],+m[2]]:[25,28,34]; }
+    L.bgc=bg; L.dark=(0.299*bg[0]+0.587*bg[1]+0.114*bg[2])<128;
+    // Palette = Abstufungen der Akzentfarbe (Sättigung/Helligkeit), passend zu Hell/Dunkel
+    const h=L.hsl[0], s=Math.max(45,Math.min(88,L.hsl[1]));
+    L.pal=L.dark
+      ? {A:[h,s*0.85,32],B:[h+8,s,54],C:[h+20,Math.min(92,s+4),68],K:[h,Math.min(40,s*0.5),8]}
+      : {A:[h,s,84],B:[h,s*0.95,62],C:[h-10,s,42],K:[h,Math.min(55,s*0.6),17]};
   }catch(e){}
+  if(!L.pal){ L.dark=true; L.pal={A:[10,70,32],B:[18,80,54],C:[32,90,74],K:[10,30,8]}; }
 }
 function landingFxDrawSpace(dt,now,c,col,L=landingFx){
   const t=now/1000;
@@ -10657,11 +10672,35 @@ function landingFxDrawBubbles(dt,now,c,col,L=landingFx){
   const t=now/1000;
   for(const b of L.bubs){
     b.y-=b.v*dt; if(b.y<-b.r*2){ b.y=L.h+b.r*2; b.x=Math.random()*L.w; }
-    const x=b.x+Math.sin(t*0.8+b.ph)*b.sw, a=0.12+0.2*(b.r/34);
+    const x=(b.cx=b.x+Math.sin(t*0.8+b.ph)*b.sw), a=0.12+0.2*(b.r/34);
     c.fillStyle=col(a*0.25); c.strokeStyle=col(a+0.08); c.lineWidth=1;
     c.beginPath(); c.arc(x,b.y,b.r,0,6.283); c.fill(); c.stroke();
     c.strokeStyle=col(a+0.1); c.beginPath(); c.arc(x,b.y,b.r*0.68,-2.5,-1.5); c.stroke();
   }
+  // Platzende Blasen: Ring, der sich weitet und ausblendet + kleine Tröpfchen
+  const pops=L.pops||(L.pops=[]);
+  for(let i=pops.length-1;i>=0;i--){
+    const p=pops[i]; p.t+=dt; const k=p.t/0.5;
+    if(k>=1){ pops.splice(i,1); continue; }
+    const e=1-Math.pow(1-k,3), al=1-k;
+    c.strokeStyle=col(0.45*al); c.lineWidth=1.6*(1-k)+0.4;
+    c.beginPath(); c.arc(p.x,p.y,p.r*(1+0.45*e),0,6.283); c.stroke();
+    c.fillStyle=col(0.6*al);
+    for(const d of p.drops){ const dist=p.r*(0.9+1.5*e)*d.s; c.beginPath(); c.arc(p.x+Math.cos(d.a)*dist,p.y+Math.sin(d.a)*dist+k*k*8,d.r*(1-k*0.7),0,6.283); c.fill(); }
+  }
+}
+// Linksklick auf eine Blase lässt sie platzen (nur im Modus "Blasen")
+function landingFxPopAt(L,px,py){
+  if(!L.bubs) return false;
+  let hit=-1,best=1e9;
+  L.bubs.forEach((b,i)=>{ const d=Math.hypot(px-(b.cx==null?b.x:b.cx),py-b.y); if(d<=b.r+5 && d<best){ best=d; hit=i; } });
+  if(hit<0) return false;
+  const b=L.bubs[hit], x=b.cx==null?b.x:b.cx, drops=[], n=7+Math.round(b.r/6);
+  for(let i=0;i<n;i++) drops.push({a:Math.random()*6.283,s:landingFxRand(0.6,1.2),r:landingFxRand(1,2.4)});
+  (L.pops||(L.pops=[])).push({x,y:b.y,r:b.r,t:0,drops});
+  // Neue Blase steigt unten nach, damit die Dichte gleich bleibt
+  L.bubs.splice(hit,1,{x:Math.random()*L.w,y:L.h+b.r*2+Math.random()*60,r:b.r,v:b.v,ph:Math.random()*6.28,sw:b.sw});
+  return true;
 }
 function landingFxDrawBlobs(dt,now,c,col,L=landingFx){
   for(const b of L.blobs){
@@ -10695,54 +10734,81 @@ function landingFxDrawRetro(dt,now,c,col,L=landingFx){
   for(let j=0;j<12;j++){ const u=(j+off)/12, y=y0+(h-y0)*u*u; c.strokeStyle=ac(0.08+0.34*u); c.beginPath(); c.moveTo(0,y); c.lineTo(w,y); c.stroke(); }
 }
 // ---- Shader-Hintergründe (WebGL) + Linien-Hintergründe, inspiriert von reactbits.dev: Liquid Ether
-// (fließende, zeigerreaktive Verzerrung), Ferrofluid (magnetische Flüssigkeit mit leuchtenden Konturen),
-// Floating Lines (schwebende Linien mit Tiefe/Parallax) und Line Waves (wellige Linienschar). Eigene
-// Umsetzung (kein Code von dort); alle reagieren auf den Mauszeiger (L.sx/L.sy, 0..1).
+// (fließende, zeigerreaktive Tinte), Ferrofluid (glänzende magnetische Flüssigkeit mit Spitzen am Zeiger),
+// Floating Lines (schwebende Leuchtlinien mit Parallax) und Line Waves (Linienschar mit Wellen um den
+// Zeiger). Eigene Umsetzung (kein Code von dort). Farben: Abstufungen der Akzentfarbe, abgestimmt auf
+// Hell/Dunkel (L.pal / L.dark, siehe landingFxColor). Zeiger: L.sx/L.sy (0..1, geglättet), L.vel (Tempo),
+// L.tr (Spur der letzten Zeigerpositionen, wird als Uniform-Array an die Shader gereicht).
 const LFX_GLSL_HEAD=`#ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
 precision mediump float;
 #endif
-uniform vec2 uRes; uniform float uT; uniform vec2 uM; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform float uD;
+uniform vec2 uRes; uniform float uT; uniform vec2 uM; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform vec3 uK; uniform float uD; uniform float uV; uniform vec3 uTr[8];
 float hsh(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float nz(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hsh(i),hsh(i+vec2(1.0,0.0)),f.x),mix(hsh(i+vec2(0.0,1.0)),hsh(i+vec2(1.0,1.0)),f.x),f.y); }
-float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*nz(p); p=p*2.02+vec2(3.1,1.7); a*=0.5; } return v; }
+float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<4;i++){ v+=a*nz(p); p=p*2.03+vec2(3.1,1.7); a*=0.5; } return v; }
 `;
 const LFX_FRAG={
   liquid:LFX_GLSL_HEAD+`void main(){
     vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y;
-    vec2 p=(uv-0.5)*vec2(asp,1.0)*2.4*uD, m=(uM-0.5)*vec2(asp,1.0)*2.4*uD;
-    vec2 dv=p-m; float d=length(dv); float inf=exp(-d*d*0.9);
-    float ang=inf*1.6*sin(uT*0.6); mat2 R=mat2(cos(ang),-sin(ang),sin(ang),cos(ang));
-    p=m+R*dv; p+=normalize(dv+vec2(1e-4))*inf*0.25;
-    float t=uT*0.18;
+    vec2 q0=vec2(uv.x*asp,uv.y);
+    vec2 p=q0*1.6*uD; vec2 warp=vec2(0.0); float ink=0.0;
+    for(int i=0;i<8;i++){
+      vec2 tp=vec2(uTr[i].x*asp,uTr[i].y); float s=uTr[i].z;
+      vec2 d=q0-tp; float w=s*exp(-dot(d,d)*13.0);
+      warp+=(vec2(-d.y,d.x)*1.5+d*0.8)*w; ink+=w*0.8;
+    }
+    vec2 dm=q0-vec2(uM.x*asp,uM.y); float cur=exp(-dot(dm,dm)*18.0)*(0.5+0.9*uV);
+    ink+=cur*0.5; warp+=(vec2(-dm.y,dm.x)*1.3)*cur;
+    p+=warp;
+    float t=uT*0.11;
     vec2 q=vec2(fbm(p+vec2(0.0,t)),fbm(p+vec2(5.2,1.3)-t));
-    vec2 r=vec2(fbm(p+3.0*q+vec2(1.7,9.2)+0.4*t),fbm(p+3.0*q+vec2(8.3,2.8)-0.3*t));
-    float f=fbm(p+3.0*r);
-    vec3 col=mix(uA,uB,smoothstep(0.15,0.85,f)); col=mix(col,uC,smoothstep(0.3,1.0,length(q))*0.7);
-    float a=(0.12+0.32*f)*(0.78+0.45*inf);
+    vec2 r=vec2(fbm(p+2.4*q+vec2(1.7,9.2)+0.5*t),fbm(p+2.4*q+vec2(8.3,2.8)-0.4*t));
+    float f=fbm(p+2.4*r);
+    f=clamp(f*1.25-0.12+ink*0.28,0.0,1.3);
+    vec3 col=mix(uA,uB,smoothstep(0.18,0.62,f));
+    col=mix(col,uC,smoothstep(0.52,1.0,f)*0.85+clamp(ink,0.0,1.0)*0.25);
+    float a=(0.08+0.46*smoothstep(0.12,0.95,f))*0.66+clamp(ink,0.0,1.0)*0.14;
+    // weiche Ränder zur Bildschirmkante hin
+    vec2 e=smoothstep(vec2(0.0),vec2(0.12),uv)*smoothstep(vec2(0.0),vec2(0.12),1.0-uv);
+    a*=0.55+0.45*e.x*e.y;
     gl_FragColor=vec4(col*a,a);
   }`,
-  ferro:LFX_GLSL_HEAD+`void main(){
-    vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y;
-    vec2 p=(uv-0.5)*vec2(asp,1.0), m=(uM-0.5)*vec2(asp,1.0);
-    float F=0.0;
-    for(int i=0;i<7;i++){
+  ferro:LFX_GLSL_HEAD+`float fld(vec2 p){
+    float asp=uRes.x/uRes.y, F=0.0;
+    for(int i=0;i<6;i++){
       float fi=float(i);
-      vec2 c=vec2(sin(uT*0.3+fi*1.7)*0.3*asp+cos(uT*0.21+fi*2.3)*0.2, cos(uT*0.27+fi*2.1)*0.3+sin(uT*0.17+fi)*0.1);
-      float r=0.085+0.03*sin(fi*3.1+uT*0.4); vec2 dv=p-c; F+=r*r/(dot(dv,dv)+1e-4);
+      vec2 c=vec2(asp*(0.5+0.40*sin(uT*0.21+fi*1.9)*cos(uT*0.10+fi)), 0.5+0.36*cos(uT*0.17+fi*2.3)*sin(uT*0.12+fi*0.7));
+      float r=(0.062+0.022*sin(fi*3.1+uT*0.4))*(0.8+0.2*uD); vec2 d=p-c; F+=r*r/(dot(d,d)+1e-4);
     }
-    vec2 dm=p-m; float dist=length(dm); float ang=atan(dm.y,dm.x);
-    float spike=1.0+0.5*exp(-dist*3.0)*sin(ang*13.0+uT*0.8);
-    F+=0.016/(dist*dist*spike*spike+1e-3);
-    float body=smoothstep(0.92,1.18,F);
-    float c=abs(fract(F*1.5*uD-uT*0.04)-0.5);
-    float line=smoothstep(0.07,0.0,c)*smoothstep(0.25,1.0,F)*smoothstep(9.0,2.0,F);
-    float glow=smoothstep(0.3,1.0,F)*(1.0-body)*0.5;
-    vec3 inner=mix(uA,uB,0.5)*0.55;
-    vec3 col=inner*body+uC*line*1.2+uA*glow;
-    float a=clamp(body*0.3+line*0.8+glow*0.5,0.0,1.0);
-    gl_FragColor=vec4(col*min(1.0,a/max(0.0001,body*0.3+line*0.8+glow*0.5+1e-4)) ,a);
+    vec2 m=vec2(uM.x*asp,uM.y); vec2 d=p-m; float dist=length(d); float ang=atan(d.y,d.x);
+    float sp=pow(abs(sin(ang*7.0+uT*0.22)),7.0)*(0.30+1.1*uV)*exp(-dist*2.2);
+    float R=0.085*(1.0+sp*1.7);
+    F+=R*R/(dot(d,d)+1e-4);
+    for(int i=0;i<8;i++){
+      vec2 tp=vec2(uTr[i].x*asp,uTr[i].y); float rr=0.05*uTr[i].z; vec2 dd=p-tp; F+=rr*rr/(dot(dd,dd)+1e-4);
+    }
+    return F;
+  }
+  void main(){
+    vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y; vec2 p=vec2(uv.x*asp,uv.y);
+    float F=fld(p); float e=0.0035;
+    vec2 g=vec2(fld(p+vec2(e,0.0))-fld(p-vec2(e,0.0)), fld(p+vec2(0.0,e))-fld(p-vec2(0.0,e)))/(2.0*e);
+    float Fc=max(F,1.0);
+    vec2 gh=g/(Fc*Fc);
+    vec3 n=normalize(vec3(-clamp(gh*0.032,-1.6,1.6),1.0));
+    float body=smoothstep(0.97,1.1,F);
+    vec3 L1=normalize(vec3(-0.5,0.6,0.62)), L2=normalize(vec3(0.6,-0.5,0.55));
+    float dif=max(dot(n,L1),0.0);
+    float spec=pow(max(dot(n,normalize(L1+vec3(0.0,0.0,1.0))),0.0),44.0);
+    float fres=pow(1.0-n.z,1.8);
+    float rim2=pow(max(dot(n,L2),0.0),10.0);
+    vec3 bc=uK*(0.6+0.8*dif)+uC*fres*0.85+uB*rim2*0.45+vec3(1.0)*spec*0.75;
+    float glow=smoothstep(0.32,1.0,F)*(1.0-body);
+    vec3 col=bc*body+uB*glow*0.55;
+    float a=clamp(body+glow*0.5,0.0,1.0);
+    gl_FragColor=vec4(col,a);
   }`
 };
 function landingFxGLProgram(L,gl,mode){
@@ -10756,7 +10822,8 @@ function landingFxGLProgram(L,gl,mode){
   if(!gl.getProgramParameter(pr,gl.LINK_STATUS)) return (L.glp[mode]={bad:true});
   const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
   const o={pr,buf,aP:gl.getAttribLocation(pr,'aP'),u:{}};
-  ['uRes','uT','uM','uA','uB','uC','uD'].forEach(n=>{ o.u[n]=gl.getUniformLocation(pr,n); });
+  ['uRes','uT','uM','uA','uB','uC','uK','uD','uV'].forEach(n=>{ o.u[n]=gl.getUniformLocation(pr,n); });
+  o.u.uTr=gl.getUniformLocation(pr,'uTr[0]');
   return (L.glp[mode]=o);
 }
 function landingFxDrawGL(dt,now,L,mode){
@@ -10774,49 +10841,75 @@ function landingFxDrawGL(dt,now,L,mode){
   const sc=Math.min(1,window.devicePixelRatio||1)*0.85, W=Math.max(2,Math.round(L.w*sc)), H=Math.max(2,Math.round(L.h*sc));
   if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
   L.tgl=(L.tgl||0)+dt;
-  const acc=L.hsl||[10,100,60], rgb=(h,sa,li)=>hslToRgbArr(h,sa,li).map(v=>v/255);
-  const A=rgb(acc[0],80,58), B=rgb(acc[0]+48,75,60), C=rgb(acc[0]-48,80,64);
+  const P=L.pal, rgb=a=>hslToRgbArr(a[0],a[1],a[2]).map(v=>v/255);
+  const A=rgb(P.A), B=rgb(P.B), C=rgb(P.C), K=rgb(P.K);
   gl.viewport(0,0,W,H); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
   gl.useProgram(prog.pr); gl.bindBuffer(gl.ARRAY_BUFFER,prog.buf); gl.enableVertexAttribArray(prog.aP); gl.vertexAttribPointer(prog.aP,2,gl.FLOAT,false,0,0);
   gl.uniform2f(prog.u.uRes,W,H); gl.uniform1f(prog.u.uT,L.tgl); gl.uniform2f(prog.u.uM,L.sx,1-L.sy);
-  gl.uniform3f(prog.u.uA,A[0],A[1],A[2]); gl.uniform3f(prog.u.uB,B[0],B[1],B[2]); gl.uniform3f(prog.u.uC,C[0],C[1],C[2]);
-  gl.uniform1f(prog.u.uD,Math.max(0.5,gridStyle.landingDensity));
+  gl.uniform3f(prog.u.uA,A[0],A[1],A[2]); gl.uniform3f(prog.u.uB,B[0],B[1],B[2]); gl.uniform3f(prog.u.uC,C[0],C[1],C[2]); gl.uniform3f(prog.u.uK,K[0],K[1],K[2]);
+  gl.uniform1f(prog.u.uD,Math.max(0.5,gridStyle.landingDensity)); gl.uniform1f(prog.u.uV,L.vel||0);
+  const tr=new Float32Array(24), tt=L.tt||0;
+  (L.tr||[]).forEach((q,i)=>{ if(i<8){ tr[i*3]=q.x; tr[i*3+1]=1-q.y; tr[i*3+2]=Math.exp(-(tt-q.t)*1.15); } });
+  if(prog.u.uTr) gl.uniform3fv(prog.u.uTr,tr);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
 function landingFxDispose(L){
   if(L.glc){ try{ const ext=L.gl&&L.gl.getExtension('WEBGL_lose_context'); if(ext) ext.loseContext(); }catch(e){} L.glc.remove(); L.glc=null; L.gl=null; L.glp=null; }
 }
-function landingFxDrawFloatLines(dt,now,c,col,L=landingFx){
-  const t=(L.tl=(L.tl||0)+dt), w=L.w, h=L.h, mx=L.sx*w, my=L.sy*h, n=Math.max(4,Math.round(6*gridStyle.landingDensity));
-  const groups=[{y:0.27,amp:0.05,f:1.4,sp:0.5,hue:0},{y:0.52,amp:0.08,f:1.0,sp:0.34,hue:46},{y:0.77,amp:0.06,f:1.8,sp:0.6,hue:-46}];
-  c.lineWidth=1.3; c.lineJoin='round';
-  for(const g of groups){
-    const hue=landingFxHue(L,g.hue);
-    for(let i=0;i<n;i++){
-      const z=n>1?i/(n-1):0, baseY=g.y*h+(i-n/2)*h*0.013*(1+z*0.9);
-      const px=(L.sx-0.5)*(24+z*60), py=(L.sy-0.5)*(12+z*34);
-      const gr=c.createLinearGradient(0,0,w,0), a=0.2+0.4*z;
-      gr.addColorStop(0,`hsla(${hue},75%,60%,0)`); gr.addColorStop(0.3,`hsla(${hue},75%,60%,${a})`); gr.addColorStop(0.7,`hsla(${hue+30},75%,62%,${a})`); gr.addColorStop(1,`hsla(${hue+30},75%,62%,0)`);
-      c.strokeStyle=gr; c.beginPath();
-      for(let x=-10;x<=w+10;x+=10){
-        let y=baseY+py+Math.sin(x/w*6.283*g.f+t*g.sp+i*0.35)*h*g.amp*(0.6+0.6*z);
-        const dx=(x+px-mx)/(w*0.18); y+=Math.exp(-dx*dx)*(my-y)*0.22;
-        x===-10?c.moveTo(x+px,y):c.lineTo(x+px,y);
-      }
-      c.stroke();
-    }
+// Zeiger-Tempo + Spur der letzten Positionen (für Shader und Linien). dt = echte Sekunden.
+function landingFxTrail(dt,L){
+  L.tt=(L.tt||0)+dt;
+  const dx=(L.sx-(L.psx==null?L.sx:L.psx))*L.w, dy=(L.sy-(L.psy==null?L.sy:L.psy))*L.h; L.psx=L.sx; L.psy=L.sy;
+  const sp=Math.min(1,Math.hypot(dx,dy)/Math.max(dt,0.001)/1100);
+  L.vel=(L.vel||0)+(sp-(L.vel||0))*Math.min(1,dt*5);
+  L.tr=L.tr||[];
+  const lt=L.tr[0];
+  if(!lt || Math.hypot((L.sx-lt.x)*L.w/Math.max(1,L.h),L.sy-lt.y)>0.012){
+    L.tr.unshift({x:L.sx,y:L.sy,t:L.tt}); if(L.tr.length>8) L.tr.length=8;
   }
 }
+const lfxHsl=(a,al)=>`hsla(${a[0]},${a[1]}%,${a[2]}%,${al})`;
+const lfxMix=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];
+function landingFxDrawFloatLines(dt,now,c,col,L=landingFx){
+  const t=(L.tl=(L.tl||0)+dt), w=L.w, h=L.h, mx=L.sx*w, my=L.sy*h, vel=L.vel||0, P=L.pal, dark=L.dark;
+  const n=Math.max(5,Math.round(7*gridStyle.landingDensity));
+  const groups=[{y:0.26,amp:0.055,f:1.3,sp:0.46,a:P.B,b:P.C},{y:0.52,amp:0.085,f:0.9,sp:0.32,a:P.C,b:P.B},{y:0.78,amp:0.06,f:1.7,sp:0.58,a:P.B,b:P.A}];
+  c.globalCompositeOperation=dark?'lighter':'source-over'; c.lineJoin='round'; c.lineCap='round';
+  for(const g of groups){
+    for(let i=0;i<n;i++){
+      const z=n>1?i/(n-1):0, baseY=g.y*h+(i-n/2)*h*0.0125*(1+z*0.9);
+      const px=(L.sx-0.5)*(36+z*110), py=(L.sy-0.5)*(18+z*54), amp=h*g.amp*(0.55+0.65*z);
+      const pth=new Path2D();
+      for(let x=-12;x<=w+12;x+=9){
+        let y=baseY+py+Math.sin(x/w*6.283*g.f+t*g.sp+i*0.33)*amp+Math.sin(x/w*6.283*g.f*2.1-t*g.sp*0.8+i*0.2)*amp*0.28;
+        const dx=(x+px-mx)/(w*0.2), k=Math.exp(-dx*dx);
+        y+=k*(my-y)*(0.34+0.3*vel)+Math.sin(x*0.018-t*4.2)*k*h*0.014*vel;
+        x===-12?pth.moveTo(x+px,y):pth.lineTo(x+px,y);
+      }
+      const a=(dark?0.24:0.3)+0.42*z, gr=c.createLinearGradient(0,0,w,0);
+      gr.addColorStop(0,lfxHsl(g.a,0)); gr.addColorStop(0.28,lfxHsl(g.a,a)); gr.addColorStop(0.72,lfxHsl(g.b,a)); gr.addColorStop(1,lfxHsl(g.b,0));
+      c.strokeStyle=gr; c.lineWidth=3.5+z*4; c.globalAlpha=0.16; c.stroke(pth);
+      c.lineWidth=0.8+z*1.0; c.globalAlpha=1; c.stroke(pth);
+    }
+  }
+  c.globalAlpha=1;
+}
 function landingFxDrawLineWaves(dt,now,c,col,L=landingFx){
-  const t=(L.tw=(L.tw||0)+dt), w=L.w, h=L.h, mx=L.sx*w, my=L.sy*h, rows=Math.round(Math.min(64,Math.max(14,34*gridStyle.landingDensity)));
-  c.lineWidth=1.1; c.lineJoin='round';
+  const t=(L.tw=(L.tw||0)+dt), w=L.w, h=L.h, mx=L.sx*w, my=L.sy*h, vel=L.vel||0, P=L.pal, dark=L.dark;
+  const rows=Math.round(Math.min(70,Math.max(16,38*gridStyle.landingDensity)));
+  c.globalCompositeOperation=dark?'lighter':'source-over'; c.lineJoin='round';
   for(let r=0;r<rows;r++){
-    const v=rows>1?r/(rows-1):0, y0=h*(0.08+0.84*v), hue=landingFxHue(L,(v-0.5)*90);
-    c.strokeStyle=`hsla(${hue},70%,60%,${0.16+0.3*v})`; c.beginPath();
+    const v=rows>1?r/(rows-1):0, y0=h*(0.07+0.86*v);
+    const base=v<0.5?lfxMix(P.A,P.B,v*2):lfxMix(P.B,P.C,(v-0.5)*2);
+    const dyr=(y0-my)/(h*0.2), prox=Math.exp(-dyr*dyr);
+    const a=(dark?0.16:0.2)+0.26*v+0.4*prox;
+    c.strokeStyle=lfxHsl(base,a); c.lineWidth=0.9+1.3*prox; c.beginPath();
     for(let x=0;x<=w+8;x+=8){
       const u=x/w;
-      let y=y0+(Math.sin(u*8+t*0.7+v*5)+0.6*Math.sin(u*17-t*0.5+v*9))*h*0.012*(0.5+v);
-      const dx=x-mx, dy=y0-my, d2=(dx*dx+dy*dy)/(w*w*0.02); y-=Math.exp(-d2)*h*0.07;
+      let y=y0+(Math.sin(u*7.5+t*0.65+v*5)+0.55*Math.sin(u*16-t*0.5+v*9))*h*0.0125*(0.5+v);
+      const dx=x-mx, dy=y0-my, d2=dx*dx+dy*dy;
+      y-=Math.exp(-d2/(w*w*0.03))*h*0.075;
+      y+=Math.sin(Math.sqrt(d2)/(w*0.04)-t*3.4)*Math.exp(-d2/(w*w*0.07))*h*(0.008+0.022*vel);
       x===0?c.moveTo(x,y):c.lineTo(x,y);
     }
     c.stroke();
@@ -10826,10 +10919,12 @@ function landingFxDraw(dt,now,L=landingFx){
   const c=L.ctx; if(!c) return;
   landingFxColor(now,L);
   const [r,g,b]=L.rgb, col=a=>`rgba(${r},${g},${b},${a})`;
+  c.globalCompositeOperation='source-over'; c.globalAlpha=1;
   c.clearRect(0,0,L.w,L.h);
   const d=dt*gridStyle.landingSpeed;
   if(L.sx==null){ L.mx=L.my=L.sx=L.sy=0.5; }
-  const k=Math.min(1,(dt||0.016)*5); L.sx+=(L.mx-L.sx)*k; L.sy+=(L.my-L.sy)*k; // Zeiger glätten (Maus-Reaktion)
+  const k=Math.min(1,(dt||0.016)*8); L.sx+=(L.mx-L.sx)*k; L.sy+=(L.my-L.sy)*k; // Zeiger glätten (Maus-Reaktion)
+  landingFxTrail(Math.max(dt||0.016,0.001),L);
   const isGl=(L.mode==='liquid'||L.mode==='ferro');
   if(L.glc) L.glc.style.display=isGl?'':'none';
   if(isGl){ landingFxDrawGL(d,now,L,L.mode); return; }
@@ -10847,7 +10942,7 @@ function landingFxSync(){
   const L=landingFx, host=document.getElementById('landingView'); if(!host) return;
   if(gridStyle.landingMode==='none'){
     if(L.raf){ cancelAnimationFrame(L.raf); L.raf=0; }
-    if(L.canvas){ L.canvas.remove(); L.canvas=null; L.ctx=null; if(L.ro){ L.ro.disconnect(); L.ro=null; } if(L.onMove){ host.removeEventListener('pointermove',L.onMove); L.onMove=null; } }
+    if(L.canvas){ L.canvas.remove(); L.canvas=null; L.ctx=null; if(L.ro){ L.ro.disconnect(); L.ro=null; } if(L.onMove){ window.removeEventListener('pointermove',L.onMove); L.onMove=null; } if(L.onDown){ window.removeEventListener('pointerdown',L.onDown); L.onDown=null; } }
     landingFxDispose(L);
     return;
   }
@@ -10857,7 +10952,14 @@ function landingFxSync(){
     L.ctx=L.canvas.getContext('2d');
     L.nextShoot=performance.now()+3500;
     L.mx=L.my=L.sx=L.sy=0.5;
-    host.addEventListener('pointermove',L.onMove=(e)=>{ const r=host.getBoundingClientRect(); if(r.width>0){ L.mx=(e.clientX-r.left)/r.width; L.my=(e.clientY-r.top)/r.height; } },{passive:true});
+    L.onMove=(e)=>{ if(host.hidden) return; const r=host.getBoundingClientRect(); if(r.width>0){ L.mx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)); L.my=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height)); } };
+    window.addEventListener('pointermove',L.onMove,{passive:true});
+    L.onDown=(e)=>{
+      if(e.button!==0 || host.hidden || L.mode!=='bubbles') return;
+      if(e.target && e.target.closest && e.target.closest('button,a,input,textarea,select,[role="button"],.modal,.scrim')) return;
+      const r=host.getBoundingClientRect(); landingFxPopAt(L,e.clientX-r.left,e.clientY-r.top);
+    };
+    window.addEventListener('pointerdown',L.onDown,{passive:true});
     if(window.ResizeObserver){ L.ro=new ResizeObserver(()=>{ if(!host.hidden) landingFxResize(); }); L.ro.observe(host); }
     L.w=0;
   }
@@ -13274,7 +13376,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.76';
+const APP_VERSION='2.4.78';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
