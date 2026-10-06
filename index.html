@@ -1316,6 +1316,16 @@ try{
   .lf-pal .p{right:9px; top:11px; width:34%; height:15px; border-radius:8px;} .lf-pal .l{right:9px; top:33px; width:22%; height:4px; border-radius:2px; opacity:.85;} .lf-pal .d{right:36%; top:35px; width:8px; height:8px; border-radius:50%; margin-right:-4px;}
   .lf-depth{display:block; width:58px; height:34px; background:var(--surface); border-radius:9px; border:1px solid var(--border);}
   .lf-vis.w{width:100%; height:56px;}
+  .lf-vis.mb{height:84px;}
+  .lf-mb{position:relative; display:block; width:100%; height:100%; border-radius:9px; overflow:hidden; background-color:var(--canvas); background-image:radial-gradient(var(--border-strong) 1px, transparent 1.2px); background-size:12px 12px;}
+  .lf-mb .mc{position:absolute; background:var(--surface); box-sizing:border-box; overflow:hidden;}
+  .lf-mb .mc.a{left:8%; top:11px; width:50%; height:58px; padding:8px 9px;}
+  .lf-mb .mc.a b{display:block; font-size:0.74rem; line-height:1.1; font-weight:700; color:var(--ink);}
+  .lf-mb .mc.a em{display:block; margin-top:4px; font-style:normal; font-size:0.66rem; line-height:1.1; color:var(--muted); white-space:nowrap;}
+  .lf-mb .mc.a i{display:block; margin-top:6px; height:4px; width:62%; border-radius:2px; background:var(--accent);}
+  .lf-mb .mc.b{right:8%; top:20px; width:26%; height:54px; padding:9px 8px; display:flex; flex-direction:column; gap:7px;}
+  .lf-mb .mc.b u{display:block; height:5px; border-radius:2px; background:var(--border-strong); position:relative; margin-left:9px;}
+  .lf-mb .mc.b u::before{content:""; position:absolute; left:-9px; top:-1px; width:6px; height:6px; border-radius:2px; border:1.5px solid var(--accent); box-sizing:border-box;}
   .lf-bgp,.lf-ui,.lf-cur{display:block; position:relative; width:100%; height:56px; border-radius:9px; overflow:hidden; border:1px solid var(--border); background:var(--canvas);}
   .lf-bgp i{position:absolute; display:block;}
   /* Hintergrund-Vorschauen (rein CSS, Farben folgen der gewählten Palette) */
@@ -9922,7 +9932,7 @@ const THEME_OVERRIDE_VARS=['--canvas','--canvas-dot','--surface','--surface-rgb'
 // in. No longer shown as a browsable grid (see showThemeMenuModal) — only the random-palette button
 // draws from this list now.
 // Mono: neutrales Hellgrau + dunkles Grau (der Akzent-Soft-Ton wird daraus zum zarten Blau). Als erstes Theme direkt wählbar (Theme-Menü) und im Zufalls-Pool.
-const THEME_MONO={name:'Mono', background:'#F4F4F5', accent:'#2B2D33'};
+const THEME_MONO={name:'Mono', background:'#F4F4F5', accent:'#2B2D33', dark:{background:'#121317', accent:'#A3A8B6'}}; // Darkmode: deutlich dunkler, Akzent hell mit blauem Hauch
 const THEME_DUO_PALETTES=[
   THEME_MONO,
   {name:'Smaragd & Seide',    background:'#F1E3D3', accent:'#1F3B2C'},
@@ -10072,6 +10082,8 @@ function deriveThemeTokens(main,accent,background,dark){
 function applyCustomTheme(theme,persist){
   // Optionale Zusatzfelder (Look-Finder, z. B. "Iced Matcha Latte"): text = Farbton der Schrift, ink = exakte Schriftfarbe,
   // dark = eigene Farben für den Dunkelmodus (Hintergrund/Akzent/Schrift "andersrum"). Ohne diese Felder: wie bisher.
+  // Ältere gespeicherte Mono-Auswahl (ohne Dark-Variante) bekommt automatisch das dunklere Mono für den Darkmode.
+  if(theme && !theme.dark && String(theme.background).toUpperCase()===THEME_MONO.background && String(theme.accent).toUpperCase()===THEME_MONO.accent) theme=Object.assign({},theme,{dark:THEME_MONO.dark});
   const isDark=currentThemeIsDark();
   const cur=(isDark && theme.dark)?Object.assign({},theme,theme.dark):theme;
   const tokens=deriveThemeTokens(cur.text||cur.background,cur.accent,cur.background,isDark);
@@ -12541,7 +12553,7 @@ const LF_DONE_KEY='notua-lookfinder-done', LF_ANS_KEY='notua-look-answers', TOUR
 const LF_QUESTIONS=[
   // --- Farben: Hintergrundton × Akzentfarbe × Hell/Dunkel ---
   {id:'palette', q:'lf_q1', sub:'lf_q1_sub', opts:[
-    {id:'mono',    bg:'#F4F4F5', accent:'#2B2D33'},
+    {id:'mono',    bg:'#F4F4F5', accent:'#2B2D33', dark:{background:'#121317', accent:'#A3A8B6'}},
     // Iced Matcha Latte: Hell = zartes Rosa + Matcha-Grün in Schrift & Akzent; Dunkel = andersrum (dunkles Matcha-Grün, Rosa)
     {id:'matcha',  bg:'#FDE9F1', accent:'#5E8F3E', text:'#46692C', ink:'#3A5A22',
       dark:{background:'#1E2B16', accent:'#F58DB2', text:'#F7C8DA', ink:'#F8D5E2'}},
@@ -12626,7 +12638,8 @@ const LF_QUESTIONS=[
     {id:'bubbles',  click:'bubbles'},
     {id:'firework', click:'firework'}]},
 ];
-const LF_WIDE=new Set(['palette','landing','board','boardmove','uianim','trail','click']);
+const LF_WIDE=new Set(['palette','landing','board','boardmove','uianim','trail','click','shape','shadow','border','font']);
+const LF_BOARDPREV=new Set(['shape','shadow','border','font']); // zeigen eine Mini-Board-Vorschau mit zwei Karten
 function lfOpt(qid,oid){
   // Zufalls-Farben: 'rnd:<bg>:<accent>' (siehe lfRandomAnswers)
   if(qid==='palette' && typeof oid==='string' && oid.startsWith('rnd:')){ const pt=oid.split(':'); return {id:oid,bg:pt[1],accent:pt[2]}; }
@@ -12768,12 +12781,16 @@ function lfFinish(ans){
 function lfVisual(qid,o){
   if(qid==='palette') return `<span class="lf-pal" style="background:${o.bg}"><i class="c"></i><i class="p" style="background:${o.accent}"></i><i class="l" style="background:${o.accent}"></i><i class="d" style="background:${o.accent}"></i></span>`;
   if(qid==='light') return `<span class="lf-win${o.id==='dark'?' dk':''}"></span>`;
-  if(qid==='shape') return `<span class="lf-shape" style="border-radius:${o.radius}px"><i></i><i></i></span>`;
-  if(qid==='font'){ const ff=o.font==='default'?'inherit':DESIGN_FONTS[o.font]; return `<span class="lf-font" style="font-family:${ff}"><b>Aa</b><small>Notiz</small></span>`; }
-  if(qid==='shadow') return `<span class="lf-depth" style="box-shadow:${designShadowCss(o.shadow,o.shadowAmt)}"></span>`;
-  if(qid==='border'){
-    const bd={none:'1px solid transparent',default:'1px solid var(--border)',strong:'2px solid var(--ink)',accent:'1.5px solid var(--accent)'}[o.border]||'1px solid var(--border)';
-    return `<span class="lf-depth" style="border:${bd};box-shadow:none"></span>`;
+  if(LF_BOARDPREV.has(qid)){
+    // Kachelvorschau in einem Mini-Board: zwei Karten (Notiz + Checkliste) auf Punktraster, mit genau der
+    // Eigenschaft dieser Option (Ecken / Schatten / Rahmen / Schrift); alles andere bleibt neutral.
+    let rad=8, sh='0 2px 6px rgba(0,0,0,.14)', bd='1px solid var(--border)', ff='inherit';
+    if(qid==='shape') rad=Math.min(o.radius,22);
+    if(qid==='shadow'){ sh=designShadowCss(o.shadow,o.shadowAmt); if(o.shadow==='none') sh='none'; }
+    if(qid==='border'){ bd={none:'1px solid transparent',default:'1px solid var(--border)',strong:'2px solid var(--ink)',accent:'1.5px solid var(--accent)'}[o.border]||bd; sh='none'; }
+    if(qid==='font') ff=o.font==='default'?'inherit':DESIGN_FONTS[o.font];
+    const st=`border-radius:${rad}px;box-shadow:${sh};border:${bd};font-family:${ff}`;
+    return `<span class="lf-mb"><span class="mc a" style="${st}"><b>Notiz</b><em>Aa Text</em><i></i></span><span class="mc b" style="${st}"><u></u><u></u><u></u></span></span>`;
   }
   if(qid==='landing'){
     const n={fireflies:4,space:6,aurora:3,bubbles:3,liquid:3}[o.id]||0;
@@ -12842,7 +12859,7 @@ function showLookFinder(opts){
     box.innerHTML=`
       <div class="lf-head"><span class="lf-step">${t('lf_step',{n:step+1,m:N})}</span><div class="lf-prog"><i style="width:${Math.round(step/N*100)}%"></i></div></div>
       <div><h4 class="lf-q">${t(q.q)}</h4><p style="margin-top:4px;">${t(q.sub)}</p></div>
-      <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
+      <div class="lf-opts">${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}${LF_BOARDPREV.has(q.id)?' mb':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
       <div class="lf-foot">
         <button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>
         <button type="button" class="lf-rand" data-a="rand" title="${t('lf_rand_title')}">${LF_DICE_SVG}<span>${t('lf_rand')}</span></button>
@@ -14645,7 +14662,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.91';
+const APP_VERSION='2.4.93';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
