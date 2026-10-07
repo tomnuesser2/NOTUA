@@ -10800,6 +10800,21 @@ function deriveThemeTokens(main,accent,background,dark){
 // currentThemeIsDark()) rather than forcing a mode switch — a palette applied here now works correctly
 // in either mode and stays correct if that's toggled afterward (see reapplyCustomThemeForCurrentMode(),
 // called from setTheme()).
+// Farb-Tokens der gespeicherten eigenen Palette für einen bestimmten Modus (hell/dunkel) — OHNE sie anzuwenden.
+// Der Bild-/PDF-Export braucht das, weil er in einem eigenen Dokument rendert (dort gibt es die Inline-Variablen der
+// Live-Seite nicht) und die PDF-Modi immer hell drucken, auch wenn die App gerade dunkel ist.
+function customThemeTokensForMode(isDark){
+  try{
+    const raw=localStorage.getItem('notua-custom-theme'); if(!raw) return null;
+    let theme=JSON.parse(raw); if(!theme || !theme.background || !theme.accent) return null;
+    if(!theme.dark && String(theme.background).toUpperCase()===THEME_MONO.background && String(theme.accent).toUpperCase()===THEME_MONO.accent) theme=Object.assign({},theme,{dark:THEME_MONO.dark});
+    if(theme.dark && String(theme.dark.background).toUpperCase()==='#121317') theme=Object.assign({},theme,{dark:Object.assign({},theme.dark,{background:THEME_MONO.dark.background})});
+    const cur=(isDark && theme.dark)?Object.assign({},theme,theme.dark):theme;
+    const tokens=deriveThemeTokens(cur.text||cur.background,cur.accent,cur.background,!!isDark);
+    if(cur.ink) tokens['--ink']=cur.ink;
+    return tokens;
+  }catch(e){ return null; }
+}
 function applyCustomTheme(theme,persist){
   // Optionale Zusatzfelder (Look-Finder, z. B. "Iced Matcha Latte"): text = Farbton der Schrift, ink = exakte Schriftfarbe,
   // dark = eigene Farben für den Dunkelmodus (Hintergrund/Akzent/Schrift "andersrum"). Ohne diese Felder: wie bisher.
@@ -15876,7 +15891,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.141';
+const APP_VERSION='2.4.142';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -27985,7 +28000,7 @@ async function buildExportImage(cards,opts){
   const ids=new Set(cards.map(c=>c.id));
 
   const rootStyle=getComputedStyle(document.documentElement);
-  const bg=(rootStyle.getPropertyValue('--canvas')||'#eee').trim();
+  let bg=(rootStyle.getPropertyValue('--canvas')||'#eee').trim();
   const faint=(rootStyle.getPropertyValue('--faint')||'#8A9099').trim();
   // The live page can be in "system/auto" theme — no explicit data-theme attribute at all, just the
   // @media(prefers-color-scheme) block doing the work. That media query does NOT reliably re-evaluate
@@ -27998,7 +28013,21 @@ async function buildExportImage(cards,opts){
   if(!themeAttr){
     themeAttr=(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
   }
+  const liveThemeAttr=themeAttr;
   if(opts.theme) themeAttr=opts.theme;
+  // Farbschema + Design-Einstellungen der App in den Export übernehmen. Die Live-Seite trägt sie als Inline-Variablen
+  // (eigene Palette, Ecken, Schatten …) und data-d-*-Attribute auf <html> — im Export-Dokument fehlen beide, darum kam
+  // bisher die Standardfarbe heraus. Die PDF-Modi drucken immer hell: Dann werden die Palette-Tokens für "hell" neu berechnet.
+  const exportVars={};
+  for(let i=0;i<document.documentElement.style.length;i++){
+    const nm=document.documentElement.style[i];
+    if(nm.startsWith('--')) exportVars[nm]=document.documentElement.style.getPropertyValue(nm);
+  }
+  if(themeAttr!==liveThemeAttr){
+    const alt=customThemeTokensForMode(themeAttr==='dark');
+    if(alt) Object.assign(exportVars,alt);
+    else THEME_OVERRIDE_VARS.forEach(k=>{ delete exportVars[k]; }); // keine eigene Palette: Standardfarben des gepinnten Modus
+  }
 
   // Built as real DOM nodes and serialized with XMLSerializer, rather than assembled as an HTML
   // string: a raw outerHTML string is HTML, not well-formed XML, so an unclosed void element
@@ -28009,6 +28038,8 @@ async function buildExportImage(cards,opts){
   svgRoot.setAttribute('xmlns',svgNS);
   svgRoot.setAttribute('width',width); svgRoot.setAttribute('height',height);
   if(themeAttr) svgRoot.setAttribute('data-theme',themeAttr);
+  [...document.documentElement.attributes].forEach(at=>{ if(at.name.startsWith('data-d-')) svgRoot.setAttribute(at.name,at.value); });
+  svgRoot.setAttribute('style',Object.keys(exportVars).map(k=>k+':'+exportVars[k]+';').join(''));
 
   const defs=document.createElementNS(svgNS,'defs');
   const marker=document.createElementNS(svgNS,'marker');
@@ -28062,7 +28093,8 @@ async function buildExportImage(cards,opts){
   wrap.setAttribute('xmlns',xhtmlNS);
   wrap.setAttribute('style',`width:${width}px;height:${height}px;background:${wrapBg};color:var(--ink);position:relative;${typo}`);
   const styleEl=document.createElementNS(xhtmlNS,'style');
-  styleEl.textContent=[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n');
+  // Selektoren mit "html" (html[data-d-radius] .card …) greifen im Export-Dokument nicht — dort ist das <svg> die Wurzel (:root).
+  styleEl.textContent=[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n').replace(/(^|[\s,{};>+~])html(?=[\[.:\s{,>])/g,'$1:root');
   wrap.appendChild(styleEl);
   const fontFaceCSS=await getEmbeddedFontFaceCSS();
   if(fontFaceCSS){
@@ -28092,6 +28124,11 @@ async function buildExportImage(cards,opts){
     if(!el) return;
     const clone=el.cloneNode(true);
     clone.classList.remove('selected','dragging');
+    // Beim Rendern wird die Textfarbe einer Karte für den DAMALIGEN Modus fest eingebaut (--ink/--muted inline). Druckt ein
+    // PDF immer hell, obwohl die App dunkel ist, wäre der Text einer farblosen Karte hell auf hell — dann fällt er auf die Theme-Farbe zurück.
+    if(themeAttr!==liveThemeAttr && !(c.color && c.color!=='none') && !(c.type==='column')){
+      ['--ink','--muted','--card-placeholder-color'].forEach(k=>clone.style.removeProperty(k));
+    }
     clone.querySelectorAll('.resize-handle').forEach(h=>h.remove());
     clone.querySelectorAll('[contenteditable]').forEach(ce=>ce.setAttribute('contenteditable','false'));
     // An empty note/column/etc. shows a CSS-generated hint like "Notiz eingeben…" (via
@@ -28178,6 +28215,7 @@ async function buildExportImage(cards,opts){
     warm.getContext('2d').drawImage(img,0,0,8,8);
     await new Promise(r=>setTimeout(r,120));
   }catch(e){}
+  if(exportVars['--canvas']) bg=exportVars['--canvas'].trim();
   return {img,width,height,bg,minX,minY,pad};
 }
 // Rasterizes (part of) an export snapshot. `scale` = canvas pixels per snapshot pixel; `src` optionally
