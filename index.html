@@ -10651,7 +10651,7 @@ const THEME_OVERRIDE_VARS=['--canvas','--canvas-dot','--surface','--surface-rgb'
 // in. No longer shown as a browsable grid (see showThemeMenuModal) — only the random-palette button
 // draws from this list now.
 // Mono: neutrales Hellgrau + dunkles Grau (der Akzent-Soft-Ton wird daraus zum zarten Blau). Als erstes Theme direkt wählbar (Theme-Menü) und im Zufalls-Pool.
-const THEME_MONO={name:'Mono', background:'#F4F4F5', accent:'#43538C', dark:{background:'#10151D', accent:'#9AA8DA'}}; // Darkmode: dunkel mit dem bläulichen Ton der Standard-Kacheln, Akzent hell mit blauem Hauch
+const THEME_MONO={name:'Mono', background:'#F4F4F5', accent:'#2B2D33', dark:{background:'#10151D', accent:'#9AA8DA'}}; // Darkmode: dunkel mit dem bläulichen Ton der Standard-Kacheln, Akzent hell mit blauem Hauch
 const THEME_DUO_PALETTES=[
   THEME_MONO,
   {name:'Smaragd & Seide',    background:'#F1E3D3', accent:'#1F3B2C'},
@@ -10803,13 +10803,13 @@ function deriveThemeTokens(main,accent,background,dark){
 // currentThemeIsDark()) rather than forcing a mode switch — a palette applied here now works correctly
 // in either mode and stays correct if that's toggled afterward (see reapplyCustomThemeForCurrentMode(),
 // called from setTheme()).
-// Mono (Hellgrau/Dunkelgrau) mit mäßigem Blau als Akzent. Ältere Speicherstände (Akzent fast schwarzes Grau #2B2D33, Dunkel-Akzent #A3A8B6,
-// Dunkel-Hintergrund #121317) werden automatisch auf die aktuelle Mono-Variante gehoben.
+// Mono: Hell = dunkelgrauer Akzent (Buttons/Auswahl) mit hellblauem Hauch in den weichen Flächen (Akzent-Ton), Dunkel = helles Blau.
+// Ältere Speicherstände (Dunkel-Akzent #A3A8B6, Dunkel-Hintergrund #121317, Blau-Akzent #43538C) werden automatisch auf die aktuelle Variante gehoben.
 function upgradeMonoTheme(theme){
   if(!theme || !theme.background || !theme.accent) return theme;
   const U=v=>String(v||'').toUpperCase();
   if(U(theme.background)!==THEME_MONO.background) return theme;
-  if(U(theme.accent)!==THEME_MONO.accent && U(theme.accent)!=='#2B2D33') return theme;
+  if(U(theme.accent)!==THEME_MONO.accent && U(theme.accent)!=='#43538C') return theme; // '#43538C' = kurzzeitiger Blau-Akzent (2.4.145)
   return Object.assign({},theme,{accent:THEME_MONO.accent, dark:THEME_MONO.dark});
 }
 // Farb-Tokens der gespeicherten eigenen Palette für einen bestimmten Modus (hell/dunkel) — OHNE sie anzuwenden.
@@ -13439,7 +13439,7 @@ const LF_DONE_KEY='notua-lookfinder-done', LF_ANS_KEY='notua-look-answers', TOUR
 const LF_QUESTIONS=[
   // --- Farben: Hintergrundton × Akzentfarbe × Hell/Dunkel ---
   {id:'palette', q:'lf_q1', sub:'lf_q1_sub', opts:[
-    {id:'mono',    bg:'#F4F4F5', accent:'#43538C', dark:{background:'#10151D', accent:'#9AA8DA'}},
+    {id:'mono',    bg:'#F4F4F5', accent:'#2B2D33', dark:{background:'#10151D', accent:'#9AA8DA'}},
     // Iced Matcha Latte: Hell = zartes Rosa + Matcha-Grün in Schrift & Akzent; Dunkel = andersrum (dunkles Matcha-Grün, Rosa)
     {id:'matcha',  bg:'#FDE9F1', accent:'#5E8F3E', text:'#46692C', ink:'#3A5A22',
       dark:{background:'#1E2B16', accent:'#F58DB2', text:'#F7C8DA', ink:'#F8D5E2'}},
@@ -15901,7 +15901,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.144';
+const APP_VERSION='2.4.145';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
