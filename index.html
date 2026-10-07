@@ -357,6 +357,17 @@ try{
      (0 on a normal display, non-zero behind a notch/status overlay); adding it pushes the button
      below it instead of guessing a fixed offset. The plain 22px/14px stay as the fallback (env()
      resolves to 0 where safe-area insets aren't a thing, e.g. desktop), so nothing changes there. */
+  .update-pill{
+    position:absolute; top:calc(22px + env(safe-area-inset-top,0px)); left:22px; z-index:6; display:none; align-items:center; gap:8px;
+    padding:9px 16px; border-radius:999px; border:none; background:var(--accent); color:var(--accent-ink,#fff);
+    font:inherit; font-size:0.8rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);
+    box-shadow:0 10px 24px -10px var(--shadow-lg); animation:wnFabIn .4s var(--ease-out,cubic-bezier(.22,1,.36,1));
+  }
+  .update-pill.avail{display:flex;}
+  .update-pill:active{transform:scale(.96);}
+  .update-pill.busy{opacity:.7; pointer-events:none;}
+  .update-pill.busy svg{animation:busySpin .8s linear infinite;}
+  @media (max-width:640px){ .update-pill{top:calc(14px + env(safe-area-inset-top,0px)); left:14px; padding:9px 13px; font-size:0.76rem;} }
   .download-cta-floating{position:absolute; top:calc(22px + env(safe-area-inset-top,0px)); right:22px; z-index:6;}
   @media (max-width:640px){
     .download-cta-floating{top:calc(14px + env(safe-area-inset-top,0px)); right:14px; padding:9px 13px; font-size:0.76rem; gap:5px;}
@@ -3630,6 +3641,15 @@ try{
     .busy-bar-spinner{animation:none;}
   }
 
+  /* ---------- LADE-PLATZHALTER (Startseite) ---------- */
+  .board-tile.skeleton-tile{pointer-events:none; cursor:default; box-shadow:none;}
+  .skeleton-tile .sk{display:block; border-radius:8px; background:linear-gradient(100deg, var(--surface-2) 30%, color-mix(in srgb, var(--border) 70%, var(--surface)) 50%, var(--surface-2) 70%); background-size:220% 100%; animation:skelShimmer 1.4s linear infinite;}
+  .skeleton-tile .sk-badge{width:34px; height:34px; border-radius:9px;}
+  .skeleton-tile .sk-lines{display:flex; flex-direction:column; gap:9px;}
+  .skeleton-tile .sk-line{height:12px; width:78%;}
+  .skeleton-tile .sk-line.short{width:46%; height:10px;}
+  @keyframes skelShimmer{from{background-position:120% 0;} to{background-position:-120% 0;}}
+  @media (prefers-reduced-motion: reduce){ .skeleton-tile .sk{animation:none;} }
   /* ---------- EINHEITLICHE ANIMATIONEN + TOUCH-GRÖSSEN ----------
      One shared set of durations/curves so popovers, menus, toasts, modals and the Home grid all move the
      same way (ease-out, ~140–240ms) instead of each using its own .12s/.15s/.2s + overshoot curve. */
@@ -4335,6 +4355,10 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretUpdateItem" data-beta="update" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
       <button type="button" class="tools-sheet-card" id="toolsSecretImagesItem" data-beta="images" hidden>
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></span>
         <span class="tools-sheet-card-label"></span>
@@ -4357,6 +4381,12 @@ try{
          — persistent reopen affordance for the What's-New modal (see showWhatsNewModal() /
          applyWhatsNewFabVisibility()). Starts hidden; JS decides on boot whether this app version's
          fab has already been dismissed. -->
+    <!-- Secret-code-gated ('functionupdate', switchable off in Secret Settings): appears only while a newer
+         version than the running one is published — pulls it in with one click. -->
+    <button class="update-pill" id="updateBtn" type="button" data-beta="update" hidden>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/></svg>
+      <span id="updateBtnLabel">Update verfügbar</span>
+    </button>
     <div class="whatsnew-fab" id="whatsNewFab" hidden>
       <button type="button" class="wn-fab-open" id="whatsNewFabOpen">
         <span class="wn-fab-icon" aria-hidden="true">✨</span>
@@ -5361,6 +5391,13 @@ const I18N={
   tools_secret_template_item:{de:'Vorlagen',en:'Templates'},
   tools_secret_images_item:{de:'Bilder-Ablage',en:'Image drop'},
   tools_secret_installs_item:{de:'App-Downloads',en:'App downloads'},
+  tools_secret_update_item:{de:'Update-Button',en:'Update button',es:'Botón de actualización',da:'Opdateringsknap'},
+  secret_feature_on_toast:{de:'Eingeschaltet',en:'Switched on',es:'Activado',da:'Slået til'},
+  secret_feature_off_toast:{de:'Ausgeschaltet',en:'Switched off',es:'Desactivado',da:'Slået fra'},
+  beta_update_unlocked_toast:{de:'Update-Button freigeschaltet — erscheint auf der Landingpage, sobald eine neue Version da ist',en:'Update button unlocked — shows on the landing page as soon as a new version is out',es:'Botón de actualización desbloqueado',da:'Opdateringsknap låst op'},
+  update_btn_label:{de:'Update verfügbar · v{v}',en:'Update available · v{v}',es:'Actualización disponible · v{v}',da:'Opdatering tilgængelig · v{v}'},
+  update_btn_busy:{de:'Aktualisiere …',en:'Updating …',es:'Actualizando …',da:'Opdaterer …'},
+  update_failed_toast:{de:'Update fehlgeschlagen — bitte die Seite manuell neu laden (Strg+F5).',en:'Update failed — please reload the page manually (Ctrl+F5).',es:'Error al actualizar: recarga la página manualmente.',da:'Opdatering mislykkedes – genindlæs siden manuelt.'},
   beta_installs_unlocked_toast:{de:'Download-Button freigeschaltet — auf der Landingpage und in den Secret Settings der Boardübersicht',en:'Download button unlocked — on the landing page and in the overview\'s Secret Settings'},
   beta_theme_unlocked_toast:{de:'Theme-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Theme menu unlocked — find it in the overview\'s Secret Settings'},
   beta_design_unlocked_toast:{de:'Design-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Design menu unlocked — find it in the overview\'s Secret Settings'},
@@ -6602,6 +6639,8 @@ function applyI18n(){
     ['#toolsSecretTemplateItem .tools-sheet-card-label','text',t('tools_secret_template_item')],
     ['#toolsSecretImagesItem .tools-sheet-card-label','text',t('tools_secret_images_item')],
     ['#toolsSecretInstallsItem .tools-sheet-card-label','text',t('tools_secret_installs_item')],
+    ['#toolsSecretUpdateItem .tools-sheet-card-label','text',t('tools_secret_update_item')],
+    ['#updateBtnLabel','text',t('update_btn_label',{v:updateAvailableVersion||''})],
     ['#toolsLookItem .tools-sheet-card-label','text',t('tools_look_item')],
     ['#controlsHelpBtn','title',t('controls_btn_title')],
     ['#familyBtn','title',t('family_btn_title')],['#familyPanelTitle','text',t('family_panel_title')],
@@ -10996,10 +11035,21 @@ function isBetaFeatureUnlocked(key){
   try{ return localStorage.getItem('notua-beta-'+key)==='1'; }catch(e){ return false; }
 }
 function unlockBetaFeature(key){
-  try{ localStorage.setItem('notua-beta-'+key,'1'); }catch(e){}
+  try{ localStorage.setItem('notua-beta-'+key,'1'); localStorage.removeItem('notua-betaoff-'+key); }catch(e){}
   applyBetaFeatureVisibility();
   applyDockCustomization();
 }
+// Some secret features can additionally be switched OFF again (and back on) from their card in Secret
+// Settings without forgetting the unlock: the feature's visible UI is hidden, its card stays so it can be
+// turned on again. Currently: 'installs' (download button) and 'update' (update button).
+function isBetaFeatureOff(key){
+  try{ return localStorage.getItem('notua-betaoff-'+key)==='1'; }catch(e){ return false; }
+}
+function setBetaFeatureOff(key,off){
+  try{ if(off) localStorage.setItem('notua-betaoff-'+key,'1'); else localStorage.removeItem('notua-betaoff-'+key); }catch(e){}
+  applyBetaFeatureVisibility();
+}
+function isBetaFeatureActive(key){ return isBetaFeatureUnlocked(key) && !isBetaFeatureOff(key); }
 // Toggles every static dock/drawer button tagged data-beta="<key>" (only the WoW-PvP-Check button
 // needs this — Strava rides the existing "Widgets" submenu instead, see getWidgetFamilyKinds()) to
 // match whichever beta flags are currently unlocked. Run once on boot (so a returning beta tester
@@ -11010,7 +11060,10 @@ function unlockBetaFeature(key){
 // can accidentally reveal something the other says should stay hidden.
 function applyBetaFeatureVisibility(){
   document.querySelectorAll('[data-beta]').forEach(el=>{
-    el.hidden=!isBetaFeatureUnlocked(el.dataset.beta);
+    // Cards inside Secret Settings stay visible while switched off (so they can be switched on again);
+    // everything else (landing buttons, dock entries …) follows the on/off flag too.
+    const inSecretGrid=!!el.closest('#toolsSheetSecretGrid');
+    el.hidden=!(inSecretGrid ? isBetaFeatureUnlocked(el.dataset.beta) : isBetaFeatureActive(el.dataset.beta));
   });
   refreshToolsSheetTabsUI();
 }
@@ -11019,7 +11072,7 @@ function applyBetaFeatureVisibility(){
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs','update'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -11534,6 +11587,7 @@ function showSecretPasswordModal(){
     // device pattern as strava/wow/control/template above.
     else if(v==='functionlook'){ scrim.remove(); unlockBetaFeature('look'); showToast(t('beta_look_unlocked_toast')); }
     else if(v==='functioninstalls'){ scrim.remove(); unlockBetaFeature('installs'); showToast(t('beta_installs_unlocked_toast')); }
+    else if(v==='functionupdate'){ scrim.remove(); unlockBetaFeature('update'); showToast(t('beta_update_unlocked_toast')); checkForAppUpdate(true); }
     else if(v==='functioncarousel'){ scrim.remove(); unlockBetaFeature('images'); showToast(t('beta_images_unlocked_toast')); showImageDropModal(); }
     else if(v==='functiontooltip'){ scrim.remove(); unlockBetaFeature('tooltip'); showToast(t('beta_tooltip_unlocked_toast')); }
     // Neu (v2.4.71): Grid-Formen + Landingpage-Animation — öffnet ein kleines Anpassen-Menü.
@@ -13664,7 +13718,7 @@ function showLookCodeModal(){
 }
 const toolsLookCodeItem=document.getElementById('toolsLookCodeItem');
 if(toolsLookCodeItem) toolsLookCodeItem.addEventListener('click',()=>{ closeToolsSheet(); showLookCodeModal(); });
-[['toolsSecretThemeItem',()=>showThemeMenuModal()],['toolsSecretDesignItem',()=>showDesignMenuModal()],['toolsSecretTemplateItem',()=>showTemplatePickerModal()],['toolsSecretImagesItem',()=>showImageDropModal()],['toolsSecretInstallsItem',()=>showDownloadModal()]].forEach(([id,fn])=>{
+[['toolsSecretThemeItem',()=>showThemeMenuModal()],['toolsSecretDesignItem',()=>showDesignMenuModal()],['toolsSecretTemplateItem',()=>showTemplatePickerModal()],['toolsSecretImagesItem',()=>showImageDropModal()]].forEach(([id,fn])=>{
   const el=document.getElementById(id); if(el) el.addEventListener('click',()=>{ closeToolsSheet(); fn(); });
 });
 const toolsLookItem=document.getElementById('toolsLookItem');
@@ -13873,6 +13927,11 @@ async function paintHomeGrid(allIn){
   // ones in one atomic swap at the end.
   const prevRects=new Map();
   boardGrid.querySelectorAll('.board-tile[data-board-id]').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.width>0 && r.height>0) prevRects.set(el.dataset.boardId,r); });
+  // Loading placeholder: when the grid is still empty (first paint) and building the tiles takes more than a
+  // blink, shimmering tile outlines stand in for the boards instead of a blank page. They are replaced
+  // by the real tiles in the atomic swap below; the delay keeps fast loads completely flicker-free.
+  let skelTimer=null;
+  if(!prevRects.size) skelTimer=setTimeout(()=>{ if(paintSeq===homePaintSeq && !boardGrid.querySelector('.board-tile')) showHomeSkeleton(); },140);
 
   // Self-heal project state: drop references to boards that no longer exist, and auto-dissolve
   // any project a removal leaves with one or zero boards (a "folder" of a single item doesn't
@@ -13896,7 +13955,6 @@ async function paintHomeGrid(allIn){
   state.projects.forEach(p=>p.boardIds.forEach(id=>groupedBoardIds.add(id)));
   const standaloneRoots=roots.filter(b=>!groupedBoardIds.has(b.id));
 
-  emptyHome.hidden=roots.length>0;
   boardCountLabel.textContent=roots.length ? t('board_count',{n:roots.length,s:roots.length===1?'':'s'}) : '';
 
   // Build every tile and project panel CONCURRENTLY (Promise.all, order preserved regardless of which
@@ -13912,10 +13970,19 @@ async function paintHomeGrid(allIn){
   // that (since the SYNC ENGINE pivot — see activeBackend() above) always resolves to IDB_DB regardless
   // of storageMode anyway, so nothing here actually depends on these calls running in any particular
   // order relative to each other.
-  const [standaloneTiles,projectEls]=await Promise.all([
-    Promise.all(standaloneRoots.map(b=>buildBoardTile(b))),
-    Promise.all(state.projects.map(p=>p.collapsed ? buildProjectTile(p) : buildProjectPanel(p))),
-  ]);
+  let standaloneTiles,projectEls;
+  try{
+    [standaloneTiles,projectEls]=await Promise.all([
+      Promise.all(standaloneRoots.map(b=>buildBoardTile(b))),
+      Promise.all(state.projects.map(p=>p.collapsed ? buildProjectTile(p) : buildProjectPanel(p))),
+    ]);
+  }catch(err){
+    clearTimeout(skelTimer); boardGrid.querySelectorAll('.skeleton-tile').forEach(n=>n.remove());
+    lastHomePaintSig=null; // let the next refresh try again
+    throw err;
+  }
+  clearTimeout(skelTimer);
+  try{ localStorage.setItem('notua-home-skel',String(Math.min(8,standaloneTiles.length+projectEls.length))); }catch(e){}
   const frag=document.createDocumentFragment();
   standaloneTiles.forEach(el=>frag.appendChild(el));
   projectEls.forEach(el=>frag.appendChild(el));
@@ -13927,11 +13994,25 @@ async function paintHomeGrid(allIn){
   frag.appendChild(newTile);
   if(paintSeq!==homePaintSeq) return; // a newer paint started meanwhile — it owns the grid now
   boardGrid.replaceChildren(frag);
+  emptyHome.hidden=roots.length>0; // set together with the swap, so "no boards yet" never flashes while loading
   playHomeGridFlip(prevRects);
 }
 // FLIP: tiles that moved glide from their old spot to the new one (after a delete, the rest closes the gap
 // smoothly instead of jumping); a tile that is new to an already-visible grid fades/scales in.
 let homePaintSeq=0;
+function showHomeSkeleton(){
+  let n=3; try{ n=parseInt(localStorage.getItem('notua-home-skel'),10); }catch(e){}
+  if(!(n>=1)) n=3;
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');
+    el.className='board-tile skeleton-tile'; el.setAttribute('aria-hidden','true');
+    el.innerHTML='<i class="sk sk-badge"></i><div class="sk-lines"><i class="sk sk-line"></i><i class="sk sk-line short"></i></div>';
+    frag.appendChild(el);
+  }
+  emptyHome.hidden=true;
+  boardGrid.replaceChildren(frag);
+}
 function playHomeGridFlip(prevRects){
   try{
     if(!prevRects.size || prefersReducedMotion() || !isAnimGroupEnabled('carddrag')) return;
@@ -15345,7 +15426,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.119';
+const APP_VERSION='2.4.121';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -15395,6 +15476,55 @@ function initWhatsNew(){
   if(whatsNewSeenVersion()!==APP_VERSION) markWhatsNewSeen(APP_VERSION);
   applyWhatsNewFabVisibility();
 }
+// ---- Update check ("Update verfügbar" button on the landing page) ----
+// Compares the running APP_VERSION with the one in the freshly fetched index.html (cache bypassed — the
+// ?nocache query is passed through untouched by the service worker, see sw.js). Only runs while the
+// secret 'update' feature is unlocked and switched on.
+let updateAvailableVersion=null;
+function versionIsNewer(a,b){
+  const pa=String(a).split('.').map(n=>parseInt(n,10)||0), pb=String(b).split('.').map(n=>parseInt(n,10)||0);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){ const x=pa[i]||0, y=pb[i]||0; if(x!==y) return x>y; }
+  return false;
+}
+function refreshUpdateBtn(){
+  const btn=document.getElementById('updateBtn'); if(!btn) return;
+  const lbl=document.getElementById('updateBtnLabel');
+  if(lbl && updateAvailableVersion) lbl.textContent=t('update_btn_label',{v:updateAvailableVersion});
+  btn.classList.toggle('avail',!!updateAvailableVersion && isBetaFeatureActive('update'));
+}
+let updateCheckRunning=false;
+async function checkForAppUpdate(force){
+  if(updateCheckRunning || !isBetaFeatureActive('update')) return;
+  if(location.protocol==='file:' || navigator.onLine===false) return;
+  updateCheckRunning=true;
+  try{
+    const res=await fetch('index.html?nocache='+Date.now(),{cache:'no-store'});
+    if(!res.ok) return;
+    const m=/const APP_VERSION='([^']+)'/.exec(await res.text());
+    if(m && versionIsNewer(m[1],APP_VERSION)) updateAvailableVersion=m[1]; else if(m) updateAvailableVersion=null;
+    refreshUpdateBtn();
+  }catch(e){}
+  finally{ updateCheckRunning=false; }
+}
+// "Ziehen": drop the service worker + its caches (boards live in IndexedDB/localStorage and are untouched),
+// then reload — the page and a fresh service worker come straight from the network.
+async function applyAppUpdate(){
+  const btn=document.getElementById('updateBtn'); if(!btn || btn.classList.contains('busy')) return;
+  btn.classList.add('busy');
+  const lbl=document.getElementById('updateBtnLabel'); if(lbl) lbl.textContent=t('update_btn_busy');
+  try{
+    if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); }
+    if(window.caches){ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }
+    location.reload();
+  }catch(e){
+    btn.classList.remove('busy'); refreshUpdateBtn();
+    showToast(t('update_failed_toast'));
+  }
+}
+document.getElementById('updateBtn').addEventListener('click',applyAppUpdate);
+setTimeout(()=>checkForAppUpdate(),2500);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkForAppUpdate(); });
+setInterval(()=>checkForAppUpdate(),20*60*1000);
 document.getElementById('whatsNewFabOpen').addEventListener('click',showWhatsNewModal);
 document.getElementById('whatsNewFabClose').addEventListener('click',()=>{
   dismissWhatsNewFab(APP_VERSION);
@@ -27770,6 +27900,17 @@ if(toolsBtn){
   }
   document.getElementById('toolsSecretWowItem').addEventListener('click',()=>toggleSecretDockHidden('wowpvp'));
   document.getElementById('toolsSecretStravaItem').addEventListener('click',()=>toggleSecretDockHidden('strava'));
+  // Download- and Update-Button: the card is an on/off switch (the unlock itself stays).
+  [['toolsSecretInstallsItem','installs'],['toolsSecretUpdateItem','update']].forEach(([id,key])=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.addEventListener('click',()=>{
+      const nowOff=!isBetaFeatureOff(key);
+      setBetaFeatureOff(key,nowOff);
+      refreshSecretToggleCardsUI();
+      showToast(t(nowOff?'secret_feature_off_toast':'secret_feature_on_toast'));
+      if(key==='update' && !nowOff) checkForAppUpdate(true);
+    });
+  });
   document.getElementById('toolsSheetTabMain').addEventListener('click',()=>switchToolsSheetTab('main'));
   document.getElementById('toolsSheetTabSecret').addEventListener('click',()=>switchToolsSheetTab('secret'));
   toolsSheetBackdrop.addEventListener('click',closeToolsSheet);
@@ -27780,6 +27921,10 @@ function refreshSecretToggleCardsUI(){
     if(!item) return;
     const on=!state.dockConfig.hidden.includes(key);
     item.classList.toggle('active',on);
+  });
+  [['toolsSecretInstallsItem','installs'],['toolsSecretUpdateItem','update']].forEach(([id,key])=>{
+    const item=document.getElementById(id);
+    if(item) item.classList.toggle('active',isBetaFeatureActive(key));
   });
 }
 document.getElementById('trashBackBtn').addEventListener('click',closeTrash);

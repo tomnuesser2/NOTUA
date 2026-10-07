@@ -1,7 +1,7 @@
 // NOTUA – service worker: caches the app shell so it opens instantly and works offline.
 // Your boards themselves are never stored here — those already live in IndexedDB / your chosen
 // folder (see the app's own storage code). This only caches the static files that draw the UI.
-const CACHE_NAME = 'notua-v259';
+const CACHE_NAME = 'notua-v261';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -42,6 +42,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith(self.location.origin)) return;
+  // Update checks (?nocache=…) must always hit the network and must not be cached.
+  if (new URL(event.request.url).searchParams.has('nocache')) return;
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const network = fetch(event.request)
