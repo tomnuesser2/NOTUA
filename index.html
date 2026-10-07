@@ -6935,12 +6935,12 @@ const IDB_DB={
   },
   async deleteBoard(id){const t=await tx('boards','readwrite'); t.objectStore('boards').delete(id); return new Promise(r=>t.oncomplete=r);},
 
-  async cardsForBoard(boardId){const t=await tx('cards','readonly'); return reqp(t.objectStore('cards').index('boardId').getAll(boardId));},
+  async cardsForBoard(boardId){ if(!boardId) return []; /* getAll(undefined/null) würde ALLE Karten aller Boards liefern */ const t=await tx('cards','readonly'); return reqp(t.objectStore('cards').index('boardId').getAll(boardId));},
   async putCard(c){const t=await tx('cards','readwrite'); t.objectStore('cards').put(c); return new Promise(r=>t.oncomplete=r);},
   async putCards(list){const t=await tx('cards','readwrite'); const s=t.objectStore('cards'); list.forEach(c=>s.put(c)); return new Promise(r=>t.oncomplete=r);},
   async deleteCard(id){const t=await tx('cards','readwrite'); t.objectStore('cards').delete(id); return new Promise(r=>t.oncomplete=r);},
 
-  async connectorsForBoard(boardId){const t=await tx('connectors','readonly'); return reqp(t.objectStore('connectors').index('boardId').getAll(boardId));},
+  async connectorsForBoard(boardId){ if(!boardId) return []; const t=await tx('connectors','readonly'); return reqp(t.objectStore('connectors').index('boardId').getAll(boardId));},
   async putConnector(c){const t=await tx('connectors','readwrite'); t.objectStore('connectors').put(c); return new Promise(r=>t.oncomplete=r);},
   async deleteConnector(id){const t=await tx('connectors','readwrite'); t.objectStore('connectors').delete(id); return new Promise(r=>t.oncomplete=r);},
 
@@ -7312,12 +7312,24 @@ const FS_DB={
       // root still creates the board somewhere findable rather than failing outright — a later push
       // of the parent can't retroactively re-nest it, but nothing is lost either.
       const boardsRoot=await fsGetBoardsRootDir(); if(!boardsRoot) return;
+      // Erst nachsehen, ob es für diese ID schon einen Ordner gibt (die Zuordnung wird nach Projekt-Umzügen/Aufräumen
+      // geleert) — sonst entsteht ein zweiter, leerer Ordner für dasselbe Board, dessen veralteter Stand später
+      // gegen den echten gewinnen und gelöschte/fremde Inhalte zurückbringen kann.
+      if(fsState.dirs.size===0 || !fsState.cache.has(b.id)){
+        await fsWalkBoardChildren(boardsRoot,null,new Set()).catch(()=>{});
+        if(fsState.dirs.get(b.id)) return FS_DB.putBoard(b);
+      }
       // A top-level board (no parentBoardId) defaults into open/ — the "not grouped into any
       // Projekt yet" location, see fsReorganizeByProjects() — instead of directly under
       // notua-boards/ itself, so a brand-new board already lands in the same open/projects layout
       // the reorg pass keeps existing boards sorted into, rather than creating a fresh flat
       // straggler that pass would just have to sweep up again on the next connect.
-      const openDir=b.parentBoardId ? null : await fsGetOpenDir();
+      let openDir=null;
+      if(!b.parentBoardId){
+        const prj=findProjectOf(b.id);
+        if(prj){ try{ const pd=await fsGetProjectsDir(); if(pd) openDir=await pd.getDirectoryHandle(projectFolderSlug(prj),{create:true}); }catch(e){ openDir=null; } }
+        if(!openDir) openDir=await fsGetOpenDir();
+      }
       const container=(b.parentBoardId && fsState.dirs.get(b.parentBoardId)) || openDir || boardsRoot;
       const folderName=folderNameFor(b.id,b.name);
       // Unlike fsGetBoardsRootDir() above (the very first write), this one used to have no try/catch of
@@ -7643,8 +7655,12 @@ async function fsReorganizeByProjects(){
       await boardsRoot.removeEntry(name,{recursive:true});
     }
   }catch(e){ /* whatever wasn't confirmed copied+removed above is simply untouched, safe to retry next connect */ }
-  fsState.dirs.clear(); fsState.parentDirs.clear(); fsState.cache.clear();
-  fsState.cardOwner.clear(); fsState.connOwner.clear(); fsState.imageOwner.clear(); fsState.imageExt.clear();
+  // Nur die Ordner-Zuordnung neu aufbauen (die Ordner wurden ja verschoben). Der Inhalts-Cache bleibt bestehen und
+  // wird sofort mit den neuen Ordnern neu verknüpft: Ein noch ausstehendes, verzögertes Speichern (fsWriteBoardSoon)
+  // fände sonst keinen Cache mehr und ginge verloren; und ein Schreibzugriff mitten im Umbau legte für dieselbe
+  // Board-ID einen zweiten, leeren Ordner an.
+  fsState.dirs.clear(); fsState.parentDirs.clear();
+  try{ await fsWalkBoardChildren(boardsRoot,null,new Set()); }catch(e){}
 }
 // Moves ONE already-known board's folder to wherever it belongs right now (open/ if it's not in any
 // app "Projekt", or projects/<Projekt>-<id6>/ if it is) — the live counterpart to
@@ -7654,7 +7670,15 @@ async function fsReorganizeByProjects(){
 // Fire-and-forget from the caller's point of view — a failure here just means the next full
 // fsReorganizeByProjects() sweep (or the next drag) sorts it out; the app's own board data was never
 // at risk either way, only which folder it physically sits in.
-async function fsRelocateBoardForProject(boardId){
+function fsRelocateBoardForProject(boardId){
+  // Pro Board hintereinander statt gleichzeitig (zwei schnelle Verschiebungen würden sonst parallel denselben
+  // Ordner kopieren/löschen) — dieselbe Warteschlange wie beim Umbenennen des Ordners.
+  const prev=fsState.renameLocks.get(boardId) || Promise.resolve();
+  const next=prev.then(()=>fsRelocateBoardForProjectNow(boardId)).catch(()=>{});
+  fsState.renameLocks.set(boardId,next);
+  return next;
+}
+async function fsRelocateBoardForProjectNow(boardId){
   if(!fsState.root) return;
   const oldDir=fsState.dirs.get(boardId);
   const oldParent=fsState.parentDirs.get(boardId);
@@ -7674,6 +7698,10 @@ async function fsRelocateBoardForProject(boardId){
     await fsCopyDirRecursive(oldDir,newDir);
     fsState.dirs.set(boardId,newDir);
     fsState.parentDirs.set(boardId,target);
+    // Was während des Kopierens noch in den alten Ordner geschrieben wurde, wäre mit dessen Löschung weg —
+    // darum den aktuellen Stand aus dem Cache einmal frisch in den neuen Ordner schreiben.
+    const liveData=fsState.cache.get(boardId);
+    if(liveData) await fsWriteFileJSON(newDir,'board.json',liveData);
     await fsRefreshNestedHandles(newDir);
     await oldParent.removeEntry(oldDir.name,{recursive:true});
   }catch(e){ /* left exactly where it was — safe, picked up again by the next full reorg sweep */ }
@@ -8775,6 +8803,14 @@ function compressImageForStorage(blob){
     img.src=url;
   });
 }
+const recentlyDeletedCards=new Map(); // cardId -> Zeitpunkt der Löschung
+function cardWriteBlocked(id){
+  const t=recentlyDeletedCards.get(id);
+  if(!t) return false;
+  if(Date.now()-t>30000){ recentlyDeletedCards.delete(id); return false; }
+  return true;
+}
+function allowCardWrite(ids){ (ids||[]).forEach(id=>recentlyDeletedCards.delete(id)); }
 const DB={
   allBoards:(...a)=>activeBackend().allBoards(...a),
   allTrashedBoards:(...a)=>activeBackend().allTrashedBoards(...a),
@@ -8784,14 +8820,17 @@ const DB={
   putBoard:async(b,...rest)=>{ const r=await activeBackend().putBoard(b,...rest); markBoardDirty(b&&b.id); return r; },
   deleteBoard:async(id,...rest)=>{ const r=await activeBackend().deleteBoard(id,...rest); markBoardDirty(id); return r; },
   cardsForBoard:(...a)=>activeBackend().cardsForBoard(...a),
-  putCard:async(c,...rest)=>{ const r=await activeBackend().putCard(c,...rest); markBoardDirty(c&&c.boardId); return r; },
-  putCards:async(list,...rest)=>{ const r=await activeBackend().putCards(list,...rest); (list||[]).forEach(c=>markBoardDirty(c&&c.boardId)); return r; },
+  // Schutz vor "Zombie-Karten": Speichert ein verspäteter Handler (blur, saveCardSoon, Ziehen-Ende, Sync-Rückschreiben)
+  // eine Karte, die der Nutzer gerade gelöscht hat, würde sie hier wieder in die Datenbank geschrieben. Darum merkt sich
+  // der Wrapper gelöschte Karten-IDs kurz und ignoriert Schreibzugriffe darauf — außer bei bewusstem Wiederherstellen.
+  putCard:async(c,...rest)=>{ if(c && cardWriteBlocked(c.id)) return; const r=await activeBackend().putCard(c,...rest); markBoardDirty(c&&c.boardId); return r; },
+  putCards:async(list,...rest)=>{ list=(list||[]).filter(c=>!(c && cardWriteBlocked(c.id))); if(!list.length) return; const r=await activeBackend().putCards(list,...rest); list.forEach(c=>markBoardDirty(c&&c.boardId)); return r; },
   // IndexedDB has no single-record getter for a card/connector by id (only cardsForBoard/
   // connectorsForBoard), so a bare id here can't be traced back to its board cheaply. Every real
   // call site deletes a card/connector that belongs to whatever board is currently open, so falling
   // back to state.currentBoardId covers the vast majority of cases; the few bulk multi-board cases
   // (restoreBundle/deleteBundle) mark their boards dirty explicitly themselves.
-  deleteCard:async(id,...rest)=>{ const r=await activeBackend().deleteCard(id,...rest); markBoardDirty(state.currentBoardId); return r; },
+  deleteCard:async(id,...rest)=>{ recentlyDeletedCards.set(id,Date.now()); const r=await activeBackend().deleteCard(id,...rest); markBoardDirty(state.currentBoardId); return r; },
   connectorsForBoard:(...a)=>activeBackend().connectorsForBoard(...a),
   putConnector:async(c,...rest)=>{ const r=await activeBackend().putConnector(c,...rest); markBoardDirty(c&&c.boardId); return r; },
   deleteConnector:async(id,...rest)=>{ const r=await activeBackend().deleteConnector(id,...rest); markBoardDirty(state.currentBoardId); return r; },
@@ -9103,6 +9142,22 @@ async function pushDirtyBoards(targets){
         }
         try{
           await pushBundleToBackend(bundle,backend);
+          // Lokal gelöschte Karten/Verbindungen auch im Ziel entfernen — sonst bleiben sie dort liegen und
+          // kommen beim nächsten Spiegeln (neuerer Stempel, anderes Gerät, Ordner-Umzug) wieder zurück.
+          // Nur, was beim letzten bestätigten Abgleich nachweislich auf BEIDEN Seiten war (Baseline) —
+          // so kann ein unvollständig geladenes Board nie versehentlich das Ziel leerräumen.
+          for(const b of bundle.boards){
+            const base=state.syncKnownCardIds.get(b.id+'|'+target);
+            if(!base || !base.size) continue;
+            const localIds=new Set(bundle.cards.filter(c=>c.boardId===b.id).map(c=>c.id));
+            const gone=new Set([...base].filter(id=>!localIds.has(id)));
+            if(!gone.size) continue;
+            const rc=await backend.cardsForBoard(b.id).catch(()=>[]);
+            for(const c of rc) if(gone.has(c.id)) await backend.deleteCard(c.id).catch(()=>{});
+            const rk=await backend.connectorsForBoard(b.id).catch(()=>[]);
+            const localK=new Set(bundle.connectors.map(k=>k.id));
+            for(const k of rk) if(!localK.has(k.id) && (gone.has(k.fromId)||gone.has(k.toId))) await backend.deleteConnector(k.id).catch(()=>{});
+          }
           for(const b of bundle.boards){
             const fresh=await backend.getBoard(b.id).catch(()=>null);
             state.syncKnownRemote.set(b.id+'|'+target, (fresh&&fresh.updatedAt)||b.updatedAt||Date.now());
@@ -9294,9 +9349,9 @@ async function autoMergeBoard(boardId,target,backend){
   // dropped whenever either endpoint card didn't survive the merge above — a dangling connector to a
   // card that no longer exists is worse than no connector at all.
   const mergedConnMap=new Map();
-  localConns.forEach(cn=>{ if(survivingIds.has(cn.from) && survivingIds.has(cn.to)) mergedConnMap.set(cn.id,cn); });
+  localConns.forEach(cn=>{ if(survivingIds.has(cn.fromId) && survivingIds.has(cn.toId)) mergedConnMap.set(cn.id,cn); });
   remoteConns.forEach(cn=>{
-    if(!survivingIds.has(cn.from) || !survivingIds.has(cn.to)) return;
+    if(!survivingIds.has(cn.fromId) || !survivingIds.has(cn.toId)) return;
     if(remoteWins || !mergedConnMap.has(cn.id)) mergedConnMap.set(cn.id,cn);
   });
   const mergedMeta={...localBoard, ...(remoteWins?remoteBoard:{}), updatedAt:Date.now()};
@@ -9326,9 +9381,11 @@ async function autoMergeBoard(boardId,target,backend){
     // whole merge cleanly, rather than assuming a partial push already landed.
   }
   if(state.currentBoardId===boardId){
-    state.cards=await DB.cardsForBoard(boardId);
-    state.connectors=await DB.connectorsForBoard(boardId);
-    renderAllCards(); renderConnectors();
+    const amCards=(await DB.cardsForBoard(boardId)).filter(c=>!cardWriteBlocked(c.id)), amConns=await DB.connectorsForBoard(boardId);
+    if(state.currentBoardId===boardId && state.screen==='board'){
+      state.cards=amCards; state.connectors=amConns;
+      renderAllCards(); renderConnectors();
+    }
   }
   if(state.screen==='home') refreshHome();
 }
@@ -10021,6 +10078,7 @@ async function v2ApplyBoardDoc(boardId,merged,snap){
       if(!flat){ if(cur && v2Stable(cur)===snapC.get(id)) delC.push(id); continue; }
       const next=v2Unflatten(id,boardId,flat);
       aliveCards.push(next);
+      if(!cur && snapC.has(id)) continue; // während des Abgleichs lokal gelöscht — NICHT wiederbeleben, die Löschung geht beim nächsten Lauf als Tombstone raus
       if(cur){
         if(v2Stable(cur)!==snapC.get(id)) continue;
         if(v2Stable(cur)===v2Stable(next)) continue;
@@ -10030,12 +10088,21 @@ async function v2ApplyBoardDoc(boardId,merged,snap){
       const cur=curK.get(id);
       if(!flat){ if(cur && v2Stable(cur)===snapK.get(id)) delK.push(id); continue; }
       const next=v2Unflatten(id,boardId,flat);
+      if(!cur && snapK.has(id)) continue; // lokal gelöscht seit dem Lesen
       if(cur){
         if(v2Stable(cur)!==snapK.get(id)) continue;
         if(v2Stable(cur)===v2Stable(next)) continue;
       }
       writeK.push(next);
     }
+  }
+  // Eine Karte, die lokal schon in einem ANDEREN Board existiert, darf nicht durch ein Cloud-Dokument stillschweigend
+  // dorthin "umziehen" (gleiche ID in zwei Board-Dokumenten) — das wäre genau "Inhalte aus anderen Boards tauchen auf".
+  for(let i=writeC.length-1;i>=0;i--){
+    const w=writeC[i];
+    if(curC.has(w.id)) continue;
+    const other=await new Promise(res=>{ tx('cards','readonly').then(t=>{ const rq=t.objectStore('cards').get(w.id); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>res(null); }).catch(()=>res(null)); });
+    if(other && other.boardId && other.boardId!==boardId) writeC.splice(i,1);
   }
   if(writeC.length) await IDB_DB.putCards(writeC);
   for(const k of writeK) await IDB_DB.putConnector(k);
@@ -10061,8 +10128,8 @@ function v2RefreshOpenBoard(boardId,tries){
   (async()=>{
     const cards=await IDB_DB.cardsForBoard(boardId), conns=await IDB_DB.connectorsForBoard(boardId);
     if(state.currentBoardId!==boardId) return;
-    state.cards=cards; state.connectors=conns;
-    const ids=new Set(cards.map(c=>c.id));
+    state.cards=cards.filter(c=>c.boardId===boardId && !cardWriteBlocked(c.id)); state.connectors=conns;
+    const ids=new Set(state.cards.map(c=>c.id));
     for(const id of [...state.selection]) if(!ids.has(id)) state.selection.delete(id);
     renderAllCards();
     try{ updateEmptyHint(); }catch(e){}
@@ -15428,6 +15495,7 @@ document.addEventListener('pointerdown',(e)=>{
 
 document.getElementById('homeBtn').addEventListener('click',()=>navigateBackWithZoom(goHome));
 async function goHome(){
+  openBoardSeq++; // ein noch laufendes Board-Öffnen darf nach dem Zurückgehen nichts mehr anzeigen
   applyBlanketBoardChrome(null); // leaving whatever board was open — stop any running stop-motion playback and restore the normal dock/viewctl
   closeMobileCrumbMenu();
   state.screen='home';
@@ -15747,7 +15815,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.130';
+const APP_VERSION='2.4.132';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -16260,7 +16328,9 @@ async function navigateBackWithZoom(navigateFn){
     }
   }
 }
+let openBoardSeq=0; // laufende Nummer: nur das zuletzt gestartete Öffnen darf den Board-Zustand setzen
 async function openBoard(id, skipCrumbAnim){
+  const openToken=++openBoardSeq;
   // "in ein Board springen soll niemals die Tastatur direkt öffnen sondern immer ohne Auswahl
   // starten also nix markieren" — every "jump into a board" path (a Home tile, a boardlink/sub-board
   // card, a breadcrumb, browser back/forward via popstate) funnels through this one function, but
@@ -16314,6 +16384,13 @@ async function openBoard(id, skipCrumbAnim){
   }
   const board=await DB.getBoard(id);
   if(!board) return goHome();
+  // Karten/Verbindungen ZUERST in lokale Variablen laden und erst danach zusammen mit currentBoardId setzen:
+  // Früher stand currentBoardId schon auf dem neuen Board, während state.cards noch (oder durch ein parallel
+  // laufendes, älteres Öffnen schon wieder) Karten eines ANDEREN Boards enthielt — neue/verschobene Karten
+  // wurden dann mit der falschen Board-ID gespeichert ("Inhalte aus anderen Boards tauchen auf").
+  const loadedCards=await DB.cardsForBoard(id);
+  const loadedConns=await DB.connectorsForBoard(id);
+  if(openToken!==openBoardSeq) return; // inzwischen wurde ein anderes Board geöffnet — dieses Öffnen verwerfen
   state.currentBoardId=id;
   state.view=board.view || {x:0,y:0,zoom:1};
   state.gridEnabled=board.gridEnabled!==false;
@@ -16328,9 +16405,10 @@ async function openBoard(id, skipCrumbAnim){
   closeCalendarPanel();
   hideCardDatePopover();
   resetFamilyBucket();
-  state.cards=await DB.cardsForBoard(id);
-  state.connectors=await DB.connectorsForBoard(id);
+  state.cards=loadedCards.filter(c=>c.boardId===id && !cardWriteBlocked(c.id));
+  state.connectors=loadedConns;
   if(!state.boards.length) state.boards=await mergedAllBoards();
+  if(openToken!==openBoardSeq) return;
 
   homeView.hidden=true; boardView.hidden=false; state.screen='board';
   // "immer noch keine hover Animation" auf der Werkzeugleiste: #dock/.viewctl live inside #boardView,
@@ -16398,8 +16476,10 @@ async function openBoard(id, skipCrumbAnim){
       if(state.currentBoardId!==id || state.dirtyBoards.has(id)) return;
       const freshBoard=await DB.getBoard(id).catch(()=>null);
       if(!freshBoard || freshBoard.updatedAt===board.updatedAt) return;
-      state.cards=await DB.cardsForBoard(id);
-      state.connectors=await DB.connectorsForBoard(id);
+      const upCards=await DB.cardsForBoard(id), upConns=await DB.connectorsForBoard(id);
+      if(state.currentBoardId!==id || openToken!==openBoardSeq || state.screen!=='board') return; // zwischenzeitlich weitergeklickt
+      state.cards=upCards.filter(c=>c.boardId===id && !cardWriteBlocked(c.id));
+      state.connectors=upConns;
       renderAllCards();
       renderConnectors();
     })).catch(()=>{});
@@ -18702,6 +18782,10 @@ function animateCardsOutBeforeDelete(ids){
   return new Promise(res=>setTimeout(res,150));
 }
 async function deleteCards(ids){
+  ids=[...new Set(ids)].filter(id=>!recentlyDeletedCards.has(id)); // gedrückt gehaltene Taste / Doppelklick: nichts doppelt löschen
+  if(!ids.length) return;
+  ids.forEach(id=>recentlyDeletedCards.set(id,Date.now())); // ab jetzt darf kein verspäteter Speicher-/Sync-Vorgang sie wiederbeleben
+  state.selection.clear();
   await animateCardsOutBeforeDelete(ids);
   const bundle={kind:'cards', boardId:state.currentBoardId, cards:[], connectors:[], nestedBundles:[]};
   for(const id of ids){
@@ -18774,6 +18858,7 @@ async function deleteBundle(bundle){
 }
 async function restoreBundle(bundle){
   if(!bundle) return;
+  allowCardWrite((bundle.cards||[]).map(c=>c.id));
   if(bundle.kind==='board'){
     unmarkBoardsDeleted((bundle.boards||[]).map(b=>b.id));
     for(const b of bundle.boards) await DB.putBoard(b);
@@ -18793,9 +18878,12 @@ async function restoreLastDeleted(){
   state.lastDeleted=null;
   if(state.screen==='home'){ refreshHome(); }
   else{
-    state.cards=await DB.cardsForBoard(state.currentBoardId);
-    state.connectors=await DB.connectorsForBoard(state.currentBoardId);
-    renderAllCards(); renderConnectors(); updateEmptyHint();
+    const rbId=state.currentBoardId;
+    const rbCards=await DB.cardsForBoard(rbId), rbConns=await DB.connectorsForBoard(rbId);
+    if(state.currentBoardId===rbId){
+      state.cards=rbCards; state.connectors=rbConns;
+      renderAllCards(); renderConnectors(); updateEmptyHint();
+    }
   }
 }
 
@@ -18901,6 +18989,7 @@ async function pasteCardClip(clip,at){
   await DB.putCards(newCards);
   if(nestedCards.length) await DB.putCards(nestedCards);
   for(const cn of connectors) await DB.putConnector(cn);
+  if(state.currentBoardId!==boardId || state.screen!=='board'){ showToast(t('toast_cards_pasted',{n:newCards.length})); return; } // inzwischen ein anderes Board offen — nur gespeichert, nicht ins fremde Board einblenden
   state.cards.push(...newCards);
   state.connectors.push(...connectors.filter(cn=>cn.boardId===boardId));
   state.selection=new Set(newCards.map(c=>c.id));
@@ -22056,7 +22145,13 @@ function buildColorpickerCard(card){
   return el;
 }
 
-const saveCardSoon=debounce((card)=>{ DB.putCard(card); },350);
+// Pro Karte entprellt: Früher teilten sich ALLE Karten einen einzigen Timer — wer binnen 350 ms in Karte A und dann
+// in Karte B tippte, verlor die Änderung an A (nur die zuletzt übergebene Karte wurde gespeichert).
+const saveCardTimers=new Map();
+function saveCardSoon(card){
+  clearTimeout(saveCardTimers.get(card.id));
+  saveCardTimers.set(card.id,setTimeout(()=>{ saveCardTimers.delete(card.id); DB.putCard(card); },350));
+}
 
 /* ============================================================
    BLANKET (freehand drawing card)
@@ -25000,6 +25095,7 @@ async function addCard(type, extra){
   // nobody meant to make, so it switches itself off here exactly like clicking the toolbar button
   // again would (this also clears any half-picked connect-source highlight).
   cancelConnect();
+  const addBoardId=state.currentBoardId; // das Board, in dem die Karte entstehen soll — bleibt auch über awaits hinweg fix
   const center = extra && extra.at ? extra.at : cascadeCenter();
   let w=260,h=160,data={};
   if(type==='note'){ w=220; h=140; data={text:''}; }
@@ -25081,17 +25177,18 @@ async function addCard(type, extra){
     if(!(await ensureStorageReady())) return;
     w=200; h=140;
     const nb={id:uid(), name:extra&&extra.name?extra.name:t('untitled_board'), color:null, colorCustom:false,
-      parentBoardId:state.currentBoardId, parentCardId:null, createdAt:Date.now(), updatedAt:Date.now(),
+      parentBoardId:addBoardId, parentCardId:null, createdAt:Date.now(), updatedAt:Date.now(),
       view:{x:0,y:0,zoom:defaultCanvasZoom()}, gridEnabled:true, snapEnabled:true};
     await DB.putBoard(nb);
     state.boards.push(nb);
     data={boardId:nb.id, title:nb.name};
   }
   const card={
-    id:uid(), boardId:state.currentBoardId, type, color:'none',
+    id:uid(), boardId:addBoardId, type, color:'none',
     x:snap(center.x-w/2), y:snap(center.y-h/2), w, h, z:nextZ(), data,
     createdAt:Date.now(), updatedAt:Date.now()
   };
+  if(state.currentBoardId!==addBoardId || state.screen!=='board'){ await DB.putCard(card); return card; } // inzwischen ein anderes Board offen: nur dort speichern, nicht ins falsche einblenden
   // "ich glaube leicht transparent, also startend auf 60%, sah für die Spalten besser aus" — a
   // column's own default Deckkraft, unlike every other card type (which stays at the shared 100%
   // default). Still just the STARTING value — the same Deckkraft control changes it from there on,
@@ -25126,6 +25223,7 @@ async function addCard(type, extra){
 // infinite (canvas backing-store memory), and BLANKET_MAX_BACKING_DIM for how it stays safe on mobile.
 async function addBlanketBoard(at){
   if(!(await ensureStorageReady())) return;
+  const blanketParentId=state.currentBoardId;
   const center=at||cascadeCenter();
   const w=200,h=140;
   const BOARD_CANVAS_SIZE=6000;
@@ -25137,16 +25235,16 @@ async function addBlanketBoard(at){
   // toolbar knows exactly which card to read/write without needing a selection.
   const nb={id:uid(), name:t('add_blanketboard_label'), color:null, colorCustom:false,
     isBlanketBoard:true, canvasCardId,
-    parentBoardId:state.currentBoardId, parentCardId:null, createdAt:Date.now(), updatedAt:Date.now(),
+    parentBoardId:blanketParentId, parentCardId:null, createdAt:Date.now(), updatedAt:Date.now(),
     view:{x:0,y:0,zoom:defaultCanvasZoom()}, gridEnabled:true, snapEnabled:true};
   await DB.putBoard(nb);
   state.boards.push(nb);
   const linkCard={
-    id:uid(), boardId:state.currentBoardId, type:'boardlink', color:'none',
+    id:uid(), boardId:blanketParentId, type:'boardlink', color:'none',
     x:snap(center.x-w/2), y:snap(center.y-h/2), w, h, z:nextZ(),
     data:{boardId:nb.id, title:nb.name}, createdAt:Date.now(), updatedAt:Date.now()
   };
-  state.cards.push(linkCard);
+  if(state.currentBoardId===blanketParentId) state.cards.push(linkCard);
   await DB.putCard(linkCard);
   const canvasCard={
     id:canvasCardId, boardId:nb.id, type:'blanket', color:'none',
@@ -27058,14 +27156,14 @@ async function addImageFile(file, at){
   h=clamp(h,120,480); w=clamp(w,160,maxW);
   const id=uid();
   await DB.putImage(id,file);
-  await addCard('image',{imageId:id, at:at||viewportCenterCanvas()});
-  const card=state.cards[state.cards.length-1];
+  const card=await addCard('image',{imageId:id, at:at||viewportCenterCanvas()});
+  if(!card) return;
   // No extra chrome height added on top of h here (an earlier "+34" fudge was removed) — the image
   // fills the card's ENTIRE box (see .card-image .img-slot, flex:1, no reserved header row), so a box
   // that already matches the natural w:h ratio is what keeps e.g. a circular graphic looking like a
   // full circle instead of already being squashed the moment the card is created.
   card.w=w; card.h=h; DB.putCard(card);
-  renderAllCards(); applySelectionClasses();
+  if(card.boardId===state.currentBoardId){ renderAllCards(); applySelectionClasses(); }
 }
 async function setBoardLogo(b,file){
   if(!file.type.startsWith('image/')) return;
@@ -29100,8 +29198,9 @@ async function insertTemplate(bundle,opts){
     data:{boardId:rootId, title:rootBoard?rootBoard.name:t('untitled_board')},
     createdAt:Date.now(), updatedAt:Date.now(),
   };
-  state.cards.push(linkCard);
   await DB.putCard(linkCard);
+  if(state.currentBoardId!==parentBoardId || state.screen!=='board'){ showToast(t('template_inserted_toast')); return; }
+  state.cards.push(linkCard);
   renderAllCards();
   selectOnly(linkCard.id);
   touchBoard();
