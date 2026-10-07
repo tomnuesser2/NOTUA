@@ -1387,6 +1387,12 @@ try{
     .lf-sl-card.b u{height:9px; margin-left:26px;} .lf-sl-card.b u::before{left:-26px; top:-4px; width:17px; height:17px;}
     .lf-sl-card.b.lf-tx{padding:16px 16px; gap:14px;} .lf-sl-card.b.lf-tx u{height:auto; font-size:0.88rem; margin-left:24px; white-space:nowrap;} .lf-sl-card.b.lf-tx u::before{left:-24px;} .lf-sl-card.b.lf-tx u::before{top:0;}
     .lf-sl-card.c{bottom:16px; height:52px; padding:0 14px; gap:10px;}
+    /* Schrift-Frage: die Checklisten-Karte war auf schmalen Handys zu schmal und schnitt ihre Texte am Rand ab —
+       Notiz-Karte etwas schmaler, Checklisten-Karte breiter, Zeilen kürzen sich notfalls mit "…". */
+    .lf-sl-card.a:has(+ .lf-tx){width:40%;}
+    .lf-sl-card.b.lf-tx{width:48%; right:4%; padding:14px 12px; gap:14px;}
+    .lf-sl-card.b.lf-tx u{margin-left:0; padding-left:24px; font-size:0.84rem; min-width:0;} .lf-sl-card.b.lf-tx u::before{left:0;}
+    @media (max-width:380px){ .lf-sl-card.b.lf-tx u{font-size:0.78rem; padding-left:22px;} .lf-sl-btn{padding:7px 12px; font-size:0.85rem;} .lf-sl-chip{padding:5px 9px; font-size:0.8rem;} .lf-sl-card.c{padding:0 10px; gap:7px;} }
     .lf-sl-btn{padding:8px 18px; font-size:0.95rem;} .lf-sl-chip{padding:6px 12px; font-size:0.9rem;}
     .lf-sl-text b{font-size:1.15rem;} .lf-sl-text span{font-size:0.9rem;} .lf-pill{padding:10px 16px;}
   }
@@ -15082,7 +15088,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.110';
+const APP_VERSION='2.4.111';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
