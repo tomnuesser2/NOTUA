@@ -4069,6 +4069,14 @@ try{
      (span2/3/4 je nach Boardzahl), grid-auto-flow:dense lässt die übrigen Kacheln daneben/darunter
      nachrutschen. Die Mitglieds-Boards sind schlanke Zeilen (Logo + Name), Meta ausgeblendet. */
   .board-grid{grid-auto-flow:dense;}
+  /* Boardübersicht: Kacheln heben sich vom Hintergrund ab (vor allem im hellen Design, wo Weiß auf fast Weiß kaum zu sehen war):
+     kräftigerer Rand + weicher Schatten. Dunkel bleibt unverändert dezent, weil --shadow dort ohnehin dunkel ist. */
+  .board-tile:not(.new-tile), .pt-card{
+    border-color:var(--border-strong);
+    box-shadow:0 1px 2px rgba(24,28,35,.10), 0 8px 18px -10px var(--shadow);
+  }
+  .project-panel{border-color:var(--border-strong); box-shadow:0 8px 20px -12px var(--shadow);}
+  .pt-layer{box-shadow:0 1px 2px rgba(24,28,35,.08);}
   .project-panel{grid-column:span var(--ps,2); display:flex; flex-direction:column; align-self:start;}
   .project-panel, html[data-d-radius] .project-panel{padding:8px 12px 10px;}
   .project-panel .project-head, html[data-d-radius] .project-panel .project-head{margin-bottom:5px;}
@@ -15862,7 +15870,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.136';
+const APP_VERSION='2.4.137';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
