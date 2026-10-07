@@ -4067,20 +4067,23 @@ try{
      (span2/3/4 je nach Boardzahl), grid-auto-flow:dense lässt die übrigen Kacheln daneben/darunter
      nachrutschen. Die Mitglieds-Boards sind schlanke Zeilen (Logo + Name), Meta ausgeblendet. */
   .board-grid{grid-auto-flow:dense;}
-  .project-panel{grid-column:span 2; padding:14px 16px 16px;}
+  .project-panel{grid-column:span 2; display:flex; flex-direction:column;}
+  .project-panel, html[data-d-radius] .project-panel{padding:10px 14px 12px;}
   .project-panel.span3{grid-column:span 3;}
   .project-panel.span4{grid-column:1/-1;}
-  .project-panel .project-head{margin-bottom:10px;}
-  .project-panel .project-panel-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px;}
+  .project-panel .project-head, html[data-d-radius] .project-panel .project-head{margin-bottom:6px;}
+  .project-panel .project-badge{width:24px; height:24px; border-radius:7px;}
+  .project-panel .project-head h3{margin:0;}
+  .project-panel .project-panel-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px; align-content:start; flex:1;}
   html .project-panel .project-panel-grid .board-tile{
-    height:auto !important; min-height:0; padding:9px 11px; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px;
+    height:auto !important; min-height:0; padding:4px 10px; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px;
   }
   html .project-panel .project-panel-grid .board-tile > div:not(.tile-actions):not(.meta){display:flex; align-items:center; gap:10px; min-width:0; flex-direction:row;}
   html .project-panel .project-panel-grid .board-tile .spine-row{flex:none;}
   html .project-panel .project-panel-grid .board-tile .board-badge,
-  html .project-panel .project-panel-grid .board-tile .tile-logo{width:26px; height:26px; border-radius:7px;}
+  html .project-panel .project-panel-grid .board-tile .tile-logo{width:22px; height:22px; border-radius:6px;}
   html .project-panel .project-panel-grid .board-tile .board-badge svg{width:13px; height:13px;}
-  html .project-panel .project-panel-grid .board-tile h3{margin:0; font-size:0.88rem; -webkit-line-clamp:2; text-wrap:auto; min-width:0;}
+  html .project-panel .project-panel-grid .board-tile h3{margin:0; font-size:0.84rem; line-height:1.2; -webkit-line-clamp:2; text-wrap:auto; min-width:0;}
   html .project-panel .project-panel-grid .board-tile .meta{display:none;}
   html .project-panel .project-panel-grid .board-tile .tile-actions{top:50%; right:6px; transform:translateY(-50%); background:var(--surface); border-radius:6px; padding:2px;}
   html .project-panel .project-panel-grid .board-tile .tile-go-btn{padding:6px 11px; font-size:0.74rem;}
@@ -15070,7 +15073,7 @@ window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeProjectStyleP
 async function buildProjectPanel(p){
   const panel=document.createElement('div');
   panel.className='project-panel';
-  { const n=p.boardIds.length; panel.classList.add(n<=4?'span2':n<=9?'span3':'span4'); }
+  { const n=p.boardIds.length; panel.classList.add(n<=6?'span2':n<=10?'span3':'span4'); }
   panel.dataset.projectId=p.id;
   if(p.color) panel.style.setProperty('--pc',p.color);
   const boards=p.boardIds.map(id=>boardById(id)).filter(Boolean);
@@ -15737,7 +15740,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.127';
+const APP_VERSION='2.4.128';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
