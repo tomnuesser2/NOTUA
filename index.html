@@ -4241,6 +4241,10 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M9.5 9.5V20"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretInstallsItem" data-beta="installs" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
       <button type="button" class="tools-sheet-card" id="toolsSecretImagesItem" data-beta="images" hidden>
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></span>
         <span class="tools-sheet-card-label"></span>
@@ -4254,7 +4258,7 @@ try{
          wegnehmen") — everything else (CSS, showDownloadModal(), the notua-app-env auto-hide for
          the packaged desktop/Android app) is left in place so this is just a `hidden` flip away
          from coming back, not a feature that had to be torn out and rebuilt. -->
-    <button class="download-cta download-cta-floating" id="downloadBtn" type="button" hidden>
+    <button class="download-cta download-cta-floating" id="downloadBtn" type="button" data-beta="installs" hidden>
       <svg class="dc-ring" aria-hidden="true"><rect pathLength="100"/></svg>
       <svg class="dc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
       <span id="downloadBtnLabel">App herunterladen</span>
@@ -5266,6 +5270,8 @@ const I18N={
   tools_secret_design_item:{de:'Design-Menü',en:'Design menu'},
   tools_secret_template_item:{de:'Vorlagen',en:'Templates'},
   tools_secret_images_item:{de:'Bilder-Ablage',en:'Image drop'},
+  tools_secret_installs_item:{de:'App-Downloads',en:'App downloads'},
+  beta_installs_unlocked_toast:{de:'Download-Button freigeschaltet — auf der Landingpage und in den Secret Settings der Boardübersicht',en:'Download button unlocked — on the landing page and in the overview\'s Secret Settings'},
   beta_theme_unlocked_toast:{de:'Theme-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Theme menu unlocked — find it in the overview\'s Secret Settings'},
   beta_design_unlocked_toast:{de:'Design-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Design menu unlocked — find it in the overview\'s Secret Settings'},
   beta_images_unlocked_toast:{de:'Bilder-Ablage freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Image drop unlocked — find it in the overview\'s Secret Settings'},
@@ -6476,6 +6482,7 @@ function applyI18n(){
     ['#toolsSecretDesignItem .tools-sheet-card-label','text',t('tools_secret_design_item')],
     ['#toolsSecretTemplateItem .tools-sheet-card-label','text',t('tools_secret_template_item')],
     ['#toolsSecretImagesItem .tools-sheet-card-label','text',t('tools_secret_images_item')],
+    ['#toolsSecretInstallsItem .tools-sheet-card-label','text',t('tools_secret_installs_item')],
     ['#toolsLookItem .tools-sheet-card-label','text',t('tools_look_item')],
     ['#controlsHelpBtn','title',t('controls_btn_title')],
     ['#familyBtn','title',t('family_btn_title')],['#familyPanelTitle','text',t('family_panel_title')],
@@ -10893,7 +10900,7 @@ function applyBetaFeatureVisibility(){
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -11407,6 +11414,7 @@ function showSecretPasswordModal(){
     // invisible to every normal user until this code is entered once, same unlock-forever-on-this-
     // device pattern as strava/wow/control/template above.
     else if(v==='functionlook'){ scrim.remove(); unlockBetaFeature('look'); showToast(t('beta_look_unlocked_toast')); }
+    else if(v==='functioninstalls'){ scrim.remove(); unlockBetaFeature('installs'); showToast(t('beta_installs_unlocked_toast')); }
     else if(v==='functioncarousel'){ scrim.remove(); unlockBetaFeature('images'); showToast(t('beta_images_unlocked_toast')); showImageDropModal(); }
     else if(v==='functiontooltip'){ scrim.remove(); unlockBetaFeature('tooltip'); showToast(t('beta_tooltip_unlocked_toast')); }
     // Neu (v2.4.71): Grid-Formen + Landingpage-Animation — öffnet ein kleines Anpassen-Menü.
@@ -13443,7 +13451,7 @@ function showLookCodeModal(){
 }
 const toolsLookCodeItem=document.getElementById('toolsLookCodeItem');
 if(toolsLookCodeItem) toolsLookCodeItem.addEventListener('click',()=>{ closeToolsSheet(); showLookCodeModal(); });
-[['toolsSecretThemeItem',()=>showThemeMenuModal()],['toolsSecretDesignItem',()=>showDesignMenuModal()],['toolsSecretTemplateItem',()=>showTemplatePickerModal()],['toolsSecretImagesItem',()=>showImageDropModal()]].forEach(([id,fn])=>{
+[['toolsSecretThemeItem',()=>showThemeMenuModal()],['toolsSecretDesignItem',()=>showDesignMenuModal()],['toolsSecretTemplateItem',()=>showTemplatePickerModal()],['toolsSecretImagesItem',()=>showImageDropModal()],['toolsSecretInstallsItem',()=>showDownloadModal()]].forEach(([id,fn])=>{
   const el=document.getElementById(id); if(el) el.addEventListener('click',()=>{ closeToolsSheet(); fn(); });
 });
 const toolsLookItem=document.getElementById('toolsLookItem');
@@ -15088,7 +15096,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.111';
+const APP_VERSION='2.4.112';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
