@@ -318,7 +318,7 @@ try{
   .download-cta{
     position:relative; isolation:isolate; display:inline-flex; align-items:center; gap:7px; border:none; cursor:var(--custom-pointer-cursor,pointer);
     padding:11px 18px; border-radius:13px; font:inherit; font-size:0.85rem; font-weight:700; letter-spacing:.01em;
-    color:#fff; background:linear-gradient(135deg,var(--accent),var(--danger));
+    color:#fff; background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 58%,#000)); /* Verlauf: Akzentfarbe → dunklere Abstufung derselben Farbe (kein festes Orange mehr) */
     box-shadow:0 8px 18px -10px var(--accent), 0 2px 6px -2px var(--shadow-lg);
     transition:transform .2s cubic-bezier(.22,1,.36,1), filter .15s ease;
   }
@@ -4009,8 +4009,10 @@ try{
   }
   /* ---------- PROJEKTE: Stapel-Optik + Projektfarbe/Icon ---------- */
   .project-tile, html[data-d-radius] .project-tile{
-    background:none; border:none; padding:0; box-shadow:none; position:relative; border-radius:10px;
+    background:none; border:none; padding:0; box-shadow:none; position:relative; border-radius:var(--d-radius,10px); /* folgt der Ecken-Einstellung (UI-Onboarding) */
   }
+  html[data-d-radius] .pt-chip{border-radius:min(calc(var(--d-radius) * .5),50%);}
+  html[data-d-radius] .project-badge{border-radius:min(calc(var(--d-radius) * .5),50%);}
   .project-tile.drop-target{border:none; box-shadow:none;}
   .project-tile.drop-target .pt-card{box-shadow:0 0 0 2.5px var(--accent);}
   @media (hover:hover) and (pointer:fine){
@@ -4067,16 +4069,19 @@ try{
      (span2/3/4 je nach Boardzahl), grid-auto-flow:dense lässt die übrigen Kacheln daneben/darunter
      nachrutschen. Die Mitglieds-Boards sind schlanke Zeilen (Logo + Name), Meta ausgeblendet. */
   .board-grid{grid-auto-flow:dense;}
-  .project-panel{grid-column:span 2; display:flex; flex-direction:column;}
-  .project-panel, html[data-d-radius] .project-panel{padding:10px 14px 12px;}
-  .project-panel.span3{grid-column:span 3;}
-  .project-panel.span4{grid-column:1/-1;}
-  .project-panel .project-head, html[data-d-radius] .project-panel .project-head{margin-bottom:6px;}
+  .project-panel{grid-column:span var(--ps,2); display:flex; flex-direction:column; align-self:start;}
+  .project-panel, html[data-d-radius] .project-panel{padding:8px 12px 10px;}
+  .project-panel .project-head, html[data-d-radius] .project-panel .project-head{margin-bottom:5px;}
   .project-panel .project-badge{width:24px; height:24px; border-radius:7px;}
   .project-panel .project-head h3{margin:0;}
-  .project-panel .project-panel-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px; align-content:start; flex:1;}
+  /* Raster: --pcols Spalten × --prows Reihen, Boards füllen erst nach unten, dann nach rechts (zwei übereinander, dann wächst der Balken).
+     Staffelung 2x3 · 2x4 · 3x4 · 3x6 · 4x6 · 4x8 · … siehe projectPanelLayout(). */
+  .project-panel .project-panel-grid{
+    grid-template-columns:repeat(var(--pcols,3),minmax(0,1fr)); grid-template-rows:repeat(var(--prows,2),var(--ptile,50px));
+    grid-auto-flow:column; gap:6px; align-content:start;
+  }
   html .project-panel .project-panel-grid .board-tile{
-    height:auto !important; min-height:0; padding:4px 10px; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px;
+    height:var(--ptile,50px) !important; min-height:0; padding:4px 10px; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; box-sizing:border-box;
   }
   html .project-panel .project-panel-grid .board-tile > div:not(.tile-actions):not(.meta){display:flex; align-items:center; gap:10px; min-width:0; flex-direction:row;}
   html .project-panel .project-panel-grid .board-tile .spine-row{flex:none;}
@@ -4084,13 +4089,18 @@ try{
   html .project-panel .project-panel-grid .board-tile .tile-logo{width:22px; height:22px; border-radius:6px;}
   html .project-panel .project-panel-grid .board-tile .board-badge svg{width:13px; height:13px;}
   html .project-panel .project-panel-grid .board-tile h3{margin:0; font-size:0.84rem; line-height:1.2; -webkit-line-clamp:2; text-wrap:auto; min-width:0;}
+  html .project-panel .project-panel-grid .board-tile h3{overflow-wrap:anywhere;}
+  html .project-panel.dense .project-panel-grid .board-tile{padding:4px 7px; gap:7px;}
+  html .project-panel.dense .project-panel-grid .board-tile > div:not(.tile-actions):not(.meta){gap:7px;}
+  html .project-panel.dense .project-panel-grid .board-tile .board-badge,
+  html .project-panel.dense .project-panel-grid .board-tile .tile-logo{width:19px; height:19px; border-radius:5px; font-size:0.7rem;}
+  html .project-panel.dense .project-panel-grid .board-tile h3{font-size:0.76rem;}
   html .project-panel .project-panel-grid .board-tile .meta{display:none;}
   html .project-panel .project-panel-grid .board-tile .tile-actions{top:50%; right:6px; transform:translateY(-50%); background:var(--surface); border-radius:6px; padding:2px;}
   html .project-panel .project-panel-grid .board-tile .tile-go-btn{padding:6px 11px; font-size:0.74rem;}
-  @media (max-width:1000px){ .project-panel.span3{grid-column:1/-1;} }
   @media (max-width:640px){
-    .project-panel, .project-panel.span3, .project-panel.span4{grid-column:1/-1; padding:12px 12px 14px;}
-    .project-panel .project-panel-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;}
+    .project-panel{grid-column:1/-1 !important; padding:12px 12px 14px;}
+    .project-panel .project-panel-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important; grid-template-rows:none !important; grid-auto-flow:row !important; gap:8px;}
   }
   .project-panel .project-head-title{gap:9px;}
   .project-actions button svg{width:15px; height:15px;}
@@ -14048,6 +14058,16 @@ if(emptyTrashAllBtn){
 function repaintHomeLocal(){
   if(state.screen==='home') paintHomeGrid(applyBoardOverrides(state.boards));
 }
+// Fenstergröße geändert → Projekt-Balken neu einteilen (Spaltenzahl des Home-Rasters kann sich ändern)
+(()=>{
+  let t=null, lastW=window.innerWidth;
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth===lastW) return;
+    lastW=window.innerWidth;
+    clearTimeout(t);
+    t=setTimeout(()=>{ try{ if(state.screen==='home' && (state.projects||[]).some(p=>!p.collapsed)) repaintHomeLocal(); }catch(e){} },250);
+  });
+})();
 async function refreshHome(){
   // A connected folder that needs its access re-confirmed (see tryReconnectFolder) no longer blanks
   // the whole board grid — boards from every OTHER connected source (idb always, plus fs if still
@@ -15144,10 +15164,37 @@ document.addEventListener('pointerdown',(e)=>{
   closeProjectStylePopover();
 });
 window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeProjectStylePopover(); });
+// Größe des geöffneten Projekt-Balkens: Staffelung (Reihen×Spalten) 2x3 · 2x4 · 3x4 · 3x6 · 4x6 · 4x8 · 5x8 · 5x10 …
+// Es passen immer zwei Boards übereinander; wird es mehr, wächst der Balken erst in die Breite, dann in die Höhe.
+// Breite passt sich dem echten Home-Raster an (so viele Spalten wie Platz ist, darüber geht es in die Höhe weiter).
+function projectPanelLayout(n){
+  let rows=2, cols=3;
+  const steps=[[2,3],[2,4]];
+  let r=2,c=4,addRow=true;
+  for(let i=0;i<40;i++){ if(addRow) r++; else c+=2; addRow=!addRow; steps.push([r,c]); }
+  for(const [R,C] of steps){ if(R*C>=n){ rows=R; cols=C; break; } rows=R; cols=C; }
+  // echtes Raster ausmessen
+  let gridCols=4, colW=263, gap=14;
+  try{
+    const g=document.querySelector('.board-grid');
+    if(g && g.clientWidth>0){
+      const cs=getComputedStyle(g);
+      const tracks=cs.gridTemplateColumns.split(' ').filter(Boolean);
+      if(tracks.length){ gridCols=tracks.length; colW=parseFloat(tracks[0])||colW; gap=parseFloat(cs.columnGap)||gap; }
+    }
+  }catch(e){}
+  const tileMin=cols>=8?118:cols>=6?138:150;
+  const needW=cols*tileMin+(cols-1)*6+36;
+  let span=Math.min(gridCols,Math.max(2,Math.ceil((needW+gap)/(colW+gap))));
+  const fullW=span*colW+(span-1)*gap;
+  const maxCols=Math.max(2,Math.floor((fullW-36+6)/(118+6)));
+  if(cols>maxCols) cols=maxCols;
+  return {rows:Math.max(1,Math.ceil(n/cols)), cols, span};
+}
 async function buildProjectPanel(p){
   const panel=document.createElement('div');
   panel.className='project-panel';
-  { const n=p.boardIds.length; panel.classList.add(n<=6?'span2':n<=10?'span3':'span4'); }
+  { const L=projectPanelLayout(p.boardIds.length); panel.style.setProperty('--ps',L.span); panel.style.setProperty('--pcols',L.cols); panel.style.setProperty('--prows',L.rows); if(L.cols>=6) panel.classList.add('dense'); }
   panel.dataset.projectId=p.id;
   if(p.color) panel.style.setProperty('--pc',p.color);
   const boards=p.boardIds.map(id=>boardById(id)).filter(Boolean);
@@ -15815,7 +15862,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.133';
+const APP_VERSION='2.4.136';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17605,7 +17652,10 @@ function fitCardHeight(el,card,allowShrink){
   const needed=Math.ceil(el.scrollHeight)+2; // +2px safety margin against sub-pixel rounding
   el.style.height=prevHeight;
   let finalH=clamp(snapUp(needed),isBL?140:80,2000);
-  if(isBL && !allowShrink && finalH<=card.h) return; // beim bloßen Laden nur wachsen, nie ungefragt schrumpfen/neu speichern
+  if(isBL){
+    if(finalH<=card.h && !allowShrink) return; // beim bloßen Laden nur wachsen, nie ungefragt schrumpfen/neu speichern
+    if(finalH<card.h && card.manualH) return; // von Hand größer gezogen: Größe bleibt, nur der Inhalts-Mindestwert zählt
+  }
   if(finalH!==card.h){
     card.h=finalH;
     el.style.height=card.h+'px';
@@ -19509,7 +19559,7 @@ function buildCardEl(card){
     dateBadge.addEventListener('click',(e)=>{ e.stopPropagation(); openCalendarPanel(card.date); });
     el.appendChild(dateBadge);
   }
-  if(['note','column','checklist','table','image','youtube','wowpvp','carousel','blanket','heading'].includes(card.type)){
+  if(['note','column','checklist','table','image','youtube','wowpvp','carousel','blanket','heading','boardlink'].includes(card.type)){
     const rh=document.createElement('div'); rh.className='resize-handle';
     attachResize(rh,el,card);
     el.appendChild(rh);
@@ -24031,6 +24081,15 @@ function attachResize(handle,el,card){
       // Überschrift: frei skalierbar, die Schrift passt sich der Box an (fitHeadingText via ResizeObserver).
       card.w=snap(clamp(rs.w+dx,60,4000));
       card.h=snap(clamp(rs.h+dy,32,2000));
+    }else if(card.type==='boardlink'){
+      // Sub-Board-Kachel: frei ziehbar, aber nie kleiner als ihr Inhalt (Name + Zähler dürfen nicht abgeschnitten werden)
+      card.w=snap(clamp(rs.w+dx,140,2000));
+      el.style.width=card.w+'px';
+      const prevH=el.style.height; el.style.height='auto';
+      const minH=snapUp(Math.ceil(el.scrollHeight)+2);
+      el.style.height=prevH;
+      card.h=snap(clamp(Math.max(rs.h+dy,minH),minH,2000));
+      card.manualH=true; // bewusst von Hand gezogen — der Auto-Fit schrumpft sie nicht mehr zurück
     }else if(card.type==='column'){
       // Columns are meant to work as thin side-by-side lanes/areas, so they get their own, noticeably
       // lower width floor than a note/checklist card — 90px still leaves enough room for the title
