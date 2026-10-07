@@ -1384,6 +1384,47 @@ try{
     .lf-sl-btn{padding:8px 18px; font-size:0.95rem;} .lf-sl-chip{padding:6px 12px; font-size:0.9rem;}
     .lf-sl-text b{font-size:1.15rem;} .lf-sl-text span{font-size:0.9rem;} .lf-pill{padding:10px 16px;}
   }
+  /* UI-Animation-Frage: große Live-Ansicht (Karten, Dock, Menü, Zoom, Drag) */
+  .lf-ua .ua-zoom{position:absolute; inset:0; transform-origin:50% 40%;}
+  .lf-ua .ua-card{position:absolute; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--lf-sh); box-sizing:border-box; padding:11px 13px; overflow:hidden;}
+  .lf-ua .ua-card.a{left:6%; top:10%; width:36%; height:44%; z-index:2;}
+  .lf-ua .ua-card.a b{display:block; font-size:0.9rem; font-weight:700; color:var(--ink);}
+  .lf-ua .ua-card.a i{display:block; margin-top:8px; height:6px; width:56%; border-radius:3px; background:var(--accent);}
+  .lf-ua .ua-card.a i.s{width:38%; background:var(--border-strong); margin-top:6px;}
+  .lf-ua .ua-card.b{left:47%; top:14%; width:27%; height:40%; display:flex; flex-direction:column; justify-content:center; gap:10px;}
+  .lf-ua .ua-card.b u{display:block; position:relative; height:6px; margin-left:16px; border-radius:3px; background:var(--border-strong);}
+  .lf-ua .ua-card.b u::before{content:""; position:absolute; left:-16px; top:-3px; width:12px; height:12px; box-sizing:border-box; border:2px solid var(--accent); border-radius:4px;}
+  .lf-ua .ua-card.b u.on::before{background:var(--accent);}
+  .lf-ua .ua-empty{position:absolute; left:79%; top:14%; width:15%; height:40%; box-sizing:border-box; border:2px dashed var(--border-strong); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:1.3rem; line-height:1;}
+  .lf-ua .ua-dock{position:absolute; left:50%; bottom:10px; transform:translateX(-50%); z-index:4; display:flex; align-items:flex-end; gap:6px; padding:6px 9px; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--lf-sh);}
+  .lf-ua .ua-dock i{display:block; width:20px; height:20px; border-radius:7px; background:var(--accent); opacity:.88; transform-origin:50% 100%;}
+  .lf-ua .ua-dock i:nth-child(even){opacity:.5;}
+  .lf-ua .ua-menu{position:absolute; right:5%; bottom:58px; z-index:3; width:36%; box-sizing:border-box; padding:5px; display:flex; flex-direction:column; gap:2px; background:var(--surface); border:1px solid var(--border-strong); border-radius:12px; box-shadow:0 8px 22px rgba(0,0,0,.2); transform-origin:100% 100%;}
+  .lf-ua .ua-menu i{display:block; font-style:normal; font-size:0.72rem; line-height:1.2; padding:4px 8px; border-radius:7px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .lf-ua .ua-menu i:first-child{background:var(--accent-soft); color:var(--accent); font-weight:650;}
+  .lf-ua-dock .ua-dock i,.lf-ua-calm .ua-dock i,.lf-ua-full .ua-dock i{animation:lfUaMag 2.4s ease-in-out infinite;}
+  .lf-ua .ua-dock i:nth-child(2){animation-delay:.14s;} .lf-ua .ua-dock i:nth-child(3){animation-delay:.28s;} .lf-ua .ua-dock i:nth-child(4){animation-delay:.42s;} .lf-ua .ua-dock i:nth-child(5){animation-delay:.56s;}
+  .lf-ua-calm .ua-menu,.lf-ua-full .ua-menu{animation:lfUaMenu 3.6s ease-in-out infinite;}
+  .lf-ua-calm .ua-menu i,.lf-ua-full .ua-menu i{animation:lfUaItem 3.6s ease-out infinite;}
+  .lf-ua .ua-menu i:nth-child(2){animation-delay:.08s;} .lf-ua .ua-menu i:nth-child(3){animation-delay:.16s;}
+  .lf-ua-calm .ua-zoom,.lf-ua-full .ua-zoom{animation:lfUaZoom 3.6s ease-in-out infinite;}
+  .lf-ua-full .ua-card.a{animation:lfUaDrag 3.6s ease-in-out infinite;}
+  .lf-ua-full .ua-empty{animation:lfUaPulse 1.8s ease-in-out infinite;}
+  .lf-ua-full.lf-sl-board{animation:lfGridMove 6s linear infinite;}
+  @keyframes lfUaMag{0%,45%,100%{transform:scale(1);} 22%{transform:scale(var(--ua-peak,1.75));}}
+  @keyframes lfUaMenu{0%,10%{opacity:0; transform:scale(.7) translateY(8px);} 22%,78%{opacity:1; transform:none;} 90%,100%{opacity:0; transform:scale(.7) translateY(8px);}}
+  @keyframes lfUaItem{0%,14%{opacity:0; transform:translateX(10px);} 28%,78%{opacity:1; transform:none;} 90%,100%{opacity:0; transform:translateX(10px);}}
+  @keyframes lfUaZoom{0%,62%,100%{transform:scale(1);} 78%{transform:scale(.93);}}
+  @keyframes lfUaDrag{0%,12%,92%,100%{transform:none; box-shadow:var(--lf-sh);} 32%,64%{transform:translate(22%,30%) rotate(-2.5deg) scale(1.05); box-shadow:0 14px 30px rgba(0,0,0,.28);}}
+  @keyframes lfUaPulse{0%,100%{opacity:.55; transform:scale(1);} 50%{opacity:1; transform:scale(1.06);}}
+  @media (max-width:640px){
+    .lf-ua .ua-card{padding:16px 18px; border-radius:14px;}
+    .lf-ua .ua-card.a b{font-size:1.15rem;} .lf-ua .ua-card.a i{height:8px; margin-top:12px;}
+    .lf-ua .ua-card.b{gap:16px;} .lf-ua .ua-card.b u{height:9px; margin-left:24px;} .lf-ua .ua-card.b u::before{left:-24px; top:-4px; width:17px; height:17px;}
+    .lf-ua .ua-empty{font-size:1.8rem;}
+    .lf-ua .ua-dock{bottom:14px; gap:12px; padding:9px 14px; --ua-peak:1.4;} .lf-ua .ua-dock i{width:28px; height:28px; border-radius:9px;}
+    .lf-ua .ua-menu{bottom:88px; padding:7px; gap:3px;} .lf-ua .ua-menu i{font-size:0.9rem; padding:6px 10px;}
+  }
   .lf-mb{position:relative; display:block; width:100%; height:100%; border-radius:9px; overflow:hidden; background-color:var(--canvas); background-image:radial-gradient(var(--border-strong) 1px, transparent 1.2px); background-size:12px 12px;}
   .lf-mb .mc{position:absolute; background:var(--surface); box-sizing:border-box; overflow:hidden;}
   .lf-mb .mc.a{left:8%; top:11px; width:50%; height:58px; padding:8px 9px;}
@@ -1488,7 +1529,7 @@ try{
   @media (max-width:520px){ .lf-items{grid-template-columns:repeat(2,minmax(0,1fr));} }
   .lf-beta{display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border-radius:12px; background:var(--accent-soft); border:1px dashed color-mix(in srgb, var(--accent) 55%, transparent); font-size:0.78rem; line-height:1.45; color:var(--ink);}
   .lf-beta svg{flex:none; margin-top:1px; color:var(--accent);}
-  @media (prefers-reduced-motion:reduce){ .lf-bd-gridmove{animation:none !important;} .lf-pass,.lf-item,.lf-bgp i,.lf-bgp svg,.lf-ui i,.lf-ui .mc,.lf-prev .lf-spark{animation:none !important;} }
+  @media (prefers-reduced-motion:reduce){ .lf-bd-gridmove{animation:none !important;} .lf-pass,.lf-item,.lf-bgp i,.lf-bgp svg,.lf-ui i,.lf-ui .mc,.lf-prev .lf-spark,.lf-ua,.lf-ua *{animation:none !important;} }
 
   /* Steuerungs-Guide: animierte Maus-/Finger-Demos */
   .modal.gs-modal{width:min(460px,94vw); gap:12px;}
@@ -5293,7 +5334,7 @@ const I18N={
   lf_o_uianim_static:{de:"Statisch|nichts bewegt sich",en:"Static|nothing moves"},
   lf_o_uianim_dock:{de:"Nur Dock|Icons wachsen beim Drüberfahren",en:"Dock only|icons grow on hover"},
   lf_o_uianim_calm:{de:"Dezent|Dock, Menüs & Zoom",en:"Subtle|dock, menus & zoom"},
-  lf_o_uianim_full:{de:"Voll lebendig|alle Animationen",en:"Fully alive|all animations"},
+  lf_o_uianim_full:{de:"Voll lebendig|alle Animationen an",en:"Fully alive|all animations on"},
   lf_o_trail_off:{de:"Keine|normaler Cursor",en:"None|plain cursor"},
   lf_o_trail_line:{de:"Linie|Zeichenspur",en:"Line|drawn trail"},
   lf_o_trail_comet:{de:"Komet|leuchtender Schweif",en:"Comet|glowing tail"},
@@ -12868,12 +12909,13 @@ function lfSliderVars(qid,o){
 }
 /* Schrift-Frage: große Live-Ansicht mit echtem Text (Notiz, Checkliste, Button) + Auswahl-Pillen; der kleine Text
    darunter wechselt mit der Schrift. */
-const LF_PICK_Q=new Set(['font','board','boardmove']);
+const LF_PICK_Q=new Set(['font','board','boardmove','uianim']);
 function lfPickFont(o){ return o.font==='default'?'inherit':DESIGN_FONTS[o.font]; }
 // Welche Klassen/Variablen die große Vorschau für die gewählte Option bekommt
 function lfPickBoardCls(qid,o,ans){
   if(qid==='board') return 'lf-bd-'+o.id;
   if(qid==='boardmove') return 'lf-bd-'+((ans&&ans.board)||'grid')+(o.move?' lf-mv':'');
+  if(qid==='uianim') return 'lf-ua lf-ua-'+o.id;
   return '';
 }
 function lfPickBoard(qid,o,ans){
@@ -12882,6 +12924,15 @@ function lfPickBoard(qid,o,ans){
       <span class="lf-sl-card a"><b>Notiz</b><em>Der schnelle braune Fuchs springt über den faulen Hund.</em></span>
       <span class="lf-sl-card b lf-tx"><u>Einkaufen</u><u>Anrufen</u><u class="on">Ideen sammeln</u></span>
       <span class="lf-sl-card c"><span class="lf-sl-btn">Speichern</span><span class="lf-sl-chip">Idee</span><span class="lf-sl-chip ac">Wichtig</span></span>
+    </div>`;
+  if(qid==='uianim') return `<div class="lf-sl-board ${cls}">
+      <div class="ua-zoom">
+        <span class="ua-card a"><b>Notiz</b><i></i><i class="s"></i></span>
+        <span class="ua-card b"><u></u><u></u><u class="on"></u></span>
+        <span class="ua-empty">+</span>
+      </div>
+      <span class="ua-menu"><i>Neue Notiz</i><i>Checkliste</i><i>Bild</i></span>
+      <span class="ua-dock"><i></i><i></i><i></i><i></i><i></i></span>
     </div>`;
   return `<div class="lf-sl-board ${cls}">
       <span class="lf-sl-card a"><b>Notiz</b><em>Hier landen deine Ideen.</em><i></i></span>
@@ -12896,7 +12947,7 @@ function lfPickPill(qid,x,sel,ans){
   return `<button type="button" class="lf-pill${sel?' sel':''}" data-id="${x.id}"><span>${pp.label}</span></button>`;
 }
 function lfPickUi(qid,selId,ans){
-  const q=LF_QUESTIONS.find(x=>x.id===qid); let o=q.opts.find(x=>x.id===selId)||q.opts[0];
+  const q=LF_QUESTIONS.find(x=>x.id===qid); let o=q.opts.find(x=>x.id===selId)||(qid==='uianim'?q.opts.find(x=>x.id==='full'):q.opts[0]);
   const p=lfParts(qid,o.id);
   const vars=qid==='font'?`--lf-ff:${lfPickFont(o)};--lf-r:12px;--lf-sh:0 2px 8px rgba(0,0,0,.10)`:`--lf-r:12px;--lf-sh:0 2px 8px rgba(0,0,0,.10)`;
   return `<div class="lf-shape-live lf-pick${qid==='font'?'':' lf-pick-'+qid}" style="${vars}">
@@ -12917,7 +12968,8 @@ function lfBindPickUi(box,q,ans,onChange){
     ans[q.id]=o.id; onChange();
   };
   wrap.querySelectorAll('.lf-pill').forEach(b=>b.addEventListener('click',()=>set(q.opts.find(x=>x.id===b.dataset.id))));
-  if(!ans[q.id]) set(q.opts[0]);
+  // Standard: UI-Animation startet auf "Voll lebendig" (alle Animationen an)
+  if(!ans[q.id]) set(q.id==='uianim'?q.opts.find(x=>x.id==='full'):q.opts[0]);
 }
 function lfShapeUi(qid,selId){
   const q=LF_QUESTIONS.find(x=>x.id===qid); let i=q.opts.findIndex(o=>o.id===selId); if(i<0) i=(qid==='shape'?4:2);
@@ -14829,7 +14881,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.102';
+const APP_VERSION='2.4.103';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
