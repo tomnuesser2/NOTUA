@@ -848,7 +848,7 @@ try{
   .project-tile .meta{color:var(--faint); font-size:0.72rem;}
   .project-panel{
     position:relative; grid-column:1/-1; background:var(--accent-soft); border:1.5px dashed var(--border-strong);
-    border-radius:12px; padding:18px 20px 20px; animation:pop .16s ease;
+    border-radius:12px; padding:18px 20px 20px; animation:pop var(--dur-pop) var(--ease-out);
   }
   .project-panel.drop-target{border-color:var(--accent); box-shadow:0 0 0 2.5px var(--accent);}
   .project-panel .project-head{margin-bottom:14px;}
@@ -1035,7 +1035,7 @@ try{
   .search-bar{
     position:absolute; top:60px; right:16px; z-index:29; display:flex; align-items:center; gap:6px;
     background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:6px 8px;
-    box-shadow:0 14px 34px -12px var(--shadow-lg); animation:pop .12s ease;
+    box-shadow:0 14px 34px -12px var(--shadow-lg); animation:pop var(--dur-pop) var(--ease-out);
   }
   .search-bar input{border:none; outline:none; background:none; font:inherit; font-size:0.82rem; color:var(--ink); width:170px;}
   .search-bar input::placeholder{color:var(--faint);}
@@ -1049,7 +1049,7 @@ try{
   .calendar-panel{
     position:absolute; top:60px; right:16px; z-index:29; width:340px; max-height:calc(100% - 60px);
     display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border); border-radius:11px;
-    box-shadow:0 14px 34px -12px var(--shadow-lg); padding:14px; gap:9px; animation:pop .12s ease; overflow:hidden;
+    box-shadow:0 14px 34px -12px var(--shadow-lg); padding:14px; gap:9px; animation:pop var(--dur-pop) var(--ease-out); overflow:hidden;
   }
   .cal-head{display:flex; align-items:center; gap:4px;}
   .cal-nav-btn{width:26px; height:26px; border:none; background:none; color:var(--muted); border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:var(--custom-pointer-cursor,pointer); flex:none;}
@@ -1102,6 +1102,42 @@ try{
   }
   .cal-item-gcal-btn:hover{background:var(--accent-soft); color:var(--accent);}
   .cal-day-empty{font-size:0.78rem; color:var(--faint); padding:6px;}
+  /* "die Kalenderfunktion ... ist viel zu klein" — the calendar is now a roomy panel: month grid left and
+     the selected day's entries right on a wide screen (large day cells, readable list), and an
+     almost-full-screen sheet on a phone with the grid on top and the day list filling the rest. */
+  .calendar-panel{
+    top:78px; width:min(780px, calc(100% - 32px)); height:min(660px, calc(100% - 94px)); max-height:none; padding:20px; gap:12px 22px;
+    display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr); border-radius:16px;
+  }
+  .cal-head{grid-column:1 / -1; gap:6px;}
+  .cal-weekdays{grid-column:1; grid-row:2; font-size:0.72rem; padding:0 2px;}
+  .cal-grid{grid-column:1; grid-row:3; align-content:start; gap:4px;}
+  .cal-day-list{grid-column:2; grid-row:2 / 4; border-top:none; border-left:1px solid var(--border); padding:0 0 0 20px;}
+  .cal-nav-btn{width:38px; height:38px; border-radius:9px;}
+  .cal-close-btn{width:38px; height:38px; border-radius:9px;}
+  .cal-month-label{font-size:1.15rem; white-space:nowrap;}
+  .cal-today-btn{font-size:0.8rem; padding:8px 14px; border-radius:9px;}
+  .cal-day{font-size:1rem; border-radius:10px;}
+  .cal-day-dots span{width:5px; height:5px;}
+  .cal-day-list-head{font-size:0.8rem; margin-bottom:8px;}
+  .cal-item-jump{padding:10px 8px; gap:10px;}
+  .cal-item-label{font-size:0.95rem;}
+  .cal-item-time{font-size:0.78rem; width:44px;}
+  .cal-item-board{font-size:0.72rem; max-width:110px;}
+  .cal-item-gcal-btn{width:36px; height:36px;}
+  .cal-day-empty{font-size:0.9rem; padding:10px 8px;}
+  @media (max-width:640px){
+    .calendar-panel{
+      top:56px; left:8px; right:8px; bottom:8px; width:auto; height:auto; padding:14px; gap:10px;
+      display:flex; flex-direction:column; border-radius:14px;
+    }
+    .cal-head{flex:none;}
+    .cal-month-label{font-size:1rem;}
+    .cal-weekdays,.cal-grid{flex:none;}
+    .cal-grid{gap:3px;}
+    .cal-day{aspect-ratio:auto; height:clamp(38px, 7.2vh, 54px);}
+    .cal-day-list{flex:1 1 0; min-height:0; border-left:none; border-top:1px solid var(--border); padding:10px 0 0;}
+  }
   /* small calendar toggle button in the inspector header — see .card-date-popover below for the
      actual date/time picker it opens. "keine Umrandung und Hintergrund... besser indiziert dass es
      ein Button ist" — used to be border:none/background:none, invisible until hovered, which read as
@@ -2925,7 +2961,7 @@ try{
   .create-menu{
     position:fixed; z-index:30; background:var(--surface); border:1px solid var(--border); border-radius:11px;
     box-shadow:0 14px 34px -12px var(--shadow-lg); padding:6px; display:flex; flex-direction:column; gap:2px;
-    min-width:190px; animation:pop .14s ease;
+    min-width:190px; animation:pop var(--dur-pop) var(--ease-out);
   }
   .create-menu-item{
     display:flex; align-items:center; gap:10px; padding:8px 10px; border:none; background:none; border-radius:8px;
@@ -3332,7 +3368,7 @@ try{
      stagger-pop) on every single tweak, which read exactly like a close-and-reopen. A real new
      selection still gets the full entrance; only a same-content refresh skips it. */
   .insp-body.no-entrance{animation:none;}
-  @keyframes pop{from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes pop{from{opacity:0; transform:translateY(-4px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
   @keyframes inspectorSlideIn{from{opacity:0; transform:translateY(-18px) scale(.96);} to{opacity:1; transform:translateY(0) scale(1);}}
   /* Each row (.insp-row-line-top, every .insp-row, .insp-toggle-row, .insp-actions — every DIRECT
      child of .insp-body, see its own comment above) gets its own short staggered pop as the panel
@@ -3504,7 +3540,7 @@ try{
   .toast{
     position:absolute; left:16px; bottom:18px; background:var(--ink); color:var(--canvas); padding:10px 8px 10px 14px; border-radius:8px;
     display:flex; align-items:center; gap:10px; font-size:0.82rem; box-shadow:0 10px 26px -8px var(--shadow-lg); z-index:40;
-    animation:pop .15s ease;
+    animation:pop var(--dur-pop) var(--ease-out);
   }
   :root[data-theme="dark"] .toast{color:var(--ink); background:var(--surface); border:1px solid var(--border);}
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .toast{color:var(--ink); background:var(--surface); border:1px solid var(--border);} }
@@ -3594,6 +3630,32 @@ try{
     .busy-bar-spinner{animation:none;}
   }
 
+  /* ---------- EINHEITLICHE ANIMATIONEN + TOUCH-GRÖSSEN ----------
+     One shared set of durations/curves so popovers, menus, toasts, modals and the Home grid all move the
+     same way (ease-out, ~140–240ms) instead of each using its own .12s/.15s/.2s + overshoot curve. */
+  :root{ --ease-out:cubic-bezier(.22,1,.36,1); --ease-in-out:cubic-bezier(.65,0,.35,1); --dur-fast:.14s; --dur-pop:.18s; --dur:.22s; --dur-slow:.32s; }
+  /* Touch devices: every small round/square control gets a finger-sized target (≥40px, tile actions 36px)
+     instead of 22–34px icons that were easy to miss. */
+  @media (pointer:coarse){
+    .icon-btn, .icon-btn.import-btn{width:40px; height:40px;}
+    .folder-btn{min-height:40px;}
+    .mobile-crumb-btn{min-height:40px;}
+    .tile-actions{gap:6px;}
+    .tile-actions button{width:36px; height:36px; border-radius:9px;}
+    .remove-from-project-btn{width:34px; height:34px; border-radius:9px;}
+    /* the tiny checkmark stays visually small (as asked) but gets an invisible finger-sized hit area */
+    .field-done-btn::after{content:''; position:absolute; inset:-11px;}
+  }
+  /* Phone Home header: the two storage buttons share the row with calendar + tools instead of the gear
+     button wrapping onto a lonely second line. */
+  @media (max-width:640px){
+    .topbar{gap:4px; padding:0 10px;}
+    .home-header-right{width:100%; flex-direction:column; align-items:stretch;}
+    .home-header-right .board-count{text-align:right;}
+    .folder-toolbar{flex-wrap:nowrap; justify-content:flex-end; width:100%;}
+    .folder-toolbar .folder-btn{flex:1 1 0; min-width:0; max-width:none; justify-content:center; gap:5px; padding-left:8px; padding-right:8px; font-size:0.74rem;}
+    .folder-toolbar .icon-btn{flex:none;}
+  }
   /* ---------- BOARD-OPEN TRANSITION ("ein echter Zoom in") ----------
      openBoardWithFlyTransition() clones the clicked Home tile (or boardlink card) and animates that
      clone — not the real tile, which stays put underneath — from its exact on-screen position/size up
@@ -3645,6 +3707,11 @@ try{
   #boardView.board-exit-zoom-prep{transition:transform .3s cubic-bezier(.65,0,.35,1), opacity .3s cubic-bezier(.65,0,.35,1);}
   #boardView.board-exit-zoom-active{transform:scale(0.8); opacity:0;}
   .board-enter-zoom{animation:boardEnterZoom .42s cubic-bezier(.65,0,.35,1);}
+  .lp-ring{position:fixed; z-index:200; width:64px; height:64px; margin:-32px 0 0 -32px; border-radius:50%; pointer-events:none;
+    border:2px solid var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent);
+    animation:lpRing .5s cubic-bezier(.22,1,.36,1) both;}
+  @keyframes lpRing{from{transform:scale(.35); opacity:.9;} to{transform:scale(1.25); opacity:0;}}
+  @media (prefers-reduced-motion: reduce){ .lp-ring{animation-duration:.01s;} }
   @keyframes boardEnterZoom{from{opacity:0; transform:scale(1.18);} to{opacity:1; transform:scale(1);}}
   @media (prefers-reduced-motion: reduce){
     #boardView.board-exit-zoom-prep, #boardView.board-exit-zoom-active{transition:none; transform:none; opacity:1;}
@@ -3656,12 +3723,12 @@ try{
   /* ---------- MODAL ---------- */
   .modal-scrim{
     position:absolute; inset:0; background:var(--scrim); z-index:50; display:flex; align-items:center; justify-content:center;
-    animation:scrimIn .16s ease;
+    animation:scrimIn var(--dur-fast) ease;
   }
   .modal{
     background:var(--surface); border-radius:11px; padding:22px; width:320px; box-shadow:0 24px 60px -16px var(--shadow-lg);
     display:flex; flex-direction:column; gap:14px; border:1px solid var(--border);
-    animation:modalIn .2s cubic-bezier(.3,1.3,.6,1);
+    animation:modalIn var(--dur) var(--ease-out);
   }
   @keyframes scrimIn{ from{opacity:0;} to{opacity:1;} }
   @keyframes modalIn{ from{opacity:0; transform:scale(.94) translateY(6px);} to{opacity:1; transform:scale(1) translateY(0);} }
@@ -3898,6 +3965,10 @@ try{
     .project-tile .meta{font-size:0.66rem;}
     .tile-actions{top:6px; right:6px; gap:3px;}
     .tile-actions button{width:24px; height:24px;}
+  }
+  @media (max-width:640px) and (pointer:coarse){
+    .tile-actions{top:4px; right:4px; gap:4px;}
+    .tile-actions button{width:34px; height:34px; border-radius:9px;}
   }
   html[data-d-border="none"] .card, html[data-d-border="none"] .dp-card{border-color:transparent;}
   html[data-d-border="strong"] .card, html[data-d-border="strong"] .dp-card{border-color:var(--border-strong);}
@@ -13796,7 +13867,12 @@ async function paintHomeGrid(allIn){
   const sig=roots.map(b=>b.id+':'+(b.updatedAt||0)).join('|')+'##'+state.projects.map(p=>p.id+':'+(p.collapsed?1:0)+':'+p.boardIds.join(',')).join('|');
   if(sig===lastHomePaintSig) return;
   lastHomePaintSig=sig;
-  boardGrid.innerHTML='';
+  const paintSeq=++homePaintSeq;
+  // Old tile positions for the FLIP reflow below. The grid is NO LONGER emptied up front (it used to sit
+  // blank while the new tiles were built, which showed as a jump/flash) — the new tiles replace the old
+  // ones in one atomic swap at the end.
+  const prevRects=new Map();
+  boardGrid.querySelectorAll('.board-tile[data-board-id]').forEach(el=>{ const r=el.getBoundingClientRect(); if(r.width>0 && r.height>0) prevRects.set(el.dataset.boardId,r); });
 
   // Self-heal project state: drop references to boards that no longer exist, and auto-dissolve
   // any project a removal leaves with one or zero boards (a "folder" of a single item doesn't
@@ -13849,7 +13925,28 @@ async function paintHomeGrid(allIn){
   newTile.innerHTML=`${iconPlus()}<span>${t('new_board_tile')}</span>`;
   newTile.addEventListener('click',createBoardFlow);
   frag.appendChild(newTile);
-  boardGrid.appendChild(frag);
+  if(paintSeq!==homePaintSeq) return; // a newer paint started meanwhile — it owns the grid now
+  boardGrid.replaceChildren(frag);
+  playHomeGridFlip(prevRects);
+}
+// FLIP: tiles that moved glide from their old spot to the new one (after a delete, the rest closes the gap
+// smoothly instead of jumping); a tile that is new to an already-visible grid fades/scales in.
+let homePaintSeq=0;
+function playHomeGridFlip(prevRects){
+  try{
+    if(!prevRects.size || prefersReducedMotion() || !isAnimGroupEnabled('carddrag')) return;
+    const ease='cubic-bezier(.22,1,.36,1)';
+    boardGrid.querySelectorAll('.board-tile[data-board-id]').forEach(el=>{
+      const old=prevRects.get(el.dataset.boardId);
+      const r=el.getBoundingClientRect();
+      if(old){
+        const dx=old.left-r.left, dy=old.top-r.top;
+        if(Math.abs(dx)>1 || Math.abs(dy)>1) el.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'none'}],{duration:280,easing:ease});
+      }else{
+        el.animate([{opacity:0,transform:'scale(.94)'},{opacity:1,transform:'none'}],{duration:240,easing:ease});
+      }
+    });
+  }catch(e){}
 }
 
 // ---- Home-screen board-tile SELECTION (multi-select for bulk "move to Papierkorb", plus feeding
@@ -14217,6 +14314,16 @@ async function trashBoard(boardId){
   // backend write happens afterwards, in the background — see state.optimisticHidden and the
   // .busy-bar CSS block. This is what actually fixes the reported input lag: "im UI schonmal
   // entfernt werden und im Hintergrund dann laden", not just a progress bar on top of the old wait.
+  // The tile shrinks/fades out first (200ms) and the remaining tiles then glide into the gap (see
+  // playHomeGridFlip) instead of the whole grid being torn down and rebuilt in one hard cut.
+  if(state.screen==='home'){
+    try{
+      const tileEl=boardGrid.querySelector(`.board-tile[data-board-id="${boardId}"]`);
+      if(tileEl && !prefersReducedMotion() && isAnimGroupEnabled('carddrag')){
+        await tileEl.animate([{opacity:1,transform:'none'},{opacity:0,transform:'scale(.9)'}],{duration:200,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'}).finished;
+      }
+    }catch(e){}
+  }
   state.optimisticHidden.add(boardId);
   if(state.screen==='home') await refreshHome();
   showToast(t('toast_board_trashed'), async ()=>{ await restoreBoardFromTrash(boardId); });
@@ -15238,7 +15345,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.118';
+const APP_VERSION='2.4.119';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -16181,7 +16288,7 @@ function computeCardFitZoom(card){
 // card.y), sampled against the CURRENT view transform before centerViewOnCard changes it — same
 // pattern as zoomAt()'s before/after conversion. Returns null (→ fall back to the card's own center)
 // when nothing usable is focused.
-function caretTargetCanvasY(focusEl){
+function caretScreenRect(focusEl){
   try{
     if(!focusEl) return null;
     let rect=null;
@@ -16206,18 +16313,37 @@ function caretTargetCanvasY(focusEl){
       }
     }
     if(!rect && focusEl.getBoundingClientRect) rect=focusEl.getBoundingClientRect();
-    if(!rect) return null;
-    const screenY=rect.top+Math.min(rect.height,60)/2;
-    return screenToCanvas(0,screenY).y;
+    return rect||null;
   }catch(e){ return null; }
 }
-function centerViewOnCard(card,zoom,focusEl){
+function caretTargetCanvasY(focusEl){
+  const rect=caretScreenRect(focusEl); if(!rect) return null;
+  return screenToCanvas(0,rect.top+Math.min(rect.height,60)/2).y;
+}
+// Horizontal counterpart — canvas-space X of the caret/field (see caretScreenRect), or null.
+function caretTargetCanvasX(focusEl){
+  const rect=caretScreenRect(focusEl); if(!rect) return null;
+  const sx=rect.left+Math.min(rect.width,40)/2;
+  return screenToCanvas(sx,0).x;
+}
+// visibleH: how much of the board area is really visible (the on-screen keyboard covers the rest) — the
+// caret is centered in THAT, not in the full viewport. If the card is wider than the screen at this
+// zoom, the view follows the caret horizontally instead of centering the (partly off-screen) card.
+function centerViewOnCard(card,zoom,focusEl,visibleH){
   state.view.zoom=zoom;
-  state.view.x=viewport.clientWidth/2-(card.x+card.w/2)*zoom;
+  const vw=viewport.clientWidth;
+  const vh=visibleH||viewport.clientHeight;
+  let cx=card.x+card.w/2;
+  if(card.w*zoom>vw-24){
+    const tx=caretTargetCanvasX(focusEl);
+    if(tx!=null) cx=clamp(tx, card.x+(vw/2-12)/zoom, card.x+card.w-(vw/2-12)/zoom);
+  }
+  state.view.x=vw/2-cx*zoom;
   const targetY=caretTargetCanvasY(focusEl);
   const cy=targetY==null ? card.y+card.h/2 : targetY;
-  state.view.y=viewport.clientHeight/2-cy*zoom;
+  state.view.y=vh/2-cy*zoom;
   applyView(); persistView();
+  if(editFitState) editFitState.applied={...state.view};
 }
 // null while nothing is being edited; while editing, {originalView, cardId} — originalView is
 // captured ONCE, the moment focus first lands on a card's text field, and is what the view glides
@@ -16242,11 +16368,38 @@ function cardTextTargetOf(t){
   const cardEl=t.closest && t.closest('.card');
   return cardEl ? cardEl.dataset.id : null;
 }
+// Comfortable zoom while typing: never zoom OUT (the old "fit the whole card width" logic shrank wide
+// cards to ~0.4 and blew small ones up to 2.2 — "zoomt tief rein und weit wieder raus"), only lift a very
+// zoomed-out view up to a readable minimum. The view then just follows the caret.
+const EDIT_MIN_ZOOM=0.95;
+function editZoomTarget(){ return state.view.zoom<EDIT_MIN_ZOOM ? EDIT_MIN_ZOOM : state.view.zoom; }
+// How much of the board area is actually visible: the on-screen keyboard covers the bottom of it. While
+// the keyboard is closed (focus just landed) its height is estimated, so the very first move already aims
+// at the right place and no second correction is needed once the keyboard has slid in.
+function editVisibleHeight(){
+  const full=viewport.clientHeight;
+  const vv=window.visualViewport;
+  const vr=viewport.getBoundingClientRect();
+  if(vv && editFitState && editFitState.baseVV && vv.height<editFitState.baseVV-100){
+    return Math.max(120, Math.min(full, vv.offsetTop+vv.height-vr.top));
+  }
+  return Math.max(200, full-Math.round(window.innerHeight*0.4));
+}
+// True when the caret/field has drifted out of the comfortable middle band of the visible area — only then
+// does the view move, so typing doesn't make the whole board slide on every keystroke.
+function caretOutsideComfort(el){
+  const rect=caretScreenRect(el); if(!rect) return false;
+  const vr=viewport.getBoundingClientRect();
+  const visBottom=vr.top+editVisibleHeight();
+  return rect.top<vr.top+28 || rect.bottom>visBottom-28 || rect.left<vr.left+12 || rect.right>vr.right-12;
+}
 function refitEditingCardForViewport(){
   if(!editFitState || !editFitState.cardId) return;
   const card=state.cards.find(c=>c.id===editFitState.cardId);
   if(!card) return;
-  centerViewOnCard(card, computeCardFitZoom(card), document.activeElement);
+  const el=document.activeElement;
+  if(!cardTextTargetOf(el) || !caretOutsideComfort(el)) return;
+  smoothViewJump(()=>centerViewOnCard(card, state.view.zoom, el, editVisibleHeight()));
 }
 viewport.addEventListener('focusin',(e)=>{
   if(state.screen!=='board') return;
@@ -16263,16 +16416,17 @@ viewport.addEventListener('focusin',(e)=>{
   if(!cardId) return;
   const card=state.cards.find(c=>c.id===cardId);
   if(!card) return;
-  if(!editFitState) editFitState={originalView:{...state.view}, cardId:null};
+  const vv=window.visualViewport;
+  if(!editFitState) editFitState=({originalView:{...state.view}, cardId:null, applied:null, baseVV:vv?vv.height:window.innerHeight});
   if(editFitState.cardId===cardId) return; // already fitted to this exact card
   editFitState.cardId=cardId;
-  smoothViewJump(()=>centerViewOnCard(card, computeCardFitZoom(card), e.target));
+  smoothViewJump(()=>centerViewOnCard(card, editZoomTarget(), e.target, editVisibleHeight()));
 });
 // "beim Texteingeben snappt das Fenster auf dem Handy außerhalb des Bildschirms ... soll exakt zentral
 // in der Mitte da anzeigen wo der Text erscheint" — (1) the browser's own focus-scroll could shift the
 // overflow:hidden viewport's scrollLeft/Top (invisible offset → everything jumps off-screen), so it is
 // pinned back to 0 here (plus overflow:clip in CSS); (2) while typing the caret moves (line wraps, new
-// lines), so the view keeps re-centering vertically on the caret instead of only once at focus time.
+// lines); the view only re-centers once it leaves the comfortable band (see caretOutsideComfort).
 viewport.addEventListener('scroll',()=>{ if(viewport.scrollLeft||viewport.scrollTop){ viewport.scrollLeft=0; viewport.scrollTop=0; } },{passive:true});
 let editRecenterTimer=null;
 function recenterOnCaretWhileTyping(){
@@ -16283,10 +16437,8 @@ function recenterOnCaretWhileTyping(){
     const el=document.activeElement;
     if(!cardTextTargetOf(el)) return;
     const card=state.cards.find(c=>c.id===editFitState.cardId); if(!card) return;
-    const cy=caretTargetCanvasY(el); if(cy==null) return;
-    const screenY=cy*state.view.zoom+state.view.y;
-    if(Math.abs(screenY-viewport.clientHeight/2)<14) return;
-    smoothViewJump(()=>centerViewOnCard(card, state.view.zoom, el));
+    if(!caretOutsideComfort(el)) return;
+    smoothViewJump(()=>centerViewOnCard(card, state.view.zoom, el, editVisibleHeight()));
   },120);
 }
 viewport.addEventListener('input',recenterOnCaretWhileTyping);
@@ -16302,10 +16454,14 @@ viewport.addEventListener('focusout',()=>{
     const stillEditing=!!cardTextTargetOf(document.activeElement);
     if(!stillEditing) document.documentElement.classList.remove('mobile-editing-text');
     if(!editFitState || stillEditing) return;
-    const original=editFitState.originalView;
+    const original=editFitState.originalView, applied=editFitState.applied;
     editFitState=null;
+    // Glide back only if the view is still exactly where the edit-fit left it — if the person panned or
+    // zoomed in the meantime, that is their view now and it must not be yanked back.
+    const v=state.view;
+    if(applied && (Math.abs(v.x-applied.x)>3 || Math.abs(v.y-applied.y)>3 || Math.abs(v.zoom-applied.zoom)>0.02)) return;
     smoothViewJump(()=>{ state.view={...original}; applyView(); persistView(); });
-  },30);
+  },120);
 });
 
 // Tom, 23.09: "tausch das, strg soll hoch runter und ohne strg rein raus" — plain wheel (no modifier)
@@ -17214,7 +17370,8 @@ viewport.addEventListener('pointerdown',(e)=>{
       // tells a touch user the hold actually registered, before they decide to drag or just release.
       if(navigator.vibrate){ try{ navigator.vibrate(12); }catch(err){} }
       touchPanState=null; // no visible pan happened yet — movement past the threshold would already have cancelled this timer
-      touchMarqueeState={sx, sy, additive:false};
+      touchMarqueeState={sx, sy, additive:false, lx:sx, ly:sy};
+      showLongPressRing(sx, sy);
       touchLastTap=null; // a long-press is never half of a double-tap
       if(!isMultiSelectKey(e)) clearSelection();
     },420);
@@ -17231,6 +17388,7 @@ viewport.addEventListener('pointermove',(e)=>{
     if(!pinchG) rebasePinch();
     schedulePinchFrame();
   }else if(touchMarqueeState){
+    touchMarqueeState.lx=e.clientX; touchMarqueeState.ly=e.clientY;
     const x1=Math.min(touchMarqueeState.sx,e.clientX), x2=Math.max(touchMarqueeState.sx,e.clientX);
     const y1=Math.min(touchMarqueeState.sy,e.clientY), y2=Math.max(touchMarqueeState.sy,e.clientY);
     const r=viewport.getBoundingClientRect();
@@ -17253,6 +17411,21 @@ viewport.addEventListener('pointermove',(e)=>{
     applyView();
   }
 });
+// Visible confirmation that the hold registered (iOS has no vibration API, and on Android the buzz is easy
+// to miss) — a ring that pulses out from the finger.
+// The browser still sends compatibility mouse/click events after a touch ends; on the empty canvas those
+// blur whatever is focused — which would instantly take the focus (and the keyboard) away from the note a
+// long-press just created. Cancelling touchend right after such a create suppresses them.
+let lpCreateGuardUntil=0;
+viewport.addEventListener('touchend',(e)=>{ if(Date.now()<lpCreateGuardUntil && e.cancelable) e.preventDefault(); },{passive:false});
+function showLongPressRing(x,y){
+  try{
+    const ring=document.createElement('div'); ring.className='lp-ring';
+    ring.style.left=x+'px'; ring.style.top=y+'px';
+    document.body.appendChild(ring);
+    setTimeout(()=>ring.remove(),520);
+  }catch(err){}
+}
 function endTouchPointer(e){
   if(e.pointerType!=='touch') return;
   activeTouches.delete(e.pointerId);
@@ -17264,12 +17437,18 @@ function endTouchPointer(e){
       // hold-then-release-in-place isn't a recognized gesture on its own (see the double-tap handling
       // below for how the create menu actually opens), so this is simply a no-op.
       const wasGrown=!marqueeEl.hidden;
+      // A cancelled touch (some Android builds cancel the pointer once a long-press starts their own
+      // context-menu handling) carries no usable coordinates — use the last known finger position.
+      const ex=(e.type==='pointercancel'||!e.clientX&&!e.clientY) ? touchMarqueeState.lx : e.clientX;
+      const ey=(e.type==='pointercancel'||!e.clientX&&!e.clientY) ? touchMarqueeState.ly : e.clientY;
       if(wasGrown) updateInspector();
-      else if(touchLongPressArmed && Math.hypot(e.clientX-touchMarqueeState.sx, e.clientY-touchMarqueeState.sy)<10){
-        // Doppeltipp zoomt jetzt; das Erstellen-Menü öffnet stattdessen: lange drücken, ohne zu ziehen, loslassen.
+      else if(touchLongPressArmed && Math.hypot(ex-touchMarqueeState.sx, ey-touchMarqueeState.sy)<10){
+        // "lange drücken auf dem Handy legt eine Notiz an" — hold on empty canvas and release in place:
+        // a new note right there, ready to type (the full create menu stays available via the drawer).
         const mx=touchMarqueeState.sx, my=touchMarqueeState.sy;
         touchMarqueeState=null; marqueeEl.hidden=true;
-        openCreateMenu(mx,my);
+        lpCreateGuardUntil=Date.now()+600; // swallow the compat click that follows touchend (see below)
+        handleAddTool('note', screenToCanvas(mx,my));
       }
       touchMarqueeState=null; marqueeEl.hidden=true;
       marqueeEl.style.width='0px'; marqueeEl.style.height='0px';
