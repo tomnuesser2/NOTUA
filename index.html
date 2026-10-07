@@ -2257,6 +2257,30 @@ try{
      even find the title tooltip's reason. Kept as its own class (not :disabled) precisely so the click
      handler below still fires and can explain itself instead of doing nothing.*/
   .cp-eyedrop-btn:disabled, .cp-eyedrop-btn.cp-eyedrop-unsupported{opacity:0.4; cursor:not-allowed;}
+  .family-fly{position:fixed; z-index:100001; width:64px; height:64px; object-fit:cover; border-radius:10px; border:2px solid var(--surface); box-shadow:0 8px 22px rgba(0,0,0,.3); pointer-events:none; will-change:transform,opacity;}
+  .family-ring{position:fixed; z-index:100000; width:52px; height:52px; border-radius:50%; border:3px solid var(--accent); pointer-events:none; transform:translate(-50%,-50%); animation:familyRing .85s ease-out forwards;}
+  @keyframes familyRing{0%{transform:translate(-50%,-50%) scale(.7); opacity:.95;}100%{transform:translate(-50%,-50%) scale(2.1); opacity:0;}}
+  .imgdrop-choice{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+  .imgdrop-opt{display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; padding:11px 14px; border-radius:12px; border:1.5px solid var(--border-strong); background:var(--surface-2); color:var(--ink); font:inherit; cursor:var(--custom-pointer-cursor,pointer); transition:border-color .14s ease, background .14s ease;}
+  .imgdrop-opt span{font-size:.78rem; color:var(--muted); font-weight:500;}
+  .imgdrop-opt:hover{border-color:var(--accent);}
+  .imgdrop-opt.on{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 12%, var(--surface)); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%, transparent);}
+  .imgdrop-demo{position:relative; height:112px; margin:12px 0 4px; border-radius:12px; border:1.5px dashed var(--border-strong); background:var(--surface-2); overflow:hidden;}
+  .imgdrop-demo-label{position:absolute; left:10px; top:8px; font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:.04em; text-transform:uppercase;}
+  .imgdrop-demo-tray{position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:50%; background:var(--accent); opacity:.9; animation:imgdropTray 3.6s ease-in-out infinite;}
+  .imgdrop-demo-img{position:absolute; width:26px; height:26px; border-radius:6px; background:linear-gradient(135deg,var(--accent),#ffb199); box-shadow:0 3px 8px rgba(0,0,0,.22); left:24px; top:48px; animation:imgdropFly 3.6s cubic-bezier(.5,.05,.25,1) infinite;}
+  .imgdrop-demo-img:nth-child(3){animation-delay:.12s; left:40px; top:56px; opacity:.9;}
+  .imgdrop-demo-img:nth-child(4){animation-delay:.24s; left:56px; top:48px; opacity:.8;}
+  @keyframes imgdropFly{0%,18%{transform:translate(0,0) scale(1); opacity:1;}62%,100%{transform:translate(var(--fx,210px),var(--fy,26px)) scale(.25); opacity:0;}}
+  @keyframes imgdropTray{0%,55%{transform:scale(1);}66%{transform:scale(1.28);}78%,100%{transform:scale(1);}}
+  @media (prefers-reduced-motion:reduce){ .imgdrop-demo-img,.imgdrop-demo-tray{animation:none;} .family-ring{animation:none; opacity:0;} }
+  .cp-eyedrop-btn.cp-eyedrop-active{border-color:var(--accent); color:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%, transparent); animation:eyedropGlow 1.1s ease-in-out infinite;}
+  @keyframes eyedropGlow{0%,100%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%, transparent);}50%{box-shadow:0 0 0 8px color-mix(in srgb,var(--accent) 6%, transparent);}}
+  .eyedrop-pill{position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:100000; display:flex; align-items:center; gap:10px;
+    padding:9px 16px; border-radius:999px; background:var(--ink); color:var(--surface); font-size:0.85rem; font-weight:600; box-shadow:0 8px 28px rgba(0,0,0,.28); pointer-events:none; max-width:92vw;}
+  .eyedrop-pill-dot{width:10px; height:10px; border-radius:50%; background:var(--accent); flex:none; animation:eyedropDot 1s ease-in-out infinite;}
+  @keyframes eyedropDot{0%,100%{transform:scale(1); opacity:1;}50%{transform:scale(1.6); opacity:.55;}}
+  @media (prefers-reduced-motion:reduce){ .cp-eyedrop-btn.cp-eyedrop-active, .eyedrop-pill-dot{animation:none;} }
   .cp-fmt-row{display:flex; align-items:center; gap:6px;}
   .cp-fmt-label{width:26px; flex:none; font-size:0.65rem; font-weight:700; letter-spacing:.04em; color:var(--muted);}
   .cp-hex-input{
@@ -4190,6 +4214,25 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5M15 7l5 5-5 5M13.5 5 10.5 19"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
+      <!-- "ausnahmslos jeder secretcode soll im secret settings menü angezeigt werden, wenn man ihn einmal eingegeben hat" —
+           tomistcool (Theme), functiondesign/-style (Design), functiontemplate (Vorlagen) und functioncarousel (Bilder-Ablage)
+           bekommen hier jeweils eine eigene Karte, genau wie die übrigen Codes oben. -->
+      <button type="button" class="tools-sheet-card" id="toolsSecretThemeItem" data-beta="theme" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.7 17 3 12 3z"/><circle cx="7.5" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="7.2" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.2" r="1" fill="currentColor" stroke="none"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretDesignItem" data-beta="design" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10z"/><path d="M13.5 7.5l3 3"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretTemplateItem" data-beta="template" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M9.5 9.5V20"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretImagesItem" data-beta="images" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
     </div>
   </div>
 
@@ -4590,6 +4633,10 @@ try{
       <button id="controlsHelpBtn" title="Steuerung &amp; Gesten">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4c0-1.3 1.1-2.1 2.4-2.1 1.4 0 2.5.7 2.5 1.9 0 1.5-2.3 1.5-2.3 3.1"/><circle cx="12" cy="16.6" r="0.9" fill="currentColor" stroke="none"/></svg>
       </button>
+      <div class="vsep" id="autoSortSep" hidden></div>
+      <button id="autoSortBtn" title="Autosort: Lücken schließen &amp; ordnen" aria-label="Autosort" hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="4.5" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="4.5" rx="1.6"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.6"/></svg>
+      </button>
       <div class="vsep"></div>
       <button id="themeFab" title="Dunkelmodus umschalten" aria-label="Dunkelmodus umschalten">
         <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>
@@ -4760,6 +4807,10 @@ try{
         </button>
         <!-- Ganz unten, als vollwertige Kachel mit Text statt als kleiner Icon-Button in einer eigenen
              Zeile direkt unter dem Zoom-Regler — genau wie jede andere .drawer-btn hier. -->
+        <button class="drawer-btn" id="drawerAutoSortBtn" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="4.5" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="4.5" rx="1.6"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.6"/></svg>
+          <span id="drawerAutoSortLabel">Autosort</span>
+        </button>
         <button class="drawer-btn" id="drawerThemeToggle" title="Dunkelmodus umschalten" aria-label="Dunkelmodus umschalten">
           <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>
           <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>
@@ -5056,6 +5107,10 @@ const I18N={
   zoom_out_title:{de:'Verkleinern',en:'Zoom out',es:'Alejar',da:'Zoom ud'},
   zoom_in_title:{de:'Vergrößern',en:'Zoom in',es:'Acercar',da:'Zoom ind'},
   fit_title:{de:'Einpassen',en:'Fit to screen',es:'Ajustar a pantalla',da:'Tilpas til skærm'},
+  autosort_title:{de:'Autosort: Lücken schließen & ordnen',en:'Autosort: close gaps & tidy up',es:'Autoordenar: cerrar huecos',da:'Autosortér: luk huller'},
+  autosort_label:{de:'Autosort',en:'Autosort',es:'Autoordenar',da:'Autosortér'},
+  autosort_done:{de:'Autosort: {n} Kacheln geordnet',en:'Autosort: {n} tiles arranged',es:'Autoordenar: {n} tarjetas ordenadas',da:'Autosortér: {n} kort ordnet'},
+  autosort_nothing:{de:'Autosort: nichts zu ordnen, alles liegt schon eng und sauber',en:'Autosort: nothing to tidy, everything is already tight and clean',es:'Autoordenar: nada que ordenar',da:'Autosortér: intet at ordne'},
   fit_label:{de:'Einpassen',en:'Fit to screen',es:'Ajustar a pantalla',da:'Tilpas til skærm'},
   grid_toggle_title:{de:'Raster ein/aus',en:'Toggle grid',es:'Mostrar/ocultar cuadrícula',da:'Gitter til/fra'},
   grid_toggle_label:{de:'Raster anzeigen',en:'Show grid',es:'Mostrar cuadrícula',da:'Vis gitter'},
@@ -5195,6 +5250,24 @@ const I18N={
   // is a hidden beta feature, and t() already falls back to `de` for any language without its own
   // entry, so es/da simply show the German text until/unless this becomes a public feature.
   tools_secret_look_item:{de:'Look-Code',en:'Look code'},
+  tools_secret_theme_item:{de:'Theme-Menü',en:'Theme menu'},
+  tools_secret_design_item:{de:'Design-Menü',en:'Design menu'},
+  tools_secret_template_item:{de:'Vorlagen',en:'Templates'},
+  tools_secret_images_item:{de:'Bilder-Ablage',en:'Image drop'},
+  beta_theme_unlocked_toast:{de:'Theme-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Theme menu unlocked — find it in the overview\'s Secret Settings'},
+  beta_design_unlocked_toast:{de:'Design-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Design menu unlocked — find it in the overview\'s Secret Settings'},
+  beta_images_unlocked_toast:{de:'Bilder-Ablage freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Image drop unlocked — find it in the overview\'s Secret Settings'},
+  imgdrop_title:{de:'Bilder ins Board ziehen',en:'Dragging images into the board'},
+  imgdrop_body:{de:'Zieh Bilder einfach aus deinem Ordner aufs Board: Ein einzelnes Bild landet genau dort, wo du es loslässt. Ziehst du mehrere auf einmal rein, sammeln sie sich unten rechts im Karussell – du siehst sie dorthin fliegen. Von dort ziehst du sie einzeln aufs Board oder machst ein Karussell daraus.',en:'Just drag images from your folder onto the board: a single image lands exactly where you drop it. Drag several in at once and they collect in the carousel at the bottom right – you will see them fly there. From there you can drag them onto the board one by one or turn them into a carousel.'},
+  imgdrop_question:{de:'Wie sollen einzelne Bilder landen?',en:'Where should single images land?'},
+  imgdrop_opt_direct:{de:'Direkt aufs Board',en:'Straight onto the board'},
+  imgdrop_opt_direct_sub:{de:'Ein Bild landet dort, wo du es loslässt',en:'One image lands where you drop it'},
+  imgdrop_opt_tray:{de:'Immer ins Karussell',en:'Always into the carousel'},
+  imgdrop_opt_tray_sub:{de:'Auch einzelne Bilder sammeln sich unten rechts',en:'Even single images collect at the bottom right'},
+  imgdrop_note:{de:'Mehrere Bilder auf einmal gehen immer ins Karussell. Das lässt sich später wieder ändern – wenn du den passenden Secret-Code findest.',en:'Several images at once always go to the carousel. You can change this later – if you find the matching secret code.'},
+  imgdrop_saved:{de:'Gespeichert',en:'Saved'},
+  imgdrop_modal_note:{de:'Mehrere Bilder auf einmal gehen immer ins Karussell unten rechts.',en:'Several images at once always go to the carousel at the bottom right.'},
+  imgdrop_demo_board:{de:'Board',en:'Board'},
   beta_look_unlocked_toast:{de:'Look-Code freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Look code unlocked — find it in the overview\'s Secret Settings'},
   lf_codemenu_title:{de:'Look-Code',en:'Look code'},
   lf_codemenu_intro:{de:'Dein UI als 12-stelliger Code. Kopiere ihn, um deinen Look zu sichern, oder löse einen Code ein, um ihn auf diesem Gerät zu laden.',en:'Your UI as a 12-character code. Copy it to keep your look, or enter a code to load it on this device.'},
@@ -5743,6 +5816,9 @@ const I18N={
   toast_file_import_failed:{de:'Datei konnte nicht eingefügt werden',en:'Couldn\'t insert the file',es:'No se pudo insertar el archivo',da:'Filen kunne ikke indsættes'},
   colorpicker_native_title:{de:'Farbe wählen',en:'Choose a color',es:'Elegir un color',da:'Vælg en farve'},
   colorpicker_eyedrop_title:{de:'Pipette – Farbe vom Bildschirm aufnehmen',en:'Eyedropper – pick a color from the screen',es:'Cuentagotas — tomar un color de la pantalla',da:'Pipette – hent farve fra skærmen'},
+  colorpicker_eyedrop_active:{de:'Pipette aktiv – klick irgendwo auf dem Bildschirm auf die Farbe · Esc bricht ab',en:'Eyedropper active – click any color on the screen · Esc cancels',es:'Cuentagotas activo: haz clic en un color de la pantalla · Esc cancela',da:'Pipette aktiv – klik på en farve på skærmen · Esc afbryder'},
+  colorpicker_eyedrop_native_title:{de:'Farbfeld öffnen – darin findest du die Lupe zum Farbaufnehmen',en:'Open color panel – it has a magnifier to pick colors',es:'Abrir selector de color: incluye una lupa para tomar colores',da:'Åbn farvevælger – den har en lup til at hente farver'},
+  colorpicker_eyedrop_native_hint:{de:'Safari hat keine eigene Pipette – im Farbfeld findest du die Lupe zum Aufnehmen einer Farbe vom Bildschirm',en:'Safari has no built-in eyedropper – use the magnifier in the color panel to pick a color from the screen',es:'Safari no tiene cuentagotas: usa la lupa del selector para tomar un color de la pantalla',da:'Safari har ingen pipette – brug lupen i farvevælgeren til at hente en farve fra skærmen'},
   colorpicker_eyedrop_unsupported:{de:'Von deinem Browser nicht unterstützt (z. B. Chrome/Edge nutzen)',en:'Not supported by your browser (try Chrome/Edge)',es:'No es compatible con tu navegador (prueba con Chrome/Edge)',da:'Understøttes ikke af din browser (prøv fx Chrome/Edge)'},
   colorpicker_copy_title:{de:'In die Zwischenablage kopieren',en:'Copy to clipboard',es:'Copiar al portapapeles',da:'Kopiér til udklipsholder'},
   colorpicker_history_label:{de:'Zuletzt verwendet',en:'Recently used',es:'Usados recientemente',da:'Senest brugt'},
@@ -6384,6 +6460,10 @@ function applyI18n(){
     ['#toolsAnimControlItem .tools-sheet-card-label','text',t('anim_control_label')],
     ['#toolsTooltipTourItem .tools-sheet-card-label','text',t('tools_secret_tooltip_item')],
     ['#toolsLookCodeItem .tools-sheet-card-label','text',t('tools_secret_look_item')],
+    ['#toolsSecretThemeItem .tools-sheet-card-label','text',t('tools_secret_theme_item')],
+    ['#toolsSecretDesignItem .tools-sheet-card-label','text',t('tools_secret_design_item')],
+    ['#toolsSecretTemplateItem .tools-sheet-card-label','text',t('tools_secret_template_item')],
+    ['#toolsSecretImagesItem .tools-sheet-card-label','text',t('tools_secret_images_item')],
     ['#toolsLookItem .tools-sheet-card-label','text',t('tools_look_item')],
     ['#controlsHelpBtn','title',t('controls_btn_title')],
     ['#familyBtn','title',t('family_btn_title')],['#familyPanelTitle','text',t('family_panel_title')],
@@ -6410,7 +6490,7 @@ function applyI18n(){
     ['.drawer-btn[data-add="board"] span','text',t('add_boardlink_label_drawer')],
     ['#drawerConnectBtn span','text',t('connect_label')],
     ['#drawerCustomizeBtn','title',t('dock_customize_btn_title')],['#drawerCustomizeLabel','text',t('dock_customize_dock_label')],
-    ['#drawerFitBtn span','text',t('fit_label')],
+    ['#drawerFitBtn span','text',t('fit_label')],['#drawerAutoSortLabel','text',t('autosort_label')],['#autoSortBtn','title',t('autosort_title')],
     ['#drawerGridToggle span','text',t('grid_toggle_label')],
     ['#drawerSnapToggle span','text',t('snap_toggle_label')],
     ['#emptyHomeText','text',t('empty_home_hint')],
@@ -10801,7 +10881,7 @@ function applyBetaFeatureVisibility(){
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -11299,7 +11379,7 @@ function showSecretPasswordModal(){
   scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
   function trySubmit(){
     const v=input.value;
-    if(v==='tomistcool'){ scrim.remove(); showThemeMenuModal(); }
+    if(v==='tomistcool'){ scrim.remove(); unlockBetaFeature('theme'); showThemeMenuModal(); }
     else if(v==='functionstrava'){ scrim.remove(); unlockBetaFeature('strava'); showToast(t('beta_strava_unlocked_toast')); }
     else if(v==='functionwow'){ scrim.remove(); unlockBetaFeature('wow'); showToast(t('beta_wow_unlocked_toast')); }
     // 'functiondock' removed — "der code functiondock soll raus", dock-magnify no longer needs an
@@ -11315,10 +11395,11 @@ function showSecretPasswordModal(){
     // invisible to every normal user until this code is entered once, same unlock-forever-on-this-
     // device pattern as strava/wow/control/template above.
     else if(v==='functionlook'){ scrim.remove(); unlockBetaFeature('look'); showToast(t('beta_look_unlocked_toast')); }
+    else if(v==='functioncarousel'){ scrim.remove(); unlockBetaFeature('images'); showToast(t('beta_images_unlocked_toast')); showImageDropModal(); }
     else if(v==='functiontooltip'){ scrim.remove(); unlockBetaFeature('tooltip'); showToast(t('beta_tooltip_unlocked_toast')); }
     // Neu (v2.4.71): Grid-Formen + Landingpage-Animation — öffnet ein kleines Anpassen-Menü.
     // v2.4.73: Karten-Look, Schrift, Board-Hintergrund, Landing-Animationen, Cursor-Effekte.
-    else if(v==='functiondesign' || v==='functionstyle'){ scrim.remove(); showDesignMenuModal(); } // functionstyle ist jetzt Teil des Design-Menüs
+    else if(v==='functiondesign' || v==='functionstyle'){ scrim.remove(); unlockBetaFeature('design'); showDesignMenuModal(); } // functionstyle ist jetzt Teil des Design-Menüs
     else{ errEl.textContent=t('secret_password_wrong'); input.value=''; input.focus(); }
   }
   scrim.querySelector('[data-a="ok"]').addEventListener('click',trySubmit);
@@ -12302,7 +12383,7 @@ const TOUR_STEPS=[
   {id:'props', target:null, textKey:'tour_props'},
   {id:'el_note', target:()=>tourDockOrDrawerTarget('note'), textKey:'tour_el_note'},
   {id:'el_media', target:()=>tourDockOrDrawerTarget('media'), textKey:'tour_el_media'},
-  {id:'el_media_family', target:null, textKey:'tour_el_media_family'},
+  {id:'el_media_family', target:null, textKey:'tour_el_media_family', custom:'imagedrop'},
   {id:'el_youtube', target:()=>tourDockOrDrawerTarget('youtube'), textKey:'tour_el_youtube'},
   {id:'el_column', target:()=>tourDockOrDrawerTarget('column'), textKey:'tour_el_column'},
   {id:'el_checklist', target:()=>tourDockOrDrawerTarget('checklist'), textKey:'tour_el_checklist'},
@@ -12561,6 +12642,7 @@ function renderTourStep(){
   saveTourStep(tourStepIndex);
   if(step.final){ tourHideFinger(); renderTourFinalModal(); return; }
   if(step.custom==='guide'){ tourHideFinger(); renderTourGuide(step); return; }
+  if(step.custom==='imagedrop'){ tourHideFinger(); renderTourImageDrop(step); return; }
   if(targetEl) renderTourSpotlight(step,targetEl);
   else{ tourHideFinger(); renderTourCentered(step); }
 }
@@ -12634,6 +12716,32 @@ function renderTourCentered(step){
     }
   });
   document.body.appendChild(scrim);
+}
+// "dass man bei Tooltips das mit dem Bild reinziehen erklärt bekommt und am Ende auswählen kann, ob man unten rechts das
+// Karussell haben will oder Bilder immer direkt reinziehen will" — zentrierter Schritt mit kleiner Animation und Auswahl.
+function renderTourImageDrop(step){
+  let mode=getImageDropMode();
+  const scrim=document.createElement('div'); scrim.className='modal-scrim tour-modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <div class="tour-tooltip-step">${tourStepIndex+1}/${TOUR_STEPS.length}</div>
+    <h4 style="margin-top:6px;">${t('imgdrop_title')}</h4>
+    <p>${t('imgdrop_body')}</p>
+    <div class="imgdrop-demo"><span class="imgdrop-demo-label">${t('imgdrop_demo_board')}</span><span class="imgdrop-demo-tray"></span><span class="imgdrop-demo-img"></span><span class="imgdrop-demo-img"></span><span class="imgdrop-demo-img"></span></div>
+    <p style="margin-top:12px;font-weight:600;">${t('imgdrop_question')}</p>
+    ${imageDropChoiceHtml(mode)}
+    <p style="font-size:.78rem;color:var(--muted);margin-top:10px;">${t('imgdrop_note')}</p>
+    <div class="modal-actions">
+      <button data-a="close">${t('tour_end_title')}</button>
+      <button data-a="next" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('tour_next')}</button>
+    </div></div>`;
+  bindScrimDismiss(scrim,()=>stopTour(true));
+  wireImageDropChoice(scrim,(m)=>{ mode=m; setImageDropMode(m); });
+  scrim.querySelector('[data-a="close"]').addEventListener('click',()=>stopTour(true));
+  scrim.querySelector('[data-a="next"]').addEventListener('click',()=>{ setImageDropMode(mode); tourAdvance(); });
+  document.body.appendChild(scrim);
+  // Demo-Flugweg an die tatsächliche Breite anpassen (Bilder links → Karussell-Punkt rechts unten).
+  const demo=scrim.querySelector('.imgdrop-demo');
+  if(demo){ const w=demo.clientWidth||320; demo.style.setProperty('--fx',(w-120)+'px'); demo.style.setProperty('--fy','30px'); }
 }
 function renderTourFinalModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim tour-modal-scrim';
@@ -13320,6 +13428,9 @@ function showLookCodeModal(){
 }
 const toolsLookCodeItem=document.getElementById('toolsLookCodeItem');
 if(toolsLookCodeItem) toolsLookCodeItem.addEventListener('click',()=>{ closeToolsSheet(); showLookCodeModal(); });
+[['toolsSecretThemeItem',()=>showThemeMenuModal()],['toolsSecretDesignItem',()=>showDesignMenuModal()],['toolsSecretTemplateItem',()=>showTemplatePickerModal()],['toolsSecretImagesItem',()=>showImageDropModal()]].forEach(([id,fn])=>{
+  const el=document.getElementById(id); if(el) el.addEventListener('click',()=>{ closeToolsSheet(); fn(); });
+});
 const toolsLookItem=document.getElementById('toolsLookItem');
 if(toolsLookItem) toolsLookItem.addEventListener('click',()=>{ closeToolsSheet(); showLookFinder({firstRun:false}); });
 
@@ -14962,7 +15073,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.107';
+const APP_VERSION='2.4.109';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -16242,6 +16353,137 @@ function viewShowsAnyCard(view,cards){
   const right=left+vw/view.zoom, bottom=top+vh/view.zoom;
   return cards.some(c=>c.x<right && c.x+c.w>left && c.y<bottom && c.y+c.h>top);
 }
+/* ============================================================
+   AUTOSORT — "alle Lücken bis auf 2 Lückenabstände entfernen, nie überschneiden, clustern"
+   Erscheint (Ansichtsleiste neben dem Dunkelmodus + Handy-Menü), sobald mehr als 3 Kacheln markiert sind.
+   Ablauf (reine Layout-Funktion autoSortLayout, ohne DOM):
+   1. Überschneidungen auflösen: überlappende Kacheln (auch mit nicht markierten) werden minimal auseinandergeschoben.
+   2. Clustern: bestehende Cluster (clusterId) bleiben starr zusammen; dazu werden Kacheln, die höchstens 2 Raster-
+      felder auseinanderliegen, automatisch zu einer starren Gruppe — ihre innere Anordnung bleibt unverändert.
+   3. Schwerkraft: die Gruppen rutschen abwechselnd nach links und nach oben, bis zwischen zwei Gruppen (und zu nicht
+      markierten Kacheln, die als feste Hindernisse gelten) genau 2 Rasterfelder Platz sind. Alles in Rasterschritten,
+      nichts rutscht über die ursprüngliche linke/obere Kante der Markierung hinaus. Dadurch ist Überschneiden
+      ausgeschlossen: eine Gruppe bewegt sich nur bis zum nächsten Hindernis in ihrer Bahn (plus Abstand).
+   ============================================================ */
+/*AS-BEGIN*/
+function autoSortLayout(items,others,GRID,GAPS){
+  const G=GRID*GAPS, MINGAP=GRID;
+  const R=items.map(it=>({id:it.id,cl:it.cl||null,x:it.x,y:it.y,w:it.w,h:it.h,g:-1}));
+  const O=(others||[]).map(o=>({x:o.x,y:o.y,w:o.w,h:o.h}));
+  const sepX=(a,b)=>Math.max(a.x-(b.x+b.w), b.x-(a.x+a.w));
+  const sepY=(a,b)=>Math.max(a.y-(b.y+b.h), b.y-(a.y+a.h));
+  const overlaps=(a,b)=>sepX(a,b)<0 && sepY(a,b)<0;
+  // 1) Überschneidungen auflösen: in Lesereihenfolge (oben→unten, links→rechts) bleibt jede Kachel, wo sie ist, solange sie
+  //    nichts Bereits-Platziertes überdeckt; sonst wandert sie zur nächstgelegenen freien Stelle (Kandidaten = Kanten der
+  //    schon platzierten Kacheln + MINGAP). Feste (nicht markierte) Kacheln sind von Anfang an platziert.
+  const placed=O.map(o=>({x:o.x,y:o.y,w:o.w,h:o.h}));
+  const hit=(r,x,y)=>{ const t={x,y,w:r.w,h:r.h}; for(let i=0;i<placed.length;i++) if(overlaps(t,placed[i])) return true; return false; };
+  R.slice().sort((p,q)=>(p.y-q.y)||(p.x-q.x)).forEach(r=>{
+    if(hit(r,r.x,r.y)){
+      const xs=new Set([r.x]), ys=new Set([r.y]);
+      placed.forEach(o=>{ xs.add(o.x+o.w+MINGAP); xs.add(o.x-r.w-MINGAP); ys.add(o.y+o.h+MINGAP); ys.add(o.y-r.h-MINGAP); });
+      let best=null, bestD=Infinity;
+      xs.forEach(x=>ys.forEach(y=>{
+        const d=Math.abs(x-r.x)+Math.abs(y-r.y);
+        if(d<bestD && !hit(r,x,y)){ best={x,y}; bestD=d; }
+      }));
+      if(best){ r.x=best.x; r.y=best.y; }
+    }
+    placed.push({x:r.x,y:r.y,w:r.w,h:r.h});
+  });
+  // 2) Cluster: gleiche clusterId oder höchstens GAPS Rasterfelder Abstand => starre Gruppe (Union-Find)
+  const parent=R.map((_,i)=>i);
+  const find=(i)=>{ while(parent[i]!==i){ parent[i]=parent[parent[i]]; i=parent[i]; } return i; };
+  const union=(a,b)=>{ a=find(a); b=find(b); if(a!==b) parent[b]=a; };
+  const byCl=new Map();
+  R.forEach((r,i)=>{ if(r.cl){ if(byCl.has(r.cl)) union(byCl.get(r.cl),i); else byCl.set(r.cl,i); } });
+  for(let i=0;i<R.length;i++) for(let j=i+1;j<R.length;j++){
+    if(sepX(R[i],R[j])<=G && sepY(R[i],R[j])<=G) union(i,j);
+  }
+  const groups=new Map();
+  R.forEach((r,i)=>{ const k=find(i); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(r); });
+  const C=[...groups.values()].map(m=>({m,dx:0,dy:0}));
+  const anchorX=Math.min(...R.map(r=>r.x)), anchorY=Math.min(...R.map(r=>r.y));
+  const rectOf=(r,cl)=>({x:r.x+cl.dx, y:r.y+cl.dy, w:r.w, h:r.h});
+  const clusterOf=new Map(); C.forEach(cl=>cl.m.forEach(r=>clusterOf.set(r,cl)));
+  // 3) Schwerkraft: abwechselnd nach links und nach oben
+  const slide=(cl,axis)=>{
+    let allowed=Infinity;
+    cl.m.forEach(r=>{
+      const a=rectOf(r,cl);
+      let lim=(axis==='x') ? a.x-anchorX : a.y-anchorY;
+      const test=(b)=>{
+        if(axis==='x'){
+          if(b.x+b.w>a.x+0.5) return;                              // nur Hindernisse links davon
+          if(!(b.y<a.y+a.h+G && b.y+b.h>a.y-G)) return;           // in derselben Bahn (inkl. Abstand)
+          lim=Math.min(lim, a.x-(b.x+b.w)-G);
+        }else{
+          if(b.y+b.h>a.y+0.5) return;
+          if(!(b.x<a.x+a.w+G && b.x+b.w>a.x-G)) return;
+          lim=Math.min(lim, a.y-(b.y+b.h)-G);
+        }
+      };
+      R.forEach(o=>{ if(clusterOf.get(o)!==cl) test(rectOf(o,clusterOf.get(o))); });
+      O.forEach(test);
+      allowed=Math.min(allowed,lim);
+    });
+    const d=Math.max(0,allowed);
+    if(!isFinite(d) || d<0.5) return false;
+    if(axis==='x') cl.dx-=d; else cl.dy-=d;
+    return true;
+  };
+  for(let round=0;round<60;round++){
+    let any=false;
+    C.slice().sort((p,q)=>Math.min(...p.m.map(r=>r.x+p.dx))-Math.min(...q.m.map(r=>r.x+q.dx))).forEach(cl=>{ if(slide(cl,'x')) any=true; });
+    C.slice().sort((p,q)=>Math.min(...p.m.map(r=>r.y+p.dy))-Math.min(...q.m.map(r=>r.y+q.dy))).forEach(cl=>{ if(slide(cl,'y')) any=true; });
+    if(!any) break;
+  }
+  const out=new Map();
+  R.forEach(r=>{ const cl=clusterOf.get(r); out.set(r.id,{x:r.x+cl.dx,y:r.y+cl.dy}); });
+  return out;
+}
+/*AS-END*/
+const AUTOSORT_MIN_CARDS=4; // "mehr als 3 markierte Kacheln"
+function refreshAutoSortBtn(){
+  const show = state.screen==='board' && state.selection.size>=AUTOSORT_MIN_CARDS;
+  ['autoSortBtn','autoSortSep','drawerAutoSortBtn'].forEach(id=>{ const el=document.getElementById(id); if(el) el.hidden=!show; });
+}
+function autoSortSelection(){
+  if(state.selection.size<AUTOSORT_MIN_CARDS) return;
+  const movers=clusterExpandedMovers(state.selection);
+  const moverIds=new Set(movers.map(c=>c.id));
+  const dims=(c)=>{ const el=cardsLayer.querySelector(`.card[data-id="${c.id}"]`); return {w:Math.max(c.w,el?el.offsetWidth:0), h:Math.max(c.h,el?el.offsetHeight:0)}; };
+  const items=movers.map(c=>{ const d=dims(c); return {id:c.id,cl:c.clusterId||null,x:c.x,y:c.y,w:d.w,h:d.h}; });
+  const others=state.cards.filter(c=>!moverIds.has(c.id)).map(c=>{ const d=dims(c); return {x:c.x,y:c.y,w:d.w,h:d.h}; });
+  const plan=autoSortLayout(items,others,GRID_SIZE,2);
+  const before=new Map(movers.map(c=>[c.id,{x:c.x,y:c.y}]));
+  const changed=movers.filter(c=>{ const p=plan.get(c.id); return p && (p.x!==c.x || p.y!==c.y); });
+  if(!changed.length){ showToast(t('autosort_nothing')); return; }
+  applyCardPositions(changed.map(c=>({card:c,x:plan.get(c.id).x,y:plan.get(c.id).y})),true);
+  DB.putCards(changed);
+  showToast(t('autosort_done',{n:movers.length}),()=>{
+    applyCardPositions(changed.map(c=>({card:c,x:before.get(c.id).x,y:before.get(c.id).y})),true);
+    DB.putCards(changed);
+  });
+}
+// Setzt neue Positionen (mit sanftem Gleiten, solange Karten-Animationen an sind) und hält Verbinder/Cluster-Rahmen mit.
+function applyCardPositions(list,animate){
+  const smooth=animate && isAnimGroupEnabled('carddrag');
+  list.forEach(({card,x,y})=>{
+    card.x=x; card.y=y;
+    const el=cardsLayer.querySelector(`.card[data-id="${card.id}"]`);
+    if(!el) return;
+    if(smooth){ el.style.transition='left .55s cubic-bezier(.22,1,.36,1), top .55s cubic-bezier(.22,1,.36,1)'; }
+    el.style.left=x+'px'; el.style.top=y+'px';
+  });
+  if(smooth){
+    const t0=performance.now();
+    const tick=()=>{ updateConnectorPositions(); if(performance.now()-t0<650) requestAnimationFrame(tick); else list.forEach(({card})=>{ const el=cardsLayer.querySelector(`.card[data-id="${card.id}"]`); if(el) el.style.transition=''; }); };
+    requestAnimationFrame(tick);
+  }else updateConnectorPositions();
+  updateInspector();
+}
+['autoSortBtn','drawerAutoSortBtn'].forEach(id=>{ const b=document.getElementById(id); if(b) b.addEventListener('click',()=>{ autoSortSelection(); if(id==='drawerAutoSortBtn' && typeof closeDrawer==='function') closeDrawer(); }); });
 document.getElementById('fitBtn').addEventListener('click',fitToContent);
 document.getElementById('drawerFitBtn').addEventListener('click',fitToContent);
 function fitToContent(){
@@ -16931,6 +17173,7 @@ function syncSelectedCardClasses(){
   cardsLayer.querySelectorAll('.card').forEach(el=>{
     el.classList.toggle('selected', state.selection.has(el.dataset.id));
   });
+  refreshAutoSortBtn();
 }
 function applySelectionClasses(){
   syncSelectedCardClasses();
@@ -20698,15 +20941,29 @@ function buildColorpickerCard(card){
   // native `disabled` attribute (that swallowed clicks with zero feedback beyond a cursor icon).
   if(window.EyeDropper){
     eyedropBtn.addEventListener('click',async ()=>{
+      // "ein Indikator, dass man nun die Farbe auswählen kann" — Chrome/Edge zeichnen die Lupe selbst
+      // (nicht veränderbar); damit trotzdem klar ist, dass die Pipette gerade scharf ist, zeigt NOTUA
+      // eine Hinweis-Pille oben und lässt den Button leuchten, bis gewählt oder abgebrochen wurde.
+      const pill=document.createElement('div'); pill.className='eyedrop-pill';
+      pill.innerHTML=`<span class="eyedrop-pill-dot"></span><span>${escapeHtml(t('colorpicker_eyedrop_active'))}</span>`;
+      document.body.appendChild(pill);
+      eyedropBtn.classList.add('cp-eyedrop-active');
       try{
         const res=await new EyeDropper().open();
         if(res && res.sRGBHex) commitHex(res.sRGBHex);
       }catch(err){ /* user cancelled the pick — nothing to do */ }
+      finally{ pill.remove(); eyedropBtn.classList.remove('cp-eyedrop-active'); }
     });
   }else{
-    eyedropBtn.classList.add('cp-eyedrop-unsupported');
-    eyedropBtn.title=t('colorpicker_eyedrop_unsupported');
-    eyedropBtn.addEventListener('click',()=>showToast(t('colorpicker_eyedrop_unsupported')));
+    // Safari/Mac hat keine EyeDropper-API — aber das native Farbfeld (<input type="color">) öffnet dort das
+    // Systemfarbfeld von macOS, und das bringt seine eigene Lupe zum Farbaufnehmen mit. Also öffnet der
+    // Pipetten-Button genau dieses Feld (statt "nicht unterstützt").
+    eyedropBtn.title=t('colorpicker_eyedrop_native_title');
+    eyedropBtn.addEventListener('click',()=>{
+      showToast(t('colorpicker_eyedrop_native_hint'));
+      try{ if(typeof nativeInput.showPicker==='function') nativeInput.showPicker(); else nativeInput.click(); }
+      catch(err){ try{ nativeInput.click(); }catch(e2){} }
+    });
   }
 
   el.querySelectorAll('.cp-copy-btn').forEach(btn=>{
@@ -25803,7 +26060,15 @@ viewport.addEventListener('drop',async (e)=>{
     const card=state.cards.find(c=>c.id===columnEl.dataset.id);
     if(card){ await setColumnCoverImage(card,files[0]); return; }
   }
-  addFilesToFamilyBucket(files);
+  // "ein Bild soll reingezogen werden [direkt], mehr als ein Bild gleichzeitig öffnet Karussell" — ein einzelnes
+  // Bild landet im Standardmodus ('direct') genau dort, wo es losgelassen wurde; mehrere Bilder auf einmal gehen
+  // IMMER ins Karussell (Bilderspeicher unten rechts). Im Modus 'tray' (Tour-Auswahl / Secret-Code
+  // functioncarousel) geht auch ein einzelnes Bild dorthin. Fürs Karussell fliegen die Bilder vom Ablageort zum Button.
+  if(files.length===1 && getImageDropMode()==='direct'){
+    await addImageFile(files[0],screenToCanvas(e.clientX,e.clientY));
+    return;
+  }
+  addFilesToFamilyBucket(files,{x:e.clientX,y:e.clientY});
 });
 
 /* ============================================================
@@ -25846,14 +26111,82 @@ function renderFamilyBtn(){
     familyBtn.classList.add('pop');
   }
 }
+// 'direct' (Standard): ein einzelnes Bild landet dort, wo es losgelassen wird; 'tray': auch einzelne Bilder gehen
+// ins Karussell. Mehrere Bilder auf einmal gehen in BEIDEN Modi ins Karussell. Gewählt in der Tooltip-Tour oder
+// über den Secret-Code functioncarousel (Secret Settings → Bilder-Ablage).
+const IMAGE_DROP_MODE_KEY='notua-image-drop-mode';
+function getImageDropMode(){ try{ return localStorage.getItem(IMAGE_DROP_MODE_KEY)==='tray' ? 'tray' : 'direct'; }catch(e){ return 'direct'; } }
+function setImageDropMode(m){ try{ localStorage.setItem(IMAGE_DROP_MODE_KEY, m==='tray'?'tray':'direct'); }catch(e){} }
 function addFilesToFamilyBucket(files, at){
   const imgs=[...files].filter(f=>f.type && f.type.startsWith('image/'));
   if(!imgs.length) return;
-  imgs.forEach(file=>{
-    familyBucket.push({id:uid(), file, url:URL.createObjectURL(file)});
-  });
+  const added=imgs.map(file=>{ const it={id:uid(), file, url:URL.createObjectURL(file)}; familyBucket.push(it); return it; });
   renderFamilyBtn();
   if(familyPanel && !familyPanel.hidden) renderFamilyPanel();
+  if(at) flyImagesToFamilyBtn(added,at);
+}
+// "nachdem reinziehen ... von dem Ort wo man es reinzieht mit mehreren nach unten rechts fliegen, damit man erkennt,
+// wo das Bild jetzt liegt" — Miniaturen starten an der Ablageposition (leicht aufgefächert), fliegen zum Button unten
+// rechts, schrumpfen dabei und lassen ihn am Ende einmal aufpoppen + leuchten.
+function flyImagesToFamilyBtn(items,from){
+  if(!familyBtn || familyBtn.hidden) return;
+  const reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pulse=()=>{
+    familyBtn.classList.remove('pop'); void familyBtn.offsetWidth; familyBtn.classList.add('pop');
+    const rr=familyBtn.getBoundingClientRect();
+    const ring=document.createElement('div'); ring.className='family-ring';
+    ring.style.left=(rr.left+rr.width/2)+'px'; ring.style.top=(rr.top+rr.height/2)+'px';
+    document.body.appendChild(ring); setTimeout(()=>ring.remove(),950);
+  };
+  if(reduce || !items.length || typeof Element.prototype.animate!=='function'){ pulse(); return; }
+  const r=familyBtn.getBoundingClientRect();
+  const tx=r.left+r.width/2, ty=r.top+r.height/2;
+  const list=items.slice(-6);
+  let done=0;
+  list.forEach((it,i)=>{
+    const img=document.createElement('img');
+    img.className='family-fly'; img.src=it.url; img.alt='';
+    const spread=(i-(list.length-1)/2);
+    const sx=from.x+spread*26, sy=from.y+Math.abs(spread)*8;
+    img.style.left=sx+'px'; img.style.top=sy+'px';
+    document.body.appendChild(img);
+    const dx=tx-sx, dy=ty-sy;
+    const anim=img.animate([
+      {transform:'translate(-50%,-50%) scale(1) rotate('+(spread*5)+'deg)', opacity:1, offset:0},
+      {transform:'translate(-50%,-50%) translate('+(dx*0.12)+'px,'+(dy*0.12-34)+'px) scale(1.08) rotate('+(spread*3)+'deg)', opacity:1, offset:0.22},
+      {transform:'translate(-50%,-50%) translate('+dx+'px,'+dy+'px) scale(0.22) rotate(0deg)', opacity:0.25, offset:1}
+    ],{duration:760+i*70, delay:i*60, easing:'cubic-bezier(.5,.05,.25,1)', fill:'forwards'});
+    const fin=()=>{ img.remove(); if(++done===list.length) pulse(); };
+    anim.onfinish=fin; anim.oncancel=fin;
+  });
+}
+// Secret Settings → Bilder-Ablage (Code functioncarousel): derselbe Schalter wie am Ende der Tooltip-Tour.
+function showImageDropModal(){
+  let mode=getImageDropMode();
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('imgdrop_title')}</h4>
+    <p>${t('imgdrop_question')}</p>
+    ${imageDropChoiceHtml(mode)}
+    <p style="font-size:.8rem;color:var(--muted);margin-top:10px;">${t('imgdrop_modal_note')}</p>
+    <div class="modal-actions"><button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('modal_done')}</button></div>
+  </div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  wireImageDropChoice(scrim,(m)=>{ mode=m; setImageDropMode(m); });
+  scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
+  document.body.appendChild(scrim);
+}
+function imageDropChoiceHtml(mode){
+  return `<div class="imgdrop-choice">
+    <button type="button" class="imgdrop-opt${mode==='direct'?' on':''}" data-mode="direct"><strong>${t('imgdrop_opt_direct')}</strong><span>${t('imgdrop_opt_direct_sub')}</span></button>
+    <button type="button" class="imgdrop-opt${mode==='tray'?' on':''}" data-mode="tray"><strong>${t('imgdrop_opt_tray')}</strong><span>${t('imgdrop_opt_tray_sub')}</span></button>
+  </div>`;
+}
+function wireImageDropChoice(root,onPick){
+  root.querySelectorAll('.imgdrop-opt').forEach(b=>b.addEventListener('click',()=>{
+    root.querySelectorAll('.imgdrop-opt').forEach(x=>x.classList.toggle('on',x===b));
+    onPick(b.dataset.mode);
+  }));
 }
 function removeFromFamilyBucket(id){
   const idx=familyBucket.findIndex(it=>it.id===id);
