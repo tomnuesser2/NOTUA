@@ -10648,7 +10648,7 @@ const THEME_OVERRIDE_VARS=['--canvas','--canvas-dot','--surface','--surface-rgb'
 // in. No longer shown as a browsable grid (see showThemeMenuModal) — only the random-palette button
 // draws from this list now.
 // Mono: neutrales Hellgrau + dunkles Grau (der Akzent-Soft-Ton wird daraus zum zarten Blau). Als erstes Theme direkt wählbar (Theme-Menü) und im Zufalls-Pool.
-const THEME_MONO={name:'Mono', background:'#F4F4F5', accent:'#2B2D33', dark:{background:'#121317', accent:'#A3A8B6'}}; // Darkmode: deutlich dunkler, Akzent hell mit blauem Hauch
+const THEME_MONO={name:'Mono', background:'#F4F4F5', accent:'#2B2D33', dark:{background:'#10151D', accent:'#A3A8B6'}}; // Darkmode: dunkel mit dem bläulichen Ton der Standard-Kacheln, Akzent hell mit blauem Hauch
 const THEME_DUO_PALETTES=[
   THEME_MONO,
   {name:'Smaragd & Seide',    background:'#F1E3D3', accent:'#1F3B2C'},
@@ -10711,18 +10711,22 @@ function deriveThemeTokens(main,accent,background,dark){
   // over into an unreadable ordering (surface always stays the lightest of the three in light mode,
   // darkest-but-one in dark mode, etc.) — the "Notbremse" Tom asked to keep.
   const anchorL     = dark ? clamp(bl, 4, 26) : clamp(bl, 55, 97);
-  const canvas       = dark ? hslToHex(bh, bsDarkClamped, anchorL)                : hslToHex(bh, bsClamped, anchorL);
-  const canvasDot    = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+8,4,42))  : hslToHex(bh, bsClamped, clamp(anchorL-12,4,97));
-  const border       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+6,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL-7,4,97));
-  const borderStrong = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+11,4,46)): hslToHex(bh, bsClamped, clamp(anchorL-16,4,97));
+  // Mono & Co. (hell, fast farblos, aber nicht reinweiß): Karten sollen ein sehr helles GRAU sein statt fast Weiß — also bleibt die Karte
+  // auf der Hintergrund-Helligkeit und der Hintergrund (Canvas) rückt ein Stück dunkler, sodass sich die Kacheln trotzdem abheben.
+  const neutralLight = !dark && bs<14 && bl<=97;
+  const cOff = neutralLight ? -8 : 0;
+  const canvas       = dark ? hslToHex(bh, bsDarkClamped, anchorL)                : hslToHex(bh, bsClamped, anchorL+cOff);
+  const canvasDot    = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+8,4,42))  : hslToHex(bh, bsClamped, clamp(anchorL+cOff-12,4,97));
+  const border       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+6,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL+cOff-7,4,97));
+  const borderStrong = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+11,4,46)): hslToHex(bh, bsClamped, clamp(anchorL+cOff-16,4,97));
   // Tom, 24.09: "im hellen Modus sind die Elemente... immer noch weiß anstatt der helle Ton" — this used
   // to clamp saturation to a mere 18% AND sit at a fixed 99% lightness, which for almost any background
   // hue rounds to something like #FDFCFC: technically tinted, but indistinguishable from plain white to
   // the eye. Now shares the same saturation clamp as canvas/border and rides the same anchorL as them
   // (offset +8 in light mode) — still the lightest of the three surfaces (card face > surface2 >
   // canvas), just no longer pinned so pale it reads as white regardless of the palette picked.
-  const surface       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+5,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL+8,4,99));
-  const surface2       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+2,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL+6,4,99));
+  const surface       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+5,4,42)) : hslToHex(bh, bsClamped, clamp(neutralLight ? anchorL-3 : anchorL+8,4,99));
+  const surface2       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+2,4,42)) : hslToHex(bh, bsClamped, clamp(neutralLight ? anchorL-5 : anchorL+6,4,99));
   // Same hex as `surface` above, just as an "r,g,b" triplet — every colorless card's rgba(var(--surface-rgb),…)
   // fill (and the auto-contrast text math that reads it, see cardAccentTextColors) needs the triplet form,
   // not the hex one already returned as --surface. See THEME_OVERRIDE_VARS' own comment for the bug this fixes.
@@ -10800,6 +10804,7 @@ function applyCustomTheme(theme,persist){
   // dark = eigene Farben für den Dunkelmodus (Hintergrund/Akzent/Schrift "andersrum"). Ohne diese Felder: wie bisher.
   // Ältere gespeicherte Mono-Auswahl (ohne Dark-Variante) bekommt automatisch das dunklere Mono für den Darkmode.
   if(theme && !theme.dark && String(theme.background).toUpperCase()===THEME_MONO.background && String(theme.accent).toUpperCase()===THEME_MONO.accent) theme=Object.assign({},theme,{dark:THEME_MONO.dark});
+  if(theme && theme.dark && String(theme.dark.background).toUpperCase()==='#121317') theme=Object.assign({},theme,{dark:Object.assign({},theme.dark,{background:THEME_MONO.dark.background})}); // älteres, graueres Mono-Dunkel → bläulicher Standardton
   const isDark=currentThemeIsDark();
   const cur=(isDark && theme.dark)?Object.assign({},theme,theme.dark):theme;
   const tokens=deriveThemeTokens(cur.text||cur.background,cur.accent,cur.background,isDark);
@@ -13408,7 +13413,7 @@ const LF_DONE_KEY='notua-lookfinder-done', LF_ANS_KEY='notua-look-answers', TOUR
 const LF_QUESTIONS=[
   // --- Farben: Hintergrundton × Akzentfarbe × Hell/Dunkel ---
   {id:'palette', q:'lf_q1', sub:'lf_q1_sub', opts:[
-    {id:'mono',    bg:'#F4F4F5', accent:'#2B2D33', dark:{background:'#121317', accent:'#A3A8B6'}},
+    {id:'mono',    bg:'#F4F4F5', accent:'#2B2D33', dark:{background:'#10151D', accent:'#A3A8B6'}},
     // Iced Matcha Latte: Hell = zartes Rosa + Matcha-Grün in Schrift & Akzent; Dunkel = andersrum (dunkles Matcha-Grün, Rosa)
     {id:'matcha',  bg:'#FDE9F1', accent:'#5E8F3E', text:'#46692C', ink:'#3A5A22',
       dark:{background:'#1E2B16', accent:'#F58DB2', text:'#F7C8DA', ink:'#F8D5E2'}},
@@ -15172,12 +15177,12 @@ document.addEventListener('pointerdown',(e)=>{
   closeProjectStylePopover();
 });
 window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeProjectStylePopover(); });
-// Größe des geöffneten Projekt-Balkens: Staffelung (Reihen×Spalten) 2x3 · 2x4 · 3x4 · 3x6 · 4x6 · 4x8 · 5x8 · 5x10 …
+// Größe des geöffneten Projekt-Balkens: Staffelung (Reihen×Spalten) 2x1 · 2x2 · 2x3 · 2x4 · 3x4 · 3x6 · 4x6 · 4x8 · 5x8 · 5x10 …
 // Es passen immer zwei Boards übereinander; wird es mehr, wächst der Balken erst in die Breite, dann in die Höhe.
 // Breite passt sich dem echten Home-Raster an (so viele Spalten wie Platz ist, darüber geht es in die Höhe weiter).
 function projectPanelLayout(n){
   let rows=2, cols=3;
-  const steps=[[2,3],[2,4]];
+  const steps=[[2,1],[2,2],[2,3],[2,4]];
   let r=2,c=4,addRow=true;
   for(let i=0;i<40;i++){ if(addRow) r++; else c+=2; addRow=!addRow; steps.push([r,c]); }
   for(const [R,C] of steps){ if(R*C>=n){ rows=R; cols=C; break; } rows=R; cols=C; }
@@ -15193,9 +15198,9 @@ function projectPanelLayout(n){
   }catch(e){}
   const tileMin=cols>=8?118:cols>=6?138:150;
   const needW=cols*tileMin+(cols-1)*6+36;
-  let span=Math.min(gridCols,Math.max(2,Math.ceil((needW+gap)/(colW+gap))));
+  let span=Math.min(gridCols,Math.max(1,Math.ceil((needW+gap)/(colW+gap))));
   const fullW=span*colW+(span-1)*gap;
-  const maxCols=Math.max(2,Math.floor((fullW-36+6)/(118+6)));
+  const maxCols=Math.max(1,Math.floor((fullW-36+6)/(118+6)));
   if(cols>maxCols) cols=maxCols;
   return {rows:Math.max(1,Math.ceil(n/cols)), cols, span};
 }
@@ -15870,7 +15875,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.137';
+const APP_VERSION='2.4.140';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
