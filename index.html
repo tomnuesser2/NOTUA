@@ -1374,7 +1374,13 @@ try{
   .lf-sl-text b{font-size:1rem; font-weight:700; color:var(--ink);}
   .lf-sl-text span{font-size:0.82rem; color:var(--muted);}
   @media (max-width:640px){
-    .lf-sl-board{height:min(300px,40dvh);}
+    /* "auf dem Smartphone darf die Vorschau größer sein, da unten echt viel Platz ist ... alles soll so skaliert sein, dass das
+       Onboarding ausfüllt" — der Vollbild-Look-Finder ist eine Flex-Spalte: Vorschau-Block und Board wachsen mit der freien Höhe
+       (Karten im Board sind prozentual positioniert und skalieren mit), Optionsraster füllen den Rest gleichmäßig. */
+    .modal.lf-modal > .lf-shape-live{flex:1 1 auto; min-height:0;}
+    .lf-shape-live > .lf-sl-board{flex:1 1 auto; height:auto; min-height:min(300px,40dvh);}
+    .modal.lf-modal > .lf-opts:not([hidden]){flex:1 1 auto; grid-auto-rows:minmax(0,1fr); align-content:stretch;}
+    .modal.lf-modal > .lf-opts:not([hidden]) .lf-opt{justify-content:center;}
     .lf-sl-card.a{top:22px; height:calc(100% - 92px); min-height:122px; padding:18px 20px;}
     .lf-sl-card.a b{font-size:1.2rem;} .lf-sl-card.a em{font-size:0.98rem; margin-top:8px;} .lf-sl-card.a i{margin-top:14px; height:8px;}
     .lf-sl-card.b{top:36px; height:calc(100% - 100px); min-height:110px; padding:18px; gap:16px;}
@@ -5357,10 +5363,10 @@ const I18N={
   lf_o_shape_r12:{de:"Weich|12 px – freundlich & ausgewogen",en:"Soft|12 px – friendly & balanced"},
   lf_o_shape_r15:{de:"Sanft|15 px – schon richtig rund",en:"Gentle|15 px – properly round"},
   lf_o_shape_r18:{de:"Rund|18 px – wie Kieselsteine",en:"Round|18 px – like pebbles"},
-  lf_o_shape_r21:{de:"Sehr rund|21 px – fast verspielt",en:"Very round|21 px – almost playful"},
-  lf_o_shape_r24:{de:"Seifig|24 px – große Radien",en:"Bubbly|24 px – big radii"},
-  lf_o_shape_r28:{de:"Fast Kapsel|28 px – kaum noch Ecken",en:"Almost capsule|28 px – hardly any corners"},
-  lf_o_shape_r32:{de:"Kapsel|32 px – maximal rund",en:"Capsule|32 px – as round as it gets"},
+  lf_o_shape_r21:{de:"Sehr rund|24 px – fast verspielt",en:"Very round|24 px – almost playful"},
+  lf_o_shape_r24:{de:"Seifig|32 px – große Radien",en:"Bubbly|32 px – big radii"},
+  lf_o_shape_r28:{de:"Fast Pille|44 px – kaum noch Ecken",en:"Almost pill|44 px – hardly any corners"},
+  lf_o_shape_r32:{de:"Pille|64 px – fast wie eine echte Pille",en:"Pill|64 px – nearly a real pill"},
   lf_shape_live_label:{de:"Ecken-Radius",en:"Corner radius"},
   lf_o_font_default:{de:"Standard|neutral & gut lesbar",en:"Default|neutral & readable"},
   lf_o_font_rounded:{de:"Rund|freundliche Rundungen",en:"Rounded|friendly curves"},
@@ -9107,7 +9113,7 @@ const designStyle=(()=>{
   try{
     const r=JSON.parse(localStorage.getItem(DESIGN_KEY)||'null');
     if(r && typeof r==='object'){
-      d.radius=r.radius==null?null:num(r.radius,0,32,null);
+      d.radius=r.radius==null?null:num(r.radius,0,64,null);
       if(['default','none','soft','strong'].includes(r.shadow)) d.shadow=r.shadow;
       d.shadowAmt=num(r.shadowAmt,0,3,1);
       if(['default','none','strong','accent'].includes(r.border)) d.border=r.border;
@@ -11990,7 +11996,7 @@ function showDesignMenuModal(){
   const TABS=['cards','text','bg','landing','fx','input'];
   const tabLabel={cards:t('dm_tab_cards'),text:t('dm_tab_text'),bg:t('dm_tab_bg'),landing:t('dm_tab_landing'),fx:t('dm_tab_fx'),input:t('dm_tab_input')};
   const secs={
-    cards:`${range('dRadius',t('dm_label_radius'),0,32,2)}
+    cards:`${range('dRadius',t('dm_label_radius'),0,64,2)}
       ${dd('shadow',t('dm_label_shadow'))}
       ${range('dShadowAmt',t('dm_shadow_amt'),0,3,0.1)}
       ${dd('border',t('dm_label_border'))}
@@ -12892,10 +12898,13 @@ const LF_QUESTIONS=[
     {id:'r12', radius:12},
     {id:'r15', radius:15},
     {id:'r18', radius:18},
-    {id:'r21', radius:21},
-    {id:'r24', radius:24},
-    {id:'r28', radius:28},
-    {id:'r32', radius:32}]},
+    // "die max round pixel noch einmal höher, sodass man fast Pills hat": die obersten vier Stufen behalten ihre IDs
+    // (damit bestehende Look-Codes weiter dekodieren — die Code-Basis hängt an der Optionsanzahl), reichen aber jetzt bis
+    // 64 px (auf den Karten effektiv eine echte Pille, der Browser deckelt den Radius automatisch auf die halbe Höhe).
+    {id:'r21', radius:24},
+    {id:'r24', radius:32},
+    {id:'r28', radius:44},
+    {id:'r32', radius:64}]},
   {id:'font', q:'lf_q5', sub:'lf_q5_sub', opts:[
     {id:'default', font:'default'},
     {id:'rounded', font:'rounded'},
@@ -15073,7 +15082,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.109';
+const APP_VERSION='2.4.110';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -15118,10 +15127,9 @@ function applyWhatsNewFabVisibility(){
 // init()'s own comment on that), so no state.screen check is needed here — by the time this runs,
 // whatever the auto-modal opens on top of IS the landing page.
 function initWhatsNew(){
-  if(whatsNewSeenVersion()!==APP_VERSION){
-    markWhatsNewSeen(APP_VERSION);
-    setTimeout(()=>{ showWhatsNewModal(); },900);
-  }
+  // "Was ist neu soll nur angezeigt werden, wenn man in der Landingpage draufklickt, nicht automatisch öffnen" —
+  // kein Auto-Popup mehr; das Fenster öffnet sich nur noch über die Pille (#whatsNewFab) auf der Landingpage.
+  if(whatsNewSeenVersion()!==APP_VERSION) markWhatsNewSeen(APP_VERSION);
   applyWhatsNewFabVisibility();
 }
 document.getElementById('whatsNewFabOpen').addEventListener('click',showWhatsNewModal);
