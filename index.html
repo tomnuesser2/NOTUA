@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="NOTUA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Bebas+Neue&family=Anton&family=Playfair+Display:wght@800&family=Caveat:wght@700&family=Permanent+Marker&display=swap">
 <!-- EmailJS: sends the feedback form (see showFeedbackModal, opened from the "Über NOTUA" dialog)
      straight from the browser, no backend needed — only the Public Key ever reaches this file; that
      key is meant to be public (EmailJS's own client-side model), the account's Private Key is
@@ -1934,6 +1934,23 @@ try{
      the illusion. border-color (not the `border` shorthand) is overridden here so the width/style stay
      put — just invisible — which keeps this a single, cheap property to toggle back in .framed below.
      Switchable per image via the "Transparenz" switch in the inspector (data.transparent===false). */
+  /* Überschrift-Element (Secret 'functionheading'): freistehender Großtext, kein Hintergrund/Rahmen.
+     Die Schrift füllt immer die Kartenbox (fitHeadingText) — Größe ändern = Resize-Griff. Die Textfarbe
+     kommt aus der normalen Farbwahl der Eigenschaften (card.color / customColor). */
+  .card.card-heading{background:transparent !important; border:none !important; padding:0; overflow:visible; --heading-ink:var(--ink);}
+  .card.card-heading:not(.selected){box-shadow:none !important;}
+  .card-heading .heading-box{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .card-heading .heading-text{
+    flex:none; white-space:pre; line-height:1; text-align:center; outline:none; pointer-events:auto;
+    font-family:var(--heading-ff,'Bebas Neue','Oswald','Impact','Arial Narrow',sans-serif); font-weight:var(--heading-fw,400); text-transform:var(--heading-tt,uppercase); letter-spacing:.005em;
+    color:var(--heading-ink); text-shadow:0 .035em 0 rgba(0,0,0,.4); cursor:inherit; min-width:.5em; user-select:none; -webkit-user-select:none;
+  }
+  .card-heading .heading-text:empty::before{content:attr(data-placeholder); opacity:.35;}
+  .card-heading .heading-text[contenteditable="true"]{user-select:text; -webkit-user-select:text; cursor:text; outline:2px dashed var(--accent); outline-offset:.06em;}
+  .heading-font-row{display:flex; flex-wrap:wrap; gap:6px;}
+  .heading-font-btn{width:38px; height:32px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font-size:1.05rem; line-height:1; padding:0; cursor:var(--custom-pointer-cursor,pointer);}
+  .heading-font-btn:hover{border-color:var(--border-strong);}
+  .heading-font-btn.active{border-color:var(--accent); background:var(--accent-soft); color:var(--accent);}
   .card-image{padding:0; overflow:hidden; background:transparent; border-color:transparent; box-shadow:none;}
   .card-image.framed{background:var(--surface); border-color:var(--border);}
   /* :not(.selected) here, not just .framed alone — .card.selected's own accent selection ring is the
@@ -4025,6 +4042,16 @@ try{
     width:28px; height:28px; border-radius:8px; background:var(--pc, var(--accent)); color:#fff; align-items:center; justify-content:center;
   }
   .project-badge svg{width:15px; height:15px;}
+  .project-badge.has-logo{background:transparent; overflow:hidden; padding:0;}
+  .project-badge.has-logo img{width:100%; height:100%; object-fit:cover; display:block; border-radius:inherit;}
+  .psp-logo-row{display:flex; flex-wrap:wrap; gap:7px; align-items:center;}
+  .psp-logo-btn{height:30px; padding:0 10px; white-space:nowrap; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font-size:0.78rem; cursor:var(--custom-pointer-cursor,pointer); display:flex; align-items:center; gap:6px;}
+  .psp-logo-btn:hover{border-color:var(--border-strong);}
+  .psp-logo-btn.danger{color:var(--danger,#c0392b);}
+  .psp-logo-preview{width:30px; height:30px; border-radius:8px; object-fit:cover; flex:none; border:1px solid var(--border);}
+  .board-tile .board-badge{cursor:var(--custom-pointer-cursor,pointer);}
+  .board-icon-opt.board-icon-remove{width:100%; height:28px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); font-size:0.76rem; cursor:var(--custom-pointer-cursor,pointer);}
+  .board-icon-opt.board-icon-remove:hover{color:var(--ink); border-color:var(--border-strong);}
   .pt-chips{display:flex; align-items:center; padding-left:8px; margin:4px 0; transition:padding .26s var(--ease-out,cubic-bezier(.22,1,.36,1));}
   .pt-chip{width:34px; height:34px; border-radius:9px; margin-left:-8px; border:2px solid var(--surface); box-sizing:border-box; flex:none; transition:margin .26s var(--ease-out,cubic-bezier(.22,1,.36,1));}
   .pt-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--pc, var(--accent)); margin-right:6px; vertical-align:baseline;}
@@ -4035,6 +4062,33 @@ try{
     border-left:5px solid var(--pc, var(--accent));
   }
   .project-panel.drop-target{border-color:var(--accent); box-shadow:0 0 0 2.5px var(--accent);}
+  .project-panel .project-head-title{gap:9px;}
+  /* Geöffnetes Projekt: kompakt statt volle Zeile. Das Panel belegt nur so viele Spalten wie nötig
+     (span2/3/4 je nach Boardzahl), grid-auto-flow:dense lässt die übrigen Kacheln daneben/darunter
+     nachrutschen. Die Mitglieds-Boards sind schlanke Zeilen (Logo + Name), Meta ausgeblendet. */
+  .board-grid{grid-auto-flow:dense;}
+  .project-panel{grid-column:span 2; padding:14px 16px 16px;}
+  .project-panel.span3{grid-column:span 3;}
+  .project-panel.span4{grid-column:1/-1;}
+  .project-panel .project-head{margin-bottom:10px;}
+  .project-panel .project-panel-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px;}
+  html .project-panel .project-panel-grid .board-tile{
+    height:auto !important; min-height:0; padding:9px 11px; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px;
+  }
+  html .project-panel .project-panel-grid .board-tile > div:not(.tile-actions):not(.meta){display:flex; align-items:center; gap:10px; min-width:0; flex-direction:row;}
+  html .project-panel .project-panel-grid .board-tile .spine-row{flex:none;}
+  html .project-panel .project-panel-grid .board-tile .board-badge,
+  html .project-panel .project-panel-grid .board-tile .tile-logo{width:26px; height:26px; border-radius:7px;}
+  html .project-panel .project-panel-grid .board-tile .board-badge svg{width:13px; height:13px;}
+  html .project-panel .project-panel-grid .board-tile h3{margin:0; font-size:0.88rem; -webkit-line-clamp:2; text-wrap:auto; min-width:0;}
+  html .project-panel .project-panel-grid .board-tile .meta{display:none;}
+  html .project-panel .project-panel-grid .board-tile .tile-actions{top:50%; right:6px; transform:translateY(-50%); background:var(--surface); border-radius:6px; padding:2px;}
+  html .project-panel .project-panel-grid .board-tile .tile-go-btn{padding:6px 11px; font-size:0.74rem;}
+  @media (max-width:1000px){ .project-panel.span3{grid-column:1/-1;} }
+  @media (max-width:640px){
+    .project-panel, .project-panel.span3, .project-panel.span4{grid-column:1/-1; padding:12px 12px 14px;}
+    .project-panel .project-panel-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;}
+  }
   .project-panel .project-head-title{gap:9px;}
   .project-actions button svg{width:15px; height:15px;}
   .project-style-pop{
@@ -4372,6 +4426,10 @@ try{
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretHeadingItem" data-beta="heading" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 5v14M18 5v14M6 12h12"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
       <button type="button" class="tools-sheet-card" id="toolsSecretStravaItem" data-beta="strava" hidden>
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14l3-8 3 8h3l2-5 2 5h3"/></svg></span>
         <span class="tools-sheet-card-label"></span>
@@ -4678,6 +4736,7 @@ try{
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <button class="icon-btn" id="boardColorBtn"><span class="board-color-dot" id="boardColorDot"></span></button>
+      <button class="icon-btn" id="boardIconBtn" title="Icon / Logo ändern"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8 8.5"/></svg></button>
       <button class="icon-btn" id="searchBtn" title="Suchen">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       </button>
@@ -4790,6 +4849,10 @@ try{
       <button class="dock-btn" data-add="wowpvp" data-beta="wow" hidden title="WoW-PvP-Check hinzufügen">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.3l7 2.8v5.4c0 5-3 7.9-7 9.2-4-1.3-7-4.2-7-9.2V6.1z"/><path d="M9 12l2.2 2.2L15.5 9.5"/></svg>
         <span>WoW PvP</span>
+      </button>
+      <button class="dock-btn" data-add="heading" data-beta="heading" hidden title="Überschrift hinzufügen">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 5v14M18 5v14M6 12h12"/></svg>
+        <span>Titel</span>
       </button>
       <button class="dock-btn" data-add="board" title="Unter-Board erstellen">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
@@ -4957,6 +5020,10 @@ try{
         <button class="drawer-btn" data-add="wowpvp" data-beta="wow" hidden>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.3l7 2.8v5.4c0 5-3 7.9-7 9.2-4-1.3-7-4.2-7-9.2V6.1z"/><path d="M9 12l2.2 2.2L15.5 9.5"/></svg>
           <span>WoW PvP</span>
+        </button>
+        <button class="drawer-btn" data-add="heading" data-beta="heading" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 5v14M18 5v14M6 12h12"/></svg>
+          <span>Titel</span>
         </button>
         <button class="drawer-btn" data-add="board">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
@@ -5286,6 +5353,12 @@ const I18N={
   wowpvp_copy_talents_btn:{de:'Talentbuild kopieren',en:'Copy talent build',es:'Copiar build de talentos',da:'Kopiér talentbuild'},
   wowpvp_copy_talents_unavailable:{de:'Der Talentbuild-Code ist von drustvar.com für diesen Charakter (noch) nicht abrufbar — daran arbeite ich noch.',en:'The talent build code isn’t available from drustvar.com for this character (yet) — still working on that.',es:'El código de la build de talentos aún no está disponible desde drustvar.com para este personaje — sigo trabajando en ello.',da:'Talentbuild-koden er (endnu) ikke tilgængelig fra drustvar.com for denne karakter — det arbejder jeg stadig på.'},
   beta_strava_unlocked_toast:{de:'Strava-Widget freigeschaltet — zu finden unter Widgets',en:'Strava widget unlocked — find it under Widgets',es:'Widget de Strava desbloqueado — lo encuentras en Widgets',da:'Strava-widget låst op — findes under Widgets'},
+  add_heading_title:{de:'Überschrift hinzufügen',en:'Add heading',es:'Añadir título',da:'Tilføj overskrift'},
+  add_heading_label:{de:'Titel',en:'Heading',es:'Título',da:'Overskrift'},
+  type_heading:{de:'Überschrift',en:'Heading',es:'Título',da:'Overskrift'},
+  placeholder_heading:{de:'Überschrift',en:'Heading',es:'Título',da:'Overskrift'},
+  tools_secret_heading_item:{de:'Überschrift-Element',en:'Heading element',es:'Elemento de título',da:'Overskrift-element'},
+  beta_heading_unlocked_toast:{de:'Überschrift-Element freigeschaltet — in der Elemente-Leiste unter „Titel“',en:'Heading element unlocked — find it in the elements bar as “Heading”',es:'Elemento de título desbloqueado — en la barra de elementos como «Título»',da:'Overskrift-element låst op — i elementlinjen som »Overskrift«'},
   beta_wow_unlocked_toast:{de:'WoW-PvP-Check freigeschaltet',en:'WoW PvP check unlocked',es:'WoW PvP Check desbloqueado',da:'WoW PvP-tjek låst op'},
   beta_dockmagnify_unlocked_toast:{de:'Dynamisches Werkzeugmenü freigeschaltet — aktiv, sobald Dynamic UI (Einstellungen) an ist',en:'Dynamic dock unlocked — active whenever Dynamic UI (Settings) is on',es:'Menú de herramientas dinámico desbloqueado — activo en cuanto Dynamic UI (Ajustes) esté encendido',da:'Dynamisk værktøjsmenu låst op — aktiv når Dynamic UI (Indstillinger) er slået til'},
   beta_mobiledock_unlocked_toast:{de:'Kompaktes Mobil-Menü freigeschaltet — Schalter im Werkzeuge-Menü der Boardübersicht',en:'Compact mobile menu unlocked — switch in the overview\'s Tools menu',es:'Menú móvil compacto desbloqueado — interruptor en el menú Herramientas del resumen de tableros',da:'Kompakt mobilmenu låst op — kontakt findes i menuen Værktøjer på tavleoversigten'},
@@ -5461,6 +5534,11 @@ const I18N={
   project_style_title:{de:'Farbe & Icon des Projekts',en:'Project color & icon',es:'Color e icono del proyecto',da:'Projektets farve og ikon'},
   project_style_color:{de:'Farbe',en:'Color',es:'Color',da:'Farve'},
   project_style_icon:{de:'Icon',en:'Icon',es:'Icono',da:'Ikon'},
+  project_style_logo:{de:'Eigenes Logo',en:'Own logo',es:'Logo propio',da:'Eget logo'},
+  project_logo_upload:{de:'Bild hochladen',en:'Upload image',es:'Subir imagen',da:'Upload billede'},
+  project_logo_remove:{de:'Logo entfernen',en:'Remove logo',es:'Quitar logo',da:'Fjern logo'},
+  board_icon_remove_title:{de:'Eigenes Logo entfernen',en:'Remove custom logo',es:'Quitar logo propio',da:'Fjern eget logo'},
+  board_badge_edit_title:{de:'Icon / Logo ändern',en:'Change icon / logo',es:'Cambiar icono / logo',da:'Skift ikon / logo'},
   project_style_auto:{de:'Standard (Akzentfarbe)',en:'Default (accent color)',es:'Predeterminado',da:'Standard'},
   tools_secret_update_item:{de:'Update-Button',en:'Update button',es:'Botón de actualización',da:'Opdateringsknap'},
   secret_feature_on_toast:{de:'Eingeschaltet',en:'Switched on',es:'Activado',da:'Slået til'},
@@ -5891,6 +5969,8 @@ const I18N={
   color_orange:{de:'Orange',en:'Orange',es:'Naranja',da:'Orange'},
   color_red:{de:'Rot',en:'Red',es:'Rojo',da:'Rød'},
   color_custom_title:{de:'Eigene Farbe wählen',en:'Pick a custom color',es:'Elegir un color personalizado',da:'Vælg egen farve'},
+  insp_heading_font_label:{de:'Schrift',en:'Font',es:'Fuente',da:'Skrifttype'},
+  insp_text_color_label:{de:'Textfarbe',en:'Text color',es:'Color del texto',da:'Tekstfarve'},
   insp_opacity_label:{de:'Deckkraft',en:'Opacity',es:'Opacidad',da:'Dækkraft'},
   insp_columns_per_row_label:{de:'Spalten pro Reihe',en:'Columns per row',es:'Columnas por fila',da:'Kolonner pr. række'},
   columns_per_row_off:{de:'Aus',en:'Off',es:'Desactivado',da:'Fra'},
@@ -6422,7 +6502,7 @@ function saveHomeSourceIconsEnabled(val){
 // via the secret password modal, see showSecretPasswordModal / isBetaFeatureUnlocked) — this is
 // layered on TOP of that existing beta-unlock gate, never instead of it: an item stays invisible
 // unless it's both beta-unlocked (or not beta-gated at all) AND not user-hidden here.
-const DOCK_CUSTOMIZE_ORDERABLE_IDS=['note','media','youtube','column','checklist','table','colorpicker','draw','wowpvp','board'];
+const DOCK_CUSTOMIZE_ORDERABLE_IDS=['note','media','youtube','column','checklist','table','colorpicker','draw','wowpvp','heading','board'];
 function defaultDockConfig(){ return {order:[...DOCK_CUSTOMIZE_ORDERABLE_IDS], hidden:[]}; }
 function loadDockConfig(){
   try{
@@ -6678,10 +6758,12 @@ function applyI18n(){
     ['#toolsSheetTabMain','text',t('tools_tab_main_label')],
     ['#toolsSheetTabSecret','text',t('tools_tab_secret_label')],
     ['#toolsSecretWowItem .tools-sheet-card-label','text',t('tools_secret_wow_item')],
+    ['#toolsSecretHeadingItem .tools-sheet-card-label','text',t('tools_secret_heading_item')],
     ['#toolsSecretStravaItem .tools-sheet-card-label','text',t('tools_secret_strava_item')],
     ['#menuBtn','title',t('menu_title')],
     ['#homeBtn','title',t('home_title')],
     ['#boardColorBtn','title',t('board_color_title')],
+    ['#boardIconBtn','title',t('board_badge_edit_title')],
     ['#searchBtn','title',t('search_title')],
     ['#searchInput','placeholder',t('search_placeholder')],
     ['#searchPrevBtn','title',t('search_prev_title')],
@@ -6699,6 +6781,7 @@ function applyI18n(){
     ['.dock-btn[data-add="colorpicker"]','title',t('add_colorpicker_title')],['.dock-btn[data-add="colorpicker"] span','text',t('add_colorpicker_label')],
     ['.dock-btn[data-add="draw"]','title',t('add_draw_title')],['.dock-btn[data-add="draw"] span','text',t('add_draw_label')],
     ['.dock-btn[data-add="wowpvp"]','title',t('add_wowpvp_title')],['.dock-btn[data-add="wowpvp"] span','text',t('add_wowpvp_label')],
+    ['.dock-btn[data-add="heading"]','title',t('add_heading_title')],['.dock-btn[data-add="heading"] span','text',t('add_heading_label')],
     ['.dock-btn[data-add="board"]','title',t('add_boardlink_title')],['.dock-btn[data-add="board"] span','text',t('add_boardlink_label_dock')],
     ['#connectBtn','title',t('connect_title')],['#connectBtn span','text',t('connect_label')],
     ['#dockCustomizeBtn','title',t('dock_customize_btn_title')],
@@ -6735,6 +6818,7 @@ function applyI18n(){
     ['.drawer-btn[data-add="colorpicker"] span','text',t('add_colorpicker_label')],
     ['.drawer-btn[data-add="draw"] span','text',t('add_draw_label')],
     ['.drawer-btn[data-add="wowpvp"] span','text',t('add_wowpvp_label')],
+    ['.drawer-btn[data-add="heading"] span','text',t('add_heading_label')],
     ['.drawer-btn[data-add="board"] span','text',t('add_boardlink_label_drawer')],
     ['#drawerConnectBtn span','text',t('connect_label')],
     ['#drawerCustomizeBtn','title',t('dock_customize_btn_title')],['#drawerCustomizeLabel','text',t('dock_customize_dock_label')],
@@ -11143,7 +11227,7 @@ function applyBetaFeatureVisibility(){
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs','update'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs','update','heading'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -11253,7 +11337,7 @@ function showDockCustomizeModal(){
     // (toolsSecretWowItem/toolsSecretStravaItem) — unconditionally excluded here now, unlocked or
     // not, instead of the old unlocked-but-still-shown-here behavior (which for Strava never even
     // worked right, see getWidgetFamilyKinds()'s own comment on that bug).
-    if(id==='wowpvp' || id==='strava') return '';
+    if(id==='wowpvp' || id==='strava' || id==='heading') return '';
     const isHidden=state.dockConfig.hidden.includes(id);
     const iconType=id==='board'?'boardlink':id;
     const labelKey=CREATE_MENU_LABEL_KEY[id];
@@ -11643,6 +11727,7 @@ function showSecretPasswordModal(){
     const v=input.value;
     if(v==='tomistcool'){ scrim.remove(); unlockBetaFeature('theme'); showThemeMenuModal(); }
     else if(v==='functionstrava'){ scrim.remove(); unlockBetaFeature('strava'); showToast(t('beta_strava_unlocked_toast')); }
+    else if(v==='functionheading'){ scrim.remove(); unlockBetaFeature('heading'); showToast(t('beta_heading_unlocked_toast')); }
     else if(v==='functionwow'){ scrim.remove(); unlockBetaFeature('wow'); showToast(t('beta_wow_unlocked_toast')); }
     // 'functiondock' removed — "der code functiondock soll raus", dock-magnify no longer needs an
     // unlock code at all (see isDockMagnifyEnabled()); typing the old code now just falls through to
@@ -13989,7 +14074,7 @@ async function paintHomeGrid(allIn){
   // merge lands — see there) — without this check, that second paint would tear down and recreate
   // every tile's DOM node even when the merge came back identical, which is what made a selected
   // tile's frame flicker off and back on for no visible reason.
-  const sig=roots.map(b=>b.id+':'+(b.updatedAt||0)).join('|')+'##'+state.projects.map(p=>p.id+':'+(p.collapsed?1:0)+':'+(p.color||'')+':'+(p.icon||'')+':'+p.boardIds.join(',')).join('|');
+  const sig=roots.map(b=>b.id+':'+(b.updatedAt||0)).join('|')+'##'+state.projects.map(p=>p.id+':'+(p.collapsed?1:0)+':'+(p.color||'')+':'+(p.icon||'')+':'+(p.logo?p.logo.length+p.logo.slice(-16):'')+':'+p.boardIds.join(',')).join('|');
   if(sig===lastHomePaintSig) return;
   lastHomePaintSig=sig;
   const paintSeq=++homePaintSeq;
@@ -14364,6 +14449,12 @@ async function buildBoardTile(b,opts){
   if(goBtn) goBtn.addEventListener('click',(e)=>{ e.stopPropagation(); openBoardWithFlyTransition(b.id,tile); });
   // "in der Übersicht soll man nur diesen kleinen Strich als Farbe auswählen können" — the stripe
   // itself is the only thing on a tile that opens the color picker; it never selects or opens the board.
+  badgeEl.title=t('board_badge_edit_title');
+  badgeEl.classList.add('board-icon-trigger');
+  badgeEl.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    openBoardIconPopover(e.clientX,e.clientY,b,()=>{ paintBoardBadgeElement(badgeEl,b); lastHomePaintSig=null; refreshHome(); });
+  });
   const spineEl=tile.querySelector('.spine');
   if(spineEl){
     spineEl.addEventListener('click',(e)=>{
@@ -14826,7 +14917,37 @@ function projectColorCss(p){ return (p && p.color) ? p.color : ''; }
 function applyProjectLookToEl(el,p){
   if(!el) return;
   if(p.color) el.style.setProperty('--pc',p.color); else el.style.removeProperty('--pc');
-  const badge=el.querySelector('.project-badge'); if(badge) badge.innerHTML=projectIconSvg(p.icon);
+  const badge=el.querySelector('.project-badge'); if(badge) paintProjectBadge(badge,p);
+}
+function paintProjectBadge(badge,p){
+  if(p.logo){
+    badge.classList.add('has-logo');
+    badge.innerHTML='<img alt="" draggable="false">';
+    badge.firstChild.src=p.logo;
+  } else {
+    badge.classList.remove('has-logo');
+    badge.innerHTML=projectIconSvg(p.icon);
+  }
+}
+// Downscale an uploaded picture to a small square (cover-cropped) data URL stored right on the project —
+// projects live in localStorage, so the logo must too (no image-store/backend involved, nothing to sync).
+function projectLogoFromFile(file){
+  return new Promise((resolve)=>{
+    if(!file || !file.type.startsWith('image/')) return resolve(null);
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      try{
+        const S=96, c=document.createElement('canvas'); c.width=c.height=S;
+        const ctx=c.getContext('2d');
+        const m=Math.min(img.naturalWidth,img.naturalHeight)||1;
+        ctx.drawImage(img,(img.naturalWidth-m)/2,(img.naturalHeight-m)/2,m,m,0,0,S,S);
+        resolve(c.toDataURL('image/webp',0.85));
+      }catch(e){ resolve(null); }
+      URL.revokeObjectURL(url);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); resolve(null); };
+    img.src=url;
+  });
 }
 async function buildProjectTile(p){
   const tile=document.createElement('div');
@@ -14840,12 +14961,13 @@ async function buildProjectTile(p){
     <div class="pt-layer l2"></div><div class="pt-layer l1"></div>
     <div class="pt-card">
       <div class="project-head">
-        <div class="project-head-title"><span class="project-badge">${projectIconSvg(p.icon)}</span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
+        <div class="project-head-title"><span class="project-badge"></span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
       </div>
       <div class="pt-chips"></div>
       <div class="meta"><span class="pt-dot"></span>${t('project_board_count',{n:boards.length,s:boards.length===1?'':'s'})}</div>
     </div>
   `;
+  paintProjectBadge(tile.querySelector('.project-badge'),p);
   const chips=tile.querySelector('.pt-chips');
   preview.forEach(b=>{
     const c=document.createElement('div'); c.className='pt-chip board-badge';
@@ -14897,21 +15019,40 @@ function openProjectStylePopover(anchor,p,panel){
     </div>
     <div class="psp-label">${t('project_style_icon')}</div>
     <div class="psp-row psp-icons">
-      ${PROJECT_ICON_KEYS.map(k=>`<button type="button" class="psp-ic${(p.icon||'folder')===k?' active':''}" data-icon="${k}">${projectIconSvg(k)}</button>`).join('')}
-    </div>`;
+      ${PROJECT_ICON_KEYS.map(k=>`<button type="button" class="psp-ic${(!p.logo&&(p.icon||'folder')===k)?' active':''}" data-icon="${k}">${projectIconSvg(k)}</button>`).join('')}
+    </div>
+    <div class="psp-label">${t('project_style_logo')}</div>
+    <div class="psp-logo-row"></div>`;
+  const logoRow=pop.querySelector('.psp-logo-row');
+  const fileIn=document.createElement('input'); fileIn.type='file'; fileIn.accept='image/*'; fileIn.hidden=true;
+  const renderLogoRow=()=>{
+    logoRow.innerHTML='';
+    if(p.logo){ const im=document.createElement('img'); im.className='psp-logo-preview'; im.src=p.logo; logoRow.appendChild(im); }
+    const up=document.createElement('button'); up.type='button'; up.className='psp-logo-btn'; up.dataset.act='upload'; up.textContent=t('project_logo_upload'); logoRow.appendChild(up);
+    if(p.logo){ const rm=document.createElement('button'); rm.type='button'; rm.className='psp-logo-btn danger'; rm.dataset.act='remove'; rm.textContent=t('project_logo_remove'); logoRow.appendChild(rm); }
+  };
+  renderLogoRow();
+  fileIn.addEventListener('change',async ()=>{
+    const f=fileIn.files&&fileIn.files[0]; fileIn.value='';
+    const data=await projectLogoFromFile(f);
+    if(!data) return;
+    p.logo=data; commit(); renderLogoRow();
+  });
+  pop.appendChild(fileIn);
   const colors=pop.querySelector('.psp-colors');
   const customHex=(cur && !presetHexes.includes(cur)) ? p.color : null;
   const refresh=()=>{
     const c=(p.color||'').toLowerCase();
     pop.querySelectorAll('.psp-sw').forEach(b=>b.classList.toggle('active',(b.dataset.color||'').toLowerCase()===c));
-    pop.querySelectorAll('.psp-ic').forEach(b=>b.classList.toggle('active',b.dataset.icon===(p.icon||'folder')));
+    pop.querySelectorAll('.psp-ic').forEach(b=>b.classList.toggle('active',!p.logo && b.dataset.icon===(p.icon||'folder')));
   };
   const commit=()=>{ saveProjects(); applyProjectLookToEl(panel,p); lastHomePaintSig=null; refresh(); };
   colors.appendChild(buildCustomSwatchButton(customHex,(hex)=>{ p.color=hex; commit(); }));
   pop.addEventListener('click',(e)=>{
-    const sw=e.target.closest('.psp-sw[data-color]'), ic=e.target.closest('.psp-ic[data-icon]');
+    const sw=e.target.closest('.psp-sw[data-color]'), ic=e.target.closest('.psp-ic[data-icon]'), lb=e.target.closest('.psp-logo-btn[data-act]');
     if(sw){ p.color=sw.dataset.color||null; commit(); }
-    else if(ic){ p.icon=ic.dataset.icon; commit(); }
+    else if(ic){ p.icon=ic.dataset.icon; p.logo=null; commit(); renderLogoRow(); }
+    else if(lb){ if(lb.dataset.act==='upload') fileIn.click(); else { p.logo=null; commit(); renderLogoRow(); } }
   });
   document.body.appendChild(pop);
   projectStylePopEl=pop;
@@ -14929,12 +15070,13 @@ window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeProjectStyleP
 async function buildProjectPanel(p){
   const panel=document.createElement('div');
   panel.className='project-panel';
+  { const n=p.boardIds.length; panel.classList.add(n<=4?'span2':n<=9?'span3':'span4'); }
   panel.dataset.projectId=p.id;
   if(p.color) panel.style.setProperty('--pc',p.color);
   const boards=p.boardIds.map(id=>boardById(id)).filter(Boolean);
   panel.innerHTML=`
     <div class="project-head">
-      <div class="project-head-title"><span class="project-badge">${projectIconSvg(p.icon)}</span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
+      <div class="project-head-title"><span class="project-badge"></span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
       <div class="project-actions">
         <button class="project-style-btn" title="${t('project_style_title')}">${iconColorWheel()}</button>
         <button class="project-collapse-btn" title="${t('project_collapse_title')}">${iconChevronUp()}</button>
@@ -14943,6 +15085,7 @@ async function buildProjectPanel(p){
     </div>
     <div class="project-panel-grid"></div>
   `;
+  paintProjectBadge(panel.querySelector('.project-badge'),p);
   const h3=panel.querySelector('h3');
   h3.addEventListener('dblclick',(e)=>{e.stopPropagation(); h3.contentEditable='true'; h3.focus(); document.execCommand('selectAll',false,null);});
   h3.addEventListener('blur',()=>{
@@ -15119,6 +15262,8 @@ function paintBoardBadgeElement(el,board){
   // promise resolves.
   const photoEl=el.querySelector('.board-badge-photo');
   if(photoEl){
+    const cachedUrl=imgUrlCache.get(photoEl.dataset.boardIconImage);
+    if(cachedUrl) photoEl.style.backgroundImage=`url("${cachedUrl}")`;
     getImageUrl(photoEl.dataset.boardIconImage).then(url=>{
       if(!url || !photoEl.isConnected) return;
       photoEl.style.backgroundImage=`url("${url}")`;
@@ -15138,9 +15283,11 @@ function ensureBoardIconPopover(){
     const {board,onChange}=boardIconPopoverTarget;
     const kind=btn.dataset.kind;
     if(kind==='upload'){ ensureBoardIconUploadInput().click(); return; }
-    board.icon = kind==='letter' ? {kind:'letter', value:btn.dataset.value} : {kind:'preset', value:btn.dataset.value};
+    const oldImg = (board.icon && board.icon.kind==='image') ? board.icon.imageId : null;
+    if(kind==='remove') board.icon=null;
+    else board.icon = kind==='letter' ? {kind:'letter', value:btn.dataset.value} : {kind:'preset', value:btn.dataset.value};
     board.updatedAt=Date.now();
-    DB.putBoard(board);
+    withBoardBackend(board.id, async ()=>{ await DB.putBoard(board); if(oldImg) DB.deleteImage(oldImg); });
     if(onChange) onChange();
     hideBoardIconPopover();
   });
@@ -15159,11 +15306,13 @@ function ensureBoardIconUploadInput(){
     const {board,onChange}=boardIconPopoverTarget;
     const oldId = (board.icon && board.icon.kind==='image') ? board.icon.imageId : null;
     const id=uid();
-    await DB.putImage(id,file,board.id);
-    board.icon={kind:'image', imageId:id};
-    board.updatedAt=Date.now();
-    await DB.putBoard(board);
-    if(oldId && oldId!==id) DB.deleteImage(oldId);
+    await withBoardBackend(board.id, async ()=>{
+      await DB.putImage(id,file,board.id);
+      board.icon={kind:'image', imageId:id};
+      board.updatedAt=Date.now();
+      await DB.putBoard(board);
+      if(oldId && oldId!==id) DB.deleteImage(oldId);
+    });
     if(onChange) onChange();
     hideBoardIconPopover();
   });
@@ -15185,6 +15334,7 @@ function openBoardIconPopover(clientX,clientY,board,onChange){
   }
   const uploadActive = board.icon && board.icon.kind==='image';
   html+=`<button type="button" class="board-icon-opt board-icon-opt-upload${uploadActive?' active':''}" data-kind="upload" title="${t('board_icon_upload_title')}">${iconExport()}</button>`;
+  html+=`<button type="button" class="board-icon-opt board-icon-remove" data-kind="remove" ${board.icon?'':'hidden'}>${t('board_icon_remove_title')}</button>`;
   pop.innerHTML=html;
   boardIconPopoverTarget={board,onChange};
   pop.classList.add('show');
@@ -15587,7 +15737,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.124';
+const APP_VERSION='2.4.127';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17958,6 +18108,9 @@ function updateInspector(){
     <div class="insp-row"><div class="insp-label">${t('insp_color_label')}</div><div class="swatches" id="swatchRow"></div></div>
     <div class="insp-row-line"><div class="insp-row insp-row-opacity"><div class="insp-label">${t('insp_opacity_label')}</div><div class="opacity-steps" id="opacityRow"></div></div>${dateBtnHtml}</div>
   </div>`;
+  if(cards.length===1 && cards[0].type==='heading'){
+    html+=`<div class="insp-row"><div class="insp-label">${t('insp_heading_font_label')}</div><div class="heading-font-row" id="headingFontRow"></div></div>`;
+  }
   if(cards.length===1 && cards[0].type==='image'){
     html+=`<div class="insp-row"><div class="insp-label">${t('insp_caption_label')}</div><input class="caption-edit" style="border:1px solid var(--border);border-radius:6px;padding:7px 8px;font:inherit;font-size:0.78rem;background:var(--surface);color:var(--ink);outline:none;" placeholder="${t('placeholder_caption')}" value="${cards[0].data.caption?escapeHtml(cards[0].data.caption):''}"/></div>`;
     // Undefined counts as locked (the default set on every newly created image card, see addCard) —
@@ -18129,6 +18282,44 @@ function updateInspector(){
       }
     }
   ));
+  // Überschrift: the normal tag-color swatches make little sense for free-standing big text, so the
+  // same row becomes a "Textfarbe" row with strong, hex-based colors (stored as color:'custom').
+  if(cards.length===1 && cards[0].type==='heading'){
+    const hc=cards[0];
+    const lbl=swatchRow.parentElement.querySelector('.insp-label'); if(lbl) lbl.textContent=t('insp_text_color_label');
+    swatchRow.innerHTML='';
+    const HEADING_COLORS=['#FFC44D','#FFFFFF','#1B2027',...BOARD_COLOR_PRESETS];
+    const curHex=(hc.color==='custom' && hc.customColor) ? hc.customColor.toLowerCase() : null;
+    const applyHex=(hex)=>{
+      if(hex){ hc.color='custom'; hc.customColor=hex; } else { hc.color='none'; hc.customColor=null; }
+      DB.putCard(hc); renderAllCards(); applySelectionClasses();
+    };
+    const auto=document.createElement('button'); auto.className='swatch'+(!curHex?' active':''); auto.title=t('project_style_auto');
+    auto.style.background='var(--surface-2)'; auto.style.border='2px solid var(--border-strong)';
+    auto.addEventListener('click',()=>applyHex(null)); swatchRow.appendChild(auto);
+    HEADING_COLORS.forEach(hex=>{
+      const sw=document.createElement('button'); sw.className='swatch'+(curHex===hex.toLowerCase()?' active':'');
+      sw.style.background=hex; sw.title=hex; sw.dataset.swatch='hex';
+      if(hex==='#FFFFFF') sw.style.border='2px solid var(--border-strong)';
+      sw.addEventListener('click',()=>applyHex(hex)); swatchRow.appendChild(sw);
+    });
+    const presetLc=HEADING_COLORS.map(h=>h.toLowerCase());
+    swatchRow.appendChild(buildCustomSwatchButton((curHex && !presetLc.includes(curHex))?hc.customColor:null,(hex)=>applyHex(hex)));
+  }
+  const headingFontRow=inspectorEl.querySelector('#headingFontRow');
+  if(headingFontRow){
+    const hc=cards[0], curKey=HEADING_FONTS[hc.data.font]?hc.data.font:'bebas';
+    Object.entries(HEADING_FONTS).forEach(([key,f])=>{
+      const b=document.createElement('button'); b.type='button';
+      b.className='heading-font-btn'+(key===curKey?' active':'');
+      b.title=f.label; b.textContent='Aa';
+      b.style.fontFamily=f.ff; b.style.fontWeight=f.w;
+      b.addEventListener('click',()=>{
+        hc.data.font=key; DB.putCard(hc); renderAllCards(); applySelectionClasses();
+      });
+      headingFontRow.appendChild(b);
+    });
+  }
   const opacityRow=inspectorEl.querySelector('#opacityRow');
   if(opacityRow){
     // Deliberately its own, separate field from card.color/customColor — previously the color tint
@@ -18438,7 +18629,7 @@ async function deleteConnectorWithUndo(connId){
   });
 }
 function typeLabel(type){
-  const key={note:'type_note',image:'type_image',file:'type_file',youtube:'type_youtube',column:'type_column',checklist:'type_checklist',table:'type_table',boardlink:'type_boardlink',colorpicker:'type_colorpicker',wowpvp:'type_wowpvp',link:'type_link',blanket:'type_blanket'}[type];
+  const key={note:'type_note',image:'type_image',file:'type_file',youtube:'type_youtube',column:'type_column',checklist:'type_checklist',table:'type_table',boardlink:'type_boardlink',colorpicker:'type_colorpicker',wowpvp:'type_wowpvp',heading:'type_heading',link:'type_link',blanket:'type_blanket'}[type];
   return key ? t(key) : type;
 }
 function colorLabel(c){
@@ -19059,6 +19250,7 @@ function buildCardEl(card){
   else if(card.type==='file') el=buildFileCard(card);
   else if(card.type==='wowpvp') el=buildWowPvpCard(card);
   else if(card.type==='carousel') el=buildCarouselCard(card);
+  else if(card.type==='heading') el=buildHeadingCard(card);
   else { el=baseCardShell(card,'card-note'); }
   attachDragAndSelect(el,card);
   // No more per-card cluster styling here — the whole cluster now gets one shared silhouette outline
@@ -19073,7 +19265,7 @@ function buildCardEl(card){
     dateBadge.addEventListener('click',(e)=>{ e.stopPropagation(); openCalendarPanel(card.date); });
     el.appendChild(dateBadge);
   }
-  if(['note','column','checklist','table','image','youtube','wowpvp','carousel','blanket'].includes(card.type)){
+  if(['note','column','checklist','table','image','youtube','wowpvp','carousel','blanket','heading'].includes(card.type)){
     const rh=document.createElement('div'); rh.className='resize-handle';
     attachResize(rh,el,card);
     el.appendChild(rh);
@@ -19099,6 +19291,7 @@ function typeChipIcon(type){
     boardlink:'<path d="M3 7.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v9A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/>',
     colorpicker:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.2" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="16.2" r="1.3" fill="currentColor" stroke="none"/><circle cx="7.8" cy="12" r="1.3" fill="currentColor" stroke="none"/>',
     wowpvp:'<path d="M12 3.3l7 2.8v5.4c0 5-3 7.9-7 9.2-4-1.3-7-4.2-7-9.2V6.1z"/><path d="M9 12l2.2 2.2L15.5 9.5"/>',
+    heading:'<path d="M6 5v14M18 5v14M6 12h12"/>',
     carousel:'<rect x="2.5" y="6" width="6" height="12" rx="1.5"/><rect x="9" y="4" width="6" height="16" rx="1.7"/><rect x="15.5" y="6" width="6" height="12" rx="1.5"/>',
     link:'<path d="M10 14a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     blanket:'<path d="M4 20l1-4.6L15.2 5.2a1.8 1.8 0 0 1 2.6 0l1 1a1.8 1.8 0 0 1 0 2.6L8.6 19 4 20z"/><path d="M13.6 6.8l3.6 3.6"/>',
@@ -19205,6 +19398,84 @@ function serializeNoteHtml(bodyEl){
   clone.querySelectorAll('img[data-image-id]').forEach(img=>{ img.removeAttribute('src'); img.removeAttribute('data-resolved'); });
   return clone.innerHTML;
 }
+const HEADING_FONTS={
+  bebas:{ff:"'Bebas Neue','Oswald','Impact','Arial Narrow',sans-serif", upper:true,  w:400, label:'Bebas'},
+  anton:{ff:"'Anton','Impact','Arial Narrow',sans-serif",               upper:true,  w:400, label:'Anton'},
+  serif:{ff:"'Playfair Display',Georgia,'Times New Roman',serif",       upper:false, w:800, label:'Serif'},
+  hand: {ff:"'Caveat','Segoe Script','Comic Sans MS',cursive",          upper:false, w:700, label:'Hand'},
+  marker:{ff:"'Permanent Marker','Marker Felt','Comic Sans MS',cursive",upper:false, w:400, label:'Marker'},
+  sans: {ff:"'IBM Plex Sans',system-ui,sans-serif",                     upper:false, w:700, label:'Sans'},
+};
+function headingFontOf(card){ return HEADING_FONTS[card.data&&card.data.font] || HEADING_FONTS.bebas; }
+function headingInkCss(card){
+  if(card.color==='custom' && card.customColor) return card.customColor;
+  if(card.color && card.color!=='none'){
+    const tk=cardBuildTokens||computeCardBuildTokens();
+    const rgb=tk && tk.tagRgb && tk.tagRgb[card.color];
+    if(rgb) return `rgb(${rgb})`;
+  }
+  return 'var(--ink)';
+}
+// Largest font-size at which the whole (unwrapped) text still fits inside the card box.
+function fitHeadingText(el){
+  const tx=el.querySelector('.heading-text'); if(!tx) return;
+  const W=el.clientWidth, H=el.clientHeight; if(!W || !H) return;
+  const hasText=tx.textContent.length>0;
+  if(!hasText){ tx.style.fontSize=Math.max(10,Math.min(H*0.7,W/6))+'px'; return; }
+  let lo=4, hi=Math.min(Math.max(H*1.5,24),1200);
+  for(let i=0;i<14;i++){
+    const mid=(lo+hi)/2;
+    tx.style.fontSize=mid+'px';
+    if(tx.offsetWidth<=W && tx.offsetHeight<=H) lo=mid; else hi=mid;
+  }
+  tx.style.fontSize=lo+'px';
+}
+function buildHeadingCard(card){
+  const el=baseCardShell(card,'card-heading');
+  el.style.setProperty('--heading-ink',headingInkCss(card));
+  const hf=headingFontOf(card);
+  el.style.setProperty('--heading-ff',hf.ff); el.style.setProperty('--heading-fw',hf.w); el.style.setProperty('--heading-tt',hf.upper?'uppercase':'none');
+  el.innerHTML=`<div class="heading-box"><div class="heading-text" spellcheck="false" data-placeholder="${escapeHtml(t('placeholder_heading'))}"></div></div>`;
+  const tx=el.querySelector('.heading-text');
+  tx.textContent=card.data.text||'';
+  const fit=()=>fitHeadingText(el);
+  let raf=0;
+  const fitSoon=()=>{ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; fit(); }); };
+  if(typeof ResizeObserver!=='undefined') new ResizeObserver(fitSoon).observe(el);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
+  if(document.fonts && document.fonts.load){ try{ document.fonts.load(`${hf.w} 40px ${hf.ff}`).then(fitSoon).catch(()=>{}); }catch(e){} }
+  fit();
+  function startEdit(){
+    if(tx.isContentEditable) return;
+    tx.contentEditable='true';
+    tx.focus();
+    const range=document.createRange(); range.selectNodeContents(tx);
+    const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  }
+  el._startHeadingEdit=startEdit;
+  tx.addEventListener('pointerdown',(e)=>{ if(tx.isContentEditable && !state.connectMode) e.stopPropagation(); });
+  el.addEventListener('dblclick',(e)=>{ if(state.connectMode) return; e.stopPropagation(); startEdit(); });
+  // Touch: a quick second tap on the same heading also starts editing (dblclick is unreliable under touch-action:none).
+  let lastTap=0;
+  el.addEventListener('pointerup',(e)=>{
+    if(e.pointerType!=='touch' || tx.isContentEditable) return;
+    const now=performance.now();
+    if(now-lastTap<350){ lastTap=0; startEdit(); } else lastTap=now;
+  });
+  tx.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter'){ e.preventDefault(); insertPlainNewlineAtCaret(tx); card.data.text=tx.textContent; DB.putCard(card); fit(); }
+    else if(e.key==='Escape'){ e.preventDefault(); tx.blur(); }
+  });
+  wirePlainTextPaste(tx);
+  tx.addEventListener('input',()=>{ card.data.text=tx.textContent; saveCardSoon(card); fit(); });
+  tx.addEventListener('blur',()=>{
+    tx.contentEditable='false';
+    card.data.text=tx.textContent; DB.putCard(card); fit();
+    window.getSelection().removeAllRanges();
+  });
+  return el;
+}
+
 function buildNoteCard(card){
   const el=baseCardShell(card,'card-note');
   el.innerHTML=`
@@ -23505,6 +23776,10 @@ function attachResize(handle,el,card){
       const ratio=(imgEl && imgEl.naturalWidth && imgEl.naturalHeight) ? imgEl.naturalWidth/imgEl.naturalHeight : (rs.w/rs.h);
       card.w=snap(clamp(rs.w+dx,140,2000));
       card.h=clamp(Math.round(card.w/ratio),80,2000);
+    }else if(card.type==='heading'){
+      // Überschrift: frei skalierbar, die Schrift passt sich der Box an (fitHeadingText via ResizeObserver).
+      card.w=snap(clamp(rs.w+dx,60,4000));
+      card.h=snap(clamp(rs.h+dy,32,2000));
     }else if(card.type==='column'){
       // Columns are meant to work as thin side-by-side lanes/areas, so they get their own, noticeably
       // lower width floor than a note/checklist card — 90px still leaves enough room for the title
@@ -23891,7 +24166,7 @@ function updateConnectorPositions(){
    briefly highlight the next/previous matching card.
    ============================================================ */
 function cardSearchText(c){
-  if(c.type==='note') return c.data.text||'';
+  if(c.type==='note' || c.type==='heading') return c.data.text||'';
   if(c.type==='checklist') return (c.data.title||'')+' '+(c.data.items||[]).map(i=>i.text||'').join(' ');
   if(c.type==='column') return (c.data.title||'')+' '+(c.data.text||'');
   if(c.type==='table') return (c.data.title||'')+' '+Object.values(c.data.cells||{}).map(cell=>cell&&cell.text||'').join(' ');
@@ -24028,6 +24303,13 @@ boardColorBtn.addEventListener('click',async (e)=>{
   if(!board) return;
   const r=boardColorBtn.getBoundingClientRect();
   showBoardColorPopover(r.left+r.width/2, r.bottom, board, ()=>syncBoardColorDot(board));
+});
+document.getElementById('boardIconBtn').addEventListener('click',async ()=>{
+  let board=boardById(state.currentBoardId);
+  if(!board && state.currentBoardId){ board=await DB.getBoard(state.currentBoardId); if(board) state.boards.push(board); }
+  if(!board) return;
+  const btn=document.getElementById('boardIconBtn'), r=btn.getBoundingClientRect();
+  openBoardIconPopover(r.left, r.bottom+8, board, ()=>{ lastHomePaintSig=null; });
 });
 // allDated: cached [{card, boardId, boardName}, ...] across EVERY board, populated by
 // allDatedCardsAcrossBoards() — see openCalendarPanel()/refreshCalendarIfOpen() for when it's
@@ -24574,6 +24856,7 @@ async function addCard(type, extra){
   const center = extra && extra.at ? extra.at : cascadeCenter();
   let w=260,h=160,data={};
   if(type==='note'){ w=220; h=140; data={text:''}; }
+  if(type==='heading'){ w=440; h=120; data={text:''}; }
   if(type==='column'){ w=380; h=280; data={title:'', text:''}; }
   if(type==='checklist'){ w=260; h=180; data={title:'',items:[]}; }
   if(type==='colorpicker'){ w=270; h=340; data={hex:'#FF6B57', history:[]}; }
@@ -26139,6 +26422,7 @@ function focusNewCard(card){
   const el=cardsLayer.querySelector(`.card[data-id="${card.id}"]`);
   if(!el) return;
   let target=null;
+  if(card.type==='heading'){ if(el._startHeadingEdit) el._startHeadingEdit(); return; }
   if(card.type==='note') target=el.querySelector('.note-body');
   else if(card.type==='column') target=el.querySelector('.column-title');
   else if(card.type==='checklist') target=el.querySelector('.checklist-title');
@@ -26295,12 +26579,15 @@ const CREATE_MENU_TYPES_BASE=['note','media','youtube','column','checklist','tab
 // Same beta-gating idea as getWidgetFamilyKinds() above — 'wowpvp' only joins the list once unlocked
 // via the secret "functionwow" code, computed fresh on every open so it appears immediately.
 function getCreateMenuTypes(){
-  return isBetaFeatureUnlocked('wow') ? [...CREATE_MENU_TYPES_BASE,'wowpvp'] : CREATE_MENU_TYPES_BASE;
+  const out=[...CREATE_MENU_TYPES_BASE];
+  if(isBetaFeatureUnlocked('wow')) out.push('wowpvp');
+  if(isBetaFeatureUnlocked('heading') && !state.dockConfig.hidden.includes('heading')) out.push('heading');
+  return out;
 }
 const CREATE_MENU_LABEL_KEY={
   note:'add_note_label', media:'add_media_label', image:'add_image_label', file:'add_file_label', youtube:'add_youtube_label',
   column:'add_column_label', checklist:'add_checklist_label_dock', table:'add_table_label',
-  colorpicker:'add_colorpicker_label', board:'add_boardlink_label_dock', wowpvp:'add_wowpvp_label',
+  colorpicker:'add_colorpicker_label', board:'add_boardlink_label_dock', wowpvp:'add_wowpvp_label', heading:'add_heading_label',
   blanket:'add_blanket_label', blanketboard:'add_blanketboard_label', draw:'add_draw_label'
 };
 const createMenuEl=document.getElementById('createMenu');
@@ -28061,6 +28348,7 @@ if(toolsBtn){
   }
   document.getElementById('toolsSecretWowItem').addEventListener('click',()=>toggleSecretDockHidden('wowpvp'));
   document.getElementById('toolsSecretStravaItem').addEventListener('click',()=>toggleSecretDockHidden('strava'));
+  document.getElementById('toolsSecretHeadingItem').addEventListener('click',()=>toggleSecretDockHidden('heading'));
   // Download- and Update-Button: the card is an on/off switch (the unlock itself stays).
   [['toolsSecretInstallsItem','installs'],['toolsSecretUpdateItem','update']].forEach(([id,key])=>{
     const el=document.getElementById(id); if(!el) return;
@@ -28077,7 +28365,7 @@ if(toolsBtn){
   toolsSheetBackdrop.addEventListener('click',closeToolsSheet);
 }
 function refreshSecretToggleCardsUI(){
-  [['toolsSecretWowItem','wowpvp'],['toolsSecretStravaItem','strava']].forEach(([id,key])=>{
+  [['toolsSecretWowItem','wowpvp'],['toolsSecretStravaItem','strava'],['toolsSecretHeadingItem','heading']].forEach(([id,key])=>{
     const item=document.getElementById(id);
     if(!item) return;
     const on=!state.dockConfig.hidden.includes(key);
