@@ -2261,7 +2261,7 @@ try{
   .card-boardlink .bl-body{flex:1; display:flex; flex-direction:column; padding:10px 12px 12px; gap:7px; overflow:hidden;}
   .bl-name{
     font-size:0.9rem; font-weight:700; outline:none; word-break:break-word;
-    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; text-wrap:balance;
+    display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; text-wrap:balance;
   }
   .bl-name[contenteditable="true"]{-webkit-line-clamp:unset; overflow:visible;}
   .bl-meta{font-size:0.7rem; color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:auto; flex:none;}
@@ -15815,7 +15815,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.132';
+const APP_VERSION='2.4.133';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17591,18 +17591,21 @@ if(window.matchMedia){
   });
 }
 syncThemeUI();
-function fitCardHeight(el,card){
-  if(!state.dynamicContent) return;
+function fitCardHeight(el,card,allowShrink){
+  // Sub-Board-Kacheln wachsen IMMER mit ihrem Namen mit (nie abgeschnitten), unabhängig vom Schalter "dynamischer Inhalt"
+  const isBL=card.type==='boardlink';
+  if(!isBL && !state.dynamicContent) return;
   // wowpvp joined this list so the Verlauf tab's selects/chart and the always-visible copy-talents
   // button never need .wow-body's own internal scrollbar (see the [data-beta="wow"] work below) — same
   // "grow instead of scroll" idea notes/checklists already get, just triggered from renderResult()
   // instead of a text-input handler.
-  if(card.type!=='note' && card.type!=='checklist' && card.type!=='wowpvp') return;
+  if(!isBL && card.type!=='note' && card.type!=='checklist' && card.type!=='wowpvp') return;
   const prevHeight=el.style.height;
   el.style.height='auto';
   const needed=Math.ceil(el.scrollHeight)+2; // +2px safety margin against sub-pixel rounding
   el.style.height=prevHeight;
-  const finalH=clamp(snapUp(needed),80,2000);
+  let finalH=clamp(snapUp(needed),isBL?140:80,2000);
+  if(isBL && !allowShrink && finalH<=card.h) return; // beim bloßen Laden nur wachsen, nie ungefragt schrumpfen/neu speichern
   if(finalH!==card.h){
     card.h=finalH;
     el.style.height=card.h+'px';
@@ -19272,6 +19275,11 @@ function renderAllCards(){
   // calls the cheaper updateConnectorPositions()/updateClusterOutlinePositions() instead — so folding
   // it in here costs nothing on the frequent path and permanently closes off this whole class of bug.
   renderConnectors();
+  sorted.forEach(c=>{
+    if(c.type!=='boardlink') return;
+    const el=cardsLayer.querySelector('.card[data-id="'+c.id+'"]');
+    if(el) fitCardHeight(el,c);
+  });
   if(state.dynamicContent){
     sorted.forEach(c=>{
       if(c.type!=='note' && c.type!=='checklist' && c.type!=='wowpvp') return;
@@ -21923,13 +21931,14 @@ function buildBoardlinkCard(card){
   // a fresh folder per letter typed, leaving orphaned duplicates and images that only reappeared after
   // a reload. Live 'input' still updates this card's own (cheap, local) data immediately for
   // responsiveness — only the expensive board-rename part waits for the edit to actually finish.
-  nameEl.addEventListener('input',()=>{ card.data.title=nameEl.textContent; saveCardSoon(card); });
+  nameEl.addEventListener('input',()=>{ card.data.title=nameEl.textContent; saveCardSoon(card); fitCardHeight(el,card,true); });
   wireEnterConfirms(nameEl);
   nameEl.addEventListener('blur',async ()=>{
     const title=nameEl.textContent.trim()||t('untitled_board');
     nameEl.textContent=title;
     card.data.title=title;
     DB.putCard(card);
+    fitCardHeight(el,card,true);
     // boardById() returns the live state.boards entry (not a fresh DB.getBoard() copy) so the
     // mutation below is visible immediately to every other in-memory reader (breadcrumbs, home tiles)
     // instead of only taking effect after the next full reload.
