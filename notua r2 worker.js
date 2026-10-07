@@ -38,6 +38,22 @@
  *    sie in index.html (R2_SYNC_WORKER_URL) ein und du bekommst eine neue Version zum Einspielen.
  *    Keine weitere Variable nötig — dieser Worker hält selbst kein Verschlüsselungsgeheimnis mehr.
  *
+ * ---------------------------------------------------------------------------------------------------
+ * NEU (Version 2.4.106) — "Schlüsseltresor": Anmeldung auf einem neuen Gerät nur mit Google, ohne Code.
+ * Der Datenschlüssel eines Kontos wird zusätzlich hier im Worker verwahrt (/key), verschlüsselt mit einem
+ * Geheimnis, das nur dieser Worker kennt. Dafür EINMALIG eine Variable anlegen:
+ *    Settings -> Variables and Secrets -> Add -> Typ "Secret"
+ *      Name:  KEY_WRAP_SECRET
+ *      Wert:  eine lange, zufällige Zeichenfolge (z.B. 40+ Zeichen, nirgends sonst verwenden)
+ * und diesen Worker neu deployen. WICHTIG: dieses Geheimnis nie ändern oder löschen — sonst lassen sich die
+ * bereits abgelegten Schlüssel nicht mehr entschlüsseln (die Geräte, die den Schlüssel noch lokal haben,
+ * legen ihn dann beim nächsten Start einfach neu ab, aber ein komplett neues Gerät käme erst wieder per
+ * "Gerät verknüpfen" an die Daten).
+ * Ohne diese Variable bleibt alles wie vorher (GET /version meldet keyvault:false, die App nutzt dann
+ * weiter nur das Verknüpfen per Code). Ehrlich gesagt: mit dem Tresor ist es KEINE Ende-zu-Ende-
+ * Verschlüsselung mehr — wer den Worker samt Secret und Bucket kontrolliert, kann die Daten lesen.
+ * ---------------------------------------------------------------------------------------------------
+ *
  * Zur Verschlüsselung: jeder Account bekommt seinen AES-256-GCM-Schlüssel ausschließlich im Browser
  * (auf dem allerersten Gerät, das je eingerichtet wird — siehe r2GenerateFirstKey in index.html).
  * Dieser Worker ist daran nie beteiligt und sieht bei GET/PUT auf /object/... nur die fertig
@@ -128,6 +144,17 @@ function randomDeviceToken() {
   // 'ndt_' (NOTUA device token) prefix lets verifyUser recognize this at a glance, no extra network
   // round trip needed to tell it apart from a Google access token (those never start with this).
   return 'ndt_' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function bytesToB64(bytes) { let bin = ''; for (const b of bytes) bin += String.fromCharCode(b); return btoa(bin); }
+function b64ToBytes(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+// Wickel-Schlüssel des Tresors: aus dem Worker-Geheimnis und der Nutzer-ID abgeleitet (HKDF), damit jeder
+// Nutzer einen eigenen hat und ein Eintrag nie mit dem eines anderen Kontos entschlüsselbar ist.
+async function vaultWrapKey(env, uid) {
+  const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.KEY_WRAP_SECRET), 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new TextEncoder().encode('notua-keyvault-v1'), info: new TextEncoder().encode(uid) },
+    material, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 
 // Verifies whichever credential came with the request — a Google access token (the same one
@@ -243,7 +270,35 @@ export default {
     if (!uid) return err(401, 'unauthorized');
 
     if (url.pathname === '/version' && request.method === 'GET') {
-      return json({ proto: SYNC_PROTOCOL });
+      return json({ proto: SYNC_PROTOCOL, keyvault: !!env.KEY_WRAP_SECRET });
+    }
+
+    // Schlüsseltresor (siehe Kopfkommentar): der Datenschlüssel des Kontos, vom Worker verschlüsselt abgelegt,
+    // damit sich ein neues Gerät nur mit Google-Login (oder Device Token) den Schlüssel selbst holen kann.
+    // PUT legt ihn nur an, wenn noch keiner existiert (409 sonst) — ein bestehender wird nie überschrieben.
+    if (url.pathname === '/key') {
+      if (!env.KEY_WRAP_SECRET) return err(501, 'keyvault not configured');
+      const vaultObjKey = 'users/' + uid + '/keyvault/key.json';
+      if (request.method === 'GET') {
+        const obj = await env.NOTUA_BUCKET.get(vaultObjKey);
+        if (!obj) return err(404, 'not found');
+        try {
+          const rec = JSON.parse(await obj.text());
+          const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(rec.iv) }, await vaultWrapKey(env, uid), b64ToBytes(rec.ct));
+          return json({ key: bytesToB64(new Uint8Array(plain)) });
+        } catch (e) { return err(500, 'keyvault decrypt failed'); }
+      }
+      if (request.method === 'PUT') {
+        let raw;
+        try { raw = b64ToBytes(String((await request.json()).key || '')); } catch (e) { return err(400, 'bad key'); }
+        if (raw.length !== 32) return err(400, 'bad key');
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await vaultWrapKey(env, uid), raw));
+        const written = await env.NOTUA_BUCKET.put(vaultObjKey, JSON.stringify({ v: 1, iv: bytesToB64(iv), ct: bytesToB64(ct) }), { onlyIf: { etagDoesNotMatch: '*' } });
+        if (written === null) return json({ error: 'already exists' }, 409);
+        return json({ ok: true });
+      }
+      return err(405, 'method not allowed');
     }
 
     if (url.pathname === '/usage' && request.method === 'GET') {

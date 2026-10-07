@@ -31,7 +31,7 @@
 <body>
 <div class="wrap">
   <h1>Datenschutzerklärung</h1>
-  <p class="stand">Stand: 24. September 2026 — gilt für die Nutzung von NOTUA (notua.site)</p>
+  <p class="stand">Stand: 7. Oktober 2026 — gilt für die Nutzung von NOTUA (notua.site)</p>
 
   <h2>1. Verantwortlicher</h2>
   <p>
@@ -66,47 +66,56 @@
     Board-Inhalte.
   </p>
 
-  <h2>4. Cloud Sync (optional, Ende-zu-Ende-verschlüsselt)</h2>
+  <h2>4. Cloud Sync (optional, verschlüsselt gespeichert)</h2>
   <p>
     Wenn du "Cloud Sync" aktivierst, um Boards zwischen mehreren eigenen Geräten abzugleichen, werden deine
-    Board-Daten bei einem Cloud-Speicher-Anbieter (Cloudflare, Objektspeicher-Dienst "R2") hinterlegt. Dabei gilt:
+    Board-Daten (Boards, Karten, Texte, Bilder) bei einem Cloud-Speicher-Anbieter (Cloudflare, Objektspeicher-Dienst
+    "R2") hinterlegt. Dabei gilt:
   </p>
   <ul>
     <li>
       Deine Daten werden <strong>auf deinem Gerät verschlüsselt, bevor</strong> sie hochgeladen werden
-      (AES-256-GCM). Der dafür verwendete Schlüssel wird ausschließlich auf deinen eigenen Geräten erzeugt und
-      gespeichert und niemals unverschlüsselt an den Server übertragen.
+      (AES-256-GCM). Im Cloud-Speicher liegen ausschließlich verschlüsselte Datenblöcke.
     </li>
     <li>
-      Verknüpfst du ein weiteres eigenes Gerät (per QR-Code oder Code-Eingabe), wird der Schlüssel über ein
-      direktes kryptografisches Verfahren (ECDH-Schlüsselaustausch) zwischen deinen Geräten ausgetauscht — der
-      Server leitet dabei nur bedeutungslose, verschlüsselte Zwischenwerte weiter und kann daraus den eigentlichen
-      Schlüssel nicht berechnen.
+      <strong>Keine Ende-zu-Ende-Verschlüsselung:</strong> Der dafür verwendete Schlüssel wird mit deinem Konto verknüpft
+      und zusätzlich auf dem NOTUA-Server (einem Cloudflare Worker) verwahrt, dort wiederum mit einem nur dem Server
+      bekannten Geheimnis verschlüsselt. Dadurch kannst du dich auf einem neuen Gerät allein mit deiner
+      Google-Anmeldung einloggen und bekommst sofort alle deine Boards, ohne einen Code eingeben zu müssen.
+      Technisch bedeutet das: Wer den Server samt Geheimnis und Speicher kontrolliert, also der Betreiber (Tom Nüßer)
+      oder Cloudflare im Rahmen der Auftragsverarbeitung, <em>könnte</em> deine Cloud-Daten entschlüsseln und lesen.
+      Der Betreiber nutzt diese Möglichkeit nicht, um Inhalte einzusehen; sie ist aber technisch vorhanden.
     </li>
     <li>
-      Im Ergebnis kann weder der Betreiber der App (Tom Nüsser) noch der Speicheranbieter (Cloudflare) die
-      Inhalte deiner Boards einsehen. Server-seitig sind ausschließlich verschlüsselte, für Dritte bedeutungslose
-      Datenblöcke sichtbar.
+      Alternativ kannst du ein weiteres Gerät <em>ohne</em> Google-Anmeldung per QR-Code oder Code-Eingabe
+      ("Gerät verknüpfen") mit demselben Cloud-Speicher koppeln. Dabei wird der Schlüssel über einen
+      ECDH-Schlüsselaustausch direkt zwischen deinen Geräten übertragen; der Server leitet nur
+      bedeutungslose Zwischenwerte weiter.
     </li>
     <li>
-      Server-seitig sichtbar (aber nicht der eigentliche Inhalt) sind: verschlüsselte Datenblöcke pro Board,
-      ein Geräte-Zugangstoken pro verknüpftem Gerät, sowie technische Metadaten wie Zeitpunkt und Größe der
-      gespeicherten Daten. Das Speichervolumen ist pro Konto auf 100 MB begrenzt.
+      Server-seitig gespeichert sind: verschlüsselte Datenblöcke pro Board, der verschlüsselt verwahrte
+      Kontoschlüssel, ein Geräte-Zugangstoken pro Gerät (ausgestellt bei der Verknüpfung per Code oder nach deiner ersten Google-Anmeldung) sowie technische Metadaten wie Zeitpunkt
+      und Größe der gespeicherten Daten. Das Speichervolumen ist pro Konto auf 100 MB begrenzt.
     </li>
     <li>
-      Ein Geräte-Zugangstoken erlaubt Lese-/Schreibzugriff auf die verschlüsselten Daten deines Kontos, nicht
-      aber deren Entschlüsselung. Über "Cloud-Daten zurücksetzen" in den App-Einstellungen kannst du jederzeit
-      alle bisher ausgegebenen Geräte-Zugangstoken widerrufen und deine in der Cloud gespeicherten Daten
-      vollständig löschen.
+      Ein Geräte-Zugangstoken hält dich auf dem jeweiligen Gerät dauerhaft angemeldet ("Autologin"), ohne dass Google erneut abgefragt wird; er wird nur lokal auf diesem Gerät gespeichert und erlaubt Lese-/Schreibzugriff auf die Daten deines Kontos. Über "Cloud-Daten
+      zurücksetzen" in den App-Einstellungen kannst du jederzeit alle bisher ausgegebenen Geräte-Zugangstoken
+      widerrufen und deine in der Cloud gespeicherten Daten samt verwahrtem Schlüssel vollständig löschen.
+    </li>
+    <li>
+      Rechtsgrundlage ist deine Einwilligung durch die ausdrückliche Aktivierung der Funktion (Art. 6 Abs. 1 lit. a
+      bzw. lit. b DSGVO). Wenn du die Verschlüsselungs-Hinweise bei der ersten Aktivierung bestätigst, stimmst du
+      der beschriebenen Schlüsselverwahrung zu; ohne Bestätigung wird kein Schlüssel auf dem Server abgelegt.
     </li>
   </ul>
 
   <h2>5. Google-Anmeldung (zur Konto-Identifizierung)</h2>
   <p>
-    Um Cloud Sync einem Konto zuzuordnen (auf dem ersten Gerät), bietet NOTUA optional eine Anmeldung über dein
-    Google-Konto an. Dabei erhält NOTUA von Google ausschließlich grundlegende Profildaten zur Identifizierung
-    (z. B. E-Mail-Adresse, Name). Ein Zugriff auf deine sonstigen Google-Dienste (etwa Google Drive oder Gmail)
-    findet dabei nicht statt.
+    Um Cloud Sync einem Konto zuzuordnen und auf einem neuen Gerät automatisch freizuschalten, bietet NOTUA optional
+    eine Anmeldung über dein Google-Konto an. Dabei erhält NOTUA von Google ausschließlich grundlegende Profildaten
+    zur Identifizierung (z. B. E-Mail-Adresse, Name); der Server verwendet daraus eine interne Konto-Kennung, unter der
+    deine Cloud-Daten und dein verwahrter Schlüssel abgelegt sind. Nach der ersten erfolgreichen Anmeldung bleibt das Gerät über den Geräte-Zugangstoken (siehe Abschnitt 4)
+    angemeldet. Ein Zugriff auf deine sonstigen Google-Dienste (etwa Google Drive oder Gmail) findet dabei nicht statt.
   </p>
 
   <h2>6. Übernahme von Terminen in Google Kalender (optional)</h2>
@@ -150,7 +159,7 @@
   <h2>10. Speicherdauer</h2>
   <p>
     Lokal gespeicherte Daten bleiben, bis du sie selbst löschst oder die App-Daten deines Browsers leerst.
-    Cloud-Sync-Daten bleiben gespeichert, bis du sie über "Cloud-Daten zurücksetzen" löschst.
+    Cloud-Sync-Daten und der dafür verwahrte Schlüssel bleiben gespeichert, bis du sie über "Cloud-Daten zurücksetzen" löschst.
   </p>
 
   <h2>11. Änderungen dieser Erklärung</h2>
