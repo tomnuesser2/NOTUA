@@ -10715,18 +10715,19 @@ function deriveThemeTokens(main,accent,background,dark){
   // auf der Hintergrund-Helligkeit und der Hintergrund (Canvas) rückt ein Stück dunkler, sodass sich die Kacheln trotzdem abheben.
   const neutralLight = !dark && bs<14 && bl<=97;
   const cOff = neutralLight ? -8 : 0;
-  const canvas       = dark ? hslToHex(bh, bsDarkClamped, anchorL)                : hslToHex(bh, bsClamped, anchorL+cOff);
-  const canvasDot    = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+8,4,42))  : hslToHex(bh, bsClamped, clamp(anchorL+cOff-12,4,97));
-  const border       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+6,4,42)) : hslToHex(bh, bsClamped, clamp(anchorL+cOff-7,4,97));
-  const borderStrong = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+11,4,46)): hslToHex(bh, bsClamped, clamp(anchorL+cOff-16,4,97));
+  const bsL = neutralLight ? 1 : bsClamped; // neutral: praktisch reines Grau, kein Blau-/Grünstich
+  const canvas       = dark ? hslToHex(bh, bsDarkClamped, anchorL)                : hslToHex(bh, bsL, anchorL+cOff);
+  const canvasDot    = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+8,4,42))  : hslToHex(bh, bsL, clamp(anchorL+cOff-12,4,97));
+  const border       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+6,4,42)) : hslToHex(bh, bsL, clamp(anchorL+cOff-7,4,97));
+  const borderStrong = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+11,4,46)): hslToHex(bh, bsL, clamp(anchorL+cOff-16,4,97));
   // Tom, 24.09: "im hellen Modus sind die Elemente... immer noch weiß anstatt der helle Ton" — this used
   // to clamp saturation to a mere 18% AND sit at a fixed 99% lightness, which for almost any background
   // hue rounds to something like #FDFCFC: technically tinted, but indistinguishable from plain white to
   // the eye. Now shares the same saturation clamp as canvas/border and rides the same anchorL as them
   // (offset +8 in light mode) — still the lightest of the three surfaces (card face > surface2 >
   // canvas), just no longer pinned so pale it reads as white regardless of the palette picked.
-  const surface       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+5,4,42)) : hslToHex(bh, bsClamped, clamp(neutralLight ? anchorL-3 : anchorL+8,4,99));
-  const surface2       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+2,4,42)) : hslToHex(bh, bsClamped, clamp(neutralLight ? anchorL-5 : anchorL+6,4,99));
+  const surface       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+5,4,42)) : hslToHex(bh, bsL, clamp(neutralLight ? anchorL-3 : anchorL+8,4,99));
+  const surface2       = dark ? hslToHex(bh, bsDarkClamped, clamp(anchorL+2,4,42)) : hslToHex(bh, bsL, clamp(neutralLight ? anchorL-5 : anchorL+6,4,99));
   // Same hex as `surface` above, just as an "r,g,b" triplet — every colorless card's rgba(var(--surface-rgb),…)
   // fill (and the auto-contrast text math that reads it, see cardAccentTextColors) needs the triplet form,
   // not the hex one already returned as --surface. See THEME_OVERRIDE_VARS' own comment for the bug this fixes.
@@ -15875,7 +15876,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.140';
+const APP_VERSION='2.4.141';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
