@@ -3990,6 +3990,65 @@ try{
     .tile-actions{top:4px; right:4px; gap:4px;}
     .tile-actions button{width:34px; height:34px; border-radius:9px;}
   }
+  /* ---------- PROJEKTE: Stapel-Optik + Projektfarbe/Icon ---------- */
+  .project-tile, html[data-d-radius] .project-tile{
+    background:none; border:none; padding:0; box-shadow:none; position:relative; border-radius:10px;
+  }
+  .project-tile.drop-target{border:none; box-shadow:none;}
+  .project-tile.drop-target .pt-card{box-shadow:0 0 0 2.5px var(--accent);}
+  @media (hover:hover) and (pointer:fine){
+    .project-tile:hover{box-shadow:none; border:none; transform:translateY(-2px);}
+    .project-tile:hover .pt-card{box-shadow:0 12px 26px -8px var(--shadow);}
+    .project-tile:hover .pt-layer.l1{transform:translateY(7px) scaleX(.95);}
+    .project-tile:hover .pt-layer.l2{transform:translateY(13px) scaleX(.9);}
+  }
+  .pt-layer{
+    position:absolute; left:0; right:0; top:0; bottom:0; border-radius:inherit; background:var(--surface);
+    border:1px solid color-mix(in srgb, var(--pc, var(--accent)) 32%, var(--border)); transition:transform .22s var(--ease-out,cubic-bezier(.22,1,.36,1));
+  }
+  .pt-layer.l1{transform:translateY(6px) scaleX(.95);}
+  .pt-layer.l2{transform:translateY(12px) scaleX(.9); opacity:.85;}
+  .pt-card{
+    position:relative; height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;
+    padding:calc(12px + var(--d-inset,0px)) calc(14px + var(--d-inset,0px)) calc(12px + var(--d-inset,0px)); border-radius:inherit; background:var(--surface);
+    border:1px solid color-mix(in srgb, var(--pc, var(--accent)) 45%, var(--border)); border-top:3px solid var(--pc, var(--accent));
+    box-shadow:0 1px 2px rgba(0,0,0,.05); overflow:hidden; transition:box-shadow .22s var(--ease-out,cubic-bezier(.22,1,.36,1));
+  }
+  .project-badge{
+    width:28px; height:28px; border-radius:8px; background:var(--pc, var(--accent)); color:#fff; align-items:center; justify-content:center;
+  }
+  .project-badge svg{width:15px; height:15px;}
+  .pt-chips{display:flex; align-items:center; padding-left:8px; margin:4px 0;}
+  .pt-chip{width:34px; height:34px; border-radius:9px; margin-left:-8px; border:2px solid var(--surface); box-sizing:border-box; flex:none;}
+  .pt-chip.board-badge svg{width:15px; height:15px;}
+  .pt-chip-more{display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--muted); font-size:0.72rem; font-weight:700;}
+  .project-panel{
+    background:color-mix(in srgb, var(--pc, var(--accent)) 7%, var(--surface-2)); border:1.5px solid color-mix(in srgb, var(--pc, var(--accent)) 38%, var(--border));
+    border-left:5px solid var(--pc, var(--accent));
+  }
+  .project-panel.drop-target{border-color:var(--accent); box-shadow:0 0 0 2.5px var(--accent);}
+  .project-panel .project-head-title{gap:9px;}
+  .project-actions button svg{width:15px; height:15px;}
+  .project-style-pop{
+    position:fixed; z-index:70; width:232px; padding:12px; border-radius:12px; background:var(--surface); border:1px solid var(--border);
+    box-shadow:0 14px 34px -12px var(--shadow-lg); animation:pop var(--dur-pop,.18s) var(--ease-out,ease);
+  }
+  .psp-label{font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--faint); margin:2px 0 7px;}
+  .psp-label:not(:first-child){margin-top:12px;}
+  .psp-row{display:flex; flex-wrap:wrap; gap:7px;}
+  .psp-sw{width:26px; height:26px; border-radius:50%; border:2px solid var(--surface); box-shadow:0 0 0 1px var(--border); padding:0; cursor:var(--custom-pointer-cursor,pointer);}
+  .psp-sw.active{box-shadow:0 0 0 2px var(--ink);}
+  .psp-sw-auto{background:conic-gradient(var(--accent) 0 50%, var(--accent-soft) 0 100%);}
+  .psp-row .swatch-custom{width:26px; height:26px;}
+  .psp-ic{width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); display:flex; align-items:center; justify-content:center; padding:0; cursor:var(--custom-pointer-cursor,pointer);}
+  .psp-ic svg{width:16px; height:16px;}
+  .psp-ic:hover{color:var(--ink); border-color:var(--border-strong);}
+  .psp-ic.active{background:var(--accent-soft); color:var(--accent); border-color:var(--accent);}
+  @media (max-width:640px){
+    .pt-chip{width:28px; height:28px; margin-left:-7px;}
+    .pt-layer.l1{transform:translateY(4px) scaleX(.95);} .pt-layer.l2{transform:translateY(8px) scaleX(.9);}
+    .pt-card{padding:calc(9px + var(--d-inset,0px)) calc(11px + var(--d-inset,0px));}
+  }
   html[data-d-border="none"] .card, html[data-d-border="none"] .dp-card{border-color:transparent;}
   html[data-d-border="strong"] .card, html[data-d-border="strong"] .dp-card{border-color:var(--border-strong);}
   html[data-d-border="accent"] .card, html[data-d-border="accent"] .dp-card{border-color:var(--accent);}
@@ -5391,6 +5450,10 @@ const I18N={
   tools_secret_template_item:{de:'Vorlagen',en:'Templates'},
   tools_secret_images_item:{de:'Bilder-Ablage',en:'Image drop'},
   tools_secret_installs_item:{de:'App-Downloads',en:'App downloads'},
+  project_style_title:{de:'Farbe & Icon des Projekts',en:'Project color & icon',es:'Color e icono del proyecto',da:'Projektets farve og ikon'},
+  project_style_color:{de:'Farbe',en:'Color',es:'Color',da:'Farve'},
+  project_style_icon:{de:'Icon',en:'Icon',es:'Icono',da:'Ikon'},
+  project_style_auto:{de:'Standard (Akzentfarbe)',en:'Default (accent color)',es:'Predeterminado',da:'Standard'},
   tools_secret_update_item:{de:'Update-Button',en:'Update button',es:'Botón de actualización',da:'Opdateringsknap'},
   secret_feature_on_toast:{de:'Eingeschaltet',en:'Switched on',es:'Activado',da:'Slået til'},
   secret_feature_off_toast:{de:'Ausgeschaltet',en:'Switched off',es:'Desactivado',da:'Slået fra'},
@@ -13918,7 +13981,7 @@ async function paintHomeGrid(allIn){
   // merge lands — see there) — without this check, that second paint would tear down and recreate
   // every tile's DOM node even when the merge came back identical, which is what made a selected
   // tile's frame flicker off and back on for no visible reason.
-  const sig=roots.map(b=>b.id+':'+(b.updatedAt||0)).join('|')+'##'+state.projects.map(p=>p.id+':'+(p.collapsed?1:0)+':'+p.boardIds.join(',')).join('|');
+  const sig=roots.map(b=>b.id+':'+(b.updatedAt||0)).join('|')+'##'+state.projects.map(p=>p.id+':'+(p.collapsed?1:0)+':'+(p.color||'')+':'+(p.icon||'')+':'+p.boardIds.join(',')).join('|');
   if(sig===lastHomePaintSig) return;
   lastHomePaintSig=sig;
   const paintSeq=++homePaintSeq;
@@ -13984,14 +14047,14 @@ async function paintHomeGrid(allIn){
   clearTimeout(skelTimer);
   try{ localStorage.setItem('notua-home-skel',String(Math.min(8,standaloneTiles.length+projectEls.length))); }catch(e){}
   const frag=document.createDocumentFragment();
-  standaloneTiles.forEach(el=>frag.appendChild(el));
-  projectEls.forEach(el=>frag.appendChild(el));
-
+  // "Neues Board" always comes first (top-left), ahead of projects and boards.
   const newTile=document.createElement('div');
   newTile.className='board-tile new-tile';
   newTile.innerHTML=`${iconPlus()}<span>${t('new_board_tile')}</span>`;
   newTile.addEventListener('click',createBoardFlow);
   frag.appendChild(newTile);
+  projectEls.forEach(el=>frag.appendChild(el));
+  standaloneTiles.forEach(el=>frag.appendChild(el));
   if(paintSeq!==homePaintSeq) return; // a newer paint started meanwhile — it owns the grid now
   boardGrid.replaceChildren(frag);
   emptyHome.hidden=roots.length>0; // set together with the swap, so "no boards yet" never flashes while loading
@@ -14738,27 +14801,58 @@ document.addEventListener('pointerdown',(e)=>{
   if(e.target.closest('.board-tile, .project-tile, .project-panel')) return; // the tile's own handler resolves it
   clearTileMark();
 });
+// Project look: a chosen color (p.color, hex) and icon (p.icon, key of PROJECT_ICON_KEYS) — both optional;
+// without them a project follows the app's accent color and shows the folder icon.
+const PROJECT_ICON_KEYS=['folder','star','heart','bookmark','note','tag','pin','briefcase','camera','rocket','sparkle'];
+function projectIconSvg(key){
+  const w=(inner)=>`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+  switch(key){
+    case 'briefcase': return w('<rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5v2M3.5 13h17"/>');
+    case 'camera': return w('<path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/>');
+    case 'rocket': return w('<path d="M14 4c3.5 0 6 2.5 6 6-2 3-4 5-7 7l-6-6c2-3 4-5 7-7z"/><circle cx="14.5" cy="9.5" r="1.4"/><path d="M8 14l-3.5 1 1-3.5M10 16l-1 3.5 3.5-1"/>');
+    case 'sparkle': return w('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17v4M17 19h4"/>');
+    default: return boardIconPresetSvg(key||'folder');
+  }
+}
+function projectColorCss(p){ return (p && p.color) ? p.color : ''; }
+function applyProjectLookToEl(el,p){
+  if(!el) return;
+  if(p.color) el.style.setProperty('--pc',p.color); else el.style.removeProperty('--pc');
+  const badge=el.querySelector('.project-badge'); if(badge) badge.innerHTML=projectIconSvg(p.icon);
+}
 async function buildProjectTile(p){
   const tile=document.createElement('div');
   tile.className='project-tile';
   tile.dataset.projectId=p.id;
+  if(p.color) tile.style.setProperty('--pc',p.color);
   const boards=p.boardIds.map(id=>boardById(id)).filter(Boolean);
-  const preview=boards.slice(0,3);
+  const preview=boards.slice(0,4);
   const extra=boards.length-preview.length;
-  let miniHtml=preview.map(b=>`<div class="project-mini-chip"><div class="mini-spine" style="background:${(b.colorCustom && b.color)||'var(--accent)'}"></div></div>`).join('');
-  if(extra>0) miniHtml+=`<div class="project-mini-chip more">+${extra}</div>`;
-  const fillerCount=Math.max(0, 4-preview.length-(extra>0?1:0));
-  miniHtml+=`<div class="project-mini-chip"></div>`.repeat(fillerCount);
   tile.innerHTML=`
-    <div class="project-head">
-      <div class="project-head-title"><span class="project-badge">${iconFolder()}</span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
+    <div class="pt-layer l2"></div><div class="pt-layer l1"></div>
+    <div class="pt-card">
+      <div class="project-head">
+        <div class="project-head-title"><span class="project-badge">${projectIconSvg(p.icon)}</span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
+      </div>
+      <div class="pt-chips"></div>
+      <div class="meta">${t('project_board_count',{n:boards.length,s:boards.length===1?'':'s'})}</div>
     </div>
-    <div class="project-mini-grid">${miniHtml}</div>
-    <div class="meta">${t('project_board_count',{n:boards.length,s:boards.length===1?'':'s'})}</div>
   `;
+  const chips=tile.querySelector('.pt-chips');
+  preview.forEach(b=>{
+    const c=document.createElement('div'); c.className='pt-chip board-badge';
+    paintBoardBadgeElement(c,b);
+    chips.appendChild(c);
+  });
+  if(extra>0){ const m=document.createElement('div'); m.className='pt-chip pt-chip-more'; m.textContent='+'+extra; chips.appendChild(m); }
   tile.addEventListener('click',(e)=>{
     if(e.target.closest('h3[contenteditable="true"]')) return;
-    p.collapsed=false; saveProjects(); repaintHomeLocal();
+    p.collapsed=false;
+    // First time a project is opened: offer the color/icon picker right away (it can be changed any time
+    // later from the palette button in the open project's header).
+    const askStyle=!p.styleAsked; if(askStyle) p.styleAsked=true;
+    saveProjects(); repaintHomeLocal();
+    if(askStyle) setTimeout(()=>openProjectStylePopoverFor(p.id),420);
   });
   const h3=tile.querySelector('h3');
   h3.title=t('project_expand_title');
@@ -14773,15 +14867,68 @@ async function buildProjectTile(p){
   wireEnterConfirms(h3);
   return tile;
 }
+// Small popover with color swatches + icon choices for one project. Changes apply live to the open panel.
+let projectStylePopEl=null;
+function closeProjectStylePopover(){ if(projectStylePopEl){ projectStylePopEl.remove(); projectStylePopEl=null; } }
+function openProjectStylePopoverFor(projectId){
+  const p=state.projects.find(x=>x.id===projectId); if(!p) return;
+  const panel=document.querySelector(`.project-panel[data-project-id="${projectId}"]`); if(!panel) return;
+  const anchor=panel.querySelector('.project-style-btn'); if(!anchor) return;
+  openProjectStylePopover(anchor,p,panel);
+}
+function openProjectStylePopover(anchor,p,panel){
+  closeProjectStylePopover();
+  const pop=document.createElement('div'); pop.className='project-style-pop';
+  const presetHexes=BOARD_COLOR_PRESETS.map(h=>h.toLowerCase());
+  const cur=(p.color||'').toLowerCase();
+  pop.innerHTML=`
+    <div class="psp-label">${t('project_style_color')}</div>
+    <div class="psp-row psp-colors">
+      <button type="button" class="psp-sw psp-sw-auto${!p.color?' active':''}" data-color="" title="${t('project_style_auto')}"></button>
+      ${BOARD_COLOR_PRESETS.map(h=>`<button type="button" class="psp-sw${cur===h.toLowerCase()?' active':''}" data-color="${h}" style="background:${h}"></button>`).join('')}
+    </div>
+    <div class="psp-label">${t('project_style_icon')}</div>
+    <div class="psp-row psp-icons">
+      ${PROJECT_ICON_KEYS.map(k=>`<button type="button" class="psp-ic${(p.icon||'folder')===k?' active':''}" data-icon="${k}">${projectIconSvg(k)}</button>`).join('')}
+    </div>`;
+  const colors=pop.querySelector('.psp-colors');
+  const customHex=(cur && !presetHexes.includes(cur)) ? p.color : null;
+  const refresh=()=>{
+    const c=(p.color||'').toLowerCase();
+    pop.querySelectorAll('.psp-sw').forEach(b=>b.classList.toggle('active',(b.dataset.color||'').toLowerCase()===c));
+    pop.querySelectorAll('.psp-ic').forEach(b=>b.classList.toggle('active',b.dataset.icon===(p.icon||'folder')));
+  };
+  const commit=()=>{ saveProjects(); applyProjectLookToEl(panel,p); lastHomePaintSig=null; refresh(); };
+  colors.appendChild(buildCustomSwatchButton(customHex,(hex)=>{ p.color=hex; commit(); }));
+  pop.addEventListener('click',(e)=>{
+    const sw=e.target.closest('.psp-sw[data-color]'), ic=e.target.closest('.psp-ic[data-icon]');
+    if(sw){ p.color=sw.dataset.color||null; commit(); }
+    else if(ic){ p.icon=ic.dataset.icon; commit(); }
+  });
+  document.body.appendChild(pop);
+  projectStylePopEl=pop;
+  const r=anchor.getBoundingClientRect(), w=pop.offsetWidth, h=pop.offsetHeight;
+  pop.style.left=Math.max(8,Math.min(r.right-w, window.innerWidth-w-8))+'px';
+  let top=r.bottom+8; if(top+h>window.innerHeight-8) top=Math.max(8,r.top-h-8);
+  pop.style.top=top+'px';
+}
+document.addEventListener('pointerdown',(e)=>{
+  if(!projectStylePopEl) return;
+  if(e.target.closest('.project-style-pop') || e.target.closest('.project-style-btn')) return;
+  closeProjectStylePopover();
+});
+window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeProjectStylePopover(); });
 async function buildProjectPanel(p){
   const panel=document.createElement('div');
   panel.className='project-panel';
   panel.dataset.projectId=p.id;
+  if(p.color) panel.style.setProperty('--pc',p.color);
   const boards=p.boardIds.map(id=>boardById(id)).filter(Boolean);
   panel.innerHTML=`
     <div class="project-head">
-      <div class="project-head-title"><span class="project-badge">${iconFolder()}</span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
+      <div class="project-head-title"><span class="project-badge">${projectIconSvg(p.icon)}</span><h3 spellcheck="false">${escapeHtml(p.name)}</h3></div>
       <div class="project-actions">
+        <button class="project-style-btn" title="${t('project_style_title')}">${iconColorWheel()}</button>
         <button class="project-collapse-btn" title="${t('project_collapse_title')}">${iconChevronUp()}</button>
         <button class="project-dissolve-btn danger" title="${t('project_dissolve_title')}">${iconUncluster()}</button>
       </div>
@@ -14797,7 +14944,13 @@ async function buildProjectPanel(p){
     saveProjects();
   });
   wireEnterConfirms(h3);
+  panel.querySelector('.project-style-btn').addEventListener('click',(e)=>{
+    e.stopPropagation();
+    if(projectStylePopEl){ closeProjectStylePopover(); return; }
+    openProjectStylePopover(e.currentTarget,p,panel);
+  });
   panel.querySelector('.project-collapse-btn').addEventListener('click',()=>{
+    closeProjectStylePopover();
     p.collapsed=true; saveProjects(); repaintHomeLocal();
   });
   panel.querySelector('.project-dissolve-btn').addEventListener('click',()=>{
@@ -15426,7 +15579,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.121';
+const APP_VERSION='2.4.122';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
