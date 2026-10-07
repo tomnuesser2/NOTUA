@@ -15238,7 +15238,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.117';
+const APP_VERSION='2.4.118';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -15660,13 +15660,27 @@ async function navigateBackWithZoom(navigateFn){
   void outgoing.offsetWidth; // commit the transition before the class below changes what it's transitioning
   outgoing.classList.add('board-exit-zoom-active');
   await new Promise(res=>setTimeout(res,300)); // matches board-exit-zoom-prep's .3s transition
-  await navigateFn();
-  outgoing.classList.remove('board-exit-zoom-prep','board-exit-zoom-active');
-  const incoming = state.screen==='home' ? homeView : boardView;
-  incoming.classList.remove('board-enter-zoom');
-  void incoming.offsetWidth; // restart the keyframe animation even if this is the very same element as `outgoing'
-  incoming.classList.add('board-enter-zoom');
-  setTimeout(()=>incoming.classList.remove('board-enter-zoom'),420); // matches boardEnterZoom's .42s duration
+  // Home is hidden right now, so a class put on it stays dormant — the zoom-in starts by itself in the
+  // very frame goHome() un-hides it, instead of (old behaviour) un-hiding it at full size, waiting for
+  // refreshHome() to finish and only THEN restarting from scale 1.18/opacity 0 — which showed Home
+  // once, made it vanish and zoomed it in a second time ("zweimal eine Animation … ganz kurz zu so 10%").
+  const t0=performance.now();
+  homeView.classList.remove('board-enter-zoom'); void homeView.offsetWidth;
+  homeView.classList.add('board-enter-zoom');
+  try{ await navigateFn(); }
+  finally{
+    outgoing.classList.remove('board-exit-zoom-prep','board-exit-zoom-active');
+    if(state.screen==='home'){
+      setTimeout(()=>homeView.classList.remove('board-enter-zoom'),Math.max(0,430-(performance.now()-t0)));
+    }else{
+      // Target is another board (breadcrumb): the same #boardView element stays on screen, so it
+      // still needs the enter animation started only after the new board is in place.
+      homeView.classList.remove('board-enter-zoom');
+      boardView.classList.remove('board-enter-zoom'); void boardView.offsetWidth;
+      boardView.classList.add('board-enter-zoom');
+      setTimeout(()=>boardView.classList.remove('board-enter-zoom'),420);
+    }
+  }
 }
 async function openBoard(id, skipCrumbAnim){
   // "in ein Board springen soll niemals die Tastatur direkt öffnen sondern immer ohne Auswahl
@@ -18120,18 +18134,26 @@ window.addEventListener('keydown',(e)=>{
    ============================================================ */
 let busyCount=0;
 let busyDoneTimer=null;
+let busyShowTimer=null;
+// The pill only appears if the work is still running after a short grace period — otherwise every
+// quick action (a delete: write, sync push, repaint …) flashed the pill in and out, sometimes twice
+// in a row, which read as a doubled, jittery animation.
 function showBusy(label){
   busyCount++;
   clearTimeout(busyDoneTimer);
   const bar=document.getElementById('busyBar');
-  if(bar){ bar.classList.remove('done'); bar.classList.add('show'); }
   setBusyLabel(label);
+  if(!bar) return;
+  bar.classList.remove('done');
+  if(bar.classList.contains('show')) return;
+  if(!busyShowTimer) busyShowTimer=setTimeout(()=>{ busyShowTimer=null; if(busyCount>0) bar.classList.add('show'); },380);
 }
 function hideBusy(){
   busyCount=Math.max(0,busyCount-1);
   if(busyCount>0) return; // other operations are still running — keep the pill up for them
+  clearTimeout(busyShowTimer); busyShowTimer=null;
   const bar=document.getElementById('busyBar');
-  if(!bar) return;
+  if(!bar || !bar.classList.contains('show')) return; // never became visible — nothing to hide
   // Brief "done" pulse (spinner freezes into a solid dot) so a very fast operation still reads as
   // a clear completion signal instead of just blinking away — then fade the whole pill out.
   bar.classList.add('done');
