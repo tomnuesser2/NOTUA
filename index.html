@@ -358,12 +358,12 @@ try{
      below it instead of guessing a fixed offset. The plain 22px/14px stay as the fallback (env()
      resolves to 0 where safe-area insets aren't a thing, e.g. desktop), so nothing changes there. */
   .update-pill{
-    position:absolute; top:calc(22px + env(safe-area-inset-top,0px)); left:22px; z-index:6; display:none; align-items:center; gap:8px;
+    position:absolute; top:calc(22px + env(safe-area-inset-top,0px)); left:22px; z-index:6; display:flex; align-items:center; gap:8px;
     padding:9px 16px; border-radius:999px; border:none; background:var(--accent); color:var(--accent-ink,#fff);
     font:inherit; font-size:0.8rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);
     box-shadow:0 10px 24px -10px var(--shadow-lg); animation:wnFabIn .4s var(--ease-out,cubic-bezier(.22,1,.36,1));
   }
-  .update-pill.avail{display:flex;}
+  .update-pill:not(.avail){background:var(--surface); color:var(--ink); border:1px solid var(--border);}
   .update-pill:active{transform:scale(.96);}
   .update-pill.busy{opacity:.7; pointer-events:none;}
   .update-pill.busy svg{animation:busySpin .8s linear infinite;}
@@ -5548,6 +5548,10 @@ const I18N={
   secret_feature_off_toast:{de:'Ausgeschaltet',en:'Switched off',es:'Desactivado',da:'Slået fra'},
   beta_update_unlocked_toast:{de:'Update-Button freigeschaltet — erscheint auf der Landingpage, sobald eine neue Version da ist',en:'Update button unlocked — shows on the landing page as soon as a new version is out',es:'Botón de actualización desbloqueado',da:'Opdateringsknap låst op'},
   update_btn_label:{de:'Update verfügbar · v{v}',en:'Update available · v{v}',es:'Actualización disponible · v{v}',da:'Opdatering tilgængelig · v{v}'},
+  update_btn_idle:{de:'Neu laden · v{v}',en:'Reload · v{v}',es:'Recargar · v{v}',da:'Genindlæs · v{v}'},
+  update_btn_checking:{de:'Prüfe Version …',en:'Checking version …',es:'Comprobando versión …',da:'Tjekker version …'},
+  update_done_toast:{de:'Auf Version {v} aktualisiert',en:'Updated to version {v}',es:'Actualizado a la versión {v}',da:'Opdateret til version {v}'},
+  update_same_toast:{de:'Neu geladen – bereits aktuell (v{v})',en:'Reloaded – already up to date (v{v})',es:'Recargado – ya actualizado (v{v})',da:'Genindlæst – allerede opdateret (v{v})'},
   update_btn_busy:{de:'Aktualisiere …',en:'Updating …',es:'Actualizando …',da:'Opdaterer …'},
   update_failed_toast:{de:'Update fehlgeschlagen — bitte die Seite manuell neu laden (Strg+F5).',en:'Update failed — please reload the page manually (Ctrl+F5).',es:'Error al actualizar: recarga la página manualmente.',da:'Opdatering mislykkedes – genindlæs siden manuelt.'},
   beta_installs_unlocked_toast:{de:'Download-Button freigeschaltet — auf der Landingpage und in den Secret Settings der Boardübersicht',en:'Download button unlocked — on the landing page and in the overview\'s Secret Settings'},
@@ -6106,6 +6110,9 @@ const I18N={
   theme_menu_close_btn:{de:'Schließen',en:'Close',es:'Cerrar',da:'Luk'},
   theme_menu_applied_toast:{de:'Neue Farbwelt aktiv',en:'New color theme active',es:'Nueva paleta de colores activa',da:'Nyt farvetema aktivt'},
   theme_menu_reset_toast:{de:'Standardfarben wiederhergestellt',en:'Default colors restored',es:'Colores predeterminados restaurados',da:'Standardfarver gendannet'},
+  toast_cards_copied:{de:'{n} kopiert',en:'{n} copied',es:'{n} copiado(s)',da:'{n} kopieret'},
+  toast_cards_cut:{de:'{n} ausgeschnitten – mit Strg+V einfügen',en:'{n} cut – paste with Ctrl+V',es:'{n} cortado(s) – pega con Ctrl+V',da:'{n} klippet – indsæt med Ctrl+V'},
+  toast_cards_pasted:{de:'{n} eingefügt',en:'{n} pasted',es:'{n} pegado(s)',da:'{n} indsat'},
   toast_elements_deleted:{de:'Elemente gelöscht',en:'Items deleted',es:'Elementos eliminados',da:'Elementer slettet'},
   toast_element_deleted:{de:'Element gelöscht',en:'Item deleted',es:'Elemento eliminado',da:'Element slettet'},
   confirm_delete_connector_title:{de:'Verbindung entfernen?',en:'Remove connection?',es:'¿Quitar conexión?',da:'Fjern forbindelse?'},
@@ -6797,7 +6804,7 @@ function applyI18n(){
     ['#toolsSecretImagesItem .tools-sheet-card-label','text',t('tools_secret_images_item')],
     ['#toolsSecretInstallsItem .tools-sheet-card-label','text',t('tools_secret_installs_item')],
     ['#toolsSecretUpdateItem .tools-sheet-card-label','text',t('tools_secret_update_item')],
-    ['#updateBtnLabel','text',t('update_btn_label',{v:updateAvailableVersion||''})],
+    ['#updateBtnLabel','text',updateAvailableVersion ? t('update_btn_label',{v:updateAvailableVersion}) : t('update_btn_idle',{v:APP_VERSION})],
     ['#toolsLookItem .tools-sheet-card-label','text',t('tools_look_item')],
     ['#controlsHelpBtn','title',t('controls_btn_title')],
     ['#familyBtn','title',t('family_btn_title')],['#familyPanelTitle','text',t('family_panel_title')],
@@ -15740,7 +15747,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.128';
+const APP_VERSION='2.4.130';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -15803,7 +15810,7 @@ function versionIsNewer(a,b){
 function refreshUpdateBtn(){
   const btn=document.getElementById('updateBtn'); if(!btn) return;
   const lbl=document.getElementById('updateBtnLabel');
-  if(lbl && updateAvailableVersion) lbl.textContent=t('update_btn_label',{v:updateAvailableVersion});
+  if(lbl && !btn.classList.contains('busy')) lbl.textContent=updateAvailableVersion ? t('update_btn_label',{v:updateAvailableVersion}) : t('update_btn_idle',{v:APP_VERSION});
   btn.classList.toggle('avail',!!updateAvailableVersion && isBetaFeatureActive('update'));
 }
 let updateCheckRunning=false;
@@ -15825,8 +15832,19 @@ async function checkForAppUpdate(force){
 async function applyAppUpdate(){
   const btn=document.getElementById('updateBtn'); if(!btn || btn.classList.contains('busy')) return;
   btn.classList.add('busy');
-  const lbl=document.getElementById('updateBtnLabel'); if(lbl) lbl.textContent=t('update_btn_busy');
+  const lbl=document.getElementById('updateBtnLabel'); if(lbl) lbl.textContent=t('update_btn_checking');
   try{
+    // Check which version is live right now (cache bypassed), remember it for the toast after the reload.
+    let liveVersion=APP_VERSION;
+    try{
+      if(location.protocol!=='file:' && navigator.onLine!==false){
+        const res=await fetch('index.html?nocache='+Date.now(),{cache:'no-store'});
+        const m=res.ok && /const APP_VERSION='([^']+)'/.exec(await res.text());
+        if(m) liveVersion=m[1];
+      }
+    }catch(e){}
+    try{ sessionStorage.setItem('notua-update-result',JSON.stringify({from:APP_VERSION,to:liveVersion})); }catch(e){}
+    if(lbl) lbl.textContent=t('update_btn_busy');
     if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); }
     if(window.caches){ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }
     location.reload();
@@ -15836,6 +15854,15 @@ async function applyAppUpdate(){
   }
 }
 document.getElementById('updateBtn').addEventListener('click',applyAppUpdate);
+try{
+  const raw=sessionStorage.getItem('notua-update-result');
+  if(raw){
+    sessionStorage.removeItem('notua-update-result');
+    const r=JSON.parse(raw);
+    setTimeout(()=>showToast(t(r.to===APP_VERSION && r.from!==APP_VERSION ? 'update_done_toast' : 'update_same_toast',{v:APP_VERSION})),900);
+  }
+}catch(e){}
+refreshUpdateBtn();
 setTimeout(()=>checkForAppUpdate(),2500);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkForAppUpdate(); });
 setInterval(()=>checkForAppUpdate(),20*60*1000);
@@ -18787,6 +18814,123 @@ window.addEventListener('keydown',(e)=>{
     clearSelection(); cancelConnect(); closeDrawer();
   }
 });
+
+
+/* ============================================================
+   KARTEN-ZWISCHENABLAGE — Strg/Cmd+C, Strg/Cmd+X, Strg/Cmd+V für markierte Elemente, auch über Boards
+   und Unterboards hinweg. Die Daten liegen im Speicher (inkl. Bild-Blobs und kompletter Unterboards
+   verlinkter Board-Karten); in die System-Zwischenablage kommt nur eine Markierung "NOTUA-CARDS:<id>",
+   damit ein später kopierter Text/Bild von außerhalb den normalen Paste-Weg nimmt. Beim Einfügen werden
+   alle IDs neu vergeben (Karten, Verbindungen, Bilder, Unterboards), damit nichts kollidiert.
+   ============================================================ */
+let cardClipPromise=null;
+const CARD_CLIP_PREFIX='NOTUA-CARDS:';
+async function buildCardClip(ids,clipId){
+  const clone=(o)=>JSON.parse(JSON.stringify(o));
+  const cards=ids.map(id=>state.cards.find(c=>c.id===id)).filter(Boolean).map(clone);
+  if(!cards.length) return null;
+  const idSet=new Set(cards.map(c=>c.id));
+  const clip={id:clipId, cards, connectors:state.connectors.filter(cn=>idSet.has(cn.fromId)&&idSet.has(cn.toId)).map(clone),
+    boards:[], nestedCards:[], nestedConnectors:[], images:[], pastes:0};
+  const imgIds=new Set();
+  cards.forEach(c=>{
+    cardBlobRefs(c).forEach(i=>imgIds.add(i));
+    if(typeof c.data.html==='string'){ for(const m of c.data.html.matchAll(/data-image-id="([^"]+)"/g)) imgIds.add(m[1]); }
+  });
+  for(const id of imgIds){
+    try{ const img=await DB.getImage(id); if(img && img.blob) clip.images.push({id, blob:img.blob}); }catch(e){}
+  }
+  for(const c of cards){
+    if(c.type==='boardlink' && c.data.boardId){
+      const nb=await collectBoardBundle(c.data.boardId);
+      clip.boards.push(...nb.boards.map(clone));
+      clip.nestedCards.push(...nb.cards.map(clone));
+      clip.nestedConnectors.push(...nb.connectors.map(clone));
+      (nb.images||[]).forEach(im=>{ if(im.blob) clip.images.push({id:im.id, blob:im.blob}); });
+    }
+  }
+  return clip;
+}
+async function pasteCardClip(clip,at){
+  if(!clip || state.screen!=='board' || !state.currentBoardId) return;
+  const boardId=state.currentBoardId;
+  const idMap=new Map();
+  const remap=(id)=>{ if(!id) return id; if(!idMap.has(id)) idMap.set(id,uid()); return idMap.get(id); };
+  const remapData=(nc)=>{
+    if(nc.type==='boardlink' && nc.data.boardId) nc.data.boardId=remap(nc.data.boardId);
+    if(nc.type==='image' && nc.data.imageId) nc.data.imageId=remap(nc.data.imageId);
+    if(nc.type==='file' && nc.data.fileId) nc.data.fileId=remap(nc.data.fileId);
+    if(nc.type==='column' && nc.data.coverImageId) nc.data.coverImageId=remap(nc.data.coverImageId);
+    if(nc.type==='carousel' && Array.isArray(nc.data.imageIds)) nc.data.imageIds=nc.data.imageIds.map(remap);
+    if(typeof nc.data.html==='string') nc.data.html=nc.data.html.replace(/data-image-id="([^"]+)"/g,(m,id)=>'data-image-id="'+remap(id)+'"');
+  };
+  const minX=Math.min(...clip.cards.map(c=>c.x)), minY=Math.min(...clip.cards.map(c=>c.y));
+  const maxX=Math.max(...clip.cards.map(c=>c.x+c.w)), maxY=Math.max(...clip.cards.map(c=>c.y+c.h));
+  const target=at || viewportCenterCanvas();
+  const bump=clip.pastes*28; clip.pastes++;
+  const dx=snap(target.x-(minX+maxX)/2+bump), dy=snap(target.y-(minY+maxY)/2+bump);
+  const clusterCount={};
+  clip.cards.forEach(c=>{ if(c.clusterId) clusterCount[c.clusterId]=(clusterCount[c.clusterId]||0)+1; });
+  const newCards=clip.cards.map(c=>{
+    const nc=JSON.parse(JSON.stringify(c));
+    nc.id=remap(c.id); nc.boardId=boardId; nc.x=c.x+dx; nc.y=c.y+dy; nc.z=nextZ();
+    nc.createdAt=nc.updatedAt=Date.now();
+    if(c.clusterId){ if(clusterCount[c.clusterId]>1) nc.clusterId=remap(c.clusterId); else delete nc.clusterId; }
+    remapData(nc);
+    return nc;
+  });
+  const now=Date.now();
+  const childIds=new Set(clip.boards.map(b=>b.id));
+  const newBoards=clip.boards.map(b=>{
+    const nb={...b, id:remap(b.id), parentBoardId:(b.parentBoardId && childIds.has(b.parentBoardId)) ? remap(b.parentBoardId) : boardId, parentCardId:null, createdAt:now, updatedAt:now};
+    delete nb.trashedAt;
+    return nb;
+  });
+  const nestedCards=clip.nestedCards.map(c=>{
+    const nc=JSON.parse(JSON.stringify(c)); nc.id=remap(c.id); nc.boardId=remap(c.boardId); remapData(nc); return nc;
+  });
+  const connectors=[
+    ...clip.connectors.map(cn=>({...cn, id:remap(cn.id), boardId, fromId:remap(cn.fromId), toId:remap(cn.toId)})),
+    ...clip.nestedConnectors.map(cn=>({...cn, id:remap(cn.id), boardId:remap(cn.boardId), fromId:remap(cn.fromId), toId:remap(cn.toId)})),
+  ];
+  for(const nb of newBoards){ await DB.putBoard(nb); state.boards.push(nb); }
+  for(const img of clip.images){
+    const owner=[...newCards,...nestedCards].find(c=>cardBlobRefs(c).includes(idMap.get(img.id)) || (typeof c.data.html==='string' && c.data.html.includes('data-image-id="'+idMap.get(img.id)+'"')));
+    await DB.putImage(remap(img.id), img.blob, owner?owner.boardId:boardId);
+  }
+  await DB.putCards(newCards);
+  if(nestedCards.length) await DB.putCards(nestedCards);
+  for(const cn of connectors) await DB.putConnector(cn);
+  state.cards.push(...newCards);
+  state.connectors.push(...connectors.filter(cn=>cn.boardId===boardId));
+  state.selection=new Set(newCards.map(c=>c.id));
+  renderAllCards(); renderConnectors(); applySelectionClasses(); updateEmptyHint();
+  touchBoard();
+  showToast(t('toast_cards_pasted',{n:newCards.length}));
+}
+function cardClipEventAllowed(){
+  if(state.screen!=='board' || !state.selection.size) return false;
+  if(isEditingTarget(document.activeElement)) return false;
+  const sel=window.getSelection();
+  if(sel && String(sel).length) return false; // an actual text selection keeps the native copy
+  return true;
+}
+function handleCardClipCopyCut(e,isCut){
+  if(!cardClipEventAllowed()) return;
+  const ids=[...state.selection];
+  const clipId=uid();
+  e.preventDefault();
+  try{ e.clipboardData.setData('text/plain',CARD_CLIP_PREFIX+clipId); }catch(err){}
+  const p=buildCardClip(ids,clipId);
+  cardClipPromise=p;
+  p.then(async (clip)=>{
+    if(!clip) return;
+    if(isCut){ await deleteCards(ids); showToast(t('toast_cards_cut',{n:clip.cards.length}), restoreLastDeleted); }
+    else showToast(t('toast_cards_copied',{n:clip.cards.length}));
+  });
+}
+document.addEventListener('copy',(e)=>handleCardClipCopyCut(e,false));
+document.addEventListener('cut',(e)=>handleCardClipCopyCut(e,true));
 
 /* ============================================================
    BUSY BAR — reference-counted "background work in progress" signal (see the .busy-bar CSS block
@@ -27251,6 +27395,22 @@ if(familyCarouselBtn) familyCarouselBtn.addEventListener('click',async ()=>{
 window.addEventListener('paste',async (e)=>{
   if(state.screen!=='board') return;
   if(isEditingTarget(document.activeElement)) return;
+  const plainTxt=e.clipboardData ? e.clipboardData.getData('text/plain') : '';
+  if(plainTxt.startsWith(CARD_CLIP_PREFIX)){
+    e.preventDefault();
+    const clip=cardClipPromise ? await cardClipPromise : null;
+    if(clip && plainTxt===CARD_CLIP_PREFIX+clip.id){
+      // Paste where the pointer last was — but only if that spot is actually inside the board currently shown
+      // (the pointer position is remembered in canvas coordinates of whichever board it moved over last).
+      let at=state.lastPointer;
+      if(at){
+        const tl=screenToCanvas(0,0), br=screenToCanvas(window.innerWidth,window.innerHeight);
+        if(at.x<tl.x||at.y<tl.y||at.x>br.x||at.y>br.y) at=null;
+      }
+      await pasteCardClip(clip,at);
+    }
+    return;
+  }
   const items=[...(e.clipboardData ? e.clipboardData.items : [])];
   const imgItem=items.find(it=>it.type && it.type.startsWith('image/'));
   if(imgItem){
