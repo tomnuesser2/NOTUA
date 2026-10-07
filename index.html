@@ -3999,15 +3999,19 @@ try{
   @media (hover:hover) and (pointer:fine){
     .project-tile:hover{box-shadow:none; border:none; transform:translateY(-2px);}
     .project-tile:hover .pt-card{box-shadow:0 12px 26px -8px var(--shadow);}
-    .project-tile:hover .pt-layer.l1{transform:translateY(7px) scaleX(.95);}
-    .project-tile:hover .pt-layer.l2{transform:translateY(13px) scaleX(.9);}
+    /* Hover: the cards hidden behind the project fan out with a little spring (staggered, slightly tilted) —
+       the visual cue that more boards are stacked in there. */
+    .project-tile:hover .pt-layer.l1{transform:translate(8px,-8px) rotate(1.6deg);}
+    .project-tile:hover .pt-layer.l2{transform:translate(14px,-14px) rotate(3.2deg); transition-delay:.04s;}
   }
   .pt-layer{
     position:absolute; left:0; right:0; top:0; bottom:0; border-radius:inherit; background:var(--surface);
-    border:1px solid color-mix(in srgb, var(--pc, var(--accent)) 32%, var(--border)); transition:transform .22s var(--ease-out,cubic-bezier(.22,1,.36,1));
+    border:1px solid color-mix(in srgb, var(--pc, var(--accent)) 32%, var(--border)); transform-origin:0 100%;
+    transition:transform .42s cubic-bezier(.34,1.56,.64,1), opacity .2s ease;
   }
-  .pt-layer.l1{transform:translateY(6px) scaleX(.95);}
-  .pt-layer.l2{transform:translateY(12px) scaleX(.9); opacity:.85;}
+  /* the stacked cards peek out behind the tile towards the top right */
+  .pt-layer.l1{transform:translate(6px,-6px);}
+  .pt-layer.l2{transform:translate(12px,-12px); opacity:.85;}
   .pt-card{
     position:relative; height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;
     padding:calc(12px + var(--d-inset,0px)) calc(14px + var(--d-inset,0px)) calc(12px + var(--d-inset,0px)); border-radius:inherit; background:var(--surface);
@@ -4046,7 +4050,7 @@ try{
   .psp-ic.active{background:var(--accent-soft); color:var(--accent); border-color:var(--accent);}
   @media (max-width:640px){
     .pt-chip{width:28px; height:28px; margin-left:-7px;}
-    .pt-layer.l1{transform:translateY(4px) scaleX(.95);} .pt-layer.l2{transform:translateY(8px) scaleX(.9);}
+    .pt-layer.l1{transform:translate(4px,-4px);} .pt-layer.l2{transform:translate(8px,-8px);}
     .pt-card{padding:calc(9px + var(--d-inset,0px)) calc(11px + var(--d-inset,0px));}
   }
   html[data-d-border="none"] .card, html[data-d-border="none"] .dp-card{border-color:transparent;}
@@ -15579,7 +15583,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.122';
+const APP_VERSION='2.4.123';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
