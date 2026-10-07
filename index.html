@@ -14881,7 +14881,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.103';
+const APP_VERSION='2.4.105';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -16305,6 +16305,52 @@ function blanketDefaultThemeSeed(){
 function syncThemeMetaColor(){
   const meta=document.getElementById('themeColorMeta');
   if(meta) meta.setAttribute('content','#191C22');
+  syncInstallIcons();
+}
+/* App-Icon passend zur gewählten UI-Farbe: Mit einem eigenen Look (Custom-Theme) wird das Manifest zur Laufzeit durch eine
+   Blob-Version ersetzt, deren Icons per Canvas in der Akzentfarbe gezeichnet sind (Kreis + weißes/dunkles N); dazu Favicon
+   und Apple-Touch-Icon. Browser lesen das Icon beim Installieren bzw. "Zum Startbildschirm" – schon installierte Apps
+   behalten ihr altes Icon. Ohne eigenen Look gelten wieder die festen Dateien (manifest.json, favicon.png, app-icon.png). */
+var __icTimer=0, __icKey=null, __icBlob=null, __icOrig={};
+function syncInstallIcons(){ clearTimeout(__icTimer); __icTimer=setTimeout(__syncInstallIcons,500); }
+function __drawInstallIcon(size,color,ink,full){
+  const c=document.createElement('canvas'); c.width=c.height=size; const x=c.getContext('2d');
+  x.fillStyle=color;
+  if(full) x.fillRect(0,0,size,size); else{ x.beginPath(); x.arc(size/2,size/2,size/2,0,Math.PI*2); x.fill(); }
+  x.fillStyle=ink; x.font='700 '+Math.round(size*(full===2?0.44:0.545))+'px Arial, Helvetica, sans-serif'; x.textAlign='center'; x.textBaseline='alphabetic';
+  const m=x.measureText('N'); x.fillText('N',size/2,size/2+(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2);
+  return c.toDataURL('image/png');
+}
+async function __syncInstallIcons(){
+  try{
+    if(!/^https?:$/.test(location.protocol)) return;
+    let acc=null; const raw=localStorage.getItem('notua-custom-theme');
+    if(raw){ const t=JSON.parse(raw); if(t && /^#[0-9a-f]{6}$/i.test(String(t.accent||''))) acc=String(t.accent).toUpperCase(); }
+    if(acc===__icKey) return;
+    const lm=document.querySelector('link[rel="manifest"]'), lf=document.querySelector('link[rel="icon"]'), la=document.querySelector('link[rel="apple-touch-icon"]');
+    if(!lm) return;
+    if(__icOrig.m===undefined){ __icOrig.m=lm.getAttribute('href'); __icOrig.f=lf&&lf.getAttribute('href'); __icOrig.a=la&&la.getAttribute('href'); }
+    if(!acc){
+      lm.setAttribute('href',__icOrig.m); if(lf&&__icOrig.f) lf.setAttribute('href',__icOrig.f); if(la&&__icOrig.a) la.setAttribute('href',__icOrig.a);
+      if(__icBlob){ URL.revokeObjectURL(__icBlob); __icBlob=null; }
+      __icKey=null; return;
+    }
+    const mres=await fetch(__icOrig.m,{cache:'no-cache'}); const man=await mres.json();
+    const rgb=hexToRgbArr(acc), lum=(0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2])/255, ink=lum>0.62?'#1A1C20':'#FFFFFF';
+    const abs=(u)=>new URL(u,location.href).href;
+    man.id=abs(man.id||'/'); man.start_url=abs(man.start_url||'./'); man.scope=abs(man.scope||'./');
+    man.icons=[
+      {src:__drawInstallIcon(192,acc,ink,0),sizes:'192x192',type:'image/png',purpose:'any'},
+      {src:__drawInstallIcon(512,acc,ink,0),sizes:'512x512',type:'image/png',purpose:'any'},
+      {src:__drawInstallIcon(192,acc,ink,2),sizes:'192x192',type:'image/png',purpose:'maskable'},
+      {src:__drawInstallIcon(512,acc,ink,2),sizes:'512x512',type:'image/png',purpose:'maskable'}];
+    if(Array.isArray(man.screenshots)) man.screenshots.forEach(sc=>{ sc.src=abs(sc.src); });
+    const url=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));
+    lm.setAttribute('href',url); if(__icBlob) URL.revokeObjectURL(__icBlob); __icBlob=url;
+    if(lf) lf.setAttribute('href',__drawInstallIcon(64,acc,ink,0));
+    if(la) la.setAttribute('href',__drawInstallIcon(180,acc,ink,2));
+    __icKey=acc;
+  }catch(e){}
 }
 function syncThemeUI(){
   const dark=currentThemeIsDark();
