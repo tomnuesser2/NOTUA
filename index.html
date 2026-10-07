@@ -5444,6 +5444,12 @@ const I18N={
   pdf_orient_landscape:{de:'Querformat',en:'Landscape',es:'Horizontal',da:'Liggende'},
   pdf_page_one:{de:'Seite',en:'page',es:'página',da:'side'},
   pdf_page_many:{de:'Seiten',en:'pages',es:'páginas',da:'sider'},
+  pdf_look_label:{de:'Darstellung',en:'Appearance',es:'Apariencia',da:'Udseende'},
+  pdf_look_light:{de:'Hell',en:'Light',es:'Claro',da:'Lys'},
+  pdf_look_dark:{de:'Dunkel',en:'Dark',es:'Oscuro',da:'Mørk'},
+  pdf_bg_label:{de:'Hintergrund',en:'Background',es:'Fondo',da:'Baggrund'},
+  pdf_bg_white:{de:'Weiß',en:'White',es:'Blanco',da:'Hvid'},
+  pdf_bg_board:{de:'Board-Farbe',en:'Board color',es:'Color del tablero',da:'Tavlens farve'},
   pdf_create:{de:'PDF erstellen',en:'Create PDF',es:'Crear PDF',da:'Opret PDF'},
   pdf_creating:{de:'Seite {i}/{n} …',en:'Page {i}/{n} …',es:'Página {i}/{n} …',da:'Side {i}/{n} …'},
   pdf_too_many_pages:{de:'Zu viele Seiten (max. {max}). Bitte weniger Elemente markieren.',en:'Too many pages (max {max}). Please select fewer elements.',es:'Demasiadas páginas (máx. {max}). Selecciona menos elementos.',da:'For mange sider (maks. {max}). Markér færre elementer.'},
@@ -10809,7 +10815,7 @@ function upgradeMonoTheme(theme){
   if(!theme || !theme.background || !theme.accent) return theme;
   const U=v=>String(v||'').toUpperCase();
   if(U(theme.background)!==THEME_MONO.background) return theme;
-  if(U(theme.accent)!==THEME_MONO.accent && U(theme.accent)!=='#43538C') return theme; // '#43538C' = kurzzeitiger Blau-Akzent (2.4.145)
+  if(U(theme.accent)!==THEME_MONO.accent && U(theme.accent)!=='#43538C') return theme; // '#43538C' = kurzzeitiger Blau-Akzent (2.4.146)
   return Object.assign({},theme,{accent:THEME_MONO.accent, dark:THEME_MONO.dark});
 }
 // Farb-Tokens der gespeicherten eigenen Palette für einen bestimmten Modus (hell/dunkel) — OHNE sie anzuwenden.
@@ -15901,7 +15907,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.145';
+const APP_VERSION='2.4.146';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -28225,7 +28231,8 @@ async function buildExportImage(cards,opts){
     warm.getContext('2d').drawImage(img,0,0,8,8);
     await new Promise(r=>setTimeout(r,120));
   }catch(e){}
-  if(exportVars['--canvas']) bg=exportVars['--canvas'].trim();
+  if(themeAttr!==liveThemeAttr) bg=(exportVars['--canvas']||pdfBoardColor(themeAttr)).trim();
+  else if(exportVars['--canvas']) bg=exportVars['--canvas'].trim();
   return {img,width,height,bg,minX,minY,pad};
 }
 // Rasterizes (part of) an export snapshot. `scale` = canvas pixels per snapshot pixel; `src` optionally
@@ -28258,8 +28265,8 @@ async function renderCardsToCanvas(cards,opts){
   return drawExportImageToCanvas(info,scale,opts.transparentBg?null:info.bg);
 }
 /* ---------------------------------------------------------------------------------------------
-   PDF EXPORT (Tom, 06.10) — two modes, A4/A5, always printed WITHOUT board background on white paper
-   (rendered in the light theme, otherwise a dark-mode board's light text would vanish on paper):
+   PDF EXPORT (Tom, 06.10) — two modes, A4/A5. Darstellung Hell/Dunkel + Hintergrund Weiß/Board-Farbe wählbar (Standard: hell auf weißem Papier,
+   damit Text nicht verschwindet; Dunkel springt automatisch auf Board-Farbe):
      'fit'  "Ganzes Board auf 1 Seite" — the whole export set scaled onto ONE page, high resolution (300dpi).
      'auto' "Automatisch lesbar"      — big empty gaps between elements are shortened to at most
             PDF_GAP_SLOTS grid cells (connector lines follow, since they're redrawn from the new
@@ -28384,7 +28391,8 @@ function buildPdfFromPages(pages){
     const po=3+3*i, co=po+1, io=po+2;
     offsets[po]=pos;
     push(`${po} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${p.pageW.toFixed(2)} ${p.pageH.toFixed(2)}] /Resources << /XObject << /Im0 ${io} 0 R >> >> /Contents ${co} 0 R >>\nendobj\n`);
-    const content=`q ${p.w.toFixed(3)} 0 0 ${p.h.toFixed(3)} ${p.x.toFixed(3)} ${(p.pageH-p.y-p.h).toFixed(3)} cm /Im0 Do Q`;
+    const bgOps=p.bg ? `q ${(p.bg[0]/255).toFixed(4)} ${(p.bg[1]/255).toFixed(4)} ${(p.bg[2]/255).toFixed(4)} rg 0 0 ${p.pageW.toFixed(2)} ${p.pageH.toFixed(2)} re f Q ` : '';
+    const content=bgOps+`q ${p.w.toFixed(3)} 0 0 ${p.h.toFixed(3)} ${p.x.toFixed(3)} ${(p.pageH-p.y-p.h).toFixed(3)} cm /Im0 Do Q`;
     const contentBytes=enc.encode(content);
     offsets[co]=pos; push(`${co} 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`); push(contentBytes); push('\nendstream\nendobj\n');
     offsets[io]=pos;
@@ -28402,12 +28410,34 @@ function buildPdfFromPages(pages){
   let o=0; parts.forEach(pt=>{ out.set(pt,o); o+=pt.length; });
   return out;
 }
+// CSS-Farbe (hex/rgb/hsl …) → [r,g,b]
+function cssColorToRgb(c){
+  try{
+    const cv=document.createElement('canvas'); cv.width=cv.height=1;
+    const cx=cv.getContext('2d',{willReadFrequently:true}); cx.fillStyle='#000'; cx.fillStyle=String(c); cx.fillRect(0,0,1,1);
+    const d=cx.getImageData(0,0,1,1).data; return [d[0],d[1],d[2]];
+  }catch(e){ return [255,255,255]; }
+}
+// Board-Hintergrundfarbe (--canvas) für den gewünschten Modus — auch wenn die App gerade im anderen Modus ist.
+function pdfBoardColor(theme){
+  const live=document.documentElement.getAttribute('data-theme') || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');
+  if(theme===live){
+    const v=getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(); if(v) return v;
+  }
+  const alt=customThemeTokensForMode(theme==='dark');
+  if(alt && alt['--canvas']) return alt['--canvas'];
+  return theme==='dark' ? '#14171C' : '#E7EAEE';
+}
 async function exportCardsAsPdf(cards,opts,onProgress){
   const plan=planPdfPages(cards,opts.mode,opts.paper);
   if(!plan.pages.length) throw new Error('nothing to export');
   if(plan.pages.length>PDF_MAX_PAGES) throw new Error('too many pages');
-  const info=await buildExportImage(plan.layoutCards,{theme:'light',transparentBg:true,pad:plan.pad});
+  const look=(opts.theme==='dark')?'dark':'light';
+  const boardBg=(opts.bg==='board');
+  const info=await buildExportImage(plan.layoutCards,{theme:look,transparentBg:!boardBg,pad:plan.pad});
   if(!info) throw new Error('render failed');
+  const pageFill=boardBg ? (info.bg||pdfBoardColor(look)) : '#ffffff';
+  const pageRgb=cssColorToRgb(pageFill);
   const pxPerPt=((plan.mode==='fit')?300:220)/72;
   const outPages=[];
   for(let i=0;i<plan.pages.length;i++){
@@ -28415,12 +28445,12 @@ async function exportCardsAsPdf(cards,opts,onProgress){
     const cell=plan.pages[i];
     const cw=cell.x1-cell.x0, ch=cell.y1-cell.y0;
     const sc=clampExportScale(cw,ch,plan.scale*pxPerPt,30e6,9000);
-    const canvas=drawExportImageToCanvas(info,sc,'#ffffff',{x:cell.x0,y:cell.y0,w:cw,h:ch});
+    const canvas=drawExportImageToCanvas(info,sc,pageFill,{x:cell.x0,y:cell.y0,w:cw,h:ch});
     const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.93));
     if(!blob) throw new Error('jpeg failed');
     const jpeg=new Uint8Array(await blob.arrayBuffer());
     const w=cw*plan.scale, h=ch*plan.scale;
-    outPages.push({jpeg,pxW:canvas.width,pxH:canvas.height,pageW:plan.pageW,pageH:plan.pageH,
+    outPages.push({jpeg,bg:boardBg?pageRgb:null,pxW:canvas.width,pxH:canvas.height,pageW:plan.pageW,pageH:plan.pageH,
       x:(plan.mode==='fit')?(plan.pageW-w)/2:PDF_MARGIN, y:(plan.mode==='fit')?(plan.pageH-h)/2:PDF_MARGIN, w, h});
     canvas.width=1; canvas.height=1; // release the page bitmap right away
     await new Promise(r=>setTimeout(r,0)); // let the progress label repaint between pages
@@ -28449,7 +28479,7 @@ function drawPdfPreview(canvas,plan){
   const total=n*pw+(n-1)*gap; let ox=(cssW-total)/2; const oy=(cssH-ph)/2;
   const k=pw/plan.pageW; // preview px per PDF point
   shown.forEach(cell=>{
-    ctx.fillStyle='#ffffff'; ctx.strokeStyle=border; ctx.lineWidth=1;
+    ctx.fillStyle=plan.pageFill||'#ffffff'; ctx.strokeStyle=border; ctx.lineWidth=1;
     ctx.fillRect(ox,oy,pw,ph); ctx.strokeRect(ox+0.5,oy+0.5,pw-1,ph-1);
     const w=(cell.x1-cell.x0)*plan.scale, h=(cell.y1-cell.y0)*plan.scale;
     const ix=(plan.mode==='fit')?(plan.pageW-w)/2:PDF_MARGIN, iy=(plan.mode==='fit')?(plan.pageH-h)/2:PDF_MARGIN;
@@ -28478,6 +28508,14 @@ function openPdfExportDialog(cards){
       <label><input type="radio" name="pdfPaper" value="A4" checked> A4</label>
       <label><input type="radio" name="pdfPaper" value="A5"> A5</label>
     </div>
+    <div class="pdf-dlg-paper"><span>${t('pdf_look_label')}</span>
+      <label><input type="radio" name="pdfLook" value="light" checked> ${t('pdf_look_light')}</label>
+      <label><input type="radio" name="pdfLook" value="dark"> ${t('pdf_look_dark')}</label>
+    </div>
+    <div class="pdf-dlg-paper"><span>${t('pdf_bg_label')}</span>
+      <label><input type="radio" name="pdfBg" value="white" checked> ${t('pdf_bg_white')}</label>
+      <label><input type="radio" name="pdfBg" value="board"> ${t('pdf_bg_board')}</label>
+    </div>
     <canvas class="pdf-dlg-preview"></canvas>
     <p class="pdf-dlg-summary"></p>
     <div class="modal-actions">
@@ -28495,14 +28533,21 @@ function openPdfExportDialog(cards){
     summaryEl.textContent = tooMany ? t('pdf_too_many_pages',{max:PDF_MAX_PAGES})
       : t('pdf_summary',{orient:t(plan.orient==='portrait'?'pdf_orient_portrait':'pdf_orient_landscape'), n:plan.pages.length, pages:t(plan.pages.length===1?'pdf_page_one':'pdf_page_many')});
     goBtn.disabled=tooMany || !plan.pages.length;
+    plan.pageFill=(val('pdfBg')==='board') ? pdfBoardColor(val('pdfLook')) : '#ffffff';
     drawPdfPreview(previewEl,plan);
   }
+  // Dunkel drucken ergibt auf weißem Papier selten, was man will: beim Wechsel auf Dunkel/Hell springt der Hintergrund passend mit
+  // (Dunkel → Board-Farbe, Hell → Weiß); danach lässt er sich frei umstellen.
+  scrim.querySelectorAll('input[name="pdfLook"]').forEach(i=>i.addEventListener('change',()=>{
+    const bgEl=scrim.querySelector('input[name="pdfBg"][value="'+(i.value==='dark'?'board':'white')+'"]');
+    if(bgEl && i.checked) bgEl.checked=true;
+  }));
   scrim.querySelectorAll('input').forEach(i=>i.addEventListener('change',refresh));
   cancelBtn.addEventListener('click',()=>{ if(!busy) scrim.remove(); });
   goBtn.addEventListener('click',async()=>{
     busy=true; goBtn.disabled=true; cancelBtn.disabled=true;
     try{
-      await exportCardsAsPdf(cards,{mode:val('pdfMode'),paper:val('pdfPaper')},(i,n)=>{ goBtn.textContent=t('pdf_creating',{i,n}); });
+      await exportCardsAsPdf(cards,{mode:val('pdfMode'),paper:val('pdfPaper'),theme:val('pdfLook'),bg:val('pdfBg')},(i,n)=>{ goBtn.textContent=t('pdf_creating',{i,n}); });
       scrim.remove();
     }catch(err){
       busy=false; cancelBtn.disabled=false; goBtn.disabled=false; goBtn.textContent=t('pdf_create');
