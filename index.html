@@ -2272,7 +2272,7 @@ try{
   .family-fly{position:fixed; z-index:100001; width:64px; height:64px; object-fit:cover; border-radius:10px; border:2px solid var(--surface); box-shadow:0 8px 22px rgba(0,0,0,.3); pointer-events:none; will-change:transform,opacity;}
   .family-ring{position:fixed; z-index:100000; width:52px; height:52px; border-radius:50%; border:3px solid var(--accent); pointer-events:none; transform:translate(-50%,-50%); animation:familyRing .85s ease-out forwards;}
   @keyframes familyRing{0%{transform:translate(-50%,-50%) scale(.7); opacity:.95;}100%{transform:translate(-50%,-50%) scale(2.1); opacity:0;}}
-  .ig-modal{max-height:92vh; max-height:92dvh; overflow:hidden;}
+  .modal.modal-wide.ig-modal{width:min(760px,94vw); max-width:none; max-height:92vh; max-height:92dvh; overflow:hidden;}
   .ig-content{flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;}
   .ig-modal .modal-actions{flex:none;}
   .ig-intro{margin:0; color:var(--muted); font-size:.88rem; line-height:1.45;}
@@ -2285,7 +2285,7 @@ try{
   .ig-block ol{margin:0; padding-left:1.25em; font-size:.86rem; line-height:1.45;}
   .ig-block li{margin-bottom:4px;}
   .ig-note{margin:4px 0 0; font-size:.78rem; color:var(--muted); line-height:1.4;}
-  .ig-mock{width:100%; height:auto; max-width:420px; display:block;}
+  .ig-mock{width:100%; height:auto; max-width:540px; display:block;}
   .ig-ring{fill:none; stroke:var(--accent); stroke-width:2;}
   .ig-ring2{fill:none; stroke:var(--accent); stroke-width:2; transform-box:fill-box; transform-origin:center; animation:igPulse 1.6s ease-out infinite;}
   @keyframes igPulse{0%{transform:scale(1); opacity:.9;}100%{transform:scale(1.9); opacity:0;}}
@@ -5364,6 +5364,7 @@ const I18N={
   tour_el_media:{de:'Bild/Datei: öffnet eine Auswahl für Bilder oder Dokumente. Am schnellsten geht\'s per Drag &amp; Drop direkt aufs Board — das funktioniert dynamisch und nahtlos, bei Bildern erscheint dabei kurz eine Leiste mit dem verfügbaren Speicherplatz.',en:'Image/File: opens a picker for images or documents. Fastest is dragging files straight onto the board — that works dynamically and seamlessly, and for images a short storage-space bar briefly appears.'},
   tour_el_media_family:{de:'Ziehst du mehrere Bilder direkt aufs Board, sammeln sie sich unten rechts in einem eigenen Menü. Von dort aus kannst du sie einzeln aufs Board ziehen oder direkt ein Carousel daraus erstellen.',en:'Drag several images straight onto the board and they collect in their own menu, bottom right. From there you can drag them onto the board one by one, or turn them straight into a carousel.'},
   tour_el_youtube:{de:'Widget: bettet z. B. ein YouTube-Video, Spotify oder Pinterest direkt im Board ein.',en:'Widget: embeds things like a YouTube video, Spotify or Pinterest right on the board.'},
+  tour_el_more:{de:'Es gibt noch viel mehr zu entdecken: Karten, Aufgaben, Tabellen, einen Farbwähler, Zeichenflächen und Unter-Boards. Probier sie einfach aus – erkunde sie in deinem eigenen Tempo.',en:'There is much more to discover: cards, tasks, tables, a color picker, drawing canvases and sub-boards. Just try them out – explore them at your own pace.'},
   tour_el_column:{de:'Card: wie eine erweiterte Notiz mit eigener Überschrift, Freitext und der Möglichkeit, ein Bild einzubetten — zieh dafür einfach ein Bild direkt auf die Card.',en:'Card: like a more advanced note with its own heading, free text, and the option to embed an image — just drag an image straight onto the card.'},
   tour_el_checklist:{de:'Checkliste: für Aufgaben, die du abhaken kannst.',en:'Checklist: for tasks you can tick off.'},
   tour_el_table:{de:'Tabelle: für Daten in Zeilen und Spalten.',en:'Table: for data in rows and columns.'},
@@ -12452,12 +12453,9 @@ const TOUR_STEPS=[
   {id:'el_media', target:()=>tourDockOrDrawerTarget('media'), textKey:'tour_el_media'},
   {id:'el_media_family', target:null, textKey:'tour_el_media_family', custom:'imagedrop'},
   {id:'el_youtube', target:()=>tourDockOrDrawerTarget('youtube'), textKey:'tour_el_youtube'},
-  {id:'el_column', target:()=>tourDockOrDrawerTarget('column'), textKey:'tour_el_column'},
-  {id:'el_checklist', target:()=>tourDockOrDrawerTarget('checklist'), textKey:'tour_el_checklist'},
-  {id:'el_table', target:()=>tourDockOrDrawerTarget('table'), textKey:'tour_el_table'},
-  {id:'el_colorpicker', target:()=>tourDockOrDrawerTarget('colorpicker'), textKey:'tour_el_colorpicker'},
-  {id:'el_draw', target:()=>tourDockOrDrawerTarget('draw'), textKey:'tour_el_draw'},
-  {id:'el_board', target:()=>tourDockOrDrawerTarget('board'), textKey:'tour_el_board'},
+  // "die Onboarding-Tour verkürzen ... nur die ersten 3 Elemente erklären, alles andere ein Feld: es gibt auch noch andere
+  // Sachen, erkunde sie" — Karte, Aufgaben, Tabelle, Farbwähler, Zeichnen und Unter-Board werden nicht mehr einzeln gezeigt.
+  {id:'el_more', target:null, textKey:'tour_el_more'},
   {id:'backhome', target:()=>document.getElementById('homeBtn'), textKey:'tour_backhome', transition:'toHome'},
   // "im Onboarding-Tooltip: dass man die Verknüpfung installieren kann ... läuft NOTUA schon als App, wird der Teil nicht gezeigt"
   {id:'install', target:null, textKey:'ig_title', custom:'install', skip:()=>isInstalledApp()},
@@ -12466,14 +12464,14 @@ const TOUR_STEPS=[
 ];
 // Steps whose target only exists inside an open board (used by resumeTourIfNeeded to know whether a
 // saved step needs a board reopened first, or is fine to show directly on the home screen).
-const TOUR_BOARD_CONTEXT_IDS=['createel','controls','props','el_note','el_media','el_media_family','el_youtube','el_column','el_checklist','el_table','el_colorpicker','el_draw','el_board','backhome'];
+const TOUR_BOARD_CONTEXT_IDS=['createel','controls','props','el_note','el_media','el_media_family','el_youtube','el_more','backhome'];
 // Steps whose live target sits INSIDE the mobile hamburger drawer (#mobileDrawer) rather than the
 // desktop #dock — renderTourStep() opens the drawer automatically right before one of these renders on
 // a phone-sized viewport, and closes it again the moment the tour moves past el_board to a step whose
 // target lives outside it (backhome's #homeBtn sits in the topbar, behind the drawer's own full-screen
 // scrim otherwise). createel itself is deliberately NOT in this list — its own target IS the hamburger
 // button that opens the drawer, so the drawer should still be closed while that step is showing.
-const TOUR_MOBILE_DRAWER_OPEN_IDS=['el_note','el_media','el_youtube','el_column','el_checklist','el_table','el_colorpicker','el_draw','el_board'];
+const TOUR_MOBILE_DRAWER_OPEN_IDS=['el_note','el_media','el_youtube'];
 function tourDockOrDrawerTarget(addType){
   return isMobileViewport()
     ? document.querySelector('.drawer-btn[data-add="'+addType+'"]')
@@ -12838,11 +12836,10 @@ function igBody(tab,det){
     let h='';
     if(tab==='mac'){
       h+=`<div class="ig-block"><b>${t('ig_safari_head')}</b>${igMock('safari')}<ol>${li('ig_mac_safari_1')}${li('ig_mac_safari_2')}${li('ig_mac_safari_3')}</ol></div>`;
+    }else{
+      h+=`<div class="ig-block"><b>${t('ig_chrome_head')}</b>${igMock('desktop')}<ol>${li('ig_desk_1')}${li('ig_desk_2')}${li('ig_desk_3')}</ol>${note('ig_desk_alt')}</div>`;
     }
-    {
-      h+=`<div class="ig-block"><b>${t(tab==='mac'?'ig_chrome_head_mac':'ig_chrome_head')}</b>${igMock('desktop')}<ol>${li('ig_desk_1')}${li('ig_desk_2')}${li(tab==='mac'?'ig_desk_3_mac':'ig_desk_3')}</ol>${note('ig_desk_alt')}</div>`;
-    }
-    if(det.firefox) h+=note('ig_firefox');
+    if(tab==='windows' && det.firefox) h+=note('ig_firefox');
     return h;
   }
   if(tab==='ios') return `<div class="ig-block">${igMock('ios')}<ol>${li('ig_ios_1')}${li('ig_ios_2')}${li('ig_ios_3')}</ol>${note('ig_ios_note')}</div>`;
@@ -15241,7 +15238,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.115';
+const APP_VERSION='2.4.117';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
