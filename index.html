@@ -2272,6 +2272,25 @@ try{
   .family-fly{position:fixed; z-index:100001; width:64px; height:64px; object-fit:cover; border-radius:10px; border:2px solid var(--surface); box-shadow:0 8px 22px rgba(0,0,0,.3); pointer-events:none; will-change:transform,opacity;}
   .family-ring{position:fixed; z-index:100000; width:52px; height:52px; border-radius:50%; border:3px solid var(--accent); pointer-events:none; transform:translate(-50%,-50%); animation:familyRing .85s ease-out forwards;}
   @keyframes familyRing{0%{transform:translate(-50%,-50%) scale(.7); opacity:.95;}100%{transform:translate(-50%,-50%) scale(2.1); opacity:0;}}
+  .ig-modal{max-height:92vh; max-height:92dvh; overflow:hidden;}
+  .ig-content{flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;}
+  .ig-modal .modal-actions{flex:none;}
+  .ig-intro{margin:0; color:var(--muted); font-size:.88rem; line-height:1.45;}
+  .ig-now{align-self:flex-start; padding:10px 18px; border-radius:10px; border:1px solid; color:var(--accent-ink,#fff); font:inherit; font-weight:700; cursor:var(--custom-pointer-cursor,pointer);}
+  .ig-tabs{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;}
+  .ig-tab{padding:6px 12px; border-radius:999px; border:1.5px solid var(--border-strong); background:var(--surface-2); color:var(--ink); font:inherit; font-size:.8rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);}
+  .ig-tab.on{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 14%, var(--surface)); color:var(--ink);}
+  .ig-block{display:flex; flex-direction:column; gap:8px; margin-top:6px;}
+  .ig-block > b{font-size:.84rem;}
+  .ig-block ol{margin:0; padding-left:1.25em; font-size:.86rem; line-height:1.45;}
+  .ig-block li{margin-bottom:4px;}
+  .ig-note{margin:4px 0 0; font-size:.78rem; color:var(--muted); line-height:1.4;}
+  .ig-mock{width:100%; height:auto; max-width:420px; display:block;}
+  .ig-ring{fill:none; stroke:var(--accent); stroke-width:2;}
+  .ig-ring2{fill:none; stroke:var(--accent); stroke-width:2; transform-box:fill-box; transform-origin:center; animation:igPulse 1.6s ease-out infinite;}
+  @keyframes igPulse{0%{transform:scale(1); opacity:.9;}100%{transform:scale(1.9); opacity:0;}}
+  @media (prefers-reduced-motion:reduce){ .ig-ring2{animation:none; opacity:0;} }
+  .ig-open-link{align-self:flex-start; margin-top:10px; padding:0; border:none; background:none; color:var(--accent); font:inherit; font-size:.85rem; font-weight:600; text-decoration:underline; cursor:var(--custom-pointer-cursor,pointer);}
   .imgdrop-choice{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
   .imgdrop-opt{display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; padding:11px 14px; border-radius:12px; border:1.5px solid var(--border-strong); background:var(--surface-2); color:var(--ink); font:inherit; cursor:var(--custom-pointer-cursor,pointer); transition:border-color .14s ease, background .14s ease;}
   .imgdrop-opt span{font-size:.78rem; color:var(--muted); font-weight:500;}
@@ -5275,6 +5294,34 @@ const I18N={
   beta_theme_unlocked_toast:{de:'Theme-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Theme menu unlocked — find it in the overview\'s Secret Settings'},
   beta_design_unlocked_toast:{de:'Design-Menü freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Design menu unlocked — find it in the overview\'s Secret Settings'},
   beta_images_unlocked_toast:{de:'Bilder-Ablage freigeschaltet — zu finden in den Secret Settings der Boardübersicht',en:'Image drop unlocked — find it in the overview\'s Secret Settings'},
+  ig_title:{de:'NOTUA als App installieren',en:'Install NOTUA as an app'},
+  ig_intro:{de:'Mit der Verknüpfung öffnet sich NOTUA wie ein eigenes Programm: eigenes Fenster, Symbol auf Desktop oder Startbildschirm, schneller Start. Kostenlos, und jederzeit wieder entfernbar.',en:'With the shortcut NOTUA opens like its own program: its own window, an icon on your desktop or home screen, faster start. Free, and you can remove it any time.'},
+  ig_install_now:{de:'Jetzt installieren',en:'Install now'},
+  ig_open_guide:{de:'Als App installieren – Anleitung zeigen',en:'Install as an app – show guide'},
+  ig_tab_windows:{de:'Windows',en:'Windows'},
+  ig_tab_mac:{de:'Mac',en:'Mac'},
+  ig_tab_ios:{de:'iPhone / iPad',en:'iPhone / iPad'},
+  ig_tab_android:{de:'Android',en:'Android'},
+  ig_here:{de:'Hier',en:'Here'},
+  ig_chrome_head:{de:'Chrome oder Edge',en:'Chrome or Edge'},
+  ig_chrome_head_mac:{de:'Chrome oder Edge auf dem Mac',en:'Chrome or Edge on Mac'},
+  ig_safari_head:{de:'Safari',en:'Safari'},
+  ig_desk_1:{de:'Öffne notua.site im Browser.',en:'Open notua.site in the browser.'},
+  ig_desk_2:{de:'Klicke ganz rechts in der Adressleiste auf das Installieren-Symbol (Bildschirm mit Pfeil nach unten). In Edge steht daneben „App verfügbar“.',en:'Click the install icon at the far right of the address bar (a screen with a down arrow). In Edge it says “App available” next to it.'},
+  ig_desk_3:{de:'Bestätige mit „Installieren“. NOTUA bekommt ein eigenes Fenster sowie ein Symbol im Startmenü und in der Taskleiste.',en:'Confirm with “Install”. NOTUA gets its own window and an icon in the Start menu and taskbar.'},
+  ig_desk_3_mac:{de:'Bestätige mit „Installieren“. NOTUA liegt danach im Launchpad (Ordner „Chrome-Apps“ bzw. „Edge-Apps“) und lässt sich ins Dock ziehen.',en:'Confirm with “Install”. NOTUA then sits in Launchpad (folder “Chrome Apps” or “Edge Apps”) and can be dragged into the Dock.'},
+  ig_desk_alt:{de:'Kein Symbol zu sehen? In Chrome: Menü ⋮ → „Speichern und teilen“ → „Seite als App installieren“. In Edge: Menü ⋯ → „Apps“ → „Diese Website als App installieren“.',en:'No icon? In Chrome: menu ⋮ → “Save and share” → “Install page as app”. In Edge: menu ⋯ → “Apps” → “Install this site as an app”.'},
+  ig_mac_safari_1:{de:'Öffne notua.site in Safari (macOS Sonoma oder neuer).',en:'Open notua.site in Safari (macOS Sonoma or newer).'},
+  ig_mac_safari_2:{de:'Klicke oben rechts in der Symbolleiste auf „Teilen“ (Quadrat mit Pfeil nach oben).',en:'Click “Share” at the top right of the toolbar (square with an arrow pointing up).'},
+  ig_mac_safari_3:{de:'Wähle „Zum Dock hinzufügen…“ und bestätige mit „Hinzufügen“. Alternativ: Menüleiste „Ablage“ → „Zum Dock hinzufügen…“.',en:'Choose “Add to Dock…” and confirm with “Add”. Alternatively: menu bar “File” → “Add to Dock…”.'},
+  ig_firefox:{de:'Firefox kann Web-Apps nicht installieren – nutze dafür Chrome, Edge oder Safari.',en:'Firefox cannot install web apps – use Chrome, Edge or Safari for this.'},
+  ig_ios_1:{de:'Öffne notua.site in Safari (in Chrome: das Teilen-Symbol sitzt oben rechts in der Adressleiste).',en:'Open notua.site in Safari (in Chrome the Share icon sits at the top right of the address bar).'},
+  ig_ios_2:{de:'Tippe unten in der Mitte auf „Teilen“ (Quadrat mit Pfeil nach oben) und scrolle im Menü nach unten.',en:'Tap “Share” at the bottom centre (square with an arrow pointing up) and scroll down in the menu.'},
+  ig_ios_3:{de:'Wähle „Zum Home-Bildschirm“ und tippe oben rechts auf „Hinzufügen“.',en:'Choose “Add to Home Screen” and tap “Add” at the top right.'},
+  ig_ios_note:{de:'Auf dem iPhone und iPad geht das nur über „Teilen“, einen Installieren-Knopf gibt es dort nicht.',en:'On iPhone and iPad this only works via “Share”; there is no install button.'},
+  ig_and_1:{de:'Öffne notua.site in Chrome.',en:'Open notua.site in Chrome.'},
+  ig_and_2:{de:'Tippe oben rechts auf das Menü ⋮ (drei Punkte).',en:'Tap the menu ⋮ (three dots) at the top right.'},
+  ig_and_3:{de:'Wähle „App installieren“ (oder „Zum Startbildschirm hinzufügen“) und bestätige.',en:'Choose “Install app” (or “Add to Home screen”) and confirm.'},
   imgdrop_title:{de:'Bilder ins Board ziehen',en:'Dragging images into the board'},
   imgdrop_body:{de:'Zieh Bilder einfach aus deinem Ordner aufs Board: Ein einzelnes Bild landet genau dort, wo du es loslässt. Ziehst du mehrere auf einmal rein, sammeln sie sich unten rechts im Karussell – du siehst sie dorthin fliegen. Von dort ziehst du sie einzeln aufs Board oder machst ein Karussell daraus.',en:'Just drag images from your folder onto the board: a single image lands exactly where you drop it. Drag several in at once and they collect in the carousel at the bottom right – you will see them fly there. From there you can drag them onto the board one by one or turn them into a carousel.'},
   imgdrop_question:{de:'Wie sollen einzelne Bilder landen?',en:'Where should single images land?'},
@@ -12412,6 +12459,8 @@ const TOUR_STEPS=[
   {id:'el_draw', target:()=>tourDockOrDrawerTarget('draw'), textKey:'tour_el_draw'},
   {id:'el_board', target:()=>tourDockOrDrawerTarget('board'), textKey:'tour_el_board'},
   {id:'backhome', target:()=>document.getElementById('homeBtn'), textKey:'tour_backhome', transition:'toHome'},
+  // "im Onboarding-Tooltip: dass man die Verknüpfung installieren kann ... läuft NOTUA schon als App, wird der Teil nicht gezeigt"
+  {id:'install', target:null, textKey:'ig_title', custom:'install', skip:()=>isInstalledApp()},
   {id:'secret', target:()=>document.getElementById('themeSecretBtn'), textKey:'tour_secret'},
   {id:'ready', target:null, textKey:null, final:true},
 ];
@@ -12652,6 +12701,7 @@ function renderTourStep(){
       if(wantDrawerOpen && mobileDrawer.hidden) openDrawer();
       else if(!wantDrawerOpen && !mobileDrawer.hidden) closeDrawer();
     }
+    if(step.skip && step.skip()){ idx++; continue; }
     if(step.target){
       targetEl=step.target();
       if(!isTourTargetVisible(targetEl)){ idx++; continue; }
@@ -12663,6 +12713,7 @@ function renderTourStep(){
   if(step.final){ tourHideFinger(); renderTourFinalModal(); return; }
   if(step.custom==='guide'){ tourHideFinger(); renderTourGuide(step); return; }
   if(step.custom==='imagedrop'){ tourHideFinger(); renderTourImageDrop(step); return; }
+  if(step.custom==='install'){ tourHideFinger(); showInstallGuide({tour:true}); return; }
   if(targetEl) renderTourSpotlight(step,targetEl);
   else{ tourHideFinger(); renderTourCentered(step); }
 }
@@ -12735,6 +12786,100 @@ function renderTourCentered(step){
       tourAdvance();
     }
   });
+  document.body.appendChild(scrim);
+}
+// ---------- APP-INSTALLATION (Verknüpfung) — Anleitung je Gerät, Teil der Tooltip-Tour und der App-Downloads ----------
+// Läuft NOTUA schon als installierte App (display-mode, Windows-App, Android-TWA, iOS-Homescreen), gibt es hier nichts zu zeigen.
+let igDeferredPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); igDeferredPrompt=e; });
+window.addEventListener('appinstalled',()=>{ igDeferredPrompt=null; });
+function isInstalledApp(){
+  try{ if(document.documentElement.classList.contains('notua-app-env')) return true; }catch(e){}
+  try{ if(navigator.standalone===true) return true; }catch(e){}
+  return false;
+}
+function igDetect(){
+  const ua=navigator.userAgent||'', plat=navigator.platform||'';
+  const ios=/iPhone|iPad|iPod/.test(ua) || (plat==='MacIntel' && navigator.maxTouchPoints>1);
+  const android=/Android/.test(ua);
+  const mac=!ios && (/Mac/.test(plat) || /Macintosh/.test(ua));
+  const firefox=/Firefox|FxiOS/.test(ua), edge=/Edg\//.test(ua);
+  const safari=/Safari/.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(ua);
+  return {tab: ios?'ios':(android?'android':(mac?'mac':'windows')), firefox, edge, safari};
+}
+// Kleine Bildschirmskizze: wo genau das Symbol sitzt (Akzentring pulsiert).
+function igMock(kind){
+  const ring=(cx,cy)=>`<circle class="ig-ring" cx="${cx}" cy="${cy}" r="14"/><circle class="ig-ring2" cx="${cx}" cy="${cy}" r="14"/>`;
+  const dots='<circle cx="14" cy="14" r="3.2" fill="var(--border-strong)"/><circle cx="26" cy="14" r="3.2" fill="var(--border-strong)"/><circle cx="38" cy="14" r="3.2" fill="var(--border-strong)"/>';
+  const bar=(x,w)=>`<rect x="${x}" y="6" width="${w}" height="16" rx="8" fill="var(--surface)" stroke="var(--border-strong)"/><text x="${x+12}" y="17.5" font-size="8.5" fill="var(--muted)" font-family="system-ui,sans-serif">notua.site</text>`;
+  const label=(x,y,txt,anchor)=>`<text x="${x}" y="${y}" font-size="9.5" font-weight="700" fill="var(--accent)" text-anchor="${anchor||'middle'}" font-family="system-ui,sans-serif">${txt}</text>`;
+  const frame=(inner,h0)=>{ const h=(h0||74)+8; return `<svg class="ig-mock" viewBox="0 0 320 ${h}" role="img" aria-hidden="true"><rect x="1" y="1" width="318" height="${h-2}" rx="10" fill="var(--surface-2)" stroke="var(--border)"/><g transform="translate(0,8)">${inner}</g></svg>`; };
+  const installIcon=(cx,cy)=>`<g stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)" transform="translate(${cx-7},${cy-7})"><rect x="1" y="2" width="12" height="8.5" rx="1.4"/><path d="M7 4.2v4.2M5 6.6l2 2 2-2M4.5 12.5h5"/></g>`;
+  if(kind==='desktop'){
+    return frame(`${dots}${bar(52,236)}${installIcon(274,14)}${ring(274,14)}${label(274,50,t('ig_here'))}<path d="M274 31v-2" stroke="var(--accent)" stroke-width="1.5"/>`,64);
+  }
+  if(kind==='safari'){
+    const share=`<g stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)" transform="translate(${284-6},${14-8})"><path d="M6 10V1.5M3 4l3-3 3 3"/><path d="M1.5 6.5v6h9v-6"/></g>`;
+    return frame(`${dots}${bar(60,170)}${share}${ring(284,14)}${label(284,50,t('ig_here'))}`,64);
+  }
+  if(kind==='ios'){
+    const share=`<g stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)" transform="translate(${160-6},${54-8})"><path d="M6 10V1.5M3 4l3-3 3 3"/><path d="M1.5 6.5v6h9v-6"/></g>`;
+    const others=[70,115,205,250].map(x=>`<rect x="${x-6}" y="48" width="12" height="12" rx="3" fill="none" stroke="var(--border-strong)"/>`).join('');
+    return frame(`<rect x="80" y="8" width="160" height="16" rx="8" fill="var(--surface)" stroke="var(--border-strong)"/><text x="160" y="19.5" font-size="8.5" fill="var(--muted)" text-anchor="middle" font-family="system-ui,sans-serif">notua.site</text><line x1="1" y1="38" x2="319" y2="38" stroke="var(--border)"/>${others}${share}${ring(160,54)}${label(160,88,t('ig_here'))}`,96);
+  }
+  // android
+  const dotsV=`<g fill="var(--ink)"><circle cx="296" cy="8.5" r="1.7"/><circle cx="296" cy="14" r="1.7"/><circle cx="296" cy="19.5" r="1.7"/></g>`;
+  return frame(`<rect x="14" y="6" width="248" height="16" rx="8" fill="var(--surface)" stroke="var(--border-strong)"/><text x="26" y="17.5" font-size="8.5" fill="var(--muted)" font-family="system-ui,sans-serif">notua.site</text>${dotsV}${ring(296,14)}${label(296,50,t('ig_here'))}`,64);
+}
+function igBody(tab,det){
+  const li=(k)=>`<li>${t(k)}</li>`;
+  const note=(k)=>`<p class="ig-note">${t(k)}</p>`;
+  if(tab==='windows' || tab==='mac'){
+    let h='';
+    if(tab==='mac'){
+      h+=`<div class="ig-block"><b>${t('ig_safari_head')}</b>${igMock('safari')}<ol>${li('ig_mac_safari_1')}${li('ig_mac_safari_2')}${li('ig_mac_safari_3')}</ol></div>`;
+    }
+    {
+      h+=`<div class="ig-block"><b>${t(tab==='mac'?'ig_chrome_head_mac':'ig_chrome_head')}</b>${igMock('desktop')}<ol>${li('ig_desk_1')}${li('ig_desk_2')}${li(tab==='mac'?'ig_desk_3_mac':'ig_desk_3')}</ol>${note('ig_desk_alt')}</div>`;
+    }
+    if(det.firefox) h+=note('ig_firefox');
+    return h;
+  }
+  if(tab==='ios') return `<div class="ig-block">${igMock('ios')}<ol>${li('ig_ios_1')}${li('ig_ios_2')}${li('ig_ios_3')}</ol>${note('ig_ios_note')}</div>`;
+  return `<div class="ig-block">${igMock('android')}<ol>${li('ig_and_1')}${li('ig_and_2')}${li('ig_and_3')}</ol></div>`;
+}
+function showInstallGuide(opts){
+  opts=opts||{};
+  const det=igDetect();
+  let tab=det.tab;
+  const scrim=document.createElement('div'); scrim.className='modal-scrim'+(opts.tour?' tour-modal-scrim':'');
+  const tabs=[['windows','ig_tab_windows'],['mac','ig_tab_mac'],['ios','ig_tab_ios'],['android','ig_tab_android']];
+  scrim.innerHTML=`<div class="modal modal-wide ig-modal">
+    ${opts.tour?`<div class="tour-tooltip-step">${tourStepIndex+1}/${TOUR_STEPS.length}</div>`:''}
+    <h4>${t('ig_title')}</h4>
+    <p class="ig-intro">${t('ig_intro')}</p>
+    ${igDeferredPrompt?`<button type="button" class="primary ig-now" data-a="now" style="background:var(--accent);border-color:var(--accent);">${t('ig_install_now')}</button>`:''}
+    <div class="ig-tabs">${tabs.map(([k,l])=>`<button type="button" class="ig-tab${k===tab?' on':''}" data-tab="${k}">${t(l)}</button>`).join('')}</div>
+    <div class="ig-content"></div>
+    <div class="modal-actions">${opts.tour?`<button data-a="close">${t('tour_end_title')}</button><button data-a="next" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('tour_next')}</button>`:`<button data-a="done" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('modal_done')}</button>`}</div>
+  </div>`;
+  const content=scrim.querySelector('.ig-content');
+  const paint=()=>{ content.innerHTML=igBody(tab,det); scrim.querySelectorAll('.ig-tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab)); };
+  scrim.querySelectorAll('.ig-tab').forEach(b=>b.addEventListener('click',()=>{ tab=b.dataset.tab; paint(); }));
+  paint();
+  const now=scrim.querySelector('[data-a="now"]');
+  if(now) now.addEventListener('click',async ()=>{
+    try{ const pr=igDeferredPrompt; igDeferredPrompt=null; pr.prompt(); await pr.userChoice; }catch(e){}
+    now.remove();
+  });
+  if(opts.tour){
+    bindScrimDismiss(scrim,()=>stopTour(true));
+    scrim.querySelector('[data-a="close"]').addEventListener('click',()=>stopTour(true));
+    scrim.querySelector('[data-a="next"]').addEventListener('click',()=>{ scrim.remove(); tourAdvance(); });
+  }else{
+    bindScrimDismiss(scrim,()=>scrim.remove());
+    scrim.querySelector('[data-a="done"]').addEventListener('click',()=>scrim.remove());
+  }
   document.body.appendChild(scrim);
 }
 // "dass man bei Tooltips das mit dem Bild reinziehen erklärt bekommt und am Ende auswählen kann, ob man unten rechts das
@@ -15096,7 +15241,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.113';
+const APP_VERSION='2.4.115';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -15194,11 +15339,13 @@ function showDownloadModal(){
     <h4>${t('download_title')}</h4>
     <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">${t('download_intro')}</p>
     <div class="download-platform-list">${rows}</div>
+    ${isInstalledApp()?'':`<button type="button" class="ig-open-link" data-a="guide">${t('ig_open_guide')}</button>`}
     <div class="modal-actions">
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('close_title')}</button>
     </div></div>`;
   bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
+  const gl=scrim.querySelector('[data-a="guide"]'); if(gl) gl.addEventListener('click',()=>{ scrim.remove(); showInstallGuide(); });
   document.body.appendChild(scrim);
 }
 document.getElementById('downloadBtn').addEventListener('click',showDownloadModal);
