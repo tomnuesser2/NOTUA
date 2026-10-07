@@ -15096,7 +15096,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.112';
+const APP_VERSION='2.4.113';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -26389,6 +26389,15 @@ function updateFolderStatusUI(){
   }
 }
 
+async function fsProbeWrite(handle){
+  try{
+    const name='.notua-write-test';
+    const fh=await handle.getFileHandle(name,{create:true});
+    const w=await fh.createWritable(); await w.write('ok'); await w.close();
+    try{ await handle.removeEntry(name); }catch(e){}
+    return true;
+  }catch(e){ return false; }
+}
 async function activateFolder(handle,opts){
   opts=opts||{};
   // "trotz Ordner-Auswahl synct er die Boards nicht" — showDirectoryPicker({mode:'readwrite'}) (see
@@ -26405,7 +26414,11 @@ async function activateFolder(handle,opts){
   try{
     let perm=await handle.queryPermission({mode:'readwrite'});
     if(perm!=='granted' && typeof handle.requestPermission==='function'){ perm=await handle.requestPermission({mode:'readwrite'}); }
-    if(perm!=='granted'){
+    // queryPermission() ist in der Windows-App (Electron/Nativefier) auch für gerade frisch gewählte Ordner nicht
+    // zuverlässig 'granted' — Electron hat keine eigene Berechtigungs-Oberfläche dafür. Entscheidend ist, ob wirklich
+    // geschrieben werden kann: also ein kleiner Schreibtest (eigene Testdatei anlegen und gleich wieder löschen);
+    // nur wenn auch der scheitert, wird der Ordner abgelehnt.
+    if(perm!=='granted' && !(await fsProbeWrite(handle))){
       showToast(t('toast_folder_write_denied'));
       return;
     }
@@ -26461,7 +26474,10 @@ async function tryReconnectFolder(){
   try{ handle=await loadHandleRef(); }catch(e){}
   if(!handle) return;
   try{
-    const perm=await handle.queryPermission({mode:'readwrite'});
+    let perm=await handle.queryPermission({mode:'readwrite'});
+    // Windows-App: queryPermission meldet nach einem Neustart oft nicht 'granted', obwohl der gemerkte Ordner weiter
+    // beschreibbar ist — ein stiller Schreibtest entscheidet dann (ohne Dialog, ohne erneute Ordnerwahl).
+    if(perm!=='granted' && document.documentElement.classList.contains('notua-app-env') && await fsProbeWrite(handle)) perm='granted';
     if(perm==='granted'){ await activateFolder(handle,{offerMigration:false}); }
     else{
       // A previously-connected folder that just needs re-confirming (the normal case after any
