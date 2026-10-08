@@ -234,7 +234,7 @@ try{
   }
   .landing-center{display:flex; flex-direction:column; align-items:center; gap:26px;}
   .landing-circle{
-    position:relative; width:96px; height:96px; border-radius:50%; background:var(--accent); border:none; cursor:var(--custom-pointer-cursor,pointer); flex:none;
+    position:relative; width:96px; height:96px; border-radius:var(--lc-radius,50%); background:var(--accent); border:none; cursor:var(--custom-pointer-cursor,pointer); flex:none;
     display:flex; align-items:center; justify-content:center; color:#fff;
     box-shadow:0 18px 46px -14px var(--accent), 0 4px 14px -4px var(--shadow-lg);
     transition:transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
@@ -258,7 +258,7 @@ try{
      box means it never has to share (and fight over) the `transform` property with circlePop or the
      hover/active states, so it stays perfectly smooth no matter what the circle itself is doing. */
   .landing-circle::before{
-    content:''; position:absolute; inset:0; border-radius:50%; background:var(--accent);
+    content:''; position:absolute; inset:0; border-radius:var(--lc-radius,50%); background:var(--accent);
     animation:landingRipple 3.2s cubic-bezier(.22,.61,.36,1) infinite; pointer-events:none; z-index:-1;
   }
   @keyframes landingPulse{
@@ -3054,7 +3054,7 @@ try{
     background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:6px; box-shadow:0 10px 30px -10px var(--shadow-lg);
   }
   .dock-btn{
-    display:flex; flex-direction:column; align-items:center; gap:2px; width:58px; padding:7px 4px 6px; border:none; background:none;
+    display:flex; flex-direction:column; align-items:center; gap:2px; min-width:58px; width:auto; flex:none; box-sizing:border-box; padding:7px 8px 6px; white-space:nowrap; border:none; background:none;
     border-radius:8px; color:var(--muted); cursor:var(--custom-pointer-cursor,pointer); font-family:inherit;
     transition:background .16s ease, color .16s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
   }
@@ -3323,11 +3323,14 @@ try{
   .mobile-drawer.compact-style .drawer-section + .drawer-section{border-top:1px solid var(--border);}
   .mobile-drawer.compact-style .drawer-label{padding:2px 2px 4px;}
   .mobile-drawer.compact-style .drawer-btn{
-    flex-direction:row; align-items:center; width:172px; max-width:100%; gap:12px;
+    flex-direction:row; align-items:center; width:auto; min-width:172px; max-width:none; box-sizing:border-box; white-space:nowrap; gap:12px;
     padding:9px 10px; border-radius:14px; border:1px solid var(--border); background:var(--surface-2);
     text-align:left; font-size:0.84rem; color:var(--ink);
     transition:border-color .15s ease, background .15s ease, transform .1s ease;
   }
+  /* Tiles wachsen mit ihrer Beschriftung (andere Schrift/Größe/Sprache) und bleiben dabei gleich breit; Ecken folgen der Ecken-Einstellung. */
+  html[data-d-radius] .mobile-drawer.compact-style .drawer-btn{border-radius:min(var(--d-radius),22px);}
+  html[data-d-radius] .mobile-drawer.compact-style .drawer-btn svg{border-radius:max(4px, calc(min(var(--d-radius),22px) - 9px));}
   .mobile-drawer.compact-style .drawer-btn:hover{border-color:var(--border-strong);}
   .mobile-drawer.compact-style .drawer-btn:active{transform:scale(.98);}
   .mobile-drawer.compact-style .drawer-btn.active,
@@ -3924,6 +3927,9 @@ try{
     position:fixed; right:0; bottom:0; width:26px; height:26px; padding:0; margin:0; border:none;
     background:transparent; opacity:0; cursor:default; z-index:5;
   }
+  .lcb-prev{display:flex; align-items:center; justify-content:center; padding:18px 0 22px; background:var(--surface-2); border-radius:10px; margin:6px 0 12px;}
+  .lcb-prev i{display:block; width:72px; height:72px; background:var(--accent); border-radius:var(--lcb-r,50%); transition:border-radius .12s ease, opacity .2s;}
+  .lcb-prev.off i{opacity:.35;}
   .secret-password-form{display:flex; flex-direction:column; gap:8px;}
   .secret-password-form input{
     border:1px solid var(--border); border-radius:8px; padding:9px 10px; font:inherit; font-size:0.86rem;
@@ -3971,6 +3977,12 @@ try{
   html[data-d-radius] .create-menu, html[data-d-radius] .template-tile, html[data-d-radius] .dp-card,
   html[data-d-radius] .project-tile, html[data-d-radius] .project-panel{border-radius:var(--d-radius);}
   html[data-d-radius] .project-mini-chip{border-radius:calc(var(--d-radius) * 0.5);}
+  /* Elemente-Leiste (#dock) und Ansichts-Leiste (.viewctl) folgen der Ecken-Einstellung; die Buttons darin sind
+     konzentrisch (Außenradius − Innenabstand), der Innenabstand wächst mit runderen Ecken mit. */
+  html[data-d-radius] .dock{border-radius:var(--d-radius); padding:6px calc(6px + var(--d-inset,0px) * 0.6);}
+  html[data-d-radius] .dock-btn{border-radius:max(4px, calc(var(--d-radius) - 6px));}
+  html[data-d-radius] .viewctl{border-radius:var(--d-radius); padding:5px calc(5px + var(--d-inset,0px) * 0.6);}
+  html[data-d-radius] .viewctl button{border-radius:max(4px, calc(var(--d-radius) - 5px));}
   /* Vergrößern-Griff: bei runden Ecken rückt er entlang der Diagonale nach innen (Kreisbogen liegt bei ~0.29·Radius von der Ecke),
      damit seine Spitze nicht mehr aus der Karte ragt. */
   html[data-d-radius] .resize-handle{right:calc(var(--d-radius) * 0.29 + 1px); bottom:calc(var(--d-radius) * 0.29 + 1px); border-radius:0 0 3px 0;}
@@ -4457,6 +4469,10 @@ try{
       </button>
       <button type="button" class="tools-sheet-card" id="toolsSecretHeadingItem" data-beta="heading" hidden>
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 5v14M18 5v14M6 12h12"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretLandingBtnItem" data-beta="landingbtn" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="6"/><path d="M10 12h5M13 9.5l2.5 2.5-2.5 2.5"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
       <button type="button" class="tools-sheet-card" id="toolsSecretStravaItem" data-beta="strava" hidden>
@@ -5386,6 +5402,13 @@ const I18N={
   add_heading_label:{de:'Titel',en:'Heading',es:'Título',da:'Overskrift'},
   type_heading:{de:'Überschrift',en:'Heading',es:'Título',da:'Overskrift'},
   placeholder_heading:{de:'Überschrift',en:'Heading',es:'Título',da:'Overskrift'},
+  tools_secret_landingbtn_item:{de:'Landingpage-Button',en:'Landing page button',es:'Botón de la página de inicio',da:'Landingside-knap'},
+  beta_landingbtn_unlocked_toast:{de:'Landingpage-Button freigeschaltet — Form einstellbar unter Secret Settings',en:'Landing page button unlocked — adjust its shape in Secret Settings',es:'Botón de inicio desbloqueado — ajusta su forma en Secret Settings',da:'Landingside-knap låst op — form kan justeres i Secret Settings'},
+  lcb_title:{de:'Landingpage-Button',en:'Landing page button',es:'Botón de la página de inicio',da:'Landingside-knap'},
+  lcb_switch:{de:'Eigene Form verwenden',en:'Use custom shape',es:'Usar forma propia',da:'Brug egen form'},
+  lcb_radius:{de:'Eckenradius',en:'Corner radius',es:'Radio de esquinas',da:'Hjørneradius'},
+  lcb_circle:{de:'Kreis',en:'Circle',es:'Círculo',da:'Cirkel'},
+  lcb_square:{de:'Quadrat',en:'Square',es:'Cuadrado',da:'Kvadrat'},
   tools_secret_heading_item:{de:'Überschrift-Element',en:'Heading element',es:'Elemento de título',da:'Overskrift-element'},
   beta_heading_unlocked_toast:{de:'Überschrift-Element freigeschaltet — in der Elemente-Leiste unter „Titel“',en:'Heading element unlocked — find it in the elements bar as “Heading”',es:'Elemento de título desbloqueado — en la barra de elementos como «Título»',da:'Overskrift-element låst op — i elementlinjen som »Overskrift«'},
   beta_wow_unlocked_toast:{de:'WoW-PvP-Check freigeschaltet',en:'WoW PvP check unlocked',es:'WoW PvP Check desbloqueado',da:'WoW PvP-tjek låst op'},
@@ -6747,7 +6770,7 @@ function setLang(lang){
   // Dynamisch beschriftete Elemente (Ordner-/Cloud-Sync-Button, Werkzeuge, Schalter …) setzen ihren Text nicht über applyI18n,
   // sondern in eigenen Update-Funktionen → hier einmal alle neu laufen lassen, sonst bleibt die alte Sprache stehen.
   [updateFolderStatusUI,refreshR2SyncToggleUI,refreshR2LinkDeviceUI,refreshToolsSheetTabsUI,syncThemeUI,syncGridSnapUI,syncDynamicUI,
-   syncConnectUI,refreshUiDynamicToggleUI,refreshSecretToggleCardsUI].forEach(fn=>{ try{ if(typeof fn==='function') fn(); }catch(e){} });
+   syncConnectUI,refreshUiDynamicToggleUI,refreshSecretToggleCardsUI,refreshDockMagnify].forEach(fn=>{ try{ if(typeof fn==='function') fn(); }catch(e){} });
 }
 // "die Sprache wechselt irgendwie nichtmehr überall, manche Sachen sind einfach dänisch auch wenn
 // man auf deutsch schaltet, bei anderen Sprachen auch" — #blanketDock, #drawerBlanketSection and
@@ -6822,6 +6845,7 @@ function applyI18n(){
     ['#toolsSheetTabSecret','text',t('tools_tab_secret_label')],
     ['#toolsSecretWowItem .tools-sheet-card-label','text',t('tools_secret_wow_item')],
     ['#toolsSecretHeadingItem .tools-sheet-card-label','text',t('tools_secret_heading_item')],
+    ['#toolsSecretLandingBtnItem .tools-sheet-card-label','text',t('tools_secret_landingbtn_item')],
     ['#toolsSecretStravaItem .tools-sheet-card-label','text',t('tools_secret_strava_item')],
     ['#menuBtn','title',t('menu_title')],
     ['#homeBtn','title',t('home_title')],
@@ -11400,13 +11424,14 @@ function applyBetaFeatureVisibility(){
     el.hidden=!(inSecretGrid ? isBetaFeatureUnlocked(el.dataset.beta) : isBetaFeatureActive(el.dataset.beta));
   });
   refreshToolsSheetTabsUI();
+  try{ applyLandingButtonStyle(); }catch(e){}
 }
 // Whether ANY secret code has ever been entered on this device — decides whether the Werkzeuge
 // sheet even shows a "Secret Settings" second tab at all. Kept genuinely secret for anyone who's
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs','update','heading'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs','update','heading','landingbtn'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -11636,7 +11661,9 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
     const svg=el.querySelector('svg');
     const iconBase=svg?(parseFloat(svg.getAttribute('width'))||19):19;
     const rect=el.getBoundingClientRect();
-    return {el,svg,iconBase,size:base,vel:0,target:base,restCenterX:rect.left+rect.width/2};
+    const span=el.querySelector('span');
+    const ibase=Math.max(base,Math.ceil(span?span.offsetWidth+16:0)); // natürliche Breite (Beschriftung) als Untergrenze – Labels dürfen sich nie überschneiden
+    return {el,svg,span,iconBase,ibase,size:ibase,vel:0,target:ibase,restCenterX:rect.left+rect.width/2};
   });
   if(!items.length) return;
   containerEl.classList.add('dock-magnify-on');
@@ -11706,16 +11733,19 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
   // same continuous-time physics), it just computes that same physics accurately regardless of how long
   // the real frame took. MAX_SUBSTEP is comfortably under the 1/60s instability threshold above.
   const MAX_SUBSTEP=0.008;
+  let fcount=0;
   function frame(now){
     const dt=Math.min(.05,(now-last)/1000)||0.016; last=now;
+    // Natürliche Breite regelmäßig neu messen (Schrift-/Sprachwechsel, Leiste war beim Start noch versteckt …)
+    if(++fcount%20===1) items.forEach(it=>{ if(it.span) it.ibase=Math.max(base,Math.ceil(it.span.offsetWidth+16)); });
     const steps=Math.max(1,Math.ceil(dt/MAX_SUBSTEP));
     const subDt=dt/steps;
     items.forEach(it=>{
-      let target=base;
+      let target=it.ibase;
       if(mouseX!=null){
         const dist=Math.abs(mouseX-it.restCenterX);
         const falloff=Math.max(0,1-dist/distance);
-        target=base+(max-base)*falloff;
+        target=it.ibase+(max-base)*falloff;
       }
       it.target=target;
       for(let s=0;s<steps;s++){
@@ -11725,11 +11755,11 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
       }
       // Hard safety clamp — independent of the fixes above, so a single stray frame can never again
       // balloon a button past its intended max (or shrink it below something reasonable).
-      it.size=Math.min(Math.max(it.size,base*0.5),max*1.15);
+      it.size=Math.min(Math.max(it.size,it.ibase),it.ibase+(max-base)*1.15);
       it.el.style.width=it.size+'px';
       if(growHeight) it.el.style.height=it.size+'px';
       if(it.svg){
-        const iconSize=Math.round(it.iconBase*(it.size/base));
+        const iconSize=Math.round(it.iconBase*((it.size-it.ibase+base)/base));
         it.svg.setAttribute('width',iconSize);
         it.svg.setAttribute('height',iconSize);
       }
@@ -11885,6 +11915,49 @@ function showAnimControlModal(){
 // .mobile-drawer), so there is nothing left to toggle here. See MOBILE DRAWER MAGNIFY + DRAG-OUT below
 // for the touch-adapted dock-magnify effect and drag-out-to-place behavior now built on top of it.
 
+// ---- Landingpage-Button (Secret 'functionlandingbutton'): Eckenradius des Kreis-Buttons auf der Startseite.
+// 0 px = Quadrat … LCB_MAX px (= halbe Seitenlänge) = Kreis. Gespeichert in localStorage 'notua-landingbtn' {on,r}.
+const LCB_MAX=48;
+function loadLandingBtnCfg(){
+  try{ const o=JSON.parse(localStorage.getItem('notua-landingbtn')||'null'); if(o && typeof o==='object') return {on:!!o.on, r:Math.max(0,Math.min(LCB_MAX,Number(o.r)))||(o.r===0?0:LCB_MAX)}; }catch(e){}
+  return {on:false,r:LCB_MAX};
+}
+function saveLandingBtnCfg(c){ try{ localStorage.setItem('notua-landingbtn',JSON.stringify(c)); }catch(e){} }
+function landingBtnRadiusCss(c){ return (!c.on || c.r>=LCB_MAX) ? '' : c.r+'px'; }
+function applyLandingButtonStyle(){
+  const root=document.documentElement;
+  const c=isBetaFeatureUnlocked('landingbtn')?loadLandingBtnCfg():{on:false,r:LCB_MAX};
+  const v=landingBtnRadiusCss(c);
+  if(v) root.style.setProperty('--lc-radius',v); else root.style.removeProperty('--lc-radius');
+}
+function showLandingButtonModal(){
+  const c=loadLandingBtnCfg();
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal">
+    <h4>${t('lcb_title')}</h4>
+    <div class="lcb-prev" id="lcbPrev"><i></i></div>
+    <label class="dm-switchrow"><span>${t('lcb_switch')}</span><span class="dm-switch"><input type="checkbox" id="lcbOn"/><i></i></span></label>
+    <div class="style-range-row" style="margin-top:10px;"><label style="min-width:92px;">${t('lcb_radius')}</label><input type="range" id="lcbR" min="0" max="${LCB_MAX}" step="1"/><span class="dm-val" id="lcbRVal"></span></div>
+    <div class="modal-actions"><button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">OK</button></div></div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  const on=scrim.querySelector('#lcbOn'), r=scrim.querySelector('#lcbR'), val=scrim.querySelector('#lcbRVal'), prev=scrim.querySelector('#lcbPrev');
+  on.checked=c.on; r.value=c.r;
+  function sync(save){
+    const cfg={on:on.checked, r:+r.value};
+    val.textContent=cfg.r>=LCB_MAX?t('lcb_circle'):(cfg.r===0?t('lcb_square'):cfg.r+' px');
+    // Vorschau: 72px-Kachel → Radius proportional zum 96px-Button
+    prev.style.setProperty('--lcb-r', cfg.r>=LCB_MAX?'50%':(cfg.r*72/96)+'px');
+    prev.classList.toggle('off',!cfg.on);
+    r.disabled=!cfg.on;
+    if(save){ saveLandingBtnCfg(cfg); applyLandingButtonStyle(); }
+  }
+  on.addEventListener('change',()=>sync(true));
+  r.addEventListener('input',()=>sync(true));
+  scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
+  sync(false);
+  document.body.appendChild(scrim);
+}
+
 function showSecretPasswordModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   scrim.innerHTML=`<div class="modal">
@@ -11906,6 +11979,7 @@ function showSecretPasswordModal(){
     const v=input.value;
     if(v==='tomistcool'){ scrim.remove(); unlockBetaFeature('theme'); showThemeMenuModal(); }
     else if(v==='functionstrava'){ scrim.remove(); unlockBetaFeature('strava'); showToast(t('beta_strava_unlocked_toast')); }
+    else if(v==='functionlandingbutton'){ scrim.remove(); unlockBetaFeature('landingbtn'); showToast(t('beta_landingbtn_unlocked_toast')); showLandingButtonModal(); }
     else if(v==='functionheading'){ scrim.remove(); unlockBetaFeature('heading'); showToast(t('beta_heading_unlocked_toast')); }
     else if(v==='functionwow'){ scrim.remove(); unlockBetaFeature('wow'); showToast(t('beta_wow_unlocked_toast')); }
     // 'functiondock' removed — "der code functiondock soll raus", dock-magnify no longer needs an
@@ -14017,7 +14091,7 @@ function showLookCodeModal(){
 }
 const toolsLookCodeItem=document.getElementById('toolsLookCodeItem');
 if(toolsLookCodeItem) toolsLookCodeItem.addEventListener('click',()=>{ closeToolsSheet(); showLookCodeModal(); });
-[['toolsSecretThemeItem',()=>showThemeMenuModal()],['toolsSecretDesignItem',()=>showDesignMenuModal()],['toolsSecretTemplateItem',()=>showTemplatePickerModal()],['toolsSecretImagesItem',()=>showImageDropModal()]].forEach(([id,fn])=>{
+[['toolsSecretLandingBtnItem',()=>showLandingButtonModal()],['toolsSecretThemeItem',()=>showThemeMenuModal()],['toolsSecretDesignItem',()=>showDesignMenuModal()],['toolsSecretTemplateItem',()=>showTemplatePickerModal()],['toolsSecretImagesItem',()=>showImageDropModal()]].forEach(([id,fn])=>{
   const el=document.getElementById(id); if(el) el.addEventListener('click',()=>{ closeToolsSheet(); fn(); });
 });
 const toolsLookItem=document.getElementById('toolsLookItem');
@@ -15918,7 +15992,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.156';
+const APP_VERSION='2.4.158';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
