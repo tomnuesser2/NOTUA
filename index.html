@@ -7088,9 +7088,10 @@ const fsState={
 // left the folder button showing green/connected forever with literally nothing ever landing on disk.
 let fsWriteFailureShown=false;
 function fsReportWriteFailure(e){
-  if(fsWriteFailureShown) return; // one toast per connected session is enough — not one per failed write
+  if(fsWriteFailureShown) return; // einmal pro verbundener Sitzung genügt
   fsWriteFailureShown=true;
-  try{ showToast(t('toast_folder_write_failed')); }catch(err){}
+  // Keine Fehlermeldung mehr: der Ordner-Button wird einfach rot (siehe updateFolderStatusUI), Klick darauf → Ordner erneut verbinden.
+  try{ updateFolderStatusUI(); }catch(err){}
 }
 function fsGetBoardsRootDir(){
   if(!fsState.root) return Promise.resolve(null);
@@ -14203,16 +14204,9 @@ async function refreshHome(){
   // the whole board grid — boards from every OTHER connected source (idb always, plus fs if still
   // fine, plus r2 if signed in) keep showing normally; this banner is purely informational now, since
   // the multi-source home merges across sources instead of one at a time. See MULTI-QUELLEN-SPEICHER above.
-  if(folderReconnectBanner){
-    const blocked=!!fsState.pendingHandle;
-    folderReconnectBanner.hidden=!blocked;
-    if(blocked){
-      const nameGuess=fsState.pendingHandle && fsState.pendingHandle.name;
-      document.getElementById('folderReconnectBody').textContent=nameGuess
-        ? t('folder_reconnect_banner_body')+' ("'+nameGuess+'")'
-        : t('folder_reconnect_banner_body');
-    }
-  }
+  // "Fehlermeldung mit neu verbinden nicht mehr anzeigen, nur der Ordner-Button soll rot sein" — der Banner bleibt
+  // dauerhaft versteckt; der rote Ordner-Button (updateFolderStatusUI → .pending) ist der einzige Hinweis.
+  if(folderReconnectBanner) folderReconnectBanner.hidden=true;
   // Render immediately from whatever's already cached in state.boards (applying any pending local
   // edit overlay — see state.boardOverrides) instead of waiting on a fresh fetch first. A connected
   // FS source turns every Home visit into a real network round-trip; without this, something
@@ -15992,7 +15986,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.158';
+const APP_VERSION='2.4.159';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -27962,7 +27956,12 @@ function updateFolderStatusUI(){
   if(!FS_SUPPORTED){ folderBtn.hidden=true; return; }
   folderBtn.hidden=false;
   folderBtn.classList.remove('connected','pending');
-  if(fsState.root){
+  if(fsState.root && fsWriteFailureShown){
+    // Zugriff aufs Ordner-Verzeichnis funktioniert nicht mehr (z. B. Schreibrechte entzogen) → nur der Button wird rot.
+    folderBtn.classList.add('pending');
+    folderLabel.textContent=fsState.rootName;
+    folderBtn.title=t('toast_folder_write_failed');
+  }else if(fsState.root){
     folderBtn.classList.add('connected');
     folderLabel.textContent=fsState.rootName;
     folderBtn.title=t('folder_connected_title',{name:fsState.rootName});
