@@ -1935,13 +1935,13 @@ try{
      put — just invisible — which keeps this a single, cheap property to toggle back in .framed below.
      Switchable per image via the "Transparenz" switch in the inspector (data.transparent===false). */
   /* Überschrift-Element (Secret 'functionheading'): freistehender Großtext, kein Hintergrund/Rahmen.
-     Die Schrift füllt immer die Kartenbox (fitHeadingText) — Größe ändern = Resize-Griff. Die Textfarbe
+     Die Kartenbox umschließt den Text immer exakt (layoutHeading, Schriftgröße = card.data.fs) — Größe ändern = Resize-Griff skaliert die Schrift. Die Textfarbe
      kommt aus der normalen Farbwahl der Eigenschaften (card.color / customColor). */
   .card.card-heading{background:transparent !important; border:none !important; padding:0; overflow:visible; --heading-ink:var(--ink);}
   .card.card-heading:not(.selected){box-shadow:none !important;}
-  .card-heading .heading-box{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .card-heading .heading-box{position:absolute; inset:0; pointer-events:none;}
   .card-heading .heading-text{
-    flex:none; white-space:pre; line-height:1; text-align:center; outline:none; pointer-events:auto;
+    position:absolute; left:0; top:0; flex:none; white-space:pre; line-height:1; text-align:center; outline:none; pointer-events:auto;
     font-family:var(--heading-ff,'Bebas Neue','Oswald','Impact','Arial Narrow',sans-serif); font-weight:var(--heading-fw,400); text-transform:var(--heading-tt,uppercase); letter-spacing:.005em;
     color:var(--heading-ink); text-shadow:0 .035em 0 rgba(0,0,0,.4); cursor:inherit; min-width:.5em; user-select:none; -webkit-user-select:none;
   }
@@ -15951,7 +15951,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.153';
+const APP_VERSION='2.4.154';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -19962,19 +19962,56 @@ function headingInkCss(card){
   }
   return 'var(--ink)';
 }
-// Largest font-size at which the whole (unwrapped) text still fits inside the card box.
-function fitHeadingText(el){
+// Überschrift: Die Box umschließt den Text immer exakt. Gemessen wird die echte Tinte (Canvas-Textmetriken), damit oben/unten
+// nicht der leere Zeilenabstand der Schrift mitzählt. Schriftgröße = card.data.fs; der Resize-Griff skaliert sie.
+let _hCtx=null;
+function measureHeading(text,fs,hf,placeholder){
+  if(!_hCtx) _hCtx=document.createElement('canvas').getContext('2d');
+  const ctx=_hCtx;
+  let str=text.length?text:placeholder;
+  if(hf.upper) str=str.toUpperCase();
+  const lines=str.split('\n');
+  ctx.font=`${hf.w} ${fs}px ${hf.ff}`;
+  const ms=lines.map(ln=>ctx.measureText(ln||' '));
+  const advs=ms.map((m,i)=>m.width+lines[i].length*fs*0.005);
+  const width=Math.max(...advs);
+  let minL=Infinity, maxR=-Infinity;
+  ms.forEach((m,i)=>{
+    const o=(width-advs[i])/2;
+    minL=Math.min(minL,o-(m.actualBoundingBoxLeft||0));
+    maxR=Math.max(maxR,o+(m.actualBoundingBoxRight!=null?m.actualBoundingBoxRight:advs[i]));
+  });
+  const asc=ms[0].actualBoundingBoxAscent||fs*0.7;
+  const desc=Math.max(0,ms[ms.length-1].actualBoundingBoxDescent||0);
+  const fa=ms[0].fontBoundingBoxAscent||fs*0.8, fd=ms[0].fontBoundingBoxDescent||fs*0.2;
+  const L=fs; // line-height:1
+  const base=(L-(fa+fd))/2+fa;                  // Grundlinie ab Oberkante der ersten Zeile
+  return {width, inkLeft:minL, inkW:Math.max(1,maxR-minL), inkTop:base-asc, inkH:asc+desc+(lines.length-1)*L, lines:lines.length};
+}
+function layoutHeading(el,card,opts){
   const tx=el.querySelector('.heading-text'); if(!tx) return;
-  const W=el.clientWidth, H=el.clientHeight; if(!W || !H) return;
-  const hasText=tx.textContent.length>0;
-  if(!hasText){ tx.style.fontSize=Math.max(10,Math.min(H*0.7,W/6))+'px'; return; }
-  let lo=4, hi=Math.min(Math.max(H*1.5,24),1200);
-  for(let i=0;i<14;i++){
-    const mid=(lo+hi)/2;
-    tx.style.fontSize=mid+'px';
-    if(tx.offsetWidth<=W && tx.offsetHeight<=H) lo=mid; else hi=mid;
+  const hf=headingFontOf(card);
+  const ph=t('placeholder_heading');
+  const text=tx.isContentEditable?tx.textContent:(card.data.text||'');
+  if(!card.data.fs){
+    // Alte Überschrift ohne Schriftgröße: größte Schrift, die in die bisherige Box passte (so bleibt der Anblick gleich).
+    let lo=6, hi=Math.min(Math.max(card.h*1.5,24),1200);
+    for(let i=0;i<14;i++){ const mid=(lo+hi)/2; const m=measureHeading(text,mid,hf,ph); if(m.inkW<=card.w && m.inkH<=card.h) lo=mid; else hi=mid; }
+    card.data.fs=Math.round(lo*10)/10; if(!opts||!opts.silent) saveCardSoon(card);
   }
-  tx.style.fontSize=lo+'px';
+  const fs=card.data.fs;
+  const m=measureHeading(text,fs,hf,ph);
+  const pad=Math.max(5,Math.round(fs*0.07));
+  const w=Math.ceil(m.inkW+2*pad), h=Math.ceil(m.inkH+fs*0.04+2*pad); // + Platz für den Schlagschatten (.035em)
+  tx.style.fontSize=fs+'px';
+  tx.style.left=Math.round((pad-m.inkLeft)*100)/100+'px';
+  tx.style.top=Math.round((pad-m.inkTop)*100)/100+'px';
+  tx.style.width=Math.ceil(m.width)+'px';
+  el.style.width=w+'px'; el.style.height=h+'px';
+  if(w!==card.w || h!==card.h){
+    card.w=w; card.h=h;
+    if(!opts||!opts.silent){ saveCardSoon(card); if(typeof updateConnectorPositions==='function') updateConnectorPositions(); }
+  }
 }
 function buildHeadingCard(card){
   const el=baseCardShell(card,'card-heading');
@@ -19984,13 +20021,13 @@ function buildHeadingCard(card){
   el.innerHTML=`<div class="heading-box"><div class="heading-text" spellcheck="false" data-placeholder="${escapeHtml(t('placeholder_heading'))}"></div></div>`;
   const tx=el.querySelector('.heading-text');
   tx.textContent=card.data.text||'';
-  const fit=()=>fitHeadingText(el);
+  const fit=()=>layoutHeading(el,card);
+  el._layoutHeading=fit;
   let raf=0;
   const fitSoon=()=>{ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; fit(); }); };
-  if(typeof ResizeObserver!=='undefined') new ResizeObserver(fitSoon).observe(el);
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitSoon);
   if(document.fonts && document.fonts.load){ try{ document.fonts.load(`${hf.w} 40px ${hf.ff}`).then(fitSoon).catch(()=>{}); }catch(e){} }
-  fit();
+  layoutHeading(el,card,{silent:true});
   function startEdit(){
     if(tx.isContentEditable) return;
     tx.contentEditable='true';
@@ -24270,7 +24307,7 @@ function attachResize(handle,el,card){
   let rs=null;
   handle.addEventListener('pointerdown',(e)=>{
     e.stopPropagation(); e.preventDefault();
-    rs={sx:e.clientX, sy:e.clientY, w:card.w, h:card.h, scale0:card.data&&card.data.scale||1};
+    rs={sx:e.clientX, sy:e.clientY, w:card.w, h:card.h, scale0:card.data&&card.data.scale||1, fs:card.type==='heading'?(card.data.fs||0):0};
     handle.setPointerCapture(e.pointerId);
   });
   handle.addEventListener('pointermove',(e)=>{
@@ -24330,9 +24367,11 @@ function attachResize(handle,el,card){
       card.w=snap(clamp(rs.w+dx,140,2000));
       card.h=clamp(Math.round(card.w/ratio),80,2000);
     }else if(card.type==='heading'){
-      // Überschrift: frei skalierbar, die Schrift passt sich der Box an (fitHeadingText via ResizeObserver).
-      card.w=snap(clamp(rs.w+dx,60,4000));
-      card.h=snap(clamp(rs.h+dy,32,2000));
+      // Überschrift: Resize skaliert die Schrift, die Box umschließt den Text danach exakt (layoutHeading).
+      // Schrift skaliert mit der Breite (Seitenverhältnis bleibt); die Box umschließt den Text danach wieder exakt.
+      if(!rs.fs) rs.fs=card.data.fs||40;
+      card.data.fs=Math.round(clamp(rs.fs*((rs.w+dx)/rs.w),8,1200)*10)/10;
+      if(el._layoutHeading) el._layoutHeading();
     }else if(card.type==='boardlink'){
       // Sub-Board-Kachel: frei ziehbar, aber nie kleiner als ihr Inhalt (Name + Zähler dürfen nicht abgeschnitten werden)
       card.w=snap(clamp(rs.w+dx,140,2000));
