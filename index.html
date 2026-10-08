@@ -15951,7 +15951,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.148';
+const APP_VERSION='2.4.150';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17377,150 +17377,105 @@ function viewShowsAnyCard(view,cards){
   return cards.some(c=>c.x<right && c.x+c.w>left && c.y<bottom && c.y+c.h>top);
 }
 /* ============================================================
-   AUTOSORT — "alle Lücken bis auf 2 Lückenabstände entfernen, nie überschneiden, clustern"
+   AUTOSORT — dichtes, verschachteltes Packen ("kleine Notizen füllen große Lücken")
    Erscheint (Ansichtsleiste neben dem Dunkelmodus + Handy-Menü), sobald mehr als 3 Kacheln markiert sind.
-   Ablauf (reine Layout-Funktion autoSortLayout, ohne DOM):
-   1. Überschneidungen auflösen: überlappende Kacheln (auch mit nicht markierten) werden minimal auseinandergeschoben.
-   2. Clustern: bestehende Cluster (clusterId) bleiben starr zusammen; Kacheln/Cluster, die höchstens 2,5 Lückenabstände
-      auseinanderliegen, bilden eine Nachbarschaft und werden darin ordentlich in Zeilen ODER Spalten angeordnet (gleicher
-      Abstand, bündig, leicht umsortiert — je nachdem, was weniger verschiebt). Stößt das auf Festes, bleibt die Gruppe wie sie war.
-   3. Schwerkraft: die Gruppen rutschen abwechselnd nach links und nach oben, bis zwischen zwei Gruppen (und zu nicht
-      markierten Kacheln, die als feste Hindernisse gelten) genau 2 Rasterfelder Platz sind. Alles in Rasterschritten,
-      nichts rutscht über die ursprüngliche linke/obere Kante der Markierung hinaus. Dadurch ist Überschneiden
-      ausgeschlossen: eine Gruppe bewegt sich nur bis zum nächsten Hindernis in ihrer Bahn (plus Abstand).
+   Reine Layout-Funktion autoSortLayout (ohne DOM), Ablauf:
+   1. Bausteine: jede Kachel ist einer; bestehende Cluster (clusterId) sind EIN starrer Baustein.
+   2. Packen mit freien Rechtecken (MaxRects): große Bausteine zuerst, jeder wandert an die höchste/linkeste freie Stelle,
+      kleinere füllen danach die Lücken zwischen und unter den großen. Feste (nicht markierte) Kacheln sind Hindernisse.
+   3. Größen-Spielraum: Notizen/Checklisten/Bilder dürfen ±10 % in Breite/Höhe wachsen oder schrumpfen (nie unter ihren
+      Inhalt, Bilder behalten das Seitenverhältnis), wenn das eine Lücke bündig schließt oder höher hinaufrutschen lässt.
+      Die erlaubten Größen liefert der Aufrufer als it.variants [{w,h}].
+   4. Mehrere Zielbreiten werden probiert; es gewinnt das kompakteste, möglichst querformatige Ergebnis.
+   Alles in Rasterschritten, Abstand ≥ GAPS Rasterfelder, nie überschneidend.
    ============================================================ */
 /*AS-BEGIN*/
 function autoSortLayout(items,others,GRID,GAPS){
-  const G=GRID*GAPS, MINGAP=GRID;
-  const R=items.map(it=>({id:it.id,cl:it.cl||null,x:it.x,y:it.y,w:it.w,h:it.h,g:-1}));
+  const G=GRID*GAPS, BIG=1e7;
+  const up=(v)=>Math.ceil(v/GRID)*GRID;
   const O=(others||[]).map(o=>({x:o.x,y:o.y,w:o.w,h:o.h}));
-  const sepX=(a,b)=>Math.max(a.x-(b.x+b.w), b.x-(a.x+a.w));
-  const sepY=(a,b)=>Math.max(a.y-(b.y+b.h), b.y-(a.y+a.h));
-  const overlaps=(a,b)=>sepX(a,b)<0 && sepY(a,b)<0;
-  // 1) Überschneidungen auflösen: in Lesereihenfolge (oben→unten, links→rechts) bleibt jede Kachel, wo sie ist, solange sie
-  //    nichts Bereits-Platziertes überdeckt; sonst wandert sie zur nächstgelegenen freien Stelle (Kandidaten = Kanten der
-  //    schon platzierten Kacheln + MINGAP). Feste (nicht markierte) Kacheln sind von Anfang an platziert.
-  const placed=O.map(o=>({x:o.x,y:o.y,w:o.w,h:o.h}));
-  const hit=(r,x,y)=>{ const t={x,y,w:r.w,h:r.h}; for(let i=0;i<placed.length;i++) if(overlaps(t,placed[i])) return true; return false; };
-  // Feste Cluster zuerst und unverrückbar (sonst würde ein Cluster beim Auflösen auseinandergerissen); lose Kacheln weichen aus.
-  R.slice().sort((p,q)=>((q.cl?1:0)-(p.cl?1:0))||(p.y-q.y)||(p.x-q.x)).forEach(r=>{
-    if(!r.cl && hit(r,r.x,r.y)){
-      const xs=new Set([r.x]), ys=new Set([r.y]);
-      placed.forEach(o=>{ xs.add(o.x+o.w+MINGAP); xs.add(o.x-r.w-MINGAP); ys.add(o.y+o.h+MINGAP); ys.add(o.y-r.h-MINGAP); });
-      let best=null, bestD=Infinity;
-      xs.forEach(x=>ys.forEach(y=>{
-        const d=Math.abs(x-r.x)+Math.abs(y-r.y);
-        if(d<bestD && !hit(r,x,y)){ best={x,y}; bestD=d; }
-      }));
-      if(best){ r.x=best.x; r.y=best.y; }
-    }
-    placed.push({x:r.x,y:r.y,w:r.w,h:r.h});
-  });
-  // 2) Gruppen bilden. Feste Cluster (gleiche clusterId) sind ein starrer "Baustein". Bausteine/Kacheln, die höchstens
-  //    LINK (2,5 Lückenabstände) auseinanderliegen, gehören zu einer Nachbarschaft — so zieht ein Cluster auch einzelne
-  //    Kacheln in der Nähe mit sich (Union-Find).
-  const LINK=G*2.5;
+  // Bausteine (Cluster starr)
   const unitOf=new Map(); const units=[];
-  R.forEach(r=>{
-    if(r.cl){ let u=unitOf.get('c:'+r.cl); if(!u){ u={m:[],fixed:true}; unitOf.set('c:'+r.cl,u); units.push(u); } u.m.push(r); }
+  items.forEach(it=>{
+    const r={id:it.id,x:it.x,y:it.y,w:it.w,h:it.h,kind:it.kind||'',variants:it.variants||[]};
+    if(it.cl){ let u=unitOf.get(it.cl); if(!u){ u={m:[],fixed:true}; unitOf.set(it.cl,u); units.push(u); } u.m.push(r); }
     else units.push({m:[r],fixed:false});
   });
-  const bbox=(ms)=>{ const x=Math.min(...ms.map(r=>r.x)), y=Math.min(...ms.map(r=>r.y)); return {x,y,w:Math.max(...ms.map(r=>r.x+r.w))-x,h:Math.max(...ms.map(r=>r.y+r.h))-y}; };
-  units.forEach(u=>Object.assign(u,bbox(u.m)));
-  const parent=units.map((_,i)=>i);
-  const find=(i)=>{ while(parent[i]!==i){ parent[i]=parent[parent[i]]; i=parent[i]; } return i; };
-  const union=(a,b)=>{ a=find(a); b=find(b); if(a!==b) parent[b]=a; };
-  for(let i=0;i<units.length;i++) for(let j=i+1;j<units.length;j++){
-    if(sepX(units[i],units[j])<=LINK && sepY(units[i],units[j])<=LINK) union(i,j);
-  }
-  const nb=new Map();
-  units.forEach((u,i)=>{ const k=find(i); if(!nb.has(k)) nb.set(k,[]); nb.get(k).push(u); });
-  // 2b) Innerhalb jeder Nachbarschaft ordentlich anordnen: entweder in Zeilen oder in Spalten (je nachdem, was die Kacheln
-  //     weniger verschiebt), gleichmäßiger Abstand G, bündig an der oberen/linken Kante. Kacheln dürfen dabei leicht umsortiert
-  //     werden — dadurch entstehen saubere Cluster statt nur aneinandergeschobener Kacheln.
-  const packBands=(us,horizontal)=>{
-    // horizontal=true: Zeilen (Bänder entlang y); false: Spalten (Bänder entlang x) — durch Achsentausch dieselbe Logik
-    const A=horizontal?'y':'x', B=horizontal?'x':'y', SA=horizontal?'h':'w', SB=horizontal?'w':'h';
-    const sorted=us.slice().sort((p,q)=>(p[A]-q[A])||(p[B]-q[B]));
-    const bands=[];
-    sorted.forEach(u=>{
-      const mid=u[A]+u[SA]/2;
-      let band=null;
-      for(const bd of bands){ if(mid>=bd.lo && mid<=bd.hi){ band=bd; break; } }
-      if(!band){ band={lo:u[A],hi:u[A]+u[SA],us:[]}; bands.push(band); }
-      band.us.push(u); band.lo=Math.min(band.lo,u[A]); band.hi=Math.max(band.hi,u[A]+u[SA]);
+  units.forEach(u=>{
+    const x=Math.min(...u.m.map(r=>r.x)), y=Math.min(...u.m.map(r=>r.y));
+    u.x=x; u.y=y; u.w=Math.max(...u.m.map(r=>r.x+r.w))-x; u.h=Math.max(...u.m.map(r=>r.y+r.h))-y;
+    u.heading=!u.fixed && u.m[0].kind==='heading';
+    u.opts=[{w:u.w,h:u.h,pen:0}];
+    if(!u.fixed) u.m[0].variants.forEach(v=>{
+      if(v.w===u.w && v.h===u.h) return;
+      const f=Math.abs(v.w/u.w-1)+Math.abs(v.h/u.h-1);
+      u.opts.push({w:v.w,h:v.h,pen:4+60*f});
     });
-    bands.sort((p,q)=>p.lo-q.lo);
-    const gx=Math.min(...us.map(u=>u.x)), gy=Math.min(...us.map(u=>u.y));
-    const org={x:Math.round(gx/GRID)*GRID, y:Math.round(gy/GRID)*GRID};
-    const pos=new Map(); let cursorA=org[A];
-    bands.forEach(bd=>{
-      bd.us.sort((p,q)=>(p[B]-q[B])||(p[A]-q[A]));
-      let cursorB=org[B], size=0;
-      bd.us.forEach(u=>{ const o={}; o[A]=cursorA; o[B]=cursorB; pos.set(u,o); cursorB+=u[SB]+G; size=Math.max(size,u[SA]); });
-      cursorA+=size+G;
-    });
-    let cost=0; us.forEach(u=>{ const o=pos.get(u); cost+=Math.abs(o.x-u.x)+Math.abs(o.y-u.y); });
-    return {pos,cost};
-  };
-  const groupRects=[];
-  const nbList=[...nb.values()];
-  nbList.forEach(us=>{ groupRects.push(Object.assign({us},bbox(us.flatMap(u=>u.m)))); });
-  nbList.forEach((us,gi)=>{
-    if(us.length<2) return;
-    const rows=packBands(us,true), cols=packBands(us,false);
-    const best=(cols.cost<rows.cost)?cols:rows;
-    // Nur übernehmen, wenn der neue Platzbedarf nichts Festes/Anderes überdeckt (sonst bleibt die Gruppe, wie sie ist)
-    const rect=(u)=>{ const o=best.pos.get(u); return {x:o.x,y:o.y,w:u.w,h:u.h}; };
-    const nbox=(function(){ const rs=us.map(rect); const x=Math.min(...rs.map(r=>r.x)),y=Math.min(...rs.map(r=>r.y)); return {x,y,w:Math.max(...rs.map(r=>r.x+r.w))-x,h:Math.max(...rs.map(r=>r.y+r.h))-y}; })();
-    let clash=false;
-    O.forEach(o=>{ if(overlaps(nbox,o)) clash=true; });
-    groupRects.forEach((g,gj)=>{ if(gj!==gi && overlaps(nbox,g)) clash=true; });
-    if(clash) return;
-    us.forEach(u=>{ const o=best.pos.get(u); const dx=o.x-u.x, dy=o.y-u.y; u.m.forEach(r=>{ r.x+=dx; r.y+=dy; }); u.x=o.x; u.y=o.y; });
-    Object.assign(groupRects[gi],nbox);
+    u.opts.forEach(o=>{ o.iw=up(o.w)+G; o.ih=up(o.h)+G; });
   });
-  // Nach dem Umsetzen: jede Nachbarschaft ist ein starrer Block für die Schwerkraft unten
-  const groups=new Map();
-  nbList.forEach((us,gi)=>{ groups.set(gi,us.flatMap(u=>u.m)); });
-  const C=[...groups.values()].map(m=>({m,dx:0,dy:0}));
-  const anchorX=Math.min(...R.map(r=>r.x)), anchorY=Math.min(...R.map(r=>r.y));
-  const rectOf=(r,cl)=>({x:r.x+cl.dx, y:r.y+cl.dy, w:r.w, h:r.h});
-  const clusterOf=new Map(); C.forEach(cl=>cl.m.forEach(r=>clusterOf.set(r,cl)));
-  // 3) Schwerkraft: abwechselnd nach links und nach oben
-  const slide=(cl,axis)=>{
-    let allowed=Infinity;
-    cl.m.forEach(r=>{
-      const a=rectOf(r,cl);
-      let lim=(axis==='x') ? a.x-anchorX : a.y-anchorY;
-      const test=(b)=>{
-        if(axis==='x'){
-          if(b.x+b.w>a.x+0.5) return;                              // nur Hindernisse links davon
-          if(!(b.y<a.y+a.h+G && b.y+b.h>a.y-G)) return;           // in derselben Bahn (inkl. Abstand)
-          lim=Math.min(lim, a.x-(b.x+b.w)-G);
-        }else{
-          if(b.y+b.h>a.y+0.5) return;
-          if(!(b.x<a.x+a.w+G && b.x+b.w>a.x-G)) return;
-          lim=Math.min(lim, a.y-(b.y+b.h)-G);
+  if(!units.length) return new Map();
+  const ax=Math.round(Math.min(...units.map(u=>u.x))/GRID)*GRID, ay=Math.round(Math.min(...units.map(u=>u.y))/GRID)*GRID;
+  const maxIw=Math.max(...units.map(u=>u.opts[0].iw));
+  // Reihenfolge: Überschriften zuerst, dann hoch/groß vor klein; stabil nach alter Lage
+  const order=units.slice().sort((p,q)=>((q.heading?1:0)-(p.heading?1:0))||(q.h-p.h)||(q.w*q.h-p.w*p.h)||(p.y-q.y)||(p.x-q.x));
+  const inter=(a,b)=>a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
+  const pack=(W)=>{
+    let free=[{x:ax,y:ay,w:W+G,h:BIG}];
+    const split=(used)=>{
+      const nf=[];
+      for(const F of free){
+        if(!inter(F,used)){ nf.push(F); continue; }
+        if(used.x>F.x) nf.push({x:F.x,y:F.y,w:used.x-F.x,h:F.h});
+        if(used.x+used.w<F.x+F.w) nf.push({x:used.x+used.w,y:F.y,w:F.x+F.w-(used.x+used.w),h:F.h});
+        if(used.y>F.y) nf.push({x:F.x,y:F.y,w:F.w,h:used.y-F.y});
+        if(used.y+used.h<F.y+F.h) nf.push({x:F.x,y:used.y+used.h,w:F.w,h:F.y+F.h-(used.y+used.h)});
+      }
+      // enthaltene Rechtecke entfernen
+      free=nf.filter((a,i)=>!nf.some((b,j)=>j!==i && a.x>=b.x && a.y>=b.y && a.x+a.w<=b.x+b.w && a.y+a.h<=b.y+b.h && (j<i || a.x!==b.x || a.y!==b.y || a.w!==b.w || a.h!==b.h)));
+    };
+    O.forEach(o=>split({x:o.x,y:o.y,w:o.w+G,h:o.h+G})); // Hindernis inkl. Abstand (links/oben steckt schon im aufgeblähten Baustein)
+    const res=new Map(); let maxR=ax, maxB=ay;
+    for(const u of order){
+      let best=null;
+      for(const o of u.opts){
+        for(const F of free){
+          if(F.w<o.iw || F.h<o.ih) continue;
+          const sx=F.w-o.iw, sy=F.h-o.ih;
+          const sl=((sx>0 && sx<0.15*o.w)?sx:0)+((sy>0 && sy<0.15*o.h)?sy:0);
+          const sc=F.y+F.x*0.01+0.5*sl+o.pen;
+          if(!best || sc<best.sc-1e-9) best={sc,x:F.x,y:F.y,o};
         }
-      };
-      R.forEach(o=>{ if(clusterOf.get(o)!==cl) test(rectOf(o,clusterOf.get(o))); });
-      O.forEach(test);
-      allowed=Math.min(allowed,lim);
-    });
-    const d=Math.max(0,allowed);
-    if(!isFinite(d) || d<0.5) return false;
-    if(axis==='x') cl.dx-=d; else cl.dy-=d;
-    return true;
+      }
+      if(!best) return null;
+      res.set(u,best);
+      split({x:best.x,y:best.y,w:best.o.iw,h:best.o.ih});
+      maxR=Math.max(maxR,best.x+best.o.w); maxB=Math.max(maxB,best.y+best.o.h);
+    }
+    return {res,w:maxR-ax,h:maxB-ay};
   };
-  for(let round=0;round<60;round++){
-    let any=false;
-    C.slice().sort((p,q)=>Math.min(...p.m.map(r=>r.x+p.dx))-Math.min(...q.m.map(r=>r.x+q.dx))).forEach(cl=>{ if(slide(cl,'x')) any=true; });
-    C.slice().sort((p,q)=>Math.min(...p.m.map(r=>r.y+p.dy))-Math.min(...q.m.map(r=>r.y+q.dy))).forEach(cl=>{ if(slide(cl,'y')) any=true; });
-    if(!any) break;
-  }
+  // Zielbreiten probieren
+  const infl=units.reduce((s,u)=>s+u.opts[0].iw*u.opts[0].ih,0);
+  const base=Math.sqrt(infl*1.25);
+  const ox=Math.min(...units.map(u=>u.x)), oxr=Math.max(...units.map(u=>u.x+u.w));
+  const cands=new Set();
+  [0.7,0.85,1,1.15,1.3,1.5,1.8].forEach(f=>cands.add(Math.max(up(base*f),maxIw-G)));
+  cands.add(Math.max(up(oxr-ox),maxIw-G));
+  let bestP=null, bestS=Infinity;
+  cands.forEach(W=>{
+    const p=pack(W); if(!p) return;
+    const s=(p.w*p.h)*(1+0.25*Math.abs(Math.log((p.w/Math.max(1,p.h))/1.3)));
+    if(s<bestS){ bestS=s; bestP=p; }
+  });
   const out=new Map();
-  R.forEach(r=>{ const cl=clusterOf.get(r); out.set(r.id,{x:r.x+cl.dx,y:r.y+cl.dy}); });
+  if(!bestP){ items.forEach(it=>out.set(it.id,{x:it.x,y:it.y,w:it.w,h:it.h})); return out; }
+  bestP.res.forEach((pl,u)=>{
+    if(u.fixed){
+      const dx=pl.x-u.x, dy=pl.y-u.y;
+      u.m.forEach(r=>out.set(r.id,{x:r.x+dx,y:r.y+dy,w:r.w,h:r.h}));
+    }else{
+      const r=u.m[0]; out.set(r.id,{x:pl.x,y:pl.y,w:pl.o.w,h:pl.o.h});
+    }
+  });
   return out;
 }
 /*AS-END*/
@@ -17529,33 +17484,65 @@ function refreshAutoSortBtn(){
   const show = state.screen==='board' && state.selection.size>=AUTOSORT_MIN_CARDS;
   ['autoSortBtn','autoSortSep','drawerAutoSortBtn'].forEach(id=>{ const el=document.getElementById(id); if(el) el.hidden=!show; });
 }
+// Erlaubte Größenvarianten (±10 %) für Notizen/Checklisten/Bilder — nie kleiner als der Inhalt, Bilder behalten ihr Seitenverhältnis.
+function autoSortVariants(c,d){
+  if(c.type!=='note' && c.type!=='checklist' && c.type!=='image') return [];
+  const el=cardsLayer.querySelector(`.card[data-id="${c.id}"]`);
+  const F=[0.9,0.95,1,1.05,1.1], out=[], seen=new Set([d.w+'x'+d.h]);
+  const add=(w,h)=>{ const k=w+'x'+h; if(seen.has(k)) return; seen.add(k); out.push({w,h}); };
+  if(c.type==='image' && c.data && c.data.lockAspect!==false){
+    const img=el && el.querySelector('.img-slot img');
+    const ratio=(img && img.naturalWidth && img.naturalHeight) ? img.naturalWidth/img.naturalHeight : (d.w/d.h);
+    F.forEach(f=>{ const w=Math.max(140,Math.round(d.w*f/GRID_SIZE)*GRID_SIZE); const h=Math.max(80,Math.round(w/ratio)); add(w,h); });
+    return out;
+  }
+  const hF=[0.9,0.95,1,1.05,1.1];
+  F.forEach(f=>{
+    const w=Math.max(140,Math.round(d.w*f/GRID_SIZE)*GRID_SIZE);
+    let need=0;
+    if(el && c.type!=='image'){
+      const pw=el.style.width, ph=el.style.height;
+      el.style.width=w+'px'; el.style.height='auto';
+      need=Math.ceil(el.scrollHeight)+2;
+      el.style.width=pw; el.style.height=ph;
+    }
+    hF.forEach(g=>{
+      const h=Math.max(80,Math.round(d.h*g/GRID_SIZE)*GRID_SIZE);
+      if(h<d.h && h<need) return; // würde Inhalt abschneiden
+      add(w,h);
+    });
+  });
+  return out;
+}
 function autoSortSelection(){
   if(state.selection.size<AUTOSORT_MIN_CARDS) return;
   const movers=clusterExpandedMovers(state.selection);
   const moverIds=new Set(movers.map(c=>c.id));
   const dims=(c)=>{ const el=cardsLayer.querySelector(`.card[data-id="${c.id}"]`); return {w:Math.max(c.w,el?el.offsetWidth:0), h:Math.max(c.h,el?el.offsetHeight:0)}; };
-  const items=movers.map(c=>{ const d=dims(c); return {id:c.id,cl:c.clusterId||null,x:c.x,y:c.y,w:d.w,h:d.h}; });
+  const items=movers.map(c=>{ const d=dims(c); return {id:c.id,cl:c.clusterId||null,x:c.x,y:c.y,w:d.w,h:d.h,kind:c.type,variants:c.clusterId?[]:autoSortVariants(c,d)}; });
   const others=state.cards.filter(c=>!moverIds.has(c.id)).map(c=>{ const d=dims(c); return {x:c.x,y:c.y,w:d.w,h:d.h}; });
   const plan=autoSortLayout(items,others,GRID_SIZE,2);
-  const before=new Map(movers.map(c=>[c.id,{x:c.x,y:c.y}]));
-  const changed=movers.filter(c=>{ const p=plan.get(c.id); return p && (p.x!==c.x || p.y!==c.y); });
+  const before=new Map(movers.map(c=>[c.id,{x:c.x,y:c.y,w:c.w,h:c.h}]));
+  const changed=movers.filter(c=>{ const p=plan.get(c.id); return p && (p.x!==c.x || p.y!==c.y || p.w!==c.w || p.h!==c.h); });
   if(!changed.length){ showToast(t('autosort_nothing')); return; }
-  applyCardPositions(changed.map(c=>({card:c,x:plan.get(c.id).x,y:plan.get(c.id).y})),true);
+  applyCardPositions(changed.map(c=>({card:c,...plan.get(c.id)})),true);
   DB.putCards(changed);
   showToast(t('autosort_done',{n:movers.length}),()=>{
-    applyCardPositions(changed.map(c=>({card:c,x:before.get(c.id).x,y:before.get(c.id).y})),true);
+    applyCardPositions(changed.map(c=>({card:c,...before.get(c.id)})),true);
     DB.putCards(changed);
   });
 }
-// Setzt neue Positionen (mit sanftem Gleiten, solange Karten-Animationen an sind) und hält Verbinder/Cluster-Rahmen mit.
+// Setzt neue Positionen/Größen (mit sanftem Gleiten, solange Karten-Animationen an sind) und hält Verbinder/Cluster-Rahmen mit.
 function applyCardPositions(list,animate){
   const smooth=animate && isAnimGroupEnabled('carddrag');
-  list.forEach(({card,x,y})=>{
+  list.forEach(({card,x,y,w,h})=>{
     card.x=x; card.y=y;
     const el=cardsLayer.querySelector(`.card[data-id="${card.id}"]`);
+    if(w!=null && h!=null){ card.w=w; card.h=h; }
     if(!el) return;
-    if(smooth){ el.style.transition='left .55s cubic-bezier(.22,1,.36,1), top .55s cubic-bezier(.22,1,.36,1)'; }
+    if(smooth){ el.style.transition='left .55s cubic-bezier(.22,1,.36,1), top .55s cubic-bezier(.22,1,.36,1), width .55s cubic-bezier(.22,1,.36,1), height .55s cubic-bezier(.22,1,.36,1)'; }
     el.style.left=x+'px'; el.style.top=y+'px';
+    if(w!=null && h!=null){ el.style.width=w+'px'; el.style.height=h+'px'; }
   });
   if(smooth){
     const t0=performance.now();
