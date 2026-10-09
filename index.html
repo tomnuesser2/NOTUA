@@ -133,6 +133,27 @@ try{
     document.documentElement.classList.add('notua-app-env');
   }
 }catch(e){}
+// Absturz-Schutz ("Sparmodus"): Merkt sich beim Start eine Flagge und loescht sie, sobald die App in den
+// Hintergrund geht oder geschlossen wird. Ist beim naechsten Start noch eine Flagge da, wurde die Seite
+// vom Betriebssystem abgeschossen (z. B. iPhone/Safari: WebContent-Prozess ueber dem Speicher- oder
+// GPU-Limit). Nach zwei solchen Abstuerzen laufen Hintergrund-Animationen, Shader, Filter und Endlos-
+// Animationen nur noch abgespeckt (html.lowfx, window.__NOTUA_LOWFX). Boards/Einstellungen bleiben
+// unberuehrt. Rueckgaengig: notua.site/?fx=on oeffnen.
+try{
+  var __sp=new URLSearchParams(location.search);
+  if(__sp.get('fx')==='on'){ localStorage.removeItem('notua-lowfx'); localStorage.removeItem('notua-crash-count'); localStorage.removeItem('notua-boot-flag'); }
+  if(__sp.get('fx')==='low'){ localStorage.setItem('notua-lowfx','1'); }
+  var __cc=parseInt(localStorage.getItem('notua-crash-count')||'0',10)||0;
+  if(localStorage.getItem('notua-boot-flag')){ __cc++; localStorage.setItem('notua-crash-count',String(__cc)); }
+  if(__cc>=2) localStorage.setItem('notua-lowfx','1');
+  localStorage.setItem('notua-boot-flag',String(Date.now()));
+  var __clrFlag=function(){ try{ localStorage.removeItem('notua-boot-flag'); }catch(e){} };
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) __clrFlag(); });
+  window.addEventListener('pagehide',__clrFlag);
+  if(localStorage.getItem('notua-lowfx')==='1'){
+    window.__NOTUA_LOWFX=true; document.documentElement.classList.add('lowfx');
+  }
+}catch(e){}
 </script>
 <style>
   :root{
@@ -4383,6 +4404,53 @@ try{
        everything after it, once wrapped) comfortably inside a phone screen's width. */
     .folder-btn{max-width:150px;}
   }
+
+  /* ---------- Kalender: größere Punkte + größere Einträge, Google-Verknüpfung ---------- */
+  .cal-day{gap:4px;}
+  .cal-day-dots{display:flex; gap:3px; align-items:center; justify-content:center; flex-wrap:wrap; max-width:100%;}
+  .cal-day-dots span{width:9px; height:9px; border-radius:50%; background:currentColor; opacity:.95; box-shadow:0 0 0 1.5px var(--surface);}
+  .cal-day.active .cal-day-dots span{box-shadow:0 0 0 1.5px var(--accent); opacity:1;}
+  .cal-day-dots em{font-style:normal; font-size:0.62rem; font-weight:800; line-height:1; margin-left:1px;}
+  .cal-day-item{align-items:stretch; gap:4px; border:1px solid var(--border); background:var(--surface); border-radius:12px; margin-bottom:8px; padding:3px;}
+  .cal-day-item:hover{background:var(--surface-2);}
+  .cal-item-jump{align-items:flex-start !important; gap:10px !important; padding:10px 8px !important;}
+  .cal-item-jump .cal-item-dot{width:10px; height:10px; margin-top:5px;}
+  .cal-item-main{flex:1; min-width:0; display:flex; flex-direction:column; gap:5px;}
+  .cal-item-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .cal-item-top .cal-item-time{width:auto; font-size:0.78rem; font-weight:700; color:var(--ink); background:var(--accent-soft); border-radius:8px; padding:2px 8px;}
+  .cal-item-main .cal-item-label{display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; white-space:normal; overflow:hidden; line-height:1.35; font-size:0.95rem; word-break:break-word;}
+  .cal-item-side{flex:none; display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; gap:6px; padding:6px 4px 6px 0;}
+  .cal-item-g{border:1px solid var(--border); background:var(--surface-2); color:var(--muted); font:inherit; font-size:0.68rem; font-weight:700; border-radius:10px; padding:3px 8px; cursor:var(--custom-pointer-cursor,pointer); white-space:nowrap;}
+  .cal-item-g:not([hidden]){display:inline-block;}
+  .cal-item-g.ok{color:#2E8B4A; border-color:rgba(46,139,74,.4); background:rgba(46,139,74,.08);}
+  .cal-item-g.stale{color:#B8741A; border-color:rgba(232,163,61,.55); background:rgba(232,163,61,.14);}
+  .cal-item-gcal-btn.linked{color:#2E8B4A;}
+  .date-badge .gcal-mark{display:inline-block; width:6px; height:6px; border-radius:50%; background:#34A853; margin-right:5px; vertical-align:middle;}
+  .date-badge.gcal-stale .gcal-mark{background:#E8A33D;}
+  .cdp-gcal.linked{color:#2E8B4A;}
+  .gcal-linkbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.8rem; color:var(--muted); margin:-4px 0 0;}
+  .gcal-linkbar .gcal-linkdot{width:8px; height:8px; border-radius:50%; background:#34A853; flex:none;}
+  .gcal-linkbar a, .gcal-linkbar button{color:var(--accent); background:none; border:none; font:inherit; font-size:0.78rem; text-decoration:underline; cursor:var(--custom-pointer-cursor,pointer); padding:0;}
+  .gcal-link-existing{align-self:flex-start; background:none; border:1px dashed var(--border-strong,var(--border)); color:var(--muted); font:inherit; font-size:0.78rem; border-radius:9px; padding:7px 10px; cursor:var(--custom-pointer-cursor,pointer); text-align:left;}
+  .gcal-link-existing:hover{color:var(--ink); border-color:var(--accent);}
+  .gcal-find{display:flex; flex-direction:column; gap:8px; border:1px solid var(--border); border-radius:10px; padding:10px; background:var(--surface-2);}
+  .gcal-find[hidden]{display:none;}
+  .gcal-find-hint{margin:0; font-size:0.78rem; color:var(--muted);}
+  .gcal-find-row{display:flex; gap:6px;}
+  .gcal-find-row input{flex:1;}
+  .gcal-find-row button{border:1px solid var(--border); background:var(--surface); color:var(--ink); font:inherit; font-size:0.8rem; border-radius:8px; padding:0 12px; cursor:var(--custom-pointer-cursor,pointer);}
+  .gcal-find-list{display:flex; flex-direction:column; gap:5px; max-height:180px; overflow:auto;}
+  .gcal-find-item{display:flex; gap:10px; align-items:baseline; text-align:left; border:1px solid var(--border); background:var(--surface); color:var(--ink); font:inherit; font-size:0.84rem; border-radius:8px; padding:8px 10px; cursor:var(--custom-pointer-cursor,pointer);}
+  .gcal-find-item:hover{border-color:var(--accent);}
+  .gcal-find-item b{flex:none; font-size:0.76rem; color:var(--muted); min-width:44px;}
+  .gcal-modal .modal-actions{flex-wrap:wrap;}
+  .gcal-modal .modal-actions .gcal-delete{flex:1 1 100%; color:#C0392B; border-color:rgba(192,57,43,.35); background:none; order:3;}
+  /* Sparmodus (siehe Absturz-Schutz im Head-Skript): keine Endlos-Animationen, Weichzeichner und Schatten-Filter */
+  html.lowfx *, html.lowfx *::before, html.lowfx *::after{
+    animation-duration:0.001ms !important; animation-delay:0s !important; animation-iteration-count:1 !important;
+    transition-duration:0.001ms !important; filter:none !important;
+    -webkit-backdrop-filter:none !important; backdrop-filter:none !important; will-change:auto !important;
+  }
 </style>
 
 <div id="app">
@@ -5536,6 +5604,29 @@ const I18N={
   gcal_reminder_1w:{de:'1 Woche vorher',en:'1 week before',es:'1 semana antes',da:'1 uge før'},
   gcal_submit_btn:{de:'In Google Kalender übernehmen',en:'Add to Google Calendar',es:'Añadir a Google Calendar',da:'Tilføj til Google Kalender'},
   gcal_saving_btn:{de:'Wird übernommen …',en:'Adding …',es:'Añadiendo…',da:'Tilføjer …'},
+  gcal_modal_title_edit:{de:'Google-Kalender-Eintrag ändern',en:'Edit Google Calendar entry',es:'Editar entrada de Google Calendar',da:'Redigér Google Kalender-aftale'},
+  gcal_update_btn:{de:'Im Google Kalender aktualisieren',en:'Update in Google Calendar',es:'Actualizar en Google Calendar',da:'Opdatér i Google Kalender'},
+  gcal_loading_btn:{de:'Lade …',en:'Loading …',es:'Cargando…',da:'Indlæser …'},
+  gcal_linked_label:{de:'Mit Google Kalender verknüpft',en:'Linked to Google Calendar',es:'Vinculado a Google Calendar',da:'Knyttet til Google Kalender'},
+  gcal_open_btn:{de:'In Google öffnen',en:'Open in Google',es:'Abrir en Google',da:'Åbn i Google'},
+  gcal_unlink_btn:{de:'Verknüpfung lösen',en:'Unlink',es:'Desvincular',da:'Fjern link'},
+  gcal_delete_btn:{de:'Aus Google Kalender löschen',en:'Delete from Google Calendar',es:'Eliminar de Google Calendar',da:'Slet fra Google Kalender'},
+  gcal_delete_confirm:{de:'Diesen Eintrag wirklich aus dem Google Kalender löschen? Die Notiz in NOTUA bleibt erhalten.',en:'Really delete this entry from Google Calendar? The note in NOTUA stays.',es:'¿Eliminar esta entrada de Google Calendar? La nota en NOTUA se conserva.',da:'Vil du slette denne aftale fra Google Kalender? Noten i NOTUA bevares.'},
+  gcal_link_existing_btn:{de:'Schon im Google Kalender? Vorhandenen Eintrag verknüpfen',en:'Already in Google Calendar? Link the existing entry',es:'¿Ya está en Google Calendar? Vincular la entrada existente',da:'Allerede i Google Kalender? Knyt eksisterende aftale'},
+  gcal_find_hint:{de:'Wähle den Eintrag, der zu dieser Notiz gehört:',en:'Pick the entry that belongs to this note:',es:'Elige la entrada que corresponde a esta nota:',da:'Vælg den aftale, der hører til denne note:'},
+  gcal_find_btn:{de:'Suchen',en:'Search',es:'Buscar',da:'Søg'},
+  gcal_find_empty:{de:'An diesem Tag wurde im Google Kalender nichts gefunden.',en:'Nothing found in Google Calendar on this day.',es:'No se encontró nada en Google Calendar ese día.',da:'Der blev ikke fundet noget i Google Kalender den dag.'},
+  gcal_update_now_btn:{de:'Jetzt aktualisieren',en:'Update now',es:'Actualizar ahora',da:'Opdatér nu'},
+  gcal_item_edit_title:{de:'Google-Eintrag ändern',en:'Edit Google entry',es:'Editar entrada de Google',da:'Redigér Google-aftale'},
+  cal_gcal_synced:{de:'Google ✓',en:'Google ✓',es:'Google ✓',da:'Google ✓'},
+  cal_gcal_stale:{de:'Nicht aktuell',en:'Out of date',es:'Desactualizado',da:'Ikke opdateret'},
+  toast_gcal_updated:{de:'Google Kalender aktualisiert.',en:'Google Calendar updated.',es:'Google Calendar actualizado.',da:'Google Kalender opdateret.'},
+  toast_gcal_linked:{de:'Mit Google Kalender verknüpft.',en:'Linked to Google Calendar.',es:'Vinculado a Google Calendar.',da:'Knyttet til Google Kalender.'},
+  toast_gcal_unlinked:{de:'Verknüpfung gelöst.',en:'Link removed.',es:'Vínculo eliminado.',da:'Link fjernet.'},
+  toast_gcal_deleted:{de:'Aus Google Kalender gelöscht.',en:'Deleted from Google Calendar.',es:'Eliminado de Google Calendar.',da:'Slettet fra Google Kalender.'},
+  toast_gcal_gone:{de:'Der Eintrag existiert im Google Kalender nicht mehr – die Verknüpfung wurde gelöst.',en:'The entry no longer exists in Google Calendar – the link was removed.',es:'La entrada ya no existe en Google Calendar: se eliminó el vínculo.',da:'Aftalen findes ikke længere i Google Kalender – linket er fjernet.'},
+  toast_gcal_update_needed:{de:'Termin geändert – Google Kalender ist noch nicht aktuell.',en:'Time changed – Google Calendar is not up to date yet.',es:'Hora cambiada: Google Calendar aún no está actualizado.',da:'Tid ændret – Google Kalender er endnu ikke opdateret.'},
+  toast_gcal_update_failed:{de:'Aktualisierung im Google Kalender fehlgeschlagen.',en:'Could not update Google Calendar.',es:'No se pudo actualizar Google Calendar.',da:'Kunne ikke opdatere Google Kalender.'},
   toast_gcal_success:{de:'In Google Kalender übernommen.',en:'Added to Google Calendar.',es:'Añadido a Google Calendar.',da:'Tilføjet til Google Kalender.'},
   toast_gcal_signin_failed:{de:'Anmeldung bei Google ist fehlgeschlagen oder wurde abgebrochen.',en:'Google sign-in failed or was cancelled.',es:'El inicio de sesión de Google falló o se canceló.',da:'Login hos Google mislykkedes eller blev annulleret.'},
   toast_gcal_insert_failed:{de:'Eintrag konnte nicht in Google Kalender übernommen werden.',en:'Could not add the entry to Google Calendar.',es:'No se pudo añadir la entrada a Google Calendar.',da:'Posten kunne ikke tilføjes til Google Kalender.'},
@@ -12373,7 +12464,12 @@ function landingFxDrawGL(dt,now,L,mode){
     let gl=null; try{ gl=cv.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false}); }catch(e){}
     if(!gl){ cv.remove(); L.glFail=true; return; }
     L.glc=cv; L.gl=gl;
+    // iOS/Safari verliert den WebGL-Kontext beim Wechsel in den Hintergrund oder bei Speicherdruck: nicht weiterzeichnen,
+    // nach "restored" Shader neu bauen (sonst weisser/violetter Flackerrahmen bzw. Absturz-Schleife).
+    cv.addEventListener('webglcontextlost',e=>{ e.preventDefault(); L.glLost=true; },false);
+    cv.addEventListener('webglcontextrestored',()=>{ L.glLost=false; L.glp=null; },false);
   }
+  if(L.glLost || (L.gl.isContextLost && L.gl.isContextLost())) return;
   const gl=L.gl, cv=L.glc, prog=landingFxGLProgram(L,gl,mode); if(prog.bad) return;
   const sc=Math.min(1,window.devicePixelRatio||1)*(mode==='liquid'?0.4:0.6), W=Math.max(2,Math.round(L.w*sc)), H=Math.max(2,Math.round(L.h*sc));
   if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
@@ -12483,7 +12579,7 @@ function landingFxDraw(dt,now,L=landingFx){
 function landingFxTick(now){
   const L=landingFx; L.raf=0;
   const host=document.getElementById('landingView');
-  if(gridStyle.landingMode==='none' || !host || host.hidden || document.hidden) return;
+  if(gridStyle.landingMode==='none' || window.__NOTUA_LOWFX || !host || host.hidden || document.hidden) return;
   const raw=Math.min(0.05,L.last?(now-L.last)/1000:0.016); L.last=now;
   L.dts=L.dts?L.dts+(raw-L.dts)*0.18:raw; // geglättete Schrittweite: unregelmäßige Frames wirken nicht mehr als Ruckeln
   landingFxDraw(L.dts,now);
@@ -12491,7 +12587,7 @@ function landingFxTick(now){
 }
 function landingFxSync(){
   const L=landingFx, host=document.getElementById('landingView'); if(!host) return;
-  if(gridStyle.landingMode==='none'){
+  if(gridStyle.landingMode==='none' || window.__NOTUA_LOWFX){
     if(L.raf){ cancelAnimationFrame(L.raf); L.raf=0; }
     if(L.canvas){ L.canvas.remove(); L.canvas=null; L.ctx=null; if(L.ro){ L.ro.disconnect(); L.ro=null; } if(L.onMove){ window.removeEventListener('pointermove',L.onMove); L.onMove=null; } if(L.onDown){ window.removeEventListener('pointerdown',L.onDown); L.onDown=null; } }
     landingFxDispose(L);
@@ -19095,6 +19191,7 @@ async function duplicateCards(cards){
   const idMap={};
   const copies=cards.map(c=>{
     const nc={...c, id:uid(), x:c.x+24, y:c.y+24, z:nextZ(), data:JSON.parse(JSON.stringify(c.data))};
+    delete nc.gcal; // eine Kopie gehört nicht zum selben Google-Eintrag
     idMap[c.id]=nc.id;
     return nc;
   });
@@ -19302,7 +19399,7 @@ async function pasteCardClip(clip,at){
   const newCards=clip.cards.map(c=>{
     const nc=JSON.parse(JSON.stringify(c));
     nc.id=remap(c.id); nc.boardId=boardId; nc.x=c.x+dx; nc.y=c.y+dy; nc.z=nextZ();
-    nc.createdAt=nc.updatedAt=Date.now();
+    nc.createdAt=nc.updatedAt=Date.now(); delete nc.gcal;
     if(c.clusterId){ if(clusterCount[c.clusterId]>1) nc.clusterId=remap(c.clusterId); else delete nc.clusterId; }
     remapData(nc);
     return nc;
@@ -19315,7 +19412,7 @@ async function pasteCardClip(clip,at){
     return nb;
   });
   const nestedCards=clip.nestedCards.map(c=>{
-    const nc=JSON.parse(JSON.stringify(c)); nc.id=remap(c.id); nc.boardId=remap(c.boardId); remapData(nc); return nc;
+    const nc=JSON.parse(JSON.stringify(c)); nc.id=remap(c.id); nc.boardId=remap(c.boardId); delete nc.gcal; remapData(nc); return nc;
   });
   const connectors=[
     ...clip.connectors.map(cn=>({...cn, id:remap(cn.id), boardId, fromId:remap(cn.fromId), toId:remap(cn.toId)})),
@@ -19841,7 +19938,12 @@ function buildCardEl(card){
     dateBadge.type='button';
     dateBadge.className='date-badge';
     dateBadge.title=t('date_badge_title');
-    dateBadge.textContent=fmtCardDateShort(card.date);
+    if(gcalLinkOf(card)){
+      const gm=document.createElement('i'); gm.className='gcal-mark'; dateBadge.appendChild(gm);
+      dateBadge.classList.add('gcal-linked'); if(gcalIsStale(card)) dateBadge.classList.add('gcal-stale');
+      dateBadge.title=t(gcalIsStale(card)?'cal_gcal_stale':'gcal_linked_label');
+    }
+    dateBadge.appendChild(document.createTextNode(fmtCardDateShort(card.date)+(card.time?' · '+card.time:'')));
     dateBadge.addEventListener('pointerdown',e=>e.stopPropagation());
     dateBadge.addEventListener('click',(e)=>{ e.stopPropagation(); openCalendarPanel(card.date); });
     el.appendChild(dateBadge);
@@ -25013,6 +25115,11 @@ async function allDatedCardsAcrossBoards(){
   });
   return out;
 }
+// Voller Text für die große Tagesliste (bis ~240 Zeichen), statt der 44-Zeichen-Kurzform.
+function calItemText(c){
+  if(c.type==='note'){ const txt=(c.data.text||'').trim().replace(/\s+/g,' '); return txt?(txt.length>240?txt.slice(0,240)+'…':txt):typeLabel('note'); }
+  return cardPreviewLabel(c);
+}
 function cardsByDateKey(){
   const map={};
   (calendarState.allDated||[]).forEach(entry=>{
@@ -25047,7 +25154,7 @@ function renderCalendarGrid(){
     const btn=document.createElement('button'); btn.type='button';
     btn.className='cal-day'+(cell.outside?' outside':'')+(key===todK?' today':'')+(key===calendarState.selectedKey?' active':'');
     const items=byDate[key]||[];
-    btn.innerHTML=`<span>${cell.day}</span>${items.length?`<div class="cal-day-dots">${items.slice(0,4).map(entry=>`<span style="background:${entry.card.color&&entry.card.color!=='none'?`rgb(var(--tag-${entry.card.color}))`:'currentColor'}"></span>`).join('')}</div>`:''}`;
+    btn.innerHTML=`<span>${cell.day}</span>${items.length?`<div class="cal-day-dots">${items.slice(0,3).map(entry=>`<span style="background:${entry.card.color&&entry.card.color!=='none'?`rgb(var(--tag-${entry.card.color}))`:'currentColor'}"></span>`).join('')}${items.length>3?`<em>+${items.length-3}</em>`:''}</div>`:''}`;
     btn.addEventListener('click',()=>{
       calendarState.selectedKey=key;
       calendarState.viewYear=cy; calendarState.viewMonth=cm;
@@ -25075,11 +25182,19 @@ function renderCalendarGrid(){
     const c=entry.card;
     const item=document.createElement('div'); item.className='cal-day-item';
     const dotColor=c.color&&c.color!=='none'?`rgb(var(--tag-${c.color}))`:'var(--faint)';
-    item.innerHTML=`<button type="button" class="cal-item-jump"><span class="cal-item-dot" style="background:${dotColor}"></span><span class="cal-item-time">${c.time||''}</span><span class="cal-item-label"></span><span class="cal-item-board"></span></button><button type="button" class="cal-item-gcal-btn" title="${t('gcal_export_title')}">${iconGcal()}</button>`;
-    item.querySelector('.cal-item-label').textContent=cardPreviewLabel(c);
+    const gl=gcalLinkOf(c), stale=gcalIsStale(c);
+    item.innerHTML=`<button type="button" class="cal-item-jump"><span class="cal-item-dot" style="background:${dotColor}"></span><span class="cal-item-main"><span class="cal-item-top"><span class="cal-item-time"></span><span class="cal-item-board"></span></span><span class="cal-item-label"></span></span></button><div class="cal-item-side"><button type="button" class="cal-item-g${gl?(stale?' stale':' ok'):''}"${gl?'':' hidden'}></button><button type="button" class="cal-item-gcal-btn${gl?' linked':''}" title="${gl?t('gcal_item_edit_title'):t('gcal_export_title')}">${iconGcal()}</button></div>`;
+    item.querySelector('.cal-item-time').textContent=c.time||t('gcal_allday_label');
+    item.querySelector('.cal-item-label').textContent=calItemText(c);
     // Board-scoped context, since a day's items can now come from several different boards at once.
     item.querySelector('.cal-item-board').textContent=entry.boardName||'';
     item.querySelector('.cal-item-jump').addEventListener('click',()=>{ closeCalendarPanel(); jumpToCardAcrossBoards(entry.boardId, c.id); });
+    const gChip=item.querySelector('.cal-item-g');
+    if(gl){
+      gChip.textContent=stale?t('cal_gcal_stale'):t('cal_gcal_synced');
+      gChip.title=stale?t('gcal_update_now_btn'):t('gcal_linked_label');
+      gChip.addEventListener('click',(e)=>{ e.stopPropagation(); if(stale) gcalSyncNowInteractive(c); else showGcalEventModal(c); });
+    }
     // A separate button, deliberately not part of the jump target above — "add to Google Calendar"
     // and "show me this card" are two different intents and must never trigger off the same click.
     item.querySelector('.cal-item-gcal-btn').addEventListener('click',(e)=>{ e.stopPropagation(); showGcalEventModal(c); });
@@ -25196,12 +25311,14 @@ function ensureCardDatePopover(){
     card.time=(card.date && hourSelect.value && minSelect.value) ? (hourSelect.value+':'+minSelect.value) : null;
     hourSelect.disabled=minSelect.disabled=!card.date;
     gcalBtn.disabled=!card.date;
+    gcalBtn.classList.toggle('linked',!!gcalLinkOf(card));
     await DB.putCard(card);
     renderAllCards();
     applySelectionClasses();
     updateInspector();
     refreshCalendarIfOpen();
     positionCardDatePopover(card);
+    gcalQueueAutoSync(card);
   };
   dateInput.addEventListener('change',persist);
   hourSelect.addEventListener('change',persist);
@@ -25247,6 +25364,7 @@ function showCardDatePopover(card){
   pop.querySelector('.cdp-min').value=m||'';
   pop.querySelector('.cdp-hour').disabled=pop.querySelector('.cdp-min').disabled=!card.date;
   pop.querySelector('.cdp-gcal').disabled=!card.date;
+  pop.querySelector('.cdp-gcal').classList.toggle('linked',!!gcalLinkOf(card));
   pop.classList.add('show');
   positionCardDatePopover(card);
 }
@@ -25326,6 +25444,122 @@ async function gcalInsertEvent(eventBody){
   if(!res.ok) throw new Error('gcal-insert-failed-'+res.status);
   return res.json();
 }
+
+/* ---------- Verknüpfung Karte <-> Google-Kalender-Eintrag ----------
+   Die Karte merkt sich die Karte den angelegten Google-Eintrag (card.gcal = {id, sig, upd, url, dirty}); sie wandert
+   dadurch mit der Karte durch Cloud Sync. "sig" = Datum|Uhrzeit, die zuletzt nach Google geschrieben wurden. Weicht die Karte
+   davon ab, ist der Google-Eintrag "nicht aktuell" und wird (leise, falls ein Token im Hintergrund erneuerbar ist, sonst per
+   Antipp-Hinweis) per PATCH aktualisiert — derselbe Eintrag, kein Duplikat. */
+const gcalSigOf=c=>(c&&c.date?c.date:'')+'|'+(c&&c.time?c.time:'');
+function gcalLinkOf(card){ return card && card.gcal && card.gcal.id ? card.gcal : null; }
+function gcalIsStale(card){ const g=gcalLinkOf(card); return !!(g && card.date && (g.dirty || g.sig!==gcalSigOf(card))); }
+function gcalEventUrl(id){ return GCAL_EVENTS_API+'/'+encodeURIComponent(id); }
+function gcalPad(n){ return String(n).padStart(2,'0'); }
+function gcalTokenWithTimeout(interactive){
+  if(interactive) return ensureGcalAccessToken(true);
+  return Promise.race([
+    ensureGcalAccessToken(false),
+    new Promise((_,rej)=>setTimeout(()=>{ gcalState.authPromise=null; rej(new Error('gcal-silent-timeout')); },8000)),
+  ]);
+}
+async function gcalApi(method,url,body,interactive){
+  for(let attempt=0;attempt<2;attempt++){
+    const token=await gcalTokenWithTimeout(interactive);
+    const headers={Authorization:'Bearer '+token}; if(body) headers['Content-Type']='application/json';
+    const res=await fetch(url,{method,headers,body:body?JSON.stringify(body):undefined});
+    if(res.status===401 && attempt===0){ gcalState.accessToken=null; continue; }
+    if(res.status===404 || res.status===410) throw new Error('gcal-gone');
+    if(!res.ok) throw new Error('gcal-api-failed-'+res.status);
+    return res.status===204 ? null : res.json();
+  }
+  throw new Error('gcal-api-failed-401');
+}
+async function gcalGetEvent(id,interactive){
+  const ev=await gcalApi('GET',gcalEventUrl(id),null,interactive);
+  if(!ev || ev.status==='cancelled') throw new Error('gcal-gone');
+  return ev;
+}
+async function gcalListDay(dateStr,interactive){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const a=new Date(y,m-1,d), b=new Date(y,m-1,d+1);
+  const url=GCAL_EVENTS_API+'?singleEvents=true&orderBy=startTime&maxResults=50&timeMin='+encodeURIComponent(a.toISOString())+'&timeMax='+encodeURIComponent(b.toISOString());
+  const r=await gcalApi('GET',url,null,interactive);
+  return ((r&&r.items)||[]).filter(e=>e.status!=='cancelled');
+}
+function gcalEvStart(ev){
+  const s=(ev&&ev.start)||{};
+  if(s.date) return {date:s.date,time:null};
+  const d=new Date(s.dateTime);
+  return {date:dateKey(d.getFullYear(),d.getMonth(),d.getDate()), time:gcalPad(d.getHours())+':'+gcalPad(d.getMinutes())};
+}
+function gcalEvEndTime(ev){
+  const e=(ev&&ev.end)||{}; if(!e.dateTime) return null;
+  const d=new Date(e.dateTime); return gcalPad(d.getHours())+':'+gcalPad(d.getMinutes());
+}
+async function gcalCommitCard(card){
+  await DB.putCard(card);
+  if(card.boardId===state.currentBoardId){ try{ renderAllCards(); applySelectionClasses(); updateInspector(); }catch(e){} }
+  refreshCalendarIfOpen();
+}
+async function gcalSaveLink(card,ev,date,time){
+  card.gcal={id:ev.id, cal:'primary', sig:gcalSigOf({date,time}), upd:Date.now(), url:ev.htmlLink||'', dirty:false};
+  await gcalCommitCard(card);
+}
+// Schreibt Datum/Uhrzeit der Karte in den verknüpften Google-Eintrag (Dauer bleibt erhalten, Standard 60 Min.).
+async function gcalSyncCardTimes(card,interactive){
+  const g=gcalLinkOf(card); if(!g || !card.date) return false;
+  const ev=await gcalGetEvent(g.id,interactive);
+  const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  let body;
+  if(card.time){
+    let dur=60; const s=ev.start||{}, e=ev.end||{};
+    if(s.dateTime && e.dateTime){ const dm=Math.round((new Date(e.dateTime)-new Date(s.dateTime))/60000); if(dm>0 && dm<24*60) dur=dm; }
+    const st=new Date(`${card.date}T${card.time}:00`); const en=new Date(st.getTime()+dur*60000);
+    const f=d=>`${dateKey(d.getFullYear(),d.getMonth(),d.getDate())}T${gcalPad(d.getHours())}:${gcalPad(d.getMinutes())}:00`;
+    body={start:{dateTime:f(st),timeZone:tz,date:null}, end:{dateTime:f(en),timeZone:tz,date:null}};
+  }else{
+    body={start:{date:card.date,dateTime:null,timeZone:null}, end:{date:addDaysToDateKey(card.date,1),dateTime:null,timeZone:null}};
+  }
+  const upd=await gcalApi('PATCH',gcalEventUrl(g.id),body,interactive);
+  g.sig=gcalSigOf(card); g.dirty=false; g.upd=Date.now(); if(upd && upd.htmlLink) g.url=upd.htmlLink;
+  await gcalCommitCard(card);
+  return true;
+}
+function gcalActionToast(msg,label,fn){
+  const old=document.querySelector('.toast'); if(old) old.remove();
+  const el=document.createElement('div'); el.className='toast';
+  el.innerHTML=`<span>${escapeHtml(msg)}</span>`;
+  const b=document.createElement('button'); b.textContent=label;
+  b.addEventListener('click',()=>{ el.remove(); clearTimeout(toastTimer); fn(); });
+  el.appendChild(b);
+  (state.screen==='home'?homeView:boardView).appendChild(el);
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.remove(),12000);
+}
+async function gcalHandleGone(card){ card.gcal=null; await gcalCommitCard(card); showToast(t('toast_gcal_gone')); }
+async function gcalSyncNowInteractive(card){
+  try{ await gcalSyncCardTimes(card,true); showToast(t('toast_gcal_updated')); }
+  catch(e){
+    if(e && e.message==='gcal-gone') return gcalHandleGone(card);
+    showToast(t((e&&/gis|no-token|popup|access_denied|timeout/i.test(e.message||''))?'toast_gcal_signin_failed':'toast_gcal_update_failed'));
+  }
+}
+const gcalSyncTimers=new Map();
+function gcalQueueAutoSync(card){
+  if(!GCAL_SUPPORTED || !gcalLinkOf(card)) return;
+  clearTimeout(gcalSyncTimers.get(card.id));
+  gcalSyncTimers.set(card.id,setTimeout(()=>gcalAutoSync(card),1400));
+}
+async function gcalAutoSync(card){
+  const g=gcalLinkOf(card); if(!g || !card.date || !gcalIsStale(card)) return;
+  try{ await gcalSyncCardTimes(card,false); showToast(t('toast_gcal_updated')); }
+  catch(e){
+    if(e && e.message==='gcal-gone') return gcalHandleGone(card);
+    // Kein stilles Token möglich (z. B. iPhone/Safari ohne frische Anmeldung): als "nicht aktuell" markieren
+    // und einen Antipp-Hinweis zeigen — der Klick ist die Nutzer-Geste, die Googles Anmeldefenster braucht.
+    g.dirty=true; await gcalCommitCard(card);
+    gcalActionToast(t('toast_gcal_update_needed'),t('gcal_update_now_btn'),()=>gcalSyncNowInteractive(card));
+  }
+}
 // Google's all-day events use an EXCLUSIVE end date (a single-day event's end.date is the day AFTER
 // its start.date) — this walks a plain 'YYYY-MM-DD' key forward/back by real calendar days (via a
 // Date object, so month/year rollovers are handled for free), reusing the same dateKey()/pad2()
@@ -25354,6 +25588,7 @@ const GCAL_REMINDER_PRESETS=[
 // they're not.
 function showGcalEventModal(card){
   if(!GCAL_SUPPORTED){ showToast(t('toast_gcal_no_client_id')); return; }
+  const link=gcalLinkOf(card);
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   const hasTime=!!card.time;
   const initialDate=card.date||todayKey();
@@ -25363,7 +25598,10 @@ function showGcalEventModal(card){
   const initialEnd=String(endDt.getHours()).padStart(2,'0')+':'+String(endDt.getMinutes()).padStart(2,'0');
   const initialDesc=card.type==='note' ? (card.data.text||'') : '';
   scrim.innerHTML=`<div class="modal modal-wide gcal-modal">
-    <h4>${t('gcal_modal_title')}</h4>
+    <h4>${t(link?'gcal_modal_title_edit':'gcal_modal_title')}</h4>
+    ${link?`<div class="gcal-linkbar"><span class="gcal-linkdot"></span><span>${t('gcal_linked_label')}</span><a class="gcal-open" target="_blank" rel="noopener" hidden>${t('gcal_open_btn')}</a><button type="button" class="gcal-unlink">${t('gcal_unlink_btn')}</button></div>`:''}
+    ${(!link && card.date)?`<button type="button" class="gcal-link-existing">${t('gcal_link_existing_btn')}</button>
+    <div class="gcal-find" hidden><p class="gcal-find-hint">${t('gcal_find_hint')}</p><div class="gcal-find-row"><input type="date" class="gcal-field-input gcal-find-date" value="${card.date}"/><button type="button" class="gcal-find-go">${t('gcal_find_btn')}</button></div><div class="gcal-find-list"></div></div>`:''}
     <div class="gcal-type-row">
       <button type="button" class="gcal-type-btn active" data-type="event">${t('gcal_type_event')}</button>
       <button type="button" class="gcal-type-btn" data-type="task">${t('gcal_type_task')}</button>
@@ -25384,8 +25622,9 @@ function showGcalEventModal(card){
     <div class="gcal-reminder-chips">${GCAL_REMINDER_PRESETS.map(p=>`<button type="button" class="gcal-reminder-chip" data-min="${p.min}">${t(p.key)}</button>`).join('')}</div>
     <p class="gcal-reminder-hint">${t('gcal_reminder_none_hint')}</p>
     <div class="modal-actions">
+      ${link?`<button data-a="delete" class="gcal-delete">${t('gcal_delete_btn')}</button>`:''}
       <button data-a="cancel">${t('modal_cancel')}</button>
-      <button data-a="ok" class="primary">${t('gcal_submit_btn')}</button>
+      <button data-a="ok" class="primary">${t(link?'gcal_update_btn':'gcal_submit_btn')}</button>
     </div>
   </div>`;
   bindScrimDismiss(scrim,()=>scrim.remove());
@@ -25397,6 +25636,9 @@ function showGcalEventModal(card){
   const startInput=scrim.querySelector('.gcal-time-start');
   const endInput=scrim.querySelector('.gcal-time-end');
   const timeSep=scrim.querySelector('.gcal-time-sep');
+  const titleInput=scrim.querySelector('.gcal-title');
+  const locInput=scrim.querySelector('.gcal-location');
+  const descInput=scrim.querySelector('.gcal-desc');
   let curType='event';
   function syncTimeVisibility(){
     const hide=alldayCb.checked;
@@ -25431,28 +25673,103 @@ function showGcalEventModal(card){
   scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
   const okBtn=scrim.querySelector('[data-a="ok"]');
   const dateInput=scrim.querySelector('.gcal-date');
+
+  // Bearbeiten-Modus: bestehenden Google-Eintrag laden und das Formular damit füllen. Datum/Uhrzeit der NOTUA-Karte
+  // haben Vorrang (NOTUA ist die Quelle: "in NOTUA ändern -> Google übernimmt").
+  function applyEvent(ev){
+    titleInput.value=ev.summary||'';
+    locInput.value=ev.location||'';
+    descInput.value=ev.description||'';
+    const st=gcalEvStart(ev);
+    let dur=60; if(ev.start&&ev.start.dateTime&&ev.end&&ev.end.dateTime){ const dm=Math.round((new Date(ev.end.dateTime)-new Date(ev.start.dateTime))/60000); if(dm>0&&dm<24*60) dur=dm; }
+    dateInput.value=st.date; alldayCb.checked=!st.time;
+    if(st.time){ startInput.value=st.time; const et=gcalEvEndTime(ev); if(et) endInput.value=et; }
+    if(card.date){
+      dateInput.value=card.date;
+      if(card.time){
+        alldayCb.checked=false; startInput.value=card.time;
+        const e2=new Date(2000,0,1,...card.time.split(':').map(Number)); e2.setMinutes(e2.getMinutes()+dur);
+        endInput.value=gcalPad(e2.getHours())+':'+gcalPad(e2.getMinutes());
+      }else alldayCb.checked=true;
+    }
+    curType=/FREQ=YEARLY/.test((ev.recurrence||[]).join(' '))?'birthday':'event';
+    const ov=(ev.reminders && !ev.reminders.useDefault && ev.reminders.overrides)||[];
+    reminderChips.forEach(c=>c.classList.toggle('active',ov.some(o=>o.method==='popup' && String(o.minutes)===c.dataset.min)));
+    syncTypeUI();
+  }
+  if(link){
+    okBtn.disabled=true; okBtn.textContent=t('gcal_loading_btn');
+    const openA=scrim.querySelector('.gcal-open');
+    (async()=>{
+      try{
+        const ev=await gcalGetEvent(link.id,true);
+        if(!scrim.isConnected) return;
+        applyEvent(ev);
+        if(ev.htmlLink){ openA.href=ev.htmlLink; openA.hidden=false; }
+      }catch(e){
+        if(e && e.message==='gcal-gone'){ scrim.remove(); await gcalHandleGone(card); setTimeout(()=>showGcalEventModal(card),50); return; }
+        showToast(t('toast_gcal_signin_failed'));
+      }
+      okBtn.disabled=false; okBtn.textContent=t('gcal_update_btn');
+    })();
+    scrim.querySelector('.gcal-unlink').addEventListener('click',async()=>{ card.gcal=null; await gcalCommitCard(card); scrim.remove(); showToast(t('toast_gcal_unlinked')); });
+    scrim.querySelector('[data-a="delete"]').addEventListener('click',()=>{
+      confirmModal(t('gcal_delete_btn'),t('gcal_delete_confirm'),t('gcal_delete_btn'),async()=>{
+        try{ await gcalApi('DELETE',gcalEventUrl(link.id),null,true); }
+        catch(e){ if(!(e && e.message==='gcal-gone')){ showToast(t('toast_gcal_update_failed')); return; } }
+        card.gcal=null; await gcalCommitCard(card); scrim.remove(); showToast(t('toast_gcal_deleted'));
+      });
+    });
+  }else if(card.date){
+    // Eintrag wurde früher (vor der Verknüpfung) angelegt: im Google Kalender des Tages suchen und verknüpfen.
+    const findBox=scrim.querySelector('.gcal-find'), findList=scrim.querySelector('.gcal-find-list'), findDate=scrim.querySelector('.gcal-find-date');
+    const runFind=async()=>{
+      findList.textContent='…';
+      try{
+        const items=await gcalListDay(findDate.value||card.date,true);
+        findList.textContent='';
+        if(!items.length){ const p=document.createElement('p'); p.className='gcal-find-hint'; p.textContent=t('gcal_find_empty'); findList.appendChild(p); return; }
+        items.forEach(ev=>{
+          const st=gcalEvStart(ev);
+          const b=document.createElement('button'); b.type='button'; b.className='gcal-find-item';
+          const tm=document.createElement('b'); tm.textContent=st.time||t('gcal_allday_label');
+          const nm=document.createElement('span'); nm.textContent=ev.summary||'—';
+          b.append(tm,nm);
+          b.addEventListener('click',async()=>{
+            await gcalSaveLink(card,ev,st.date,st.time);
+            scrim.remove(); showToast(t('toast_gcal_linked'));
+            showGcalEventModal(card);
+          });
+          findList.appendChild(b);
+        });
+      }catch(e){ findList.textContent=''; showToast(t((e&&/gis|no-token|popup|access_denied/i.test(e.message||''))?'toast_gcal_signin_failed':'toast_gcal_update_failed')); }
+    };
+    scrim.querySelector('.gcal-link-existing').addEventListener('click',()=>{ findBox.hidden=false; scrim.querySelector('.gcal-link-existing').hidden=true; runFind(); });
+    scrim.querySelector('.gcal-find-go').addEventListener('click',runFind);
+  }
+
   okBtn.addEventListener('click',async ()=>{
-    const title=scrim.querySelector('.gcal-title').value.trim();
+    const title=titleInput.value.trim();
     if(!title){ showToast(t('toast_gcal_title_missing')); return; }
     const dateVal=dateInput.value;
     if(!dateVal){ showToast(t('toast_gcal_date_missing')); return; }
     const allDay=alldayCb.checked;
-    const location=scrim.querySelector('.gcal-location').value.trim();
-    const description=scrim.querySelector('.gcal-desc').value.trim();
+    const location=locInput.value.trim();
+    const description=descInput.value.trim();
     const reminderMins=reminderChips.filter(c=>c.classList.contains('active')).map(c=>parseInt(c.dataset.min,10));
     const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const sVal=startInput.value||'09:00', eVal=endInput.value||'10:00';
     const body={ summary:title };
-    if(location) body.location=location;
-    if(description) body.description=description;
+    if(link){ body.location=location; body.description=description; }
+    else{ if(location) body.location=location; if(description) body.description=description; }
     if(allDay){
-      body.start={date:dateVal};
-      body.end={date:addDaysToDateKey(dateVal,1)};
+      body.start=link?{date:dateVal,dateTime:null,timeZone:null}:{date:dateVal};
+      body.end=link?{date:addDaysToDateKey(dateVal,1),dateTime:null,timeZone:null}:{date:addDaysToDateKey(dateVal,1)};
     }else{
-      const sVal=startInput.value||'09:00', eVal=endInput.value||'10:00';
-      body.start={dateTime:`${dateVal}T${sVal}:00`, timeZone:tz};
-      body.end={dateTime:`${dateVal}T${eVal}:00`, timeZone:tz};
+      body.start={dateTime:`${dateVal}T${sVal}:00`, timeZone:tz}; body.end={dateTime:`${dateVal}T${eVal}:00`, timeZone:tz};
+      if(link){ body.start.date=null; body.end.date=null; }
     }
-    if(curType==='birthday') body.recurrence=['RRULE:FREQ=YEARLY'];
+    if(curType==='birthday') body.recurrence=['RRULE:FREQ=YEARLY']; else if(link) body.recurrence=null;
     // No reminder picked at all keeps Google's own account-level defaults (useDefault:true) — only
     // switches to an explicit override list once at least one preset was actually tapped.
     body.reminders = reminderMins.length
@@ -25460,14 +25777,18 @@ function showGcalEventModal(card){
       : {useDefault:true};
     okBtn.disabled=true; okBtn.textContent=t('gcal_saving_btn');
     try{
-      await gcalInsertEvent(body);
+      const ev=link ? await gcalApi('PATCH',gcalEventUrl(link.id),body,true) : await gcalInsertEvent(body);
+      const timeVal=allDay?null:sVal;
+      card.date=dateVal; card.time=timeVal;           // Karte und Google-Eintrag bleiben deckungsgleich
+      await gcalSaveLink(card,ev,dateVal,timeVal);
       scrim.remove();
-      showToast(t('toast_gcal_success'));
+      showToast(t(link?'toast_gcal_updated':'toast_gcal_success'));
     }catch(e){
-      okBtn.disabled=false; okBtn.textContent=t('gcal_submit_btn');
+      okBtn.disabled=false; okBtn.textContent=t(link?'gcal_update_btn':'gcal_submit_btn');
       const msg=(e && e.message)||'';
+      if(msg==='gcal-gone'){ scrim.remove(); await gcalHandleGone(card); return; }
       if(msg==='gis-not-loaded' || msg==='gis-error' || msg==='no-token') showToast(t('toast_gcal_signin_failed'));
-      else showToast(t('toast_gcal_insert_failed'));
+      else showToast(t(link?'toast_gcal_update_failed':'toast_gcal_insert_failed'));
     }
   });
 }
@@ -29141,6 +29462,7 @@ async function instantiateBundle(payload,opts){
 
   const newCards=(payload.cards||[]).map(c=>{
     const nc={...c, id:remap(c.id), boardId:remap(c.boardId), data:JSON.parse(JSON.stringify(c.data||{}))};
+    delete nc.gcal;
     if(nc.type==='boardlink' && nc.data.boardId) nc.data.boardId=remap(nc.data.boardId);
     if(nc.type==='image' && nc.data.imageId) nc.data.imageId=remap(nc.data.imageId);
     if(nc.type==='file' && nc.data.fileId) nc.data.fileId=remap(nc.data.fileId);
