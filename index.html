@@ -4445,11 +4445,99 @@ try{
   .gcal-find-item b{flex:none; font-size:0.76rem; color:var(--muted); min-width:44px;}
   .gcal-modal .modal-actions{flex-wrap:wrap;}
   .gcal-modal .modal-actions .gcal-delete{flex:1 1 100%; color:#C0392B; border-color:rgba(192,57,43,.35); background:none; order:3;}
+
+  /* ---------- Speicher-Übersicht ---------- */
+  .storage-modal{max-height:min(86vh,760px); overflow:auto; -webkit-overflow-scrolling:touch;}
+  .stor-sec{margin:14px 0 0;}
+  .stor-sec h5{margin:0 0 8px; font-size:0.74rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:700;}
+  .stor-big{display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:0.92rem;}
+  .stor-big b{font-size:1.5rem; letter-spacing:-.01em;}
+  .stor-bar{height:8px; border-radius:99px; background:var(--surface-2); overflow:hidden; margin:6px 0 2px;}
+  .stor-bar i{display:block; height:100%; border-radius:99px; background:var(--accent);}
+  .stor-row{display:grid; grid-template-columns:1fr auto; gap:2px 12px; padding:8px 0; border-top:1px solid var(--border); font-size:0.88rem; align-items:center;}
+  .stor-row:first-of-type{border-top:none;}
+  .stor-row .stor-name{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .stor-row .stor-val{font-variant-numeric:tabular-nums; font-weight:600;}
+  .stor-row .stor-sub{grid-column:1 / -1; font-size:0.72rem; color:var(--muted);}
+  .stor-row .stor-bar{grid-column:1 / -1; height:5px; margin:2px 0 0;}
+  .stor-note{font-size:0.8rem; color:var(--muted); margin:8px 0 0; line-height:1.4;}
+  .stor-verdict{margin:12px 0 0; padding:10px 12px; border-radius:10px; background:rgba(46,139,74,.1); color:#2E8B4A; font-size:0.85rem; font-weight:600; line-height:1.35;}
+  .stor-verdict.warn{background:rgba(232,163,61,.16); color:#9A5F0B;}
+  .stor-warn{border:1px solid rgba(232,163,61,.55); background:rgba(232,163,61,.1); border-radius:10px; padding:10px 12px;}
   /* Sparmodus (siehe Absturz-Schutz im Head-Skript): keine Endlos-Animationen, Weichzeichner und Schatten-Filter */
   html.lowfx *, html.lowfx *::before, html.lowfx *::after{
     animation-duration:0.001ms !important; animation-delay:0s !important; animation-iteration-count:1 !important;
     transition-duration:0.001ms !important; filter:none !important;
     -webkit-backdrop-filter:none !important; backdrop-filter:none !important; will-change:auto !important;
+  }
+
+  /* ============ Handy: Board-Übersicht — ein Board pro Reihe, große Treffer-Flächen, nichts überlappt ============ */
+  @media (max-width:640px){
+    .board-grid{grid-template-columns:minmax(0,1fr); gap:12px;}
+    .board-tile, html[data-d-radius] .board-tile{
+      height:auto; min-height:calc(118px + var(--d-inset,0px) * 2); gap:10px;
+      padding:calc(16px + var(--d-inset,0px)) calc(16px + var(--d-inset,0px)) calc(14px + var(--d-inset,0px));
+    }
+    .project-tile, html[data-d-radius] .project-tile{height:auto; min-height:calc(118px + var(--d-inset,0px) * 2); padding:calc(14px + var(--d-inset,0px)) calc(16px + var(--d-inset,0px));}
+    .board-tile h3{font-size:1.1rem; margin-top:10px; line-height:1.25;}
+    .board-tile .tile-logo, .board-tile .board-badge{width:38px; height:38px; border-radius:10px;}
+    .board-tile .board-badge svg{width:18px; height:18px;}
+    .board-tile .meta, .project-tile .meta{font-size:0.78rem;}
+    /* Aktions-Knöpfe sind unsichtbar, solange die Kachel nicht gewählt ist — dann dürfen sie auch keine Tipps abfangen */
+    .tile-actions{pointer-events:none; top:10px; right:10px; gap:8px;}
+    .board-tile:hover .tile-actions, .board-tile.tile-selected .tile-actions, .board-tile.tile-peek .tile-actions{pointer-events:auto;}
+    .board-tile.tile-peek .tile-actions{opacity:1;}
+    .tile-actions button{width:42px; height:42px; border-radius:11px;}
+    /* "Zum Board": statt eines kleinen Knopfs mitten auf der Kachel (der Titel und Infos verdeckt) ein breiter Knopf unten in der Kachel — die Kachel wächst mit */
+    .board-tile .tile-go-btn{position:static; transform:none; left:auto; top:auto; width:100%; justify-content:center; gap:8px; min-height:50px; padding:13px 20px; font-size:1.02rem; margin-top:2px; flex:none; box-sizing:border-box;}
+    .board-tile .tile-go-btn:active{transform:scale(.97);}
+    .board-tile.new-tile, html[data-d-radius] .board-tile.new-tile{min-height:88px; height:88px; justify-content:center;}
+    .board-tile .tile-go-btn svg{width:18px; height:18px;}
+
+    /* Projekt-Ansicht: ebenfalls eine Spalte, Boards deutlich größer; Knöpfe wandern bei Auswahl in eine eigene Zeile statt über den Titel */
+    .project-panel{padding:14px 14px 16px;}
+    .project-panel .project-panel-grid{grid-template-columns:minmax(0,1fr) !important; grid-template-rows:none !important; grid-auto-flow:row !important; gap:10px;}
+    html .project-panel .project-panel-grid .board-tile{
+      height:auto !important; min-height:76px; padding:14px 16px; box-sizing:border-box;
+      flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:10px 8px;
+    }
+    html .project-panel .project-panel-grid .board-tile > div:not(.tile-actions):not(.meta):not(.restored-badge){flex:1 1 100%; min-width:0;}
+    html .project-panel .project-panel-grid .board-tile .board-badge,
+    html .project-panel .project-panel-grid .board-tile .tile-logo{width:38px; height:38px; border-radius:10px;}
+    html .project-panel .project-panel-grid .board-tile .board-badge svg{width:18px; height:18px;}
+    html .project-panel .project-panel-grid .board-tile h3{font-size:1.04rem; line-height:1.25; -webkit-line-clamp:3;}
+    html .project-panel .project-panel-grid .board-tile .meta{display:flex; flex:1 1 100%; font-size:0.76rem; order:5;}
+    html .project-panel .project-panel-grid .board-tile .remove-from-project-btn,
+    html .project-panel .project-panel-grid .board-tile .tile-actions{position:static; transform:none; top:auto; right:auto; left:auto; display:none; background:none; padding:0; border-radius:0;}
+    html .project-panel .project-panel-grid .board-tile.tile-selected .remove-from-project-btn, html .project-panel .project-panel-grid .board-tile.tile-peek .remove-from-project-btn{display:flex; opacity:1; order:10; width:44px; height:44px; border-radius:11px; flex:none; background:var(--surface-2);}
+    html .project-panel .project-panel-grid .board-tile.tile-selected .tile-actions, html .project-panel .project-panel-grid .board-tile.tile-peek .tile-actions{display:flex; opacity:1; order:12; flex:none; pointer-events:auto; gap:6px;}
+    html .project-panel .project-panel-grid .board-tile.tile-selected .tile-actions button, html .project-panel .project-panel-grid .board-tile.tile-peek .tile-actions button{width:44px; height:44px;}
+    html .project-panel .project-panel-grid .board-tile .tile-go-btn{order:11; flex:1 1 100px; width:auto; min-height:44px; padding:11px 16px; font-size:1rem;}
+  }
+
+  /* ---------- Überlappungsschutz: Startseite — "Was ist neu" darf die Fußzeilen-Links nicht verdecken ---------- */
+  @media (max-width:640px){
+    /* Handy-Startseite: "Was ist neu" als kompakter Knopf (nur ✨ + ×), damit er die zentrierten Fußzeilen-Links nicht verdeckt */
+    .whatsnew-fab #whatsNewFabLabel{display:none;}
+    .wn-fab-open{padding:9px 12px; gap:0;}
+    .toast{max-width:calc(100% - 24px); box-sizing:border-box;}
+  }
+
+  /* Eigenschaften-Fenster oben rechts (Desktop/Tablet/Querformat): die Schließen-/Löschen-Knöpfe lagen oberhalb des Fensters
+     und damit unter der Kopfleiste (nicht antippbar). Jetzt darunter bzw. — bei niedrigen Bildschirmen — links daneben. */
+  @media (min-width:641px){
+    .insp-float-bar{bottom:auto; top:100%; margin:9px 0 0;}
+  }
+  @media (min-width:641px) and (max-height:520px){
+    .insp-float-bar{top:0; right:100%; margin:0 9px 0 0; flex-direction:column;}
+  }
+
+  /* Sehr niedrige Handys (z. B. 320×568): Startseite enger setzen, damit Sprachwähler und Fußzeile nie ineinander laufen */
+  @media (max-width:640px) and (max-height:620px){
+    .landing-center{gap:16px; transform:translateY(-4vh);}
+    .landing-circle{width:80px; height:80px;}
+    .landing-footer{bottom:8px; gap:2px 10px; font-size:0.72rem;}
+    .landing-footer a, .landing-footer button.linklike{padding:2px;}
   }
 </style>
 
@@ -4515,6 +4603,10 @@ try{
       </button>
       <button type="button" class="tools-sheet-card" id="toolsLookItem">
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 2-.9 2-1.8 0-1.4-1.2-1.5-1.2-2.6 0-.9.7-1.5 1.7-1.5H17a3.5 3.5 0 0 0 3.5-3.5C20.5 7 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11.2" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.4" cy="7.4" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsStorageItem">
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V5.5"/><path d="M4.5 12v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V12"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
       <button type="button" class="tools-sheet-card tools-sheet-card-danger" id="toolsTrashItem">
@@ -6064,6 +6156,31 @@ const I18N={
   cloud_explainer_body_3:{de:'Deine Boards bleiben zusätzlich immer lokal auf diesem Gerät gespeichert. Die Google-Anmeldung dient dabei nur zur Identifikation deines Accounts — NOTUA fragt keinen Zugriff auf dein Google Drive mehr an.',en:'Your boards also always stay stored locally on this device. Google sign-in here is used only to identify your account — NOTUA no longer requests any access to your Google Drive.',es:'Tus tableros también se guardan siempre localmente en este dispositivo. El inicio de sesión de Google solo sirve para identificar tu cuenta — NOTUA ya no solicita acceso a tu Google Drive.',da:'Dine tavler forbliver desuden altid gemt lokalt på denne enhed. Google-login bruges her kun til at identificere din konto — NOTUA beder ikke længere om adgang til dit Google Drev.'},
   cloud_explainer_continue:{de:'Verstanden, weiter',en:'Got it, continue',es:'Entendido, continuar',da:'Forstået, fortsæt'},
   r2_signin_failed_toast:{de:'Google-Anmeldung fehlgeschlagen — Cloud Sync konnte nicht aktiviert werden',en:'Google sign-in failed — couldn\'t enable cloud sync',es:'El inicio de sesión de Google falló — no se pudo activar la sincronización en la nube',da:'Google-login mislykkedes — Cloud Sync kunne ikke aktiveres'},
+  storage_item:{de:'Speicher',en:'Storage',es:'Almacenamiento',da:'Lagring'},
+  storage_title:{de:'Speicher-Übersicht',en:'Storage overview',es:'Resumen de almacenamiento',da:'Lageroversigt'},
+  storage_loading:{de:'Wird berechnet …',en:'Calculating …',es:'Calculando…',da:'Beregner …'},
+  storage_close:{de:'Schließen',en:'Close',es:'Cerrar',da:'Luk'},
+  storage_device_h:{de:'Auf diesem Gerät (Browser-Speicher)',en:'On this device (browser storage)',es:'En este dispositivo (almacenamiento del navegador)',da:'På denne enhed (browserlager)'},
+  storage_device_total:{de:'Deine Daten',en:'Your data',es:'Tus datos',da:'Dine data'},
+  storage_browser_total:{de:'Belegt laut Browser (inkl. App-Dateien & Cache)',en:'Used according to browser (incl. app files & cache)',es:'Usado según el navegador (incl. archivos y caché de la app)',da:'Brugt ifølge browseren (inkl. appfiler og cache)'},
+  storage_by_board:{de:'Nach Board',en:'By board',es:'Por tablero',da:'Efter board'},
+  storage_by_type:{de:'Nach Kartentyp (Inhalt + Dateien)',en:'By card type (content + files)',es:'Por tipo de tarjeta (contenido + archivos)',da:'Efter korttype (indhold + filer)'},
+  storage_biggest:{de:'Größte Einzeldateien',en:'Largest single files',es:'Archivos más grandes',da:'Største enkeltfiler'},
+  storage_orphans:{de:'Nicht mehr verwendete Dateien',en:'Unused files',es:'Archivos sin usar',da:'Ubrugte filer'},
+  storage_trash:{de:'davon im Papierkorb',en:'of which in trash',es:'de ello en la papelera',da:'heraf i papirkurv'},
+  storage_files_count:{de:'{n} Datei(en)',en:'{n} file(s)',es:'{n} archivos',da:'{n} filer'},
+  storage_cards_count:{de:'{n} Karte(n)',en:'{n} card(s)',es:'{n} tarjetas',da:'{n} kort'},
+  storage_cloud_h:{de:'Cloud (dein Konto)',en:'Cloud (your account)',es:'Nube (tu cuenta)',da:'Cloud (din konto)'},
+  storage_cloud_used:{de:'Belegt von 100 MB',en:'Used of 100 MB',es:'Usado de 100 MB',da:'Brugt af 100 MB'},
+  storage_cloud_off:{de:'Cloud-Sync ist auf diesem Gerät nicht aktiv.',en:'Cloud sync is not active on this device.',es:'La sincronización en la nube no está activa en este dispositivo.',da:'Cloud-synk er ikke aktiv på denne enhed.'},
+  storage_cloud_fail:{de:'Cloud-Verbrauch konnte gerade nicht abgerufen werden.',en:'Could not load cloud usage right now.',es:'No se pudo cargar el uso de la nube ahora.',da:'Kunne ikke hente cloudforbrug lige nu.'},
+  storage_toolarge_h:{de:'Zu groß für die Cloud (über 8 MB pro Datei)',en:'Too big for the cloud (over 8 MB per file)',es:'Demasiado grande para la nube (más de 8 MB por archivo)',da:'For stor til skyen (over 8 MB pr. fil)'},
+  storage_toolarge_hint:{de:'Diese Dateien bleiben nur lokal gespeichert und werden nicht hochgeladen. Kleinere Fassung nehmen oder die Karte löschen.',en:'These files stay local only and are not uploaded. Use a smaller version or delete the card.',es:'Estos archivos solo se guardan localmente y no se suben. Usa una versión más pequeña o elimina la tarjeta.',da:'Disse filer gemmes kun lokalt og uploades ikke. Brug en mindre version eller slet kortet.'},
+  storage_verdict_ok:{de:'Alles im grünen Bereich – dein Cloud-Speicher ist nicht voll.',en:'All good – your cloud storage is not full.',es:'Todo en orden: tu almacenamiento en la nube no está lleno.',da:'Alt er fint – dit cloudlager er ikke fuldt.'},
+  storage_verdict_toolarge:{de:'Die Meldung „Speicher voll“ kam nicht von deinem Gesamtspeicher, sondern von einer einzelnen zu großen Datei (siehe unten).',en:'The “storage full” message did not come from your total storage but from a single oversized file (see below).',es:'El aviso de «almacenamiento lleno» no venía de tu almacenamiento total sino de un único archivo demasiado grande (ver abajo).',da:'Beskeden “lager fuldt” kom ikke fra dit samlede lager, men fra en enkelt for stor fil (se nedenfor).'},
+  storage_unknown_board:{de:'(Board gelöscht)',en:'(deleted board)',es:'(tablero eliminado)',da:'(slettet board)'},
+  storage_card_content:{de:'Karteninhalt',en:'Card content',es:'Contenido de tarjeta',da:'Kortindhold'},
+  r2_toolarge_toast:{de:'Eine Datei ist zu groß für die Cloud ({mb} MB, max. 8 MB) und bleibt nur lokal gespeichert — dein Cloud-Speicher ist nicht voll',en:'A file is too large for the cloud ({mb} MB, max 8 MB) and stays local only — your cloud storage is not full',es:'Un archivo es demasiado grande para la nube ({mb} MB, máx. 8 MB) y solo se guarda localmente — tu almacenamiento en la nube no está lleno',da:'En fil er for stor til skyen ({mb} MB, maks. 8 MB) og gemmes kun lokalt — dit cloudlager er ikke fuldt'},
   r2_quota_toast:{de:'Cloud-Speicher voll (100MB erreicht) — weitere Daten bleiben lokal gespeichert',en:'Cloud storage full (100MB reached) — further data stays stored locally',es:'Almacenamiento en la nube lleno (100 MB alcanzados) — los datos adicionales se guardarán solo localmente',da:'Cloud-lagring fuld (100MB nået) — yderligere data forbliver kun gemt lokalt'},
   r2_link_needed_toast:{de:'Cloud Sync: dieses Gerät ist noch nicht verknüpft — unter Werkzeuge → Gerät verknüpfen',en:'Cloud sync: this device isn\'t linked yet — see Tools → Link device',es:'Sincronización en la nube: este dispositivo aún no está vinculado — en Herramientas → Vincular dispositivo',da:'Cloud Sync: denne enhed er endnu ikke tilknyttet — under Værktøjer → Tilknyt enhed'},
   r2_link_item_label:{de:'Gerät verknüpfen',en:'Link device',es:'Vincular dispositivo',da:'Tilknyt enhed'},
@@ -6931,6 +7048,7 @@ function applyI18n(){
     ['#homeR2LinkBtn','title',t('r2_link_item_label')],
     ['#homeR2LinkLabel','text',t('r2_link_item_label')],
     ['#toolsFolderStructureItem .tools-sheet-card-label','text',t('tools_folder_structure_item')],
+    ['#toolsStorageItem .tools-sheet-card-label','text',t('storage_item')],
     ['#toolsTrashItem .tools-sheet-card-label','text',t('trash_btn_title')],
     ['#toolsSheetTabMain','text',t('tools_tab_main_label')],
     ['#toolsSheetTabSecret','text',t('tools_tab_secret_label')],
@@ -8069,6 +8187,7 @@ const r2State={
   cardOwner:new Map(), connOwner:new Map(), imageOwner:new Map(), imageExt:new Map(),
   boardIds:null, boardIdsAt:0, // short-lived cache of this user's board ids (see r2ListBoardIds)
   offline:false,
+  largeWarned:false, tooLarge:new Map(), // Datei-Schlüssel -> Bytes, die der Worker als "zu groß" abgelehnt hat (siehe Speicher-Übersicht)
   quotaWarned:false,       // one toast per connected session, not one per rejected write — same idea as fsWriteFailureShown
   encKey:null,             // this account's AES-GCM CryptoKey — generated once on the very first device, then handed to every other device via QR/code linking (see r2GenerateFirstKey/r2JoinViaLinkCode below). Kept in memory here; a raw-bytes copy is separately cached per-device in localStorage (r2CacheKeyLocally), never here.
 };
@@ -8134,10 +8253,24 @@ function r2GetDeviceToken(){ try{ return localStorage.getItem('notua-r2-device-t
 function r2SetDeviceToken(tok){ try{ localStorage.setItem('notua-r2-device-token',tok); }catch(e){} }
 function r2B64FromBytes(bytes){ let bin=''; for(const b of bytes) bin+=String.fromCharCode(b); return btoa(bin); }
 function r2BytesFromB64(b64){ return Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); }
-function r2ReportQuotaExceeded(){
-  if(r2State.quotaWarned) return;
-  r2State.quotaWarned=true;
-  try{ showToast(t('r2_quota_toast')); }catch(e){}
+// Der Worker antwortet auf zwei ganz verschiedene Fälle mit 413: "quota exceeded" (die 100 MB des Kontos sind wirklich
+// voll) und "object too large" (EINE Datei ist über 8 MB). Früher wurde beides als "100 MB erreicht" gemeldet — dadurch
+// bekam man die Voll-Meldung, obwohl der Cloud-Speicher kaum belegt war. Jetzt wird der echte Grund gelesen.
+function r2ReportQuotaExceeded(res,size,key){
+  const finish=(tooLarge)=>{
+    if(tooLarge){
+      if(key) r2State.tooLarge.set(key,size||0);
+      if(r2State.largeWarned) return; r2State.largeWarned=true;
+      try{ showToast(t('r2_toolarge_toast').replace('{mb}',((size||0)/1048576).toFixed(1))); }catch(e){}
+      return;
+    }
+    if(r2State.quotaWarned) return;
+    r2State.quotaWarned=true;
+    try{ showToast(t('r2_quota_toast')); }catch(e){}
+  };
+  if(res && res.clone){
+    res.clone().json().then(j=>finish(!!(j && /too large/i.test(j.error||''))),()=>finish(!!(size && size>8*1024*1024)));
+  }else finish(false);
 }
 /* ---------- CLIENT-SIDE ENCRYPTION FOR R2 ----------
    Tom's clarification: local storage (IndexedDB, a connected folder) stays exactly as it always was —
@@ -8298,7 +8431,7 @@ async function r2PutJSON(key,data){
     const bytes=new TextEncoder().encode(JSON.stringify(data));
     const enc=await r2EncryptBytes(bytes);
     const res=await r2Fetch('/object/'+key,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:enc});
-    if(res.status===413||res.status===402){ r2ReportQuotaExceeded(); return false; }
+    if(res.status===413||res.status===402){ r2ReportQuotaExceeded(res,enc.byteLength,key); return false; }
     return res.ok;
   }catch(e){ return false; }
 }
@@ -8615,7 +8748,7 @@ const R2_DB={
       const raw=new Uint8Array(await blob.arrayBuffer());
       const enc=await r2EncryptBytes(raw);
       const res=await r2Fetch('/object/images/'+id+ext,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:enc});
-      if(res.status===413||res.status===402) r2ReportQuotaExceeded();
+      if(res.status===413||res.status===402) r2ReportQuotaExceeded(res,enc.byteLength,'images/'+id+ext);
     }catch(e){}
   },
   async getImage(id){
@@ -10086,7 +10219,7 @@ async function v2PutDoc(key,doc,etag){
   if(etag) headers['If-Match']=etag; else headers['If-None-Match']='*';
   const res=await r2Fetch('/object/'+key,{method:'PUT',headers,body:enc});
   if(res.status===412) return {conflict:true};
-  if(res.status===413||res.status===402){ r2ReportQuotaExceeded(); throw new Error('v2-quota'); }
+  if(res.status===413||res.status===402){ r2ReportQuotaExceeded(res,enc.byteLength,key); throw new Error('v2-quota'); }
   if(!res.ok) throw new Error('v2-put-'+res.status);
   const j=await res.json().catch(()=>({}));
   return {etag:v2CleanEtag(j.etag)};
@@ -10421,7 +10554,7 @@ async function v2UploadImage(id){
     if(head.ok){ V2.imgUp.add(id); V2.imgExt.set(id,ext); V2.upQ.delete(id); v2PersistSoon(); return; }
     const enc=await r2EncryptBytes(new Uint8Array(await rec.blob.arrayBuffer()));
     const res=await r2Fetch('/object/images/'+id+ext,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:enc});
-    if(res.status===413||res.status===402){ r2ReportQuotaExceeded(); V2.upQ.delete(id); v2PersistSoon(); return; }
+    if(res.status===413||res.status===402){ r2ReportQuotaExceeded(res,enc.byteLength,'images/'+id+ext); V2.upQ.delete(id); v2PersistSoon(); return; }
     if(!res.ok) throw new Error('img-up-'+res.status);
     V2.imgUp.add(id); V2.imgExt.set(id,ext); V2.upQ.delete(id); v2PersistSoon();
   }catch(e){ /* bleibt in upQ — nächster Lauf */ }
@@ -14194,6 +14327,135 @@ if(toolsLookCodeItem) toolsLookCodeItem.addEventListener('click',()=>{ closeTool
 const toolsLookItem=document.getElementById('toolsLookItem');
 if(toolsLookItem) toolsLookItem.addEventListener('click',()=>{ closeToolsSheet(); showLookFinder({firstRun:false}); });
 
+/* ---------- Speicher-Übersicht (Werkzeuge → Speicher) ----------
+   Zeigt, wohin der Speicher geht: lokal (IndexedDB: Karten + Dateien je Board/Typ, größte Dateien, verwaiste Dateien)
+   und in der Cloud (echter Verbrauch + größte Objekte, direkt vom Worker). Hintergrund: die alte "100 MB erreicht"-Meldung
+   kam auch bei einer einzelnen zu großen Datei (siehe r2ReportQuotaExceeded). */
+function fmtBytes(n){
+  n=+n||0;
+  if(n<1024) return n+' B';
+  if(n<1048576) return (n/1024).toFixed(n<10240?1:0)+' KB';
+  if(n<1073741824) return (n/1048576).toFixed(n<10485760?2:1)+' MB';
+  return (n/1073741824).toFixed(2)+' GB';
+}
+async function storageLocalStats(){
+  const trx=await tx(['boards','cards','images'],'readonly');
+  const boards=await reqp(trx.objectStore('boards').getAll());
+  const cards=await reqp(trx.objectStore('cards').getAll());
+  const imgs=await new Promise((resolve)=>{
+    const out=[]; const req=trx.objectStore('images').openCursor();
+    req.onsuccess=()=>{ const c=req.result; if(!c){ resolve(out); return; } const v=c.value||{}; out.push({id:v.id||c.key, size:(v.blob&&v.blob.size)||0, type:(v.blob&&v.blob.type)||''}); c.continue(); };
+    req.onerror=()=>resolve(out);
+  });
+  const boardById=new Map(boards.map(b=>[b.id,b]));
+  const boardsJson=JSON.stringify(boards);
+  const imgById=new Map(imgs.map(i=>[i.id,i]));
+  const refd=new Set();
+  const perBoard=new Map(), perType=new Map(); const files=[]; const bigCards=[];
+  const add=(m,k,bytes,cnt)=>{ const e=m.get(k)||{bytes:0,n:0}; e.bytes+=bytes; e.n+=cnt; m.set(k,e); };
+  for(const c of cards){
+    const cj=JSON.stringify(c).length; const b=boardById.get(c.boardId);
+    let bytes=cj; let fileBytes=0;
+    for(const rid of cardBlobRefs(c)){ refd.add(rid); const im=imgById.get(rid); if(im){ fileBytes+=im.size; files.push({id:rid,size:im.size,type:im.type,card:c,board:b}); } }
+    bytes+=fileBytes;
+    add(perBoard,c.boardId,bytes,1); add(perType,c.type,bytes,1);
+    bigCards.push({card:c,board:b,size:cj});
+  }
+  let orphanBytes=0, orphanN=0; const orphans=[];
+  for(const im of imgs){
+    if(refd.has(im.id)) continue;
+    if(boardsJson.includes(im.id)){ // z. B. Board-Cover/Logo — gehört zu einem Board, nicht zu einer Karte
+      for(const b of boards){ if(JSON.stringify(b).includes(im.id)){ add(perBoard,b.id,im.size,0); files.push({id:im.id,size:im.size,type:im.type,card:null,board:b}); break; } }
+      continue;
+    }
+    orphanBytes+=im.size; orphanN++; orphans.push(im);
+  }
+  let trashBytes=0; for(const [bid,e] of perBoard){ const b=boardById.get(bid); if(b&&b.trashed) trashBytes+=e.bytes; }
+  const boardsBytes=boardsJson.length;
+  const dataBytes=[...perBoard.values()].reduce((a,e)=>a+e.bytes,0)+orphanBytes+boardsBytes;
+  files.sort((a,b)=>b.size-a.size); bigCards.sort((a,b)=>b.size-a.size);
+  return {boards,cards,imgs,boardById,perBoard,perType,files,bigCards,orphanBytes,orphanN,trashBytes,boardsBytes,dataBytes};
+}
+async function storageCloudStats(){
+  if(!isR2SyncEnabled()) return {off:true};
+  try{
+    const [u,l]=await Promise.all([r2Fetch('/usage'),r2Fetch('/list')]);
+    if(!u.ok||!l.ok) return {fail:true};
+    const usage=await u.json(), list=await l.json();
+    const groups=new Map(); for(const o of list){ const g=(o.key.split('/')[0]||'?'); const e=groups.get(g)||{bytes:0,n:0}; e.bytes+=o.size; e.n++; groups.set(g,e); }
+    list.sort((a,b)=>b.size-a.size);
+    return {usage,list,groups};
+  }catch(e){ return {fail:true}; }
+}
+function showStorageModal(){
+  const scrim=document.createElement('div'); scrim.className='modal-scrim';
+  scrim.innerHTML=`<div class="modal modal-wide storage-modal"><h4>${t('storage_title')}</h4><div class="stor-body"><p class="stor-note">${t('storage_loading')}</p></div><div class="modal-actions"><button data-a="cancel" class="primary">${t('storage_close')}</button></div></div>`;
+  bindScrimDismiss(scrim,()=>scrim.remove());
+  scrim.querySelector('[data-a="cancel"]').addEventListener('click',()=>scrim.remove());
+  document.body.appendChild(scrim);
+  const body=scrim.querySelector('.stor-body');
+  const row=(name,val,sub,frac)=>`<div class="stor-row"><span class="stor-name">${escapeHtml(name)}</span><span class="stor-val">${escapeHtml(val)}</span>${sub?`<span class="stor-sub">${escapeHtml(sub)}</span>`:''}${frac!=null?`<div class="stor-bar"><i style="width:${Math.max(1,Math.min(100,frac*100)).toFixed(1)}%"></i></div>`:''}</div>`;
+  const fileLabel=f=>{ const nm=(f.card&&f.card.type==='file'&&f.card.data&&f.card.data.name)||(f.card?typeLabel(f.card.type):t('storage_item')); const bn=f.board?f.board.name:t('storage_unknown_board'); return nm+' · '+bn; };
+  (async()=>{
+    let L=null,C=null;
+    try{ [L,C]=await Promise.all([storageLocalStats(),storageCloudStats()]); }catch(e){ body.innerHTML=`<p class="stor-note">${escapeHtml(String(e&&e.message||e))}</p>`; return; }
+    let est=null; try{ if(navigator.storage&&navigator.storage.estimate) est=await navigator.storage.estimate(); }catch(e){}
+    const MAXOBJ=8*1024*1024;
+    const tooBigLocal=L.files.filter(f=>f.size>MAXOBJ);
+    const tooBigCloud=[...r2State.tooLarge.entries()];
+    let html='';
+    // Fazit oben
+    if(C && C.usage){
+      const used=C.usage.bytes, lim=C.usage.limit||104857600;
+      if(used<lim*0.97 && (tooBigLocal.length||tooBigCloud.length)) html+=`<div class="stor-verdict warn">${t('storage_verdict_toolarge')}</div>`;
+      else if(used<lim*0.97) html+=`<div class="stor-verdict">${t('storage_verdict_ok')}</div>`;
+    }
+    // Cloud
+    html+=`<div class="stor-sec"><h5>${t('storage_cloud_h')}</h5>`;
+    if(C.off) html+=`<p class="stor-note">${t('storage_cloud_off')}</p>`;
+    else if(C.fail) html+=`<p class="stor-note">${t('storage_cloud_fail')}</p>`;
+    else{
+      const used=C.usage.bytes, lim=C.usage.limit||104857600;
+      html+=`<div class="stor-big"><span>${t('storage_cloud_used')}</span><b>${fmtBytes(used)}</b></div><div class="stor-bar"><i style="width:${Math.max(1,Math.min(100,used/lim*100)).toFixed(1)}%"></i></div>`;
+      for(const [g,e] of [...C.groups.entries()].sort((a,b)=>b[1].bytes-a[1].bytes)) html+=row(g+'/',fmtBytes(e.bytes),t('storage_files_count').replace('{n}',e.n),used?e.bytes/used:0);
+      html+=`<h5 style="margin-top:12px">${t('storage_biggest')}</h5>`;
+      for(const o of C.list.slice(0,5)) html+=row(o.key,fmtBytes(o.size),null,C.list[0].size?o.size/C.list[0].size:0);
+    }
+    html+='</div>';
+    if(tooBigLocal.length||tooBigCloud.length){
+      html+=`<div class="stor-sec stor-warn"><h5 style="color:#9A5F0B">${t('storage_toolarge_h')}</h5>`;
+      for(const f of tooBigLocal.slice(0,8)) html+=row(fileLabel(f),fmtBytes(f.size),null,null);
+      const seen=new Set(tooBigLocal.map(f=>'images/'+f.id));
+      for(const [k,sz] of tooBigCloud){ if([...seen].some(x=>k.startsWith(x))) continue; html+=row(k,fmtBytes(sz),null,null); }
+      html+=`<p class="stor-note">${t('storage_toolarge_hint')}</p></div>`;
+    }
+    // Lokal
+    html+=`<div class="stor-sec"><h5>${t('storage_device_h')}</h5><div class="stor-big"><span>${t('storage_device_total')}</span><b>${fmtBytes(L.dataBytes)}</b></div>`;
+    if(est&&est.usage) html+=row(t('storage_browser_total'),fmtBytes(est.usage),null,null);
+    if(L.trashBytes) html+=row(t('storage_trash'),fmtBytes(L.trashBytes),null,null);
+    if(L.orphanN) html+=row(t('storage_orphans'),fmtBytes(L.orphanBytes),t('storage_files_count').replace('{n}',L.orphanN),null);
+    html+='</div>';
+    html+=`<div class="stor-sec"><h5>${t('storage_by_board')}</h5>`;
+    const bmax=Math.max(1,...[...L.perBoard.values()].map(e=>e.bytes));
+    for(const [bid,e] of [...L.perBoard.entries()].sort((a,b)=>b[1].bytes-a[1].bytes).slice(0,14)){
+      const b=L.boardById.get(bid); html+=row((b?b.name:t('storage_unknown_board'))+(b&&b.trashed?' 🗑':''),fmtBytes(e.bytes),t('storage_cards_count').replace('{n}',e.n),e.bytes/bmax);
+    }
+    html+='</div>';
+    html+=`<div class="stor-sec"><h5>${t('storage_by_type')}</h5>`;
+    const tmax=Math.max(1,...[...L.perType.values()].map(e=>e.bytes));
+    for(const [ty,e] of [...L.perType.entries()].sort((a,b)=>b[1].bytes-a[1].bytes)) html+=row(typeLabel(ty),fmtBytes(e.bytes),t('storage_cards_count').replace('{n}',e.n),e.bytes/tmax);
+    html+='</div>';
+    html+=`<div class="stor-sec"><h5>${t('storage_biggest')}</h5>`;
+    const topItems=[...L.files.slice(0,5).map(f=>({name:fileLabel(f),size:f.size})),...L.bigCards.slice(0,3).filter(x=>x.size>20480).map(x=>({name:t('storage_card_content')+': '+typeLabel(x.card.type)+' · '+(x.board?x.board.name:t('storage_unknown_board')),size:x.size}))].sort((a,b)=>b.size-a.size).slice(0,7);
+    const mx=Math.max(1,...topItems.map(x=>x.size));
+    for(const it of topItems) html+=row(it.name,fmtBytes(it.size),null,it.size/mx);
+    html+='</div>';
+    body.innerHTML=html;
+  })();
+}
+const toolsStorageItem=document.getElementById('toolsStorageItem');
+if(toolsStorageItem) toolsStorageItem.addEventListener('click',()=>{ closeToolsSheet(); showStorageModal(); });
+
 /* ---------- Ablauf beim ersten Start ---------- */
 let firstRunFlowStarted=false;
 function waitNoBlockingModal(cb,tries){
@@ -14548,6 +14810,7 @@ function clearHomePeek(){
 function setTileSelectedUI(tile,id){
   const selected=state.homeSelection.has(id);
   tile.classList.toggle('tile-selected',selected);
+  tile.classList.toggle('tile-peek',state.homePeek===id);
   const goBtn=tile.querySelector('.tile-go-btn');
   if(goBtn) goBtn.hidden=!((selected && state.homeSelection.size===1) || state.homePeek===id);
 }
@@ -30062,6 +30325,82 @@ if(window.visualViewport){
   // offline backs off for a while rather than spinning.
   scheduleSyncSoon(2000);
   window.addEventListener('online',()=>scheduleSyncSoon(500));
+
+/* ---------- Überlappungsschutz (Handy) ----------
+   Schwebende Elemente (Hinweis-Toast, Popups, Cloud-Chip, Format-Leiste, Update-Pille …) dürfen nie über festen Bedienflächen
+   liegen (Eigenschaften-Fenster, Aktions-Knöpfe der Karte, Auswahl-Leiste der Übersicht, Kopfleiste) — sonst ist etwas nicht
+   mehr antippbar. Statt jedes Element einzeln zu verschieben, prüft diese eine Regel regelmäßig alle sichtbaren schwebenden
+   Elemente und schiebt jedes bei Überlappung per CSS-Eigenschaft `translate` (stört weder Position noch Animationen) so weit
+   nach oben oder unten, bis es frei liegt — innerhalb des sichtbaren Bereichs. Idempotent: die Verschiebung wird bei jedem
+   Durchlauf aus der natürlichen Position neu berechnet. Nur auf dem Handy (schmaler Viewport) aktiv. */
+(function uiOverlapGuard(){
+  const mq=window.matchMedia('(max-width:640px), (max-height:520px)');
+  const MOVABLE='.toast,.update-pill,.sync-chip,.sync-panel,.card-date-popover,.note-format-toolbar,.board-color-popover,.table-ampel-popover,.table-tint-popover,.sync-popover,.board-icon-popover,.project-style-pop,.blanket-thickness-pop,.blanket-colorwheel-pop,.create-menu,.dd-pop,.widget-submenu,.whatsnew-fab';
+  const BLOCKERS='.inspector,.insp-float-bar,.home-bulk-bar,.topbar,.home-header,.landing-footer a,.landing-footer button';
+  const GAP=8;
+  function visRect(el){
+    const cs=getComputedStyle(el);
+    if(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity<0.05) return null;
+    const r=el.getBoundingClientRect();
+    if(r.width<2||r.height<2) return null;
+    return r;
+  }
+  function clear(m){ if(m.dataset.uig){ m.style.translate=''; delete m.dataset.uig; } }
+  function run(){
+    if(document.hidden) return;
+    const movs=document.querySelectorAll(MOVABLE);
+    if(!mq.matches){ movs.forEach(clear); return; }
+    const vh=window.innerHeight, vw=window.innerWidth;
+    const blks=[];
+    document.querySelectorAll(BLOCKERS).forEach(el=>{ const r=visRect(el); if(r && r.bottom>0 && r.top<vh) blks.push({el,top:r.top,bottom:r.bottom,left:r.left,right:r.right}); });
+    const topbar=document.querySelector('.topbar'); const tr=topbar&&visRect(topbar);
+    const topLimit=tr?tr.bottom+4:4, bottomLimit=vh-4;
+    movs.forEach(m=>{
+      const r=visRect(m); const pv=(m.dataset.uig||'0,0').split(',').map(Number); const prevX=pv[0]||0, prev=pv[1]||0;
+      if(!r){ clear(m); return; }
+      const top=r.top-prev, bottom=r.bottom-prev, left=r.left-prevX, right=r.right-prevX, h=bottom-top;
+      let y=0, x=0;
+      const fits=(dx,dy)=>left+dx>=4 && right+dx<=vw-4 && top+dy>=topLimit && bottom+dy<=bottomLimit;
+      // waagerecht: nie über den Bildschirmrand hinaus
+      if(right>vw-4) x=vw-4-right;
+      if(left+x<4) x=4-left;
+      const hits=(dx,dy)=>blks.filter(b=>!(b.el===m||b.el.contains(m)||m.contains(b.el)) && right+dx>b.left+1 && left+dx<b.right-1 && bottom+dy>b.top+1 && top+dy<b.bottom-1).length;
+      for(let pass=0;pass<4;pass++){
+        let moved=false;
+        for(const b of blks){
+          if(b.el===m||b.el.contains(m)||m.contains(b.el)) continue;
+          if(right+x<=b.left+1||left+x>=b.right-1) continue;
+          if(bottom+y<=b.top+1||top+y>=b.bottom-1) continue;
+          // vier mögliche Ausweich-Richtungen; gewählt wird die kürzeste, die im sichtbaren Bereich bleibt und nichts anderes berührt
+          const cand=[
+            {dx:0, dy:-((bottom+y)-b.top)-GAP},
+            {dx:0, dy:(b.bottom-(top+y))+GAP},
+            {dx:-((right+x)-b.left)-GAP, dy:0},
+            {dx:(b.right-(left+x))+GAP, dy:0},
+          ].map(c=>({...c, ok:fits(x+c.dx,y+c.dy), n:hits(x+c.dx,y+c.dy), d:Math.abs(c.dx)+Math.abs(c.dy)}));
+          cand.sort((p,q)=>(q.ok-p.ok)||(p.n-q.n)||(p.d-q.d));
+          x+=cand[0].dx; y+=cand[0].dy; moved=true;
+        }
+        if(!moved) break;
+      }
+      y=Math.round(y); x=Math.round(x);
+      if(Math.abs(y)<2 && Math.abs(x)<2){ clear(m); return; }
+      const key=x+','+y;
+      if(key!==m.dataset.uig){ m.dataset.uig=key; m.style.translate=x+'px '+y+'px'; }
+    });
+  }
+  let raf=0;
+  function schedule(){ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; try{ run(); }catch(e){} }); }
+  function burst(){ schedule(); setTimeout(schedule,90); setTimeout(schedule,320); }
+  ['pointerup','click','keyup','focusin','focusout','touchend'].forEach(ev=>document.addEventListener(ev,burst,{passive:true,capture:true}));
+  window.addEventListener('resize',burst); window.addEventListener('orientationchange',burst);
+  if(window.visualViewport){ window.visualViewport.addEventListener('resize',burst); }
+  try{ new MutationObserver(schedule).observe(document.body,{childList:true}); }catch(e){}
+  ['boardView','homeView'].forEach(id=>{ const el=document.getElementById(id); if(el){ try{ new MutationObserver(schedule).observe(el,{childList:true}); }catch(e){} } });
+  setInterval(run,350);
+  window.__uiGuardRun=run;
+})();
+
 })();
 
 })();
