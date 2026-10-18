@@ -16373,7 +16373,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.162';
+const APP_VERSION='2.4.163';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17701,8 +17701,9 @@ viewport.addEventListener('focusout',()=>{
 //      with whatever kind it turns out to be, so nothing is lost.
 // Manuelle Einstellung (Secret-Menü "Anpassen"): 'auto' = Erkennung unten, 'zoom'/'pan' erzwingt es für
 // jedes Mausrad-/Wisch-Ereignis ohne Strg — der sichere Ausweg, falls ein Gerät doch falsch erkannt wird.
-let wheelPref='zoom';
-// Standard: Mausrad hoch/runter = zoomen (Tom). 'auto' (Mausrad vs. Trackpad erraten) und 'pan' bleiben im Design-Menü wählbar;
+let wheelPref='auto';
+// Standard: Automatisch — echtes Mausrad (ganze 100er-Rastungen) zoomt, Trackpad-Zwei-Finger-Wisch verschiebt das Board, Pinch (Strg) zoomt. Vorher stand der Standard fest auf 'zoom', dadurch ließ sich am Laptop ohne Maus nur noch zoomen. 'Immer zoomen' bleibt im Design-Menü wählbar.
+// Früher: Mausrad hoch/runter = zoomen (Tom). 'auto' (Mausrad vs. Trackpad erraten) und 'pan' bleiben im Design-Menü wählbar;
 // gespeichert wird jetzt jede Wahl explizit, damit "Automatisch" nicht mehr mit "nichts gewählt" verwechselt wird.
 try{ const v=localStorage.getItem('notua-wheel-pref'); if(v==='zoom'||v==='pan'||v==='auto') wheelPref=v; }catch(e){}
 const WHEEL_BURST_GAP_MS=220, WHEEL_TRACKPAD_STICKY_MS=1500, WHEEL_PENDING_MS=45;
