@@ -1650,7 +1650,7 @@ try{
   .gs-a-pinch .gs-board{animation:gsZoomB 3.6s ease-in-out infinite;}
   .gs-a-pinch .gs-finger.f1{left:45%; top:50%; animation:gsPinchA 3.6s ease-in-out infinite;}
   .gs-a-pinch .gs-finger.f2{left:55%; top:50%; animation:gsPinchB 3.6s ease-in-out infinite;}
-  .gs-a-dtap .gs-board{animation:gsZoomDt 3.6s ease-in-out infinite;}
+  .gs-a-dtap .gs-menu{left:58%; top:50%; transform-origin:0 0; animation:gsMenuPop2 3.6s ease-out infinite;}
   .gs-a-dtap .gs-finger{left:52%; top:48%; animation:gsDtapF 3.6s ease-in-out infinite;}
   .gs-a-dtap .gs-ripple{left:52%; top:48%;} .gs-a-dtap .gs-ripple.r1{animation:gsRip1 3.6s ease-out infinite;} .gs-a-dtap .gs-ripple.r2{animation:gsRip2 3.6s ease-out infinite;}
   .gs-a-hold .gs-finger{left:48%; top:46%; animation:gsHoldF 3.6s ease-in-out infinite;}
@@ -1999,6 +1999,12 @@ try{
     flex:none; padding:8px 10px; font-size:0.78rem; font-weight:600; line-height:1.35;
     color:var(--ink); background:var(--surface); outline:none; word-break:break-word;
   }
+  .card-image.has-caption{background:var(--surface); border-color:transparent; border-radius:14px; padding:8px;}
+  .card-image.has-caption:not(.selected){box-shadow:0 4px 14px -4px var(--shadow-lg);}
+  .card-image.has-caption .img-slot{border-radius:9px; overflow:hidden;}
+  .card-image.has-caption .caption{padding:9px 4px 2px; background:transparent; font-weight:400;}
+  .card-image.has-caption .cap-title{font-size:0.84rem; font-weight:700; line-height:1.25; color:var(--ink);}
+  .card-image.has-caption .cap-sub{font-size:0.66rem; font-weight:500; line-height:1.3; color:var(--faint); margin-top:1px;}
   .img-drop-overlay{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--faint); font-size:0.78rem; text-align:center; padding:10px; flex-direction:column; gap:6px;
   }
@@ -2100,6 +2106,11 @@ try{
      dynamic resizing (dragging the card, WIDGET_ASPECT keeping it in-format) never breaks this since
      the iframe itself always just fills the wrapper (inset:0, 100%/100%), so it re-clips every frame. */
   .card-youtube.embedded .yt-frame-wrap{position:absolute; inset:0; border-radius:14px; box-shadow:0 10px 26px -10px var(--shadow-lg);}
+  /* Text unter Bild/Video: weiße Karte mit Innenabstand, abgerundetes Medium, fetter Titel darunter (wie im Entwurf) */
+  .card-youtube.embedded.has-caption{background:var(--surface); border-color:transparent; border-radius:14px; box-shadow:0 4px 14px -4px var(--shadow-lg); overflow:hidden;}
+  .card-youtube.embedded.has-caption.selected{box-shadow:0 4px 14px -4px var(--shadow-lg), 0 0 0 2px var(--accent);}
+  .card-youtube.embedded.has-caption .yt-frame-wrap.with-caption{inset:8px 8px 36px 8px; border-radius:9px; box-shadow:none;}
+  .yt-caption{position:absolute; left:8px; right:8px; bottom:0; height:36px; padding:0 4px; display:flex; align-items:center; font-size:0.84rem; font-weight:700; color:var(--ink); background:transparent; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; box-sizing:border-box;}
   .yt-frame-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:none;}
   /* Pinterest's board widget isn't a fixed-ratio player like a video/track embed — it's a plain white
      scrollable grid of pin thumbnails that keeps growing as more pins load, so it gets its own variant
@@ -4509,10 +4520,11 @@ try{
     html .project-panel .project-panel-grid .board-tile .meta{display:flex; flex:1 1 100%; font-size:0.76rem; order:5;}
     html .project-panel .project-panel-grid .board-tile .remove-from-project-btn,
     html .project-panel .project-panel-grid .board-tile .tile-actions{position:static; transform:none; top:auto; right:auto; left:auto; display:none; background:none; padding:0; border-radius:0;}
-    html .project-panel .project-panel-grid .board-tile.tile-selected .remove-from-project-btn, html .project-panel .project-panel-grid .board-tile.tile-peek .remove-from-project-btn{display:flex; opacity:1; order:10; width:44px; height:44px; border-radius:11px; flex:none; background:var(--surface-2);}
-    html .project-panel .project-panel-grid .board-tile.tile-selected .tile-actions, html .project-panel .project-panel-grid .board-tile.tile-peek .tile-actions{display:flex; opacity:1; order:12; flex:none; pointer-events:auto; gap:6px;}
-    html .project-panel .project-panel-grid .board-tile.tile-selected .tile-actions button, html .project-panel .project-panel-grid .board-tile.tile-peek .tile-actions button{width:44px; height:44px;}
-    html .project-panel .project-panel-grid .board-tile .tile-go-btn{order:11; flex:1 1 100px; width:auto; min-height:44px; padding:11px 16px; font-size:1rem;}
+    /* Gewählte Kachel: "Zum Board" volle Breite, darunter drei gleich breite Knöpfe (Entfernen, Sync, Löschen) in EINER Reihe */
+    html .project-panel .project-panel-grid .board-tile .tile-go-btn{order:9; flex:1 1 100%; width:100%; min-height:50px; padding:12px 16px; font-size:1.02rem;}
+    html .project-panel .project-panel-grid .board-tile.tile-selected .remove-from-project-btn, html .project-panel .project-panel-grid .board-tile.tile-peek .remove-from-project-btn{display:flex; opacity:1; order:10; flex:1 1 0; min-width:0; width:auto; height:46px; padding:0; margin:0; border-radius:11px; align-items:center; justify-content:center; background:var(--surface-2);}
+    html .project-panel .project-panel-grid .board-tile.tile-selected .tile-actions, html .project-panel .project-panel-grid .board-tile.tile-peek .tile-actions{display:contents;}
+    html .project-panel .project-panel-grid .board-tile.tile-selected .tile-actions button, html .project-panel .project-panel-grid .board-tile.tile-peek .tile-actions button{order:12; flex:1 1 0; min-width:0; width:auto; height:46px; padding:0; margin:0; opacity:1; pointer-events:auto; border-radius:11px;}
   }
 
   /* ---------- Überlappungsschutz: Startseite — "Was ist neu" darf die Fußzeilen-Links nicht verdecken ---------- */
@@ -4687,6 +4699,10 @@ try{
       </button>
       <button type="button" class="tools-sheet-card" id="toolsSecretUpdateItem" data-beta="update" hidden>
         <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/></svg></span>
+        <span class="tools-sheet-card-label"></span>
+      </button>
+      <button type="button" class="tools-sheet-card" id="toolsSecretZoomNoteItem" data-beta="zoomnote" hidden>
+        <span class="tools-sheet-card-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></span>
         <span class="tools-sheet-card-label"></span>
       </button>
       <button type="button" class="tools-sheet-card" id="toolsSecretImagesItem" data-beta="images" hidden>
@@ -5775,6 +5791,8 @@ const I18N={
   tools_secret_design_item:{de:'Design-Menü',en:'Design menu',es:"Menú de diseño",da:"Design-menu"},
   tools_secret_template_item:{de:'Vorlagen',en:'Templates',es:"Plantillas",da:"Skabeloner"},
   tools_secret_images_item:{de:'Bilder-Ablage',en:'Image drop',es:"Zona de imágenes",da:"Billedbakke"},
+  tools_secret_zoomnote_item:{de:'Notiz-Zoom (PC)',en:'Note zoom (PC)',es:'Zoom en notas (PC)',da:'Note-zoom (pc)'},
+  beta_zoomnote_unlocked_toast:{de:'Notiz-Zoom freigeschaltet — auf dem PC zoomt die Ansicht beim Schreiben leicht in die Notiz. An/Aus in den Secret Settings',en:'Note zoom unlocked — on PC the view zooms slightly into a note while you type. On/off in Secret Settings',es:'Zoom en notas desbloqueado — en PC la vista se acerca un poco a la nota al escribir. Activar/desactivar en Secret Settings',da:'Note-zoom låst op — på pc zoomer visningen let ind på noten, mens du skriver. Til/fra i Secret Settings'},
   tools_secret_installs_item:{de:'App-Downloads',en:'App downloads',es:"Descargas de la app",da:"App-downloads"},
   project_style_title:{de:'Farbe & Icon des Projekts',en:'Project color & icon',es:'Color e icono del proyecto',da:'Projektets farve og ikon'},
   project_style_color:{de:'Farbe',en:'Color',es:'Color',da:'Farve'},
@@ -6059,8 +6077,8 @@ const I18N={
   g_t2:{de:"Wisch mit einem Finger über eine leere Stelle – das Board wandert mit.",en:"Swipe one finger across an empty spot – the board moves with it.",es:"Desliza un dedo sobre un espacio vacío – el tablero se mueve contigo.",da:"Stryg med én finger over et tomt sted – tavlen flytter sig med."},
   g_t3_t:{de:"Zwei Finger: Zoomen",en:"Two fingers: zoom",es:"Dos dedos: zoom",da:"To fingre: zoom"},
   g_t3:{de:"Zieh zwei Finger auseinander zum Hineinzoomen, zusammen zum Herauszoomen. Dabei kannst du gleich mitverschieben.",en:"Spread two fingers to zoom in, pinch to zoom out. You can pan at the same time.",es:"Separa dos dedos para acercar y júntalos para alejar. Puedes desplazar al mismo tiempo.",da:"Spred to fingre for at zoome ind, knib dem sammen for at zoome ud. Du kan flytte tavlen samtidig."},
-  g_t4_t:{de:"Doppeltippen: Schnell hineinzoomen",en:"Double tap: quick zoom",es:"Doble toque: zoom rápido",da:"Dobbelttryk: hurtigt zoom"},
-  g_t4:{de:"Zweimal schnell auf eine leere Stelle tippen zoomt hinein – nochmal doppeltippen zoomt zurück.",en:"Tap an empty spot twice quickly to zoom in – double-tap again to zoom back.",es:"Toca dos veces rápido en un espacio vacío para acercar – otro doble toque vuelve atrás.",da:"Tryk hurtigt to gange på et tomt sted for at zoome ind – dobbelttryk igen for at zoome tilbage."},
+  g_t4_t:{de:"Doppeltippen: Menü öffnen",en:"Double tap: open the menu",es:"Doble toque: abrir el menú",da:"Dobbelttryk: åbn menuen"},
+  g_t4:{de:"Zweimal schnell auf eine leere Stelle tippen öffnet das Menü zum Hinzufügen (Notiz, Aufgaben, Tabelle …).",en:"Tap an empty spot twice quickly to open the add menu (note, tasks, table …).",es:"Toca dos veces rápido en un espacio vacío para abrir el menú de añadir (nota, tareas, tabla …).",da:"Tryk hurtigt to gange på et tomt sted for at åbne menuen til at tilføje (note, opgaver, tabel …)."},
   g_t5_t:{de:"Lange drücken: Neues Element",en:"Long press: new element",es:"Pulsación larga: nuevo elemento",da:"Langt tryk: nyt element"},
   g_t5:{de:"Halte den Finger auf einer leeren Stelle gedrückt (ein kurzes Vibrieren bestätigt es) und lass los – das Erstellen-Menü öffnet sich. Ziehst du stattdessen weiter, markierst du mehrere Elemente mit einem Rahmen.",en:"Hold your finger on an empty spot (a short buzz confirms it) and let go – the create menu opens. Keep dragging instead to select several elements with a frame.",es:"Mantén el dedo sobre un espacio vacío (una breve vibración lo confirma) y suelta – se abre el menú de creación. Si sigues arrastrando, seleccionas varios elementos con un marco.",da:"Hold fingeren nede på et tomt sted (en kort vibration bekræfter det) og slip – opret-menuen åbner. Hvis du i stedet fortsætter med at trække, markerer du flere elementer med en ramme."},
   mobile_dock_label:{de:'Kompaktes Menü (mobil)',en:'Compact menu (mobile)',es:'Menú compacto (móvil)',da:'Kompakt menu (mobil)'},
@@ -7090,6 +7108,7 @@ function applyI18n(){
     ['#toolsSecretTemplateItem .tools-sheet-card-label','text',t('tools_secret_template_item')],
     ['#toolsSecretImagesItem .tools-sheet-card-label','text',t('tools_secret_images_item')],
     ['#toolsSecretInstallsItem .tools-sheet-card-label','text',t('tools_secret_installs_item')],
+    ['#toolsSecretZoomNoteItem .tools-sheet-card-label','text',t('tools_secret_zoomnote_item')],
     ['#toolsSecretUpdateItem .tools-sheet-card-label','text',t('tools_secret_update_item')],
     ['#updateBtnLabel','text',updateAvailableVersion ? t('update_btn_label',{v:updateAvailableVersion}) : t('update_btn_idle',{v:APP_VERSION})],
     ['#toolsLookItem .tools-sheet-card-label','text',t('tools_look_item')],
@@ -10351,7 +10370,7 @@ async function v2SyncBoardLocked(boardId,hintEtag){
       const localBoard=await IDB_DB.getBoard(boardId);
       if(!localBoard){ V2.boardState.delete(boardId); return {skipped:true}; }
       const base=V2.bases.get(boardId);
-      const remote=(attempt===0 && base && hintEtag && hintEtag===base.etag) ? {doc:base.doc,etag:base.etag} : await v2GetDoc(key);
+      const remote=(attempt===0 && base && hintEtag && hintEtag===base.etag) ? {doc:base.doc,etag:base.etag} : (attempt===0 && hintEtag===null) ? null : await v2GetDoc(key); // hintEtag===null: laut Liste gibt es die Datei (noch) nicht → kein 404-Abruf; ein gleichzeitiges Anlegen fängt If-None-Match (412) ab
       const [cards,conns]=await Promise.all([IDB_DB.cardsForBoard(boardId),IDB_DB.connectorsForBoard(boardId)]);
       const items=new Map();
       for(const c of cards) items.set('c:'+c.id,v2Flatten(c));
@@ -10608,7 +10627,7 @@ async function v2EnsureReady(){
 function todoPreview(boards,heads,force){
   if(force || V2.dirty.size) return true;
   for(const b of boards){ if(!V2.bases.has(b.id)) return true; }
-  for(const [id,base] of V2.bases){ if(id!=='#index' && heads.get(v2BoardKey(id))!==base.etag) return true; }
+  for(const [id,base] of V2.bases){ if(id!=='#index' && (heads.get(v2BoardKey(id))||null)!==(base.etag||null)) return true; }
   return false;
 }
 // ---------- Ein kompletter Durchlauf ----------
@@ -10662,7 +10681,7 @@ async function v2RunPass(force){
       const todo=alive.filter(id=>{
         const base=V2.bases.get(id);
         const head=heads.get(v2BoardKey(id));
-        return force || V2.dirty.has(id) || !base || head!==base.etag;
+        return force || V2.dirty.has(id) || !base || (head||null)!==(base.etag||null); // leere Boards haben keine Cloud-Datei (head undefined, etag null) — kein Dauer-Neuabgleich
       });
       todo.sort((a,b)=>{
         const pa=(a===V2.priority?4:0)+(V2.dirty.has(a)?2:0)+(state.currentBoardId===a?4:0);
@@ -10675,7 +10694,7 @@ async function v2RunPass(force){
       // Löschmarker für Boards, die es weder lokal noch im Index gibt, brauchen kein "ungeändert"-Flag mehr
       const localIds=new Set(boards.map(b=>b.id)), aliveSet=new Set(alive);
       for(const id of [...V2.dirty.keys()]) if(!aliveSet.has(id) && !localIds.has(id)) V2.dirty.delete(id);
-      const lane=async()=>{ while(idxi<todo.length){ const id=todo[idxi++]; try{ await v2SyncBoard(id,heads.get(v2BoardKey(id))); }catch(e){ if(!firstErr) firstErr=e; } } };
+      const lane=async()=>{ while(idxi<todo.length){ const id=todo[idxi++]; try{ await v2SyncBoard(id,heads.has(v2BoardKey(id))?heads.get(v2BoardKey(id)):null); }catch(e){ if(!firstErr) firstErr=e; } } };
       await Promise.all([lane(),lane(),lane()]);
       if(firstErr) throw firstErr;
       V2.fail=0; V2.status.lastOkAt=Date.now(); V2.status.lastError=null;
@@ -11656,7 +11675,7 @@ function applyBetaFeatureVisibility(){
 // found nothing: no tab, no hint one exists, same single plain list as always.
 // 'dockmagnify' removed from this list — it's no longer a secret/beta flag (see isDockMagnifyEnabled()),
 // so it no longer counts toward whether the Werkzeuge sheet's hidden "Secret Settings" tab appears.
-const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs','update','heading','landingbtn'];
+const BETA_FEATURE_KEYS=['strava','wow','control','template','tooltip','look','theme','design','images','installs','update','heading','landingbtn','zoomnote'];
 function isAnyBetaFeatureUnlocked(){
   return BETA_FEATURE_KEYS.some(isBetaFeatureUnlocked);
 }
@@ -12220,6 +12239,7 @@ function showSecretPasswordModal(){
     // invisible to every normal user until this code is entered once, same unlock-forever-on-this-
     // device pattern as strava/wow/control/template above.
     else if(v==='functionlook'){ scrim.remove(); unlockBetaFeature('look'); showToast(t('beta_look_unlocked_toast')); }
+    else if(v==='functionzoomnote'){ scrim.remove(); unlockBetaFeature('zoomnote'); showToast(t('beta_zoomnote_unlocked_toast')); }
     else if(v==='functioninstalls'){ scrim.remove(); unlockBetaFeature('installs'); showToast(t('beta_installs_unlocked_toast')); }
     else if(v==='functionupdate'){ scrim.remove(); unlockBetaFeature('update'); showToast(t('beta_update_unlocked_toast')); checkForAppUpdate(true); }
     else if(v==='functioncarousel'){ scrim.remove(); unlockBetaFeature('images'); showToast(t('beta_images_unlocked_toast')); showImageDropModal(); }
@@ -14254,7 +14274,7 @@ function gsStageHtml(anim){
     case 'drag':  return cards+'<i class="gs-marq"></i>'+cursor+mouse;
     case 'tap': case 'pan': return cards+f;
     case 'pinch': return cards+'<i class="gs-finger f1"></i><i class="gs-finger f2"></i>';
-    case 'dtap':  return cards+f+rip;
+    case 'dtap':  return cards+f+rip+menu;
     case 'hold':  return cards+f+'<i class="gs-ripple"></i>'+menu;
   }
   return cards;
@@ -16345,7 +16365,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.159';
+const APP_VERSION='2.4.160';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17411,16 +17431,18 @@ function caretTargetCanvasX(focusEl){
 // caret is centered in THAT, not in the full viewport. If the card is wider than the screen at this
 // zoom, the view follows the caret horizontally instead of centering the (partly off-screen) card.
 function centerViewOnCard(card,zoom,focusEl,visibleH){
+  // Caret position is sampled BEFORE the zoom changes (the DOM still shows the old transform), otherwise
+  // the canvas-space target is computed with the new zoom against old pixels and the view lands beside it.
+  const tx=caretTargetCanvasX(focusEl);
+  const targetY=caretTargetCanvasY(focusEl);
   state.view.zoom=zoom;
   const vw=viewport.clientWidth;
   const vh=visibleH||viewport.clientHeight;
   let cx=card.x+card.w/2;
   if(card.w*zoom>vw-24){
-    const tx=caretTargetCanvasX(focusEl);
     if(tx!=null) cx=clamp(tx, card.x+(vw/2-12)/zoom, card.x+card.w-(vw/2-12)/zoom);
   }
   state.view.x=vw/2-cx*zoom;
-  const targetY=caretTargetCanvasY(focusEl);
   const cy=targetY==null ? card.y+card.h/2 : targetY;
   state.view.y=vh/2-cy*zoom;
   applyView(); persistView();
@@ -17449,11 +17471,36 @@ function cardTextTargetOf(t){
   const cardEl=t.closest && t.closest('.card');
   return cardEl ? cardEl.dataset.id : null;
 }
-// Comfortable zoom while typing: never zoom OUT (the old "fit the whole card width" logic shrank wide
-// cards to ~0.4 and blew small ones up to 2.2 — "zoomt tief rein und weit wieder raus"), only lift a very
-// zoomed-out view up to a readable minimum. The view then just follows the caret.
-const EDIT_MIN_ZOOM=0.95;
-function editZoomTarget(){ return state.view.zoom<EDIT_MIN_ZOOM ? EDIT_MIN_ZOOM : state.view.zoom; }
+// Phone: while typing the note is only CENTERED (caret-aware, above the keyboard) — no zoom-in and no
+// glide back afterwards ("kein hin und herzoomen"). The only zoom change is a one-way zoom OUT when the
+// view is too close for the note to fit (or absurdly close), and a small lift when the board is zoomed
+// out so far that the text would be unreadable. Never below EDIT_MIN_ZOOM, so a very long note just
+// follows the caret instead of shrinking to nothing.
+const EDIT_MIN_ZOOM=0.7, EDIT_MAX_ZOOM=1.5;
+function editZoomTarget(card){
+  let z=Math.min(state.view.zoom,EDIT_MAX_ZOOM);
+  if(card){
+    const vw=viewport.clientWidth, vh=editVisibleHeight();
+    const fitZ=Math.min((vw-24)/Math.max(card.w,1),(vh-32)/Math.max(card.h,1));
+    if(z>fitZ) z=fitZ;
+  }
+  return Math.max(z,EDIT_MIN_ZOOM);
+}
+// PC (secret code 'functionzoomnote', switchable in Secret Settings): a small zoom-in around the note so
+// it is clear you are now inside it, which glides back once the text field is left again (see focusout).
+const ZOOMNOTE_PC_FACTOR=1.12;
+function zoomNoteBump(card){
+  const z0=state.view.zoom, z1=Math.min(z0*ZOOMNOTE_PC_FACTOR,2.5);
+  if(z1-z0<0.01) return;
+  const vw=viewport.clientWidth, vh=viewport.clientHeight;
+  const sx=state.view.x+(card.x+card.w/2)*z0, sy=state.view.y+(card.y+card.h/2)*z0;
+  const ax=clamp(sx,0,vw), ay=clamp(sy,0,vh); // note center, kept inside the screen so nothing slides away
+  state.view.zoom=z1;
+  state.view.x=ax-(ax-state.view.x)*z1/z0;
+  state.view.y=ay-(ay-state.view.y)*z1/z0;
+  applyView(); persistView();
+  if(editFitState) editFitState.applied={...state.view};
+}
 // How much of the board area is actually visible: the on-screen keyboard covers the bottom of it. While
 // the keyboard is closed (focus just landed) its height is estimated, so the very first move already aims
 // at the right place and no second correction is needed once the keyboard has slid in.
@@ -17475,7 +17522,7 @@ function caretOutsideComfort(el){
   return rect.top<vr.top+28 || rect.bottom>visBottom-28 || rect.left<vr.left+12 || rect.right>vr.right-12;
 }
 function refitEditingCardForViewport(){
-  if(!editFitState || !editFitState.cardId) return;
+  if(!editFitState || !editFitState.cardId || editFitState.mode==='pc') return;
   const card=state.cards.find(c=>c.id===editFitState.cardId);
   if(!card) return;
   const el=document.activeElement;
@@ -17493,15 +17540,22 @@ viewport.addEventListener('focusin',(e)=>{
   // .inspector's own mobile CSS for the rule this class drives.
   if(cardId) document.documentElement.classList.add('mobile-editing-text');
   if(!isAnimGroupEnabled('editfit')) return;
-  if(!editFitEligible()) return;
+  const touchMode=editFitEligible();
+  // PC: nothing happens at all unless the secret code 'functionzoomnote' was entered and is switched on.
+  if(!touchMode && !isBetaFeatureActive('zoomnote')) return;
   if(!cardId) return;
   const card=state.cards.find(c=>c.id===cardId);
   if(!card) return;
   const vv=window.visualViewport;
-  if(!editFitState) editFitState=({originalView:{...state.view}, cardId:null, applied:null, baseVV:vv?vv.height:window.innerHeight});
+  if(!editFitState) editFitState=({mode:touchMode?'touch':'pc', originalView:{...state.view}, cardId:null, applied:null, baseVV:vv?vv.height:window.innerHeight});
   if(editFitState.cardId===cardId) return; // already fitted to this exact card
+  const firstField=!editFitState.cardId;
   editFitState.cardId=cardId;
-  smoothViewJump(()=>centerViewOnCard(card, editZoomTarget(), e.target, editVisibleHeight()));
+  if(editFitState.mode==='pc'){
+    if(firstField) smoothViewJump(()=>zoomNoteBump(card)); // moving on to another note keeps the same small zoom
+    return;
+  }
+  smoothViewJump(()=>centerViewOnCard(card, editZoomTarget(card), e.target, editVisibleHeight()));
 });
 // "beim Texteingeben snappt das Fenster auf dem Handy außerhalb des Bildschirms ... soll exakt zentral
 // in der Mitte da anzeigen wo der Text erscheint" — (1) the browser's own focus-scroll could shift the
@@ -17511,7 +17565,7 @@ viewport.addEventListener('focusin',(e)=>{
 viewport.addEventListener('scroll',()=>{ if(viewport.scrollLeft||viewport.scrollTop){ viewport.scrollLeft=0; viewport.scrollTop=0; } },{passive:true});
 let editRecenterTimer=null;
 function recenterOnCaretWhileTyping(){
-  if(!editFitState || !editFitState.cardId) return;
+  if(!editFitState || !editFitState.cardId || editFitState.mode==='pc') return;
   clearTimeout(editRecenterTimer);
   editRecenterTimer=setTimeout(()=>{
     if(!editFitState || !editFitState.cardId) return;
@@ -17535,8 +17589,9 @@ viewport.addEventListener('focusout',()=>{
     const stillEditing=!!cardTextTargetOf(document.activeElement);
     if(!stillEditing) document.documentElement.classList.remove('mobile-editing-text');
     if(!editFitState || stillEditing) return;
-    const original=editFitState.originalView, applied=editFitState.applied;
+    const original=editFitState.originalView, applied=editFitState.applied, wasPc=editFitState.mode==='pc';
     editFitState=null;
+    if(!wasPc) return; // phone: the note stays centered where you were typing — no gliding back and forth
     // Glide back only if the view is still exactly where the edit-fit left it — if the person panned or
     // zoomed in the meantime, that is their view now and it must not be yanked back.
     const v=state.view;
@@ -18503,29 +18558,6 @@ function pinchFrame(){
 }
 function schedulePinchFrame(){ if(!pinchRaf) pinchRaf=requestAnimationFrame(pinchFrame); }
 function stopPinch(){ pinchG=null; if(pinchRaf){ cancelAnimationFrame(pinchRaf); pinchRaf=0; } }
-// Doppeltipp auf leeren Canvas (Touch): hineinzoomen um die Tippstelle, nochmal doppeltippen = zurück.
-let doubleTapPrevView=null;
-function doubleTapZoom(clientX,clientY){
-  const r=viewport.getBoundingClientRect();
-  const cx=clientX-r.left, cy=clientY-r.top;
-  const cur=state.view.zoom;
-  let target;
-  if(cur<1.3){
-    doubleTapPrevView={zoom:cur};
-    target=Math.min(2.5,Math.max(1.5,cur*1.9));
-  }else{
-    target=(doubleTapPrevView&&doubleTapPrevView.zoom<cur-0.1)?doubleTapPrevView.zoom:defaultCanvasZoom();
-    doubleTapPrevView=null;
-  }
-  smoothViewJump(()=>{
-    const bx=(cx-state.view.x)/cur, by=(cy-state.view.y)/cur;
-    state.view.zoom=target;
-    state.view.x=cx-bx*target;
-    state.view.y=cy-by*target;
-    applyView();
-  });
-  persistView();
-}
 let touchLongPressTimer=null, touchLongPressArmed=false, touchMarqueeState=null, touchLastTap=null;
 function clearTouchLongPress(){ clearTimeout(touchLongPressTimer); touchLongPressTimer=null; touchLongPressArmed=false; }
 // "Zoomen ist ... nicht funktionabel auf Smartphone" — a phone board is usually covered edge-to-edge
@@ -18581,8 +18613,8 @@ function foldTouchCardOwnerIntoPinch(){
 // — while leaving the FIRST finger of any gesture (touchCardOwner still null, activeTouches still
 // empty) completely untouched, falling through to whatever that element would normally do.
 // Zeitstempel des letzten Touch-Pointerdowns: der Browser feuert nach einem Doppeltipp zusätzlich ein
-// synthetisches 'dblclick' — das darf NICHT mehr das Erstellen-Menü öffnen (Doppeltipp = Zoom, siehe
-// doubleTapZoom). Maus/Stift-Doppelklick bleibt unverändert.
+// synthetisches 'dblclick' — das darf das Erstellen-Menü nicht ein zweites Mal öffnen (der Touch-Doppeltipp
+// öffnet es selbst im pointerup-Handler). Maus/Stift-Doppelklick bleibt unverändert.
 let lastTouchPointerTs=0;
 document.addEventListener('pointerdown',(e)=>{ if(e.pointerType==='touch') lastTouchPointerTs=Date.now(); },true);
 document.addEventListener('pointerdown',(e)=>{
@@ -18707,8 +18739,13 @@ function endTouchPointer(e){
       // half of a double-tap (close enough in time and position to the previous one).
       const now=Date.now();
       if(touchLastTap && now-touchLastTap.t<400 && Math.hypot(e.clientX-touchLastTap.x, e.clientY-touchLastTap.y)<30){
-        doubleTapZoom(e.clientX, e.clientY);
+        // "auf Smartphone kann man zurzeit kein Doppelklick machen um das Menü für Note etc zu öffnen" —
+        // Doppeltipp auf leere Fläche öffnet wieder das Hinzufügen-Menü (wie der Doppelklick am PC).
+        // Zoomen geht per Zwei-Finger-Geste. Die Touch-Kompatibilitäts-Klicks danach werden wie beim
+        // Lang-Drücken geschluckt, damit das Menü nicht sofort wieder zugeht.
+        lpCreateGuardUntil=Date.now()+600;
         touchLastTap=null;
+        if(createMenuEl.hidden) openCreateMenu(e.clientX, e.clientY);
       }else{
         touchLastTap={x:e.clientX, y:e.clientY, t:now};
       }
@@ -18964,6 +19001,9 @@ function updateInspector(){
     const dc=cards[0];
     if(isWidgetEmbedded(dc)){
       html+=`<div class="insp-row"><button id="widgetChangeBtn" class="insp-action-btn">${iconSwap()}${t('widget_change_title')}</button></div>`;
+      if(dc.data.kind==='youtube'){
+        html+=`<div class="insp-row"><div class="insp-label">${t('insp_caption_label')}</div><input class="caption-edit" style="border:1px solid var(--border);border-radius:6px;padding:7px 8px;font:inherit;font-size:0.78rem;background:var(--surface);color:var(--ink);outline:none;" placeholder="${t('placeholder_caption')}" value="${dc.data.caption?escapeHtml(dc.data.caption):''}"/></div>`;
+      }
     }
   }
   // Frequent pen/eraser/undo controls live right on the card (see buildBlanketCard) — this is just
@@ -19161,7 +19201,9 @@ function updateInspector(){
     captionEdit.addEventListener('keydown',(e)=>{if(e.key==='Enter') captionEdit.blur();});
     captionEdit.addEventListener('blur',()=>{
       const c=cards[0];
+      const capBefore=ytCaptionExtra(c);
       c.data.caption=captionEdit.value.trim();
+      if(c.type==='youtube'){ c.h=clamp(c.h+ytCaptionExtra(c)-capBefore,120,2000); }
       DB.putCard(c); renderAllCards(); applySelectionClasses();
     });
   }
@@ -21017,8 +21059,11 @@ function buildImageCard(card){
   if(card.data.caption){
     const caption=document.createElement('div');
     caption.className='caption';
-    caption.textContent=card.data.caption;
+    const capTitle=document.createElement('div'); capTitle.className='cap-title'; capTitle.textContent=card.data.caption;
+    const capSub=document.createElement('div'); capSub.className='cap-sub'; capSub.textContent=t('type_image');
+    caption.appendChild(capTitle); caption.appendChild(capSub);
     el.appendChild(caption);
+    el.classList.add('has-caption');
   }
   return el;
 }
@@ -21309,7 +21354,19 @@ function buildWidgetCard(card){
     el.innerHTML=`
       <div class="card-head"><div class="type-chip">${typeChipIcon('youtube')}</div><span class="card-title-field" style="pointer-events:none;">${label}</span></div>
     `;
+    if(kind==='youtube' && ytCaptionExtra(card)){
+      el.classList.add('has-caption');
+      const cap=document.createElement('div');
+      cap.className='yt-caption';
+      cap.textContent=card.data.caption;
+      cap.title=card.data.caption;
+      frameEl.classList.add('with-caption');
+      el.appendChild(frameEl);
+      el.appendChild(cap);
+    }else{
+    frameEl.classList.remove('with-caption');
     el.appendChild(frameEl); // appendChild MOVES an already-attached node rather than cloning it — a reused iframe keeps its live playback state
+    }
     if(kind==='pinterest'){
       loadPinIt().then(()=>{ if(window.PinUtils && PinUtils.build) PinUtils.build(); });
     }else if(kind==='strava'){
@@ -21376,7 +21433,7 @@ function buildWidgetCard(card){
           // Same reasoning as Spotify/Pinterest just above — the card was sitting at the compact
           // empty-link row height until now; a real video wants its proper 16:9 box, the same math
           // attachResize() already uses whenever the corner handle is dragged.
-          card.h=clamp(Math.round(card.w/WIDGET_ASPECT.youtube),120,2000);
+          card.h=clamp(Math.round(card.w/WIDGET_ASPECT.youtube)+ytCaptionExtra(card),120,2000);
           DB.putCard(card); renderAllCards(); applySelectionClasses();
         }
       }
@@ -24688,6 +24745,8 @@ async function removeCardQuiet(id){
 // ratio. Spotify and Pinterest each get their own, different treatment right below — neither of
 // them is a fixed-ratio player the way a video is.
 const WIDGET_ASPECT={youtube:16/9};
+// Text unter einem YouTube-Video (Bildunterschrift): feste Zeile unter dem 16:9-Bild, die Kartenhöhe wächst um diese Zeile mit
+function ytCaptionExtra(card){ return (card && card.type==='youtube' && card.data && card.data.kind==='youtube' && card.data.videoId && card.data.caption) ? 35 : 0; }
 // Spotify's own /embed/ iframe has exactly two internal layouts, picked by the height it's given —
 // a short "compact" bar (this one, Spotify's own documented default for a track/episode embed) or a
 // taller card with a full tracklist — not a continuously-scaling player. Any other height just
@@ -24721,7 +24780,7 @@ function attachResize(handle,el,card){
       // Width leads (matches the drag direction most people reach for on a wide media box);
       // height always follows it via the fixed ratio, so the frame can't drift out of format.
       card.w=snap(clamp(rs.w+dx,180,2000));
-      card.h=clamp(Math.round(card.w/WIDGET_ASPECT.youtube),120,2000);
+      card.h=clamp(Math.round(card.w/WIDGET_ASPECT.youtube)+ytCaptionExtra(card),120,2000);
     }else if(card.type==='youtube' && card.data.kind==='spotify'){
       // Width-only: height stays pinned to the compact embed's own fixed height (see
       // SPOTIFY_COMPACT_HEIGHT above) no matter how the corner handle is dragged. SPOTIFY_VOLUME_SAFE_WIDTH
@@ -27901,7 +27960,7 @@ function wireCreateMenuItem(itemEl){
 viewport.addEventListener('dblclick',(e)=>{
   if(e.target.closest('.card')) return;
   if(!createMenuEl.hidden) return;
-  if(Date.now()-lastTouchPointerTs<900) return; // Touch-Doppeltipp zoomt (doubleTapZoom), öffnet kein Menü
+  if(Date.now()-lastTouchPointerTs<900) return; // Touch-Doppeltipp öffnet das Menü schon selbst (pointerup-Handler oben); das synthetische dblclick darf es nicht zweimal öffnen
   openCreateMenu(e.clientX,e.clientY);
 });
 document.addEventListener('pointerdown',(e)=>{
@@ -29659,7 +29718,7 @@ if(toolsBtn){
   document.getElementById('toolsSecretStravaItem').addEventListener('click',()=>toggleSecretDockHidden('strava'));
   document.getElementById('toolsSecretHeadingItem').addEventListener('click',()=>toggleSecretDockHidden('heading'));
   // Download- and Update-Button: the card is an on/off switch (the unlock itself stays).
-  [['toolsSecretInstallsItem','installs'],['toolsSecretUpdateItem','update']].forEach(([id,key])=>{
+  [['toolsSecretInstallsItem','installs'],['toolsSecretUpdateItem','update'],['toolsSecretZoomNoteItem','zoomnote']].forEach(([id,key])=>{
     const el=document.getElementById(id); if(!el) return;
     el.addEventListener('click',()=>{
       const nowOff=!isBetaFeatureOff(key);
@@ -29680,7 +29739,7 @@ function refreshSecretToggleCardsUI(){
     const on=!state.dockConfig.hidden.includes(key);
     item.classList.toggle('active',on);
   });
-  [['toolsSecretInstallsItem','installs'],['toolsSecretUpdateItem','update']].forEach(([id,key])=>{
+  [['toolsSecretInstallsItem','installs'],['toolsSecretUpdateItem','update'],['toolsSecretZoomNoteItem','zoomnote']].forEach(([id,key])=>{
     const item=document.getElementById(id);
     if(item) item.classList.toggle('active',isBetaFeatureActive(key));
   });
