@@ -69,7 +69,7 @@ try{
 // exact moment even if some other script ever touched it first).
 try{
   var __themeMeta=document.getElementById('themeColorMeta');
-  if(__themeMeta) __themeMeta.setAttribute('content','#191C22');
+  if(__themeMeta && __notuaTheme==='light') __themeMeta.setAttribute('content','#F0F2F5');
 }catch(e){}
 // "Oben ist immer noch weiß irgendwie" -> "Kannst du machen dass es immer Dunkelmodus oben
 // integriert" — manifest.json on disk now simply ships with the dark theme_color/background_color
@@ -223,6 +223,14 @@ try{
     font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
     -webkit-font-smoothing:antialiased; overflow:hidden; overscroll-behavior:none;
     -webkit-text-size-adjust:100%;
+  }
+  /* Installed app (home-screen icon / Android TWA) on phones with a gesture bar: the strip behind that bar is
+     drawn by the page itself (viewport-fit=cover), and in the light theme it came out light/white while the status
+     bar above is always dark (see the theme-color meta) — "unten unter der Gesture-Balkenlinie ist weißer
+     Hintergrund". This paints exactly that strip (env(safe-area-inset-bottom), 0 on screens without a gesture
+     bar and in a normal browser tab) in the same dark tone as the status bar, so top and bottom match. */
+  @media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui){
+    body::after{content:''; position:fixed; left:0; right:0; bottom:0; height:env(safe-area-inset-bottom,0px); background:var(--surface-2,#191C22); pointer-events:none; z-index:2147483000;}
   }
   /* iOS: stop the native long-press callout (copy/lookup/share bubble) from popping up over
      cards/canvas — it would otherwise sit on top of and block our own touch handling. */
@@ -16365,7 +16373,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.160';
+const APP_VERSION='2.4.162';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17389,6 +17397,30 @@ function computeCardFitZoom(card){
 // card.y), sampled against the CURRENT view transform before centerViewOnCard changes it — same
 // pattern as zoomAt()'s before/after conversion. Returns null (→ fall back to the card's own center)
 // when nothing usable is focused.
+// Measures the caret in a contenteditable whose collapsed selection reports no rect of its own (very common:
+// right after Enter, the caret sits at offset 0 of an empty text node — Range.getClientRects() is empty).
+// Looks at the character before the caret, then the one after it, then below a trailing line break, so the
+// result is the REAL caret line even in a very long note (instead of the whole field, which made the view
+// aim at the top of the note and left the text being typed hidden behind the keyboard).
+function caretRectMeasured(focusEl,n,o){
+  try{
+    const tw=document.createTreeWalker(focusEl,NodeFilter.SHOW_TEXT);
+    const rgC=document.createRange(); rgC.setStart(n,o); rgC.collapse(true);
+    let prev=null,next=null,node;
+    while((node=tw.nextNode())){
+      if(!node.length) continue;
+      if(node===n){ if(o>0) prev={node,i:o-1}; if(o<node.length){ next={node,i:o}; break; } continue; }
+      if(rgC.comparePoint(node,0)>0){ next={node,i:0}; break; }
+      prev={node,i:node.length-1};
+    }
+    const charRect=(pc)=>{ const g=document.createRange(); g.setStart(pc.node,pc.i); g.setEnd(pc.node,pc.i+1); const q=g.getClientRects(); for(let k=q.length-1;k>=0;k--){ if(q[k].height) return q[k]; } return null; };
+    const mk=(top,h,left)=>({top,bottom:top+h,height:h,left,right:left,width:0});
+    if(prev && prev.node.data[prev.i]!=='\n'){ const r=charRect(prev); if(r) return mk(r.top,r.height,r.right); }
+    if(next){ const r=charRect(next); if(r) return mk(r.top,r.height,r.left); }
+    if(prev){ const r=charRect(prev); if(r) return mk(r.bottom,r.height,focusEl.getBoundingClientRect().left); }
+  }catch(e){}
+  return null;
+}
 function caretScreenRect(focusEl){
   try{
     if(!focusEl) return null;
@@ -17401,6 +17433,7 @@ function caretScreenRect(focusEl){
         if(!(r && (r.width||r.height))) r=rg.getBoundingClientRect();
         // A collapsed caret on an empty line / right after a line break has no client rect of its own —
         // measure the character before it, the <br> before it, or the empty line's own block instead.
+        if(!(r && (r.width||r.height))){ const m=caretRectMeasured(focusEl,sel.anchorNode,sel.anchorOffset); if(m) r=m; }
         if(!(r && (r.width||r.height))){
           const n=sel.anchorNode, o=sel.anchorOffset;
           try{
@@ -17430,7 +17463,7 @@ function caretTargetCanvasX(focusEl){
 // visibleH: how much of the board area is really visible (the on-screen keyboard covers the rest) — the
 // caret is centered in THAT, not in the full viewport. If the card is wider than the screen at this
 // zoom, the view follows the caret horizontally instead of centering the (partly off-screen) card.
-function centerViewOnCard(card,zoom,focusEl,visibleH){
+function centerViewOnCard(card,zoom,focusEl,visibleH,frac){
   // Caret position is sampled BEFORE the zoom changes (the DOM still shows the old transform), otherwise
   // the canvas-space target is computed with the new zoom against old pixels and the view lands beside it.
   const tx=caretTargetCanvasX(focusEl);
@@ -17444,7 +17477,7 @@ function centerViewOnCard(card,zoom,focusEl,visibleH){
   }
   state.view.x=vw/2-cx*zoom;
   const cy=targetY==null ? card.y+card.h/2 : targetY;
-  state.view.y=vh/2-cy*zoom;
+  state.view.y=vh*(frac||0.5)-cy*zoom;
   applyView(); persistView();
   if(editFitState) editFitState.applied={...state.view};
 }
@@ -17463,6 +17496,10 @@ function editFitEligible(){
   try{ return !window.matchMedia('(hover:hover) and (pointer:fine)').matches; }catch(e){ return true; }
 }
 let editFitState=null;
+// Visual-viewport height while NO text field is being edited = the screen height without keyboard. Needed so a
+// focus that happens while the keyboard is already open (switching from one field to another) is not mistaken
+// for an unobstructed screen. Kept up to date by syncVisualViewport().
+let restVVHeight=window.visualViewport?window.visualViewport.height:window.innerHeight;
 // Returns the id of the card a given element's editable text field belongs to, or null if the
 // element isn't a card's own contenteditable/input/textarea (e.g. the inspector, a modal, the
 // search bar — none of those should trigger or hold this auto-fit).
@@ -17508,7 +17545,7 @@ function editVisibleHeight(){
   const full=viewport.clientHeight;
   const vv=window.visualViewport;
   const vr=viewport.getBoundingClientRect();
-  if(vv && editFitState && editFitState.baseVV && vv.height<editFitState.baseVV-100){
+  if(vv && vv.height<Math.max(restVVHeight,editFitState&&editFitState.baseVV||0)-100){
     return Math.max(120, Math.min(full, vv.offsetTop+vv.height-vr.top));
   }
   return Math.max(200, full-Math.round(window.innerHeight*0.4));
@@ -17519,7 +17556,7 @@ function caretOutsideComfort(el){
   const rect=caretScreenRect(el); if(!rect) return false;
   const vr=viewport.getBoundingClientRect();
   const visBottom=vr.top+editVisibleHeight();
-  return rect.top<vr.top+28 || rect.bottom>visBottom-28 || rect.left<vr.left+12 || rect.right>vr.right-12;
+  return rect.top<vr.top+28 || rect.bottom>visBottom-44 || rect.left<vr.left+12 || rect.right>vr.right-12;
 }
 function refitEditingCardForViewport(){
   if(!editFitState || !editFitState.cardId || editFitState.mode==='pc') return;
@@ -17527,7 +17564,7 @@ function refitEditingCardForViewport(){
   if(!card) return;
   const el=document.activeElement;
   if(!cardTextTargetOf(el) || !caretOutsideComfort(el)) return;
-  smoothViewJump(()=>centerViewOnCard(card, state.view.zoom, el, editVisibleHeight()));
+  smoothViewJump(()=>centerViewOnCard(card, state.view.zoom, el, editVisibleHeight(), 0.4));
 }
 viewport.addEventListener('focusin',(e)=>{
   if(state.screen!=='board') return;
@@ -17555,7 +17592,15 @@ viewport.addEventListener('focusin',(e)=>{
     if(firstField) smoothViewJump(()=>zoomNoteBump(card)); // moving on to another note keeps the same small zoom
     return;
   }
-  smoothViewJump(()=>centerViewOnCard(card, editZoomTarget(card), e.target, editVisibleHeight()));
+  const fieldEl=e.target;
+  const fitNow=()=>{
+    if(!editFitState || editFitState.cardId!==cardId || document.activeElement!==fieldEl) return;
+    smoothViewJump(()=>centerViewOnCard(card, editZoomTarget(card), fieldEl, editVisibleHeight()));
+  };
+  // The caret is only placed once the tap has finished — measured too early it falls back to the whole field.
+  const sel0=window.getSelection();
+  if(fieldEl.isContentEditable && !(sel0 && sel0.rangeCount && fieldEl.contains(sel0.anchorNode))) setTimeout(fitNow,80);
+  else fitNow();
 });
 // "beim Texteingeben snappt das Fenster auf dem Handy außerhalb des Bildschirms ... soll exakt zentral
 // in der Mitte da anzeigen wo der Text erscheint" — (1) the browser's own focus-scroll could shift the
@@ -17573,7 +17618,7 @@ function recenterOnCaretWhileTyping(){
     if(!cardTextTargetOf(el)) return;
     const card=state.cards.find(c=>c.id===editFitState.cardId); if(!card) return;
     if(!caretOutsideComfort(el)) return;
-    smoothViewJump(()=>centerViewOnCard(card, state.view.zoom, el, editVisibleHeight()));
+    smoothViewJump(()=>centerViewOnCard(card, state.view.zoom, el, editVisibleHeight(), 0.4));
   },120);
 }
 viewport.addEventListener('input',recenterOnCaretWhileTyping);
@@ -18261,9 +18306,18 @@ function blanketDefaultThemeSeed(){
 // manifest.json on disk now just ships the dark value directly — nothing left here to keep in sync,
 // this only re-asserts the one fixed value the <meta> tag already starts with.
 function syncThemeMetaColor(){
+  // Leisten-/Statusfarbe folgt der gewählten UI (hell, dunkel, eigene Palette): --surface-2 live auslesen.
   const meta=document.getElementById('themeColorMeta');
-  if(meta) meta.setAttribute('content','#191C22');
+  if(meta) meta.setAttribute('content',liveBarColor());
   syncInstallIcons();
+}
+function liveBarColor(){
+  try{
+    const v=(getComputedStyle(document.documentElement).getPropertyValue('--surface-2')||'').trim();
+    if(/^#[0-9a-f]{6}$/i.test(v)) return v.toUpperCase();
+    if(/^#[0-9a-f]{3}$/i.test(v)) return ('#'+v[1]+v[1]+v[2]+v[2]+v[3]+v[3]).toUpperCase();
+    return currentThemeIsDark()?'#191C22':'#F0F2F5';
+  }catch(e){ return '#191C22'; }
 }
 /* App-Icon passend zur gewählten UI-Farbe: Mit einem eigenen Look (Custom-Theme) wird das Manifest zur Laufzeit durch eine
    Blob-Version ersetzt, deren Icons per Canvas in der Akzentfarbe gezeichnet sind (Kreis + weißes/dunkles N); dazu Favicon
@@ -18284,20 +18338,22 @@ async function __syncInstallIcons(){
     if(!/^https?:$/.test(location.protocol)) return;
     let acc=null; const raw=localStorage.getItem('notua-custom-theme');
     if(raw){ const t=JSON.parse(raw); if(t && /^#[0-9a-f]{6}$/i.test(String(t.accent||''))) acc=String(t.accent).toUpperCase(); }
-    if(acc===__icKey) return;
+    const bar=liveBarColor(), key=(acc||'')+'|'+bar;
+    if(key===__icKey) return;
     const lm=document.querySelector('link[rel="manifest"]'), lf=document.querySelector('link[rel="icon"]'), la=document.querySelector('link[rel="apple-touch-icon"]');
     if(!lm) return;
     if(__icOrig.m===undefined){ __icOrig.m=lm.getAttribute('href'); __icOrig.f=lf&&lf.getAttribute('href'); __icOrig.a=la&&la.getAttribute('href'); }
-    if(!acc){
+    if(!acc && bar==='#191C22'){
       lm.setAttribute('href',__icOrig.m); if(lf&&__icOrig.f) lf.setAttribute('href',__icOrig.f); if(la&&__icOrig.a) la.setAttribute('href',__icOrig.a);
       if(__icBlob){ URL.revokeObjectURL(__icBlob); __icBlob=null; }
-      __icKey=null; return;
+      __icKey=key; return;
     }
     const mres=await fetch(__icOrig.m,{cache:'no-cache'}); const man=await mres.json();
-    const rgb=hexToRgbArr(acc), lum=(0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2])/255, ink=lum>0.62?'#1A1C20':'#FFFFFF';
+    const rgb=hexToRgbArr(acc||'#000000'), lum=(0.299*rgb[0]+0.587*rgb[1]+0.114*rgb[2])/255, ink=lum>0.62?'#1A1C20':'#FFFFFF';
     const abs=(u)=>new URL(u,location.href).href;
+    man.theme_color=bar; man.background_color=bar;
     man.id=abs(man.id||'/'); man.start_url=abs(man.start_url||'./'); man.scope=abs(man.scope||'./');
-    man.icons=[
+    if(acc) man.icons=[
       {src:__drawInstallIcon(192,acc,ink,0),sizes:'192x192',type:'image/png',purpose:'any'},
       {src:__drawInstallIcon(512,acc,ink,0),sizes:'512x512',type:'image/png',purpose:'any'},
       {src:__drawInstallIcon(192,acc,ink,2),sizes:'192x192',type:'image/png',purpose:'maskable'},
@@ -18305,9 +18361,9 @@ async function __syncInstallIcons(){
     if(Array.isArray(man.screenshots)) man.screenshots.forEach(sc=>{ sc.src=abs(sc.src); });
     const url=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));
     lm.setAttribute('href',url); if(__icBlob) URL.revokeObjectURL(__icBlob); __icBlob=url;
-    if(lf) lf.setAttribute('href',__drawInstallIcon(64,acc,ink,0));
-    if(la) la.setAttribute('href',__drawInstallIcon(180,acc,ink,2));
-    __icKey=acc;
+    if(acc && lf) lf.setAttribute('href',__drawInstallIcon(64,acc,ink,0));
+    if(acc && la) la.setAttribute('href',__drawInstallIcon(180,acc,ink,2));
+    __icKey=key;
   }catch(e){}
 }
 function syncThemeUI(){
@@ -30331,6 +30387,7 @@ function syncVisualViewport(){
   if(!vv) return;
   document.documentElement.style.setProperty('--vv-top', vv.offsetTop+'px');
   document.documentElement.style.setProperty('--vv-height', vv.height+'px');
+  try{ if(!cardTextTargetOf(document.activeElement)) restVVHeight=vv.height; }catch(e){}
   // Keep the EDIT-FOCUS AUTO-FIT card (see refitEditingCardForViewport, above) fully visible as the
   // on-screen keyboard slides in/out — that resize happens well after the field's own focusin already
   // fired the initial fit, so without this the card would stay sized for the pre-keyboard viewport and
