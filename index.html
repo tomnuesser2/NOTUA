@@ -16373,7 +16373,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.163';
+const APP_VERSION='2.4.165';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -17708,13 +17708,61 @@ let wheelPref='auto';
 try{ const v=localStorage.getItem('notua-wheel-pref'); if(v==='zoom'||v==='pan'||v==='auto') wheelPref=v; }catch(e){}
 const WHEEL_BURST_GAP_MS=220, WHEEL_TRACKPAD_STICKY_MS=1500, WHEEL_PENDING_MS=45;
 let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0, wheelPending=null;
+// ---- Flüssiges Trackpad-/Mausrad-Bewegen (v2.4.164) ----
+// Vorher wurde jedes einzelne Wheel-Ereignis sofort angewendet. Auf dem Mac (Trackpad, ProMotion 120 Hz) kommen
+// die Ereignisse aber unregelmäßig und seltener als die Bildschirm-Frames → das wirkte ruckelig wie "low fps".
+// Jetzt sammelt eine kleine Engine alle Eingaben (Verschieben + Zoomen) und wendet pro Bildschirm-Frame genau EIN
+// Update an, mit leichter Glättung (exponentielles Nachziehen) — das füllt die Lücken zwischen den Ereignissen.
+// Zusätzlich: Trackpad-Tempo etwas gedrosselt und das Nachgleiten (macOS schickt nach dem Loslassen ein langes
+// Momentum-Ausklingen) wird verkürzt, aber nicht ganz entfernt.
+const WHEEL_PAN_GAIN=0.8, WHEEL_SMOOTH_TAU=45, WHEEL_MOMENTUM_DAMP=0.93, WHEEL_MOMENTUM_FLOOR=0.25;
+const wheelEng={dx:0,dy:0,lz:0,fx:0,fy:0,raf:0,last:0,prevMag:0,decayN:0,lastEvTs:0};
+function wheelEngKick(){ if(!wheelEng.raf){ wheelEng.last=0; wheelEng.raf=requestAnimationFrame(wheelEngTick); } }
+function wheelEngPan(dx,dy){
+  const now=performance.now();
+  if(now-wheelEng.lastEvTs>160){ wheelEng.decayN=0; wheelEng.prevMag=0; } // neue Geste
+  wheelEng.lastEvTs=now;
+  const mag=Math.hypot(dx,dy);
+  // Ausklingende Folge kleiner werdender Deltas = Momentum des Betriebssystems → progressiv dämpfen.
+  if(wheelEng.prevMag>0 && mag<wheelEng.prevMag*0.995 && mag<60) wheelEng.decayN++; else wheelEng.decayN=0;
+  wheelEng.prevMag=mag;
+  const f=wheelEng.decayN>=3 ? Math.max(WHEEL_MOMENTUM_FLOOR,Math.pow(WHEEL_MOMENTUM_DAMP,wheelEng.decayN-2)) : 1;
+  wheelEng.dx+=dx*WHEEL_PAN_GAIN*f; wheelEng.dy+=dy*WHEEL_PAN_GAIN*f;
+  wheelEngKick();
+}
+function wheelEngZoom(x,y,factor){
+  if(!(factor>0)) return;
+  wheelEng.lz+=Math.log(factor); wheelEng.fx=x; wheelEng.fy=y;
+  wheelEngKick();
+}
+function wheelEngTick(ts){
+  wheelEng.raf=0;
+  const dt=wheelEng.last? Math.min(50,Math.max(1,ts-wheelEng.last)) : 16; wheelEng.last=ts;
+  const k=1-Math.exp(-dt/WHEEL_SMOOTH_TAU);
+  let px=wheelEng.dx*k, py=wheelEng.dy*k, pz=wheelEng.lz*k;
+  const smallPan=Math.abs(wheelEng.dx)<0.15 && Math.abs(wheelEng.dy)<0.15, smallZoom=Math.abs(wheelEng.lz)<0.0004;
+  if(smallPan){ px=wheelEng.dx; py=wheelEng.dy; }
+  if(smallZoom){ pz=wheelEng.lz; }
+  wheelEng.dx-=px; wheelEng.dy-=py; wheelEng.lz-=pz;
+  let changed=false;
+  if(px||py){ state.view.x-=px; state.view.y-=py; changed=true; }
+  if(pz){
+    // zoomAt() wendet selbst an; vorher Verschiebung eintragen, damit beides im selben Frame landet.
+    zoomAt(wheelEng.fx,wheelEng.fy,Math.exp(pz)); changed=false;
+  }
+  if(changed) applyView();
+  if(Math.abs(wheelEng.dx)>=0.01||Math.abs(wheelEng.dy)>=0.01||Math.abs(wheelEng.lz)>=0.00005){
+    wheelEng.raf=requestAnimationFrame(wheelEngTick);
+  }else{
+    wheelEng.dx=wheelEng.dy=wheelEng.lz=0; wheelEng.last=0; persistView();
+  }
+}
 function wheelApply(kind,x,y,dx,dy){
   if(kind==='mouse'){
     if(dy===0) return; // e.g. a tilt-wheel's sideways click — nothing to zoom by
-    zoomAt(x,y, dy<0 ? 1.08 : 0.92);
+    wheelEngZoom(x,y, dy<0 ? 1.08 : 0.92);
   }else{
-    state.view.x-=dx; state.view.y-=dy;
-    applyView(); persistView();
+    wheelEngPan(dx,dy);
   }
 }
 function wheelResolvePending(kind){
@@ -17782,7 +17830,7 @@ viewport.addEventListener('wheel',(e)=>{
     const ndy=Math.abs(e.deltaY)*(window.devicePixelRatio||1);
     const notch=(e.deltaMode!==0) || (e.deltaX===0 && ndy>=40 && Math.abs(ndy-Math.round(ndy))<0.02);
     const factor=notch ? (e.deltaY<0 ? 1.08 : 0.92) : clamp(Math.exp(-e.deltaY*0.01),0.8,1.25);
-    zoomAt(e.clientX,e.clientY,factor);
+    wheelEngZoom(e.clientX,e.clientY,factor);
     return;
   }
   if(wheelPref==='zoom'){ wheelApply('mouse',e.clientX,e.clientY,e.deltaX,e.deltaY); return; }
@@ -17813,7 +17861,9 @@ viewport.addEventListener('gesturechange',(e)=>{
   const cx=Number.isFinite(e.clientX) ? e.clientX : r.left+r.width/2;
   const cy=Number.isFinite(e.clientY) ? e.clientY : r.top+r.height/2;
   const target=clamp(gestureBaseZoom*e.scale,0.2,2.5);
-  zoomAt(cx,cy,target/state.view.zoom);
+  // Safari-Pinch ebenfalls über die geglättete Engine (ein Update pro Frame, gleiche Weichheit wie Chrome-Pinch).
+  const pendingZoom=state.view.zoom*Math.exp(wheelEng.lz);
+  wheelEngZoom(cx,cy,target/pendingZoom);
 });
 viewport.addEventListener('gestureend',(e)=>{ e.preventDefault(); gestureBaseZoom=null; });
 
