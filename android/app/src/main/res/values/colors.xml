@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- NOTUA Mono -->
+    <color name="barLight">#E8E8E8</color>
+    <color name="barDark">#171A20</color>
+    <color name="splashBackground">#13161A</color>
+    <color name="iconBackground">#2B2D33</color>
+    <color name="iconForeground">#9AA8DA</color>
+</resources>

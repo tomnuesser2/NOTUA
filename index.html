@@ -22,6 +22,37 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="NOTUA">
+<!-- iOS-Startbilder (Home-Bildschirm-App): Punkte-Raster im Mono-Look, hell/dunkel — danach übernimmt der animierte Ladebildschirm (#bootSplash). -->
+<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1320x2868-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1320x2868-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1206x2622-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1206x2622-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1290x2796-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1290x2796-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1179x2556-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1179x2556-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1284x2778-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1284x2778-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1170x2532-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1170x2532-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1125x2436-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1125x2436-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1242x2688-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-1242x2688-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-828x1792-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-828x1792-light.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-750x1334-dark.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)" href="splash/ios-750x1334-light.png">
+<script>
+// Start-Ladebildschirm der installierten App (Android-App, iOS-Home-Bildschirm, installierte Web-App am PC).
+// Nicht im normalen Browser-Tab und nicht in der Desktop-App (die hat ein eigenes, schwebendes Startfenster).
+try{
+  var __bsInstalled=(window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay)').matches)
+    || window.navigator.standalone===true || (document.referrer||'').indexOf('android-app://')===0;
+  var __bsDesktop=navigator.userAgent.indexOf('NOTUADesktopApp')!==-1;
+  if((__bsInstalled && !__bsDesktop) || /[?&]bootsplash=1/.test(location.search)) document.documentElement.classList.add('boot-splash');
+}catch(e){}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Bebas+Neue&family=Anton&family=Playfair+Display:wght@800&family=Caveat:wght@700&family=Permanent+Marker&display=swap">
 <!-- EmailJS: sends the feedback form (see showFeedbackModal, opened from the "Über NOTUA" dialog)
@@ -446,6 +477,8 @@ try{
     border:1px solid var(--border); background:var(--surface-2); text-decoration:none; color:var(--ink);
     font-size:0.85rem; font-weight:600; transition:background .15s ease, border-color .15s ease, color .15s ease;
   }
+  button.download-platform-row{width:100%; font-family:inherit; cursor:var(--custom-pointer-cursor,pointer);}
+  .dl-preview a{color:var(--accent); text-underline-offset:2px;}
   .download-platform-row .dp-icon{flex:none; display:flex; color:var(--muted);}
   .download-platform-row .dp-label{flex:1; text-align:left;}
   .download-platform-row .dp-arrow{flex:none; font-weight:700; color:var(--accent);}
@@ -4566,7 +4599,132 @@ try{
     .landing-footer{bottom:8px; gap:2px 10px; font-size:0.72rem;}
     .landing-footer a, .landing-footer button.linklike{padding:2px;}
   }
+
+  /* ---------- START-LADEBILDSCHIRM (installierte App, Handy/Tablet/PC) ----------
+     Steht ganz oben im Dokument, damit er sofort sichtbar ist, während die große App noch lädt. Farben = aktueller
+     Look (Mono als Standard). Mindestens 2,5 s, damit man merkt, dass etwas lädt; höchstens 12 s. */
+  #bootSplash{display:none;}
+  html.boot-splash #bootSplash{display:flex;}
+  #bootSplash{position:fixed; inset:0; z-index:2147483600; align-items:center; justify-content:center; overflow:hidden;
+    background:var(--canvas); background-image:radial-gradient(var(--canvas-dot) 1.2px, transparent 1.4px); background-size:20px 20px;
+    font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; color:var(--ink); transition:opacity .45s ease, transform .45s ease;}
+  #bootSplash.bs-out{opacity:0; transform:scale(1.015); pointer-events:none;}
+  #bootSplash .bs-stage{position:relative; width:360px; height:620px; flex:none; transform:scale(var(--bs-s,1)); transform-origin:50% 50%;}
+  #bootSplash .bs-card{position:absolute; left:20px; top:352px; width:320px; height:250px; border-radius:22px; background:var(--surface);
+    box-shadow:0 0 0 1px var(--border), 0 24px 60px var(--shadow-lg), 0 3px 10px var(--shadow); padding:26px 24px 20px; display:flex; flex-direction:column; box-sizing:border-box;}
+  #bootSplash .bs-mark{display:flex; align-items:center; gap:12px;}
+  #bootSplash .bs-dot{width:17px; height:17px; border-radius:5px; background:var(--accent); flex:none;}
+  #bootSplash .bs-mark b{font-size:46px; font-weight:700; letter-spacing:-0.035em; line-height:0.9;}
+  #bootSplash .bs-meta{margin-top:14px; font-size:12.5px; line-height:1.55;}
+  #bootSplash .bs-st{color:var(--muted);}
+  #bootSplash .bs-bar{margin-top:10px; height:3px; border-radius:2px; background:var(--surface-2); overflow:hidden;}
+  #bootSplash .bs-bar i{display:block; height:100%; width:4%; background:var(--accent); border-radius:2px; transition:width .5s cubic-bezier(.3,.7,.3,1);}
+  #bootSplash .bs-by{margin-top:auto; display:flex; align-items:baseline; gap:7px; font-size:12.5px; color:var(--muted);}
+  #bootSplash .bs-by strong{font-size:17px; font-weight:600; color:var(--ink);}
+  #bootSplash .bs-legal{margin-top:6px; font-size:9.5px; line-height:1.45; color:var(--faint);}
+  #bootSplash .bs-el{position:absolute; border-radius:12px; background:var(--surface); box-shadow:0 0 0 1px var(--border), 0 2px 4px var(--shadow), 0 14px 32px var(--shadow-lg); box-sizing:border-box;}
+  #bootSplash .bs-note{left:22px; top:58px; width:150px; padding:13px 14px; display:flex; flex-direction:column; gap:8px; transform:rotate(-6deg); z-index:1;
+    background:linear-gradient(rgba(var(--tag-yellow),var(--tag-alpha)),rgba(var(--tag-yellow),var(--tag-alpha))), var(--surface);}
+  #bootSplash .bs-ttl{font-size:12.5px; font-weight:600; white-space:nowrap;}
+  #bootSplash .bs-ln{height:6px; border-radius:3px; background:rgba(127,135,146,0.32);}
+  #bootSplash .bs-img{left:168px; top:6px; width:160px; padding:8px; transform:rotate(4deg); z-index:2;}
+  #bootSplash .bs-pic{height:170px; border-radius:7px; position:relative; overflow:hidden; background:linear-gradient(180deg,#8CB8E6 0%,#C7DDF2 55%,#F4D6B8 100%);}
+  #bootSplash .bs-pic::before{content:''; position:absolute; left:-30%; right:20%; bottom:-46px; height:110px; border-radius:50%; background:#6FAE73;}
+  #bootSplash .bs-pic::after{content:''; position:absolute; left:35%; right:-35%; bottom:-58px; height:118px; border-radius:50%; background:#4F8F5F;}
+  #bootSplash .bs-pic em{position:absolute; left:22px; top:18px; width:22px; height:22px; border-radius:50%; background:#FFD27A; box-shadow:0 0 0 7px rgba(255,210,122,0.25);}
+  #bootSplash .bs-cap{font:500 10px 'IBM Plex Mono',ui-monospace,monospace; color:var(--muted); padding:7px 2px 1px;}
+  #bootSplash .bs-sel{position:absolute; inset:-5px; border:1.6px solid var(--accent); border-radius:15px;}
+  #bootSplash .bs-sel i{position:absolute; width:8px; height:8px; background:var(--surface); border:1.6px solid var(--accent); border-radius:2.5px;}
+  #bootSplash .bs-sel i:nth-child(1){left:-5px; top:-5px;} #bootSplash .bs-sel i:nth-child(2){right:-5px; top:-5px;}
+  #bootSplash .bs-sel i:nth-child(3){left:-5px; bottom:-5px;} #bootSplash .bs-sel i:nth-child(4){right:-5px; bottom:-5px;}
+  #bootSplash .bs-cal{left:30px; top:204px; width:136px; padding:12px 13px; transform:rotate(5deg); z-index:3;}
+  #bootSplash .bs-day{display:flex; align-items:baseline; gap:8px;}
+  #bootSplash .bs-day strong{font-size:28px; font-weight:700; letter-spacing:-0.03em; line-height:1; color:var(--accent);}
+  #bootSplash .bs-day span{font:500 10px 'IBM Plex Mono',ui-monospace,monospace; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em;}
+  #bootSplash .bs-ev{margin-top:9px; padding:6px 8px; border-radius:7px; font-size:11px; font-weight:500; background:rgba(var(--tag-pink),var(--tag-alpha)); display:flex; justify-content:space-between; gap:6px; white-space:nowrap;}
+  #bootSplash .bs-ev em{font-style:normal; color:var(--muted); font-size:10px;}
+  #bootSplash .bs-chk{left:172px; top:226px; width:164px; padding:13px 14px; display:flex; flex-direction:column; gap:8px; transform:rotate(-2.5deg); z-index:4;
+    background:linear-gradient(rgba(var(--tag-blue),var(--tag-alpha)),rgba(var(--tag-blue),var(--tag-alpha))), var(--surface);}
+  #bootSplash .bs-c{display:flex; align-items:center; gap:8px; font-size:11px; color:var(--muted); white-space:nowrap;}
+  #bootSplash .bs-c i{width:12px; height:12px; border-radius:3.5px; border:1.5px solid var(--faint); flex:none; position:relative; transition:background .2s, border-color .2s; box-sizing:border-box;}
+  #bootSplash .bs-c i::after{content:''; position:absolute; left:3px; top:0; width:3.4px; height:6.5px; border:solid var(--accent-ink); border-width:0 1.6px 1.6px 0; transform:rotate(45deg) scale(0); transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
+  #bootSplash .bs-c.on i{background:var(--accent); border-color:var(--accent);}
+  #bootSplash .bs-c.on i::after{transform:rotate(45deg) scale(1);}
+  #bootSplash .bs-c.on span{text-decoration:line-through; text-decoration-color:var(--faint);}
+  #bootSplash svg{position:absolute; left:0; top:0; width:360px; height:620px; overflow:visible; z-index:0;}
+  #bootSplash svg path{fill:none; stroke:var(--faint); stroke-width:1.7; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:bsWire .6s ease-in-out 1.2s forwards;}
+  #bootSplash svg circle{fill:var(--surface); stroke:var(--faint); stroke-width:1.7; opacity:0; animation:bsFade .25s ease forwards;}
+  #bootSplash .bs-card{animation:bsCard .5s cubic-bezier(.2,.8,.2,1) both;}
+  #bootSplash .bs-dot{animation:bsDotIn .5s cubic-bezier(.34,1.56,.64,1) .15s both, bsDotRound .5s cubic-bezier(.34,1.56,.64,1) 1s forwards;}
+  #bootSplash .bs-mark b, #bootSplash .bs-meta, #bootSplash .bs-bar{animation:bsRise .5s cubic-bezier(.2,.8,.2,1) .25s both;}
+  #bootSplash .bs-by, #bootSplash .bs-legal{animation:bsRise .5s cubic-bezier(.2,.8,.2,1) .4s both;}
+  #bootSplash .bs-el{animation:bsFly .7s cubic-bezier(.18,.9,.25,1.12) both;}
+  #bootSplash .bs-note{--r:-6deg; --fx:-30px; --fy:-40px; animation-delay:.35s;}
+  #bootSplash .bs-img{--r:4deg; --fx:40px; --fy:-50px; animation-delay:.5s;}
+  #bootSplash .bs-cal{--r:5deg; --fx:-10px; --fy:60px; animation-delay:.65s;}
+  #bootSplash .bs-chk{--r:-2.5deg; --fx:60px; --fy:30px; animation-delay:.8s;}
+  #bootSplash .bs-sel{animation:bsFade .25s ease 1.35s both;}
+  @keyframes bsCard{from{opacity:0; transform:scale(.965) translateY(8px);} to{opacity:1; transform:none;}}
+  @keyframes bsDotIn{from{transform:scale(0) rotate(-45deg);} to{transform:scale(1);}}
+  @keyframes bsDotRound{to{border-radius:50%;}}
+  @keyframes bsRise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  @keyframes bsFly{0%{opacity:0; transform:translate(var(--fx),var(--fy)) rotate(calc(var(--r) * 3)) scale(.9);} 100%{opacity:1; transform:rotate(var(--r));}}
+  @keyframes bsWire{to{stroke-dashoffset:0;}}
+  @keyframes bsFade{from{opacity:0;} to{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){
+    #bootSplash .bs-el, #bootSplash .bs-card, #bootSplash .bs-dot, #bootSplash .bs-mark b, #bootSplash .bs-meta, #bootSplash .bs-bar, #bootSplash .bs-by, #bootSplash .bs-legal{animation:bsFade .3s ease both !important;}
+    #bootSplash .bs-el{transform:rotate(var(--r));}
+    #bootSplash svg path{animation:none; stroke-dashoffset:0;}
+  }
 </style>
+
+<div id="bootSplash" aria-hidden="true">
+  <div class="bs-stage" id="bsStage">
+    <svg aria-hidden="true"><path pathLength="1" d="M70 172 C 70 230, 88 150, 92 210"/><circle cx="70" cy="172" r="3.5" style="animation-delay:1.2s"/><circle cx="92" cy="210" r="3.5" style="animation-delay:1.75s"/></svg>
+    <div class="bs-el bs-note"><div class="bs-ttl">Ideen Herbst</div><div class="bs-ln" style="width:92%"></div><div class="bs-ln" style="width:68%"></div><div class="bs-ln" style="width:80%"></div></div>
+    <div class="bs-el bs-img"><div class="bs-pic"><em></em></div><div class="bs-cap">moodboard.jpg</div><div class="bs-sel"><i></i><i></i><i></i><i></i></div></div>
+    <div class="bs-el bs-cal"><div class="bs-day"><strong id="bsDay">23</strong><span id="bsMon">Do · Okt</span></div><div class="bs-ev">Shooting <em>14:00</em></div></div>
+    <div class="bs-el bs-chk"><div class="bs-ttl">Diese Woche</div><div class="bs-c" data-t="1650"><i></i><span>Shooting planen</span></div><div class="bs-c" data-t="2100"><i></i><span>Flyer drucken</span></div><div class="bs-c"><i></i><span>Board teilen</span></div></div>
+    <div class="bs-card">
+      <div class="bs-mark"><span class="bs-dot"></span><b>NOTUA</b></div>
+      <div class="bs-meta">Boards, Notizen und Kalender<br><span class="bs-st" id="bsSt">Starte NOTUA …</span></div>
+      <div class="bs-bar"><i id="bsBar"></i></div>
+      <div class="bs-by">von <strong>Tom Nüßer</strong></div>
+      <div class="bs-legal">© 2026 Tom Nüßer · notua.site · Deine Boards sind auch offline verfügbar.</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var root=document.documentElement; if(!root.classList.contains('boot-splash')) return;
+  var el=document.getElementById('bootSplash'), stage=document.getElementById('bsStage'), st=document.getElementById('bsSt'), bar=document.getElementById('bsBar');
+  var t0=Date.now(), MIN=2500, MAX=12000, pct=4, done=false, loaded=false;
+  function fit(){ var s=Math.min(1.25, (window.innerWidth-24)/360, (window.innerHeight-24)/620); stage.style.setProperty('--bs-s', Math.max(0.5,s)); }
+  fit(); window.addEventListener('resize',fit);
+  try{ var d=new Date(), WD=['So','Mo','Di','Mi','Do','Fr','Sa'], MO=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    document.getElementById('bsDay').textContent=d.getDate(); document.getElementById('bsMon').textContent=WD[d.getDay()]+' · '+MO[d.getMonth()]; }catch(e){}
+  el.querySelectorAll('.bs-c[data-t]').forEach(function(c){ setTimeout(function(){ c.classList.add('on'); }, +c.getAttribute('data-t')); });
+  function set(text,p){ if(text) st.textContent=text; if(p>pct){ pct=p; bar.style.width=p+'%'; } }
+  var creep=setInterval(function(){ if(pct<72){ set(null, pct+(72-pct)*0.05); } }, 120);
+  setTimeout(function(){ if(!loaded) set('Boards werden geladen …',30); }, 700);
+  setTimeout(function(){ if(!loaded) set('Bilder und Notizen vorbereiten …',52); }, 1500);
+  function hide(){
+    if(done) return; done=true; clearInterval(creep);
+    el.classList.add('bs-out');
+    setTimeout(function(){ root.classList.remove('boot-splash'); if(el.parentNode) el.parentNode.removeChild(el); }, 480);
+  }
+  function ready(){
+    if(loaded) return; loaded=true;
+    set(navigator.onLine===false?'Offline-Modus':'Mit der Cloud abgleichen …',88);
+    var wait=Math.max(600, MIN-(Date.now()-t0));
+    setTimeout(function(){ set(navigator.onLine===false?'Offline-Modus':'Fertig',100); }, Math.max(0,wait-500));
+    setTimeout(hide, wait);
+  }
+  if(document.readyState==='complete') ready(); else window.addEventListener('load', ready);
+  setTimeout(hide, MAX);
+  window.__notuaBootSplashHide=hide;
+})();
+</script>
 
 <div id="app">
   <!-- Bottom-right "busy bar" — a small, non-blocking progress pill (spinner + short status text)
@@ -6703,6 +6861,8 @@ const I18N={
   download_macos:{de:'macOS',en:'macOS',es:'macOS',da:'macOS'},
   download_ios:{de:'iOS',en:'iOS',es:'iOS',da:'iOS'},
   download_unsigned_note:{de:'Die Desktop-App ist noch nicht signiert. Windows: bei der Warnung „Weitere Informationen“ → „Trotzdem ausführen“. macOS: beim ersten Start unter Systemeinstellungen → Datenschutz & Sicherheit → „Trotzdem öffnen“.',en:'The desktop app is not signed yet. Windows: on the warning click “More info” → “Run anyway”. macOS: on first launch go to System Settings → Privacy & Security → “Open Anyway”.',es:'La app de escritorio aún no está firmada. Windows: en el aviso pulsa “Más información” → “Ejecutar de todas formas”. macOS: en el primer inicio ve a Ajustes del Sistema → Privacidad y seguridad → “Abrir igualmente”.',da:'Desktop-appen er endnu ikke signeret. Windows: klik ved advarslen på “Flere oplysninger” → “Kør alligevel”. macOS: ved første start gå til Systemindstillinger → Anonymitet & sikkerhed → “Åbn alligevel”.'},
+  download_preview:{de:'Vorschau',en:'Preview',es:'Vista previa',da:'Forhåndsvisning'},
+  download_preview_splash:{de:'Startbild',en:'Splash screen',es:'Pantalla de inicio',da:'Startskærm'},
   download_soon:{de:'bald verfügbar',en:'coming soon',es:'próximamente',da:'kommer snart'},
   impressum_title:{de:'Impressum',en:'Imprint',es:'Aviso legal',da:'Impressum'},
   impressum_contact_label:{de:'E-Mail',en:'Email',es:'Correo electrónico',da:'E-mail'},
@@ -13612,7 +13772,7 @@ function igBody(tab,det){
 function showInstallGuide(opts){
   opts=opts||{};
   const det=igDetect();
-  let tab=det.tab;
+  let tab=opts.tab||det.tab;
   const scrim=document.createElement('div'); scrim.className='modal-scrim'+(opts.tour?' tour-modal-scrim':'');
   const tabs=[['windows','ig_tab_windows'],['mac','ig_tab_mac'],['ios','ig_tab_ios'],['android','ig_tab_android']];
   scrim.innerHTML=`<div class="modal modal-wide ig-modal">
@@ -16381,7 +16541,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.168';
+const APP_VERSION='2.4.171';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -16529,13 +16689,19 @@ const DOWNLOAD_PLATFORMS=[
     icon:'<rect x="7.5" y="2.5" width="9" height="19" rx="2"/><path d="M11 18.2h2"/>'},
   {key:'macos', label:'download_macos', href:'https://github.com/tomnuesser2/NOTUA/releases/latest/download/NOTUA-macOS.dmg', enabled:true,
     icon:'<path d="M3.5 5.5h17v10h-17z"/><path d="M1.5 19.5h21l-2-3.5h-17z"/>'},
-  {key:'ios', label:'download_ios', href:'/downloads/notua-setup-ios.ipa', enabled:false,
+  // iPhone: keine App-Store-App ohne Apple-Developer-Konto → öffnet die Anleitung „Zum Home-Bildschirm“ (startet wie eine App).
+  {key:'ios', label:'download_ios', guide:'ios', enabled:true,
     icon:'<rect x="7.5" y="2.5" width="9" height="19" rx="2"/><path d="M11 18.2h2"/>'},
 ];
 function showDownloadModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
   const rows=DOWNLOAD_PLATFORMS.map(p=>{
     const iconSvg=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p.icon}</svg>`;
+    if(p.enabled && p.guide){
+      return `<button type="button" class="download-platform-row" data-guide="${p.guide}">
+        <span class="dp-icon">${iconSvg}</span><span class="dp-label">${t(p.label)}</span><span class="dp-arrow">→</span>
+      </button>`;
+    }
     if(p.enabled){
       return `<a class="download-platform-row" href="${p.href}" download>
         <span class="dp-icon">${iconSvg}</span><span class="dp-label">${t(p.label)}</span><span class="dp-arrow">↓</span>
@@ -16550,6 +16716,7 @@ function showDownloadModal(){
     <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">${t('download_intro')}</p>
     <div class="download-platform-list">${rows}</div>
     <p style="margin:10px 0 0;color:var(--faint);font-size:0.76rem;line-height:1.45;">${t('download_unsigned_note')}</p>
+    <p class="dl-preview" style="margin:8px 0 0;color:var(--muted);font-size:0.78rem;">${t('download_preview')}: <a href="/vorschau/apps.html#android" target="_blank" rel="noopener">Android</a> · <a href="/vorschau/apps.html#ios" target="_blank" rel="noopener">iPhone</a> · <a href="/vorschau/desktop.html" target="_blank" rel="noopener">Windows &amp; Mac</a> · <a href="/vorschau/startbild.html" target="_blank" rel="noopener">${t('download_preview_splash')}</a></p>
     ${isInstalledApp()?'':`<button type="button" class="ig-open-link" data-a="guide">${t('ig_open_guide')}</button>`}
     <div class="modal-actions">
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('close_title')}</button>
@@ -16557,6 +16724,7 @@ function showDownloadModal(){
   bindScrimDismiss(scrim,()=>scrim.remove());
   scrim.querySelector('[data-a="ok"]').addEventListener('click',()=>scrim.remove());
   const gl=scrim.querySelector('[data-a="guide"]'); if(gl) gl.addEventListener('click',()=>{ scrim.remove(); showInstallGuide(); });
+  scrim.querySelectorAll('[data-guide]').forEach(b=>b.addEventListener('click',()=>{ scrim.remove(); showInstallGuide({tab:b.dataset.guide}); }));
   document.body.appendChild(scrim);
 }
 document.getElementById('downloadBtn').addEventListener('click',showDownloadModal);

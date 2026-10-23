@@ -14,7 +14,7 @@ const APP_ORIGIN = new URL(APP_URL).origin;
 const RELEASES_API = 'https://api.github.com/repos/tomnuesser2/NOTUA/releases/latest';
 const RELEASES_PAGE = 'https://github.com/tomnuesser2/NOTUA/releases/latest';
 const IS_MAC = process.platform === 'darwin';
-const SPLASH_MIN_MS = 1900;   // Startbild mindestens so lange zeigen, damit nichts flackert
+const SPLASH_MIN_MS = 2500;   // Startbild mindestens so lange zeigen (Tom: "ein kleines bisschen länger, dass man das Gefühl hat, es lädt was")
 const SPLASH_MAX_MS = 12000;  // spätestens dann die App zeigen, egal was passiert
 const SPLASH_W = 760, SPLASH_H = 480;
 

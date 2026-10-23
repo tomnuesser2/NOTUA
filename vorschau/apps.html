@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>NOTUA App-Vorschau</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: preview page, one phone (380x800 design, scaled to fit) that plays the real install + launch flow.
+     Tokens = NOTUA Mono; dark mirrors the app's Mono dark. */
+  :root{
+    --canvas:#E0E0E0; --canvas-dot:#C1C1C2; --surface:#EDEDED; --surface-2:#E8E8E8;
+    --ink:#242428; --muted:#64646E; --faint:#9797A0; --border:#CECECF;
+    --accent:#2B2D33; --accent-ink:#FFFFFF; --accent-soft:#D1DBFA;
+    --shadow:rgba(24,28,35,0.14); --shadow-lg:rgba(24,28,35,0.22);
+    --tag-yellow:102,130,214; --tag-blue:202,129,104; --tag-pink:190,132,219; --tag-alpha:0.20;
+    --page:#D6D7DA; --sys:#FFFFFF; --sys-ink:#16181D; --sys-muted:#6B6F78; --sys-line:#E3E4E8;
+    --logo-bg:#2B2D33; --logo-n:#9AA8DA;
+    --f-sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas:#13161A; --canvas-dot:#232932; --surface:#1D2229; --surface-2:#171A20;
+      --ink:#E5E9F0; --muted:#95A4BB; --faint:#65738B; --border:#2A313B;
+      --accent:#9AA8DA; --accent-ink:#13161A; --accent-soft:rgba(154,168,218,0.18);
+      --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6);
+      --tag-yellow:102,126,214; --tag-blue:202,132,104; --tag-pink:193,132,219; --tag-alpha:0.26;
+      --page:#0C0E11; --sys:#22252B; --sys-ink:#F1F2F4; --sys-muted:#9EA3AD; --sys-line:#33373F; color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas:#13161A; --canvas-dot:#232932; --surface:#1D2229; --surface-2:#171A20;
+    --ink:#E5E9F0; --muted:#95A4BB; --faint:#65738B; --border:#2A313B;
+    --accent:#9AA8DA; --accent-ink:#13161A; --accent-soft:rgba(154,168,218,0.18);
+    --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6);
+    --tag-yellow:102,126,214; --tag-blue:202,132,104; --tag-pink:193,132,219; --tag-alpha:0.26;
+    --page:#0C0E11; --sys:#22252B; --sys-ink:#F1F2F4; --sys-muted:#9EA3AD; --sys-line:#33373F; color-scheme:dark;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{min-height:100%;}
+  body{background:var(--page); color:var(--ink); font-family:var(--f-sans); margin:0;
+    padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:24px 40px;}
+  .wrap{max-width:980px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:28px; align-items:start;}
+  @media (max-width:760px){ .wrap{grid-template-columns:1fr;} }
+  .info{display:flex; flex-direction:column; gap:16px; min-width:0;}
+  h1{margin:0; font-size:1.35rem; font-weight:700; letter-spacing:-0.015em;}
+  .lead{margin:6px 0 0; color:var(--muted); font-size:0.92rem; line-height:1.5; max-width:56ch;}
+  .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .seg{display:inline-flex; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px; gap:2px;}
+  .seg button{border:0; background:transparent; color:var(--muted); font:500 0.84rem var(--f-sans); padding:6px 12px; border-radius:7px; cursor:pointer;}
+  .seg button[aria-pressed="true"]{background:var(--surface-2); color:var(--ink); box-shadow:0 1px 2px var(--shadow);}
+  .play{border:0; background:var(--accent); color:var(--accent-ink); font:600 0.86rem var(--f-sans); padding:9px 16px; border-radius:10px; cursor:pointer; box-shadow:0 2px 6px -3px var(--shadow-lg);}
+  button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .steps{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
+  .steps button{width:100%; display:grid; grid-template-columns:26px 1fr; gap:10px; align-items:start; text-align:left; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:var(--f-sans);}
+  .steps button b{display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--surface-2); font:600 12px var(--f-mono); color:var(--muted);}
+  .steps button span{font-size:0.88rem; font-weight:600; line-height:1.3;}
+  .steps button small{display:block; font-weight:400; color:var(--muted); font-size:0.8rem; margin-top:2px; line-height:1.4;}
+  .steps button.on{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset;}
+  .steps button.on b{background:var(--accent); color:var(--accent-ink);}
+  .note{font-size:0.8rem; color:var(--muted); line-height:1.5; border-top:1px solid var(--border); padding-top:12px;}
+
+  .fit{position:relative; justify-self:center;}
+  .fit > .phone{position:absolute; left:0; top:0; transform-origin:0 0;}
+  .phone{width:380px; height:800px; border-radius:48px; padding:10px; background:#050506; box-shadow:0 0 0 1px rgba(140,150,165,0.35), 0 30px 70px rgba(0,0,0,0.35);}
+  .screen{position:relative; width:360px; height:780px; border-radius:38px; overflow:hidden; background:var(--canvas); font-family:var(--f-sans); color:var(--ink);}
+  .scr{position:absolute; inset:0; transition:opacity .35s ease;}
+  .scr.off{opacity:0; pointer-events:none;}
+  .sb{position:absolute; left:0; right:0; top:0; height:40px; display:flex; align-items:center; justify-content:space-between; padding:0 26px; font:600 13px var(--f-sans); z-index:20; color:var(--sys-ink);}
+  .sb.light{color:#fff;}
+  .sb i{display:inline-block; width:22px; height:10px; border-radius:3px; border:1.5px solid currentColor; position:relative;}
+  .sb i::after{content:''; position:absolute; left:1.5px; top:1.5px; bottom:1.5px; width:13px; background:currentColor; border-radius:1px;}
+
+  /* NOTUA icon */
+  .ni{display:grid; place-items:center; background:var(--logo-bg); color:var(--logo-n);}
+  .ni svg{width:56%; height:56%;}
+  .ni.round{border-radius:50%;} .ni.squircle{border-radius:23%;}
+
+  /* browser page with download modal behind the install sheet */
+  .webpage{position:absolute; inset:0; background:var(--canvas); background-image:radial-gradient(var(--canvas-dot) 1.2px, transparent 1.4px); background-size:20px 20px;}
+  .urlbar{position:absolute; left:12px; right:12px; top:44px; height:38px; border-radius:19px; background:var(--sys); color:var(--sys-muted); display:flex; align-items:center; padding:0 16px; font-size:13px; box-shadow:0 1px 2px rgba(0,0,0,0.12);}
+  .urlbar.bottom{top:auto; bottom:30px;}
+  .dlmodal{position:absolute; left:28px; right:28px; top:150px; border-radius:18px; background:var(--surface); padding:18px; box-shadow:0 20px 40px var(--shadow-lg);}
+  .dlmodal h4{margin:0 0 12px; font-size:16px;}
+  .dlrow{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; background:var(--surface-2); font-size:13px; font-weight:600; margin-top:6px;}
+  .dlrow.hl{box-shadow:0 0 0 2px var(--accent);}
+  .dim{position:absolute; inset:0; background:rgba(0,0,0,0.45);}
+  .sheet{position:absolute; left:10px; right:10px; bottom:14px; border-radius:26px; background:var(--sys); color:var(--sys-ink); padding:22px 22px 18px; transform:translateY(0); transition:transform .45s cubic-bezier(.2,.9,.25,1);}
+  .sheet.down{transform:translateY(110%);}
+  .sheet .hd{display:flex; align-items:center; gap:12px;}
+  .sheet .hd .ni{width:44px; height:44px;}
+  .sheet .hd b{font-size:16px;} .sheet .hd small{display:block; color:var(--sys-muted); font-size:12px; margin-top:1px;}
+  .sheet p{margin:16px 0 0; font-size:14px; line-height:1.45;}
+  .sheet .pb{margin-top:16px; height:4px; border-radius:2px; background:var(--sys-line); overflow:hidden;}
+  .sheet .pb i{display:block; height:100%; width:0; background:var(--sys-ink); transition:width 1.4s cubic-bezier(.4,.1,.3,1);}
+  .sheet .btns{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+  .sheet .btns span{padding:9px 16px; border-radius:20px; font-size:14px; font-weight:600;}
+  .sheet .btns .pri{background:var(--sys-ink); color:var(--sys);}
+  .sheet .btns .pri.press{transform:scale(.94); transition:transform .12s;}
+
+  /* home screens */
+  .home{position:absolute; inset:0; background:linear-gradient(160deg,#5B6B8C 0%,#8C7AA0 48%,#C59A86 100%);}
+  .grid{position:absolute; left:22px; right:22px; top:92px; display:grid; grid-template-columns:repeat(4,1fr); gap:22px 12px;}
+  .app{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.3);}
+  .app .ic{width:58px; height:58px; border-radius:50%; background:rgba(255,255,255,0.28);}
+  .ios .app .ic{border-radius:23%;}
+  .app .ni{width:58px; height:58px;}
+  .app.notua .ni{transition:transform .18s ease;}
+  .app.notua.tap .ni{transform:scale(.86);}
+  .app.notua.new .ni{animation:pop .6s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes pop{0%{transform:scale(.2); opacity:0;} 100%{transform:scale(1); opacity:1;}}
+  .dock{position:absolute; left:16px; right:16px; bottom:22px; height:84px; border-radius:30px; background:rgba(255,255,255,0.22); display:flex; justify-content:space-around; align-items:center;}
+  .dock .ic{width:56px; height:56px; border-radius:50%; background:rgba(255,255,255,0.3);}
+  .ios .dock .ic{border-radius:23%;}
+  .search{position:absolute; left:24px; right:24px; bottom:120px; height:46px; border-radius:23px; background:rgba(255,255,255,0.85);}
+
+  /* system splash (Android) / iOS startup image */
+  .syssplash{position:absolute; inset:0; background:#13161A; display:grid; place-items:center;}
+  .syssplash .ni{width:96px; height:96px;}
+  .startimg{position:absolute; inset:0; background:var(--canvas); background-image:radial-gradient(var(--canvas-dot) 1.2px, transparent 1.4px); background-size:20px 20px;}
+
+  /* iOS share sheet + add dialog */
+  .ios .sheet{border-radius:16px 16px 0 0; left:0; right:0; bottom:0; padding:12px 0 30px;}
+  .share-hd{display:flex; align-items:center; gap:12px; padding:6px 18px 14px; border-bottom:1px solid var(--sys-line);}
+  .share-hd .ni{width:40px; height:40px;}
+  .share-hd b{font-size:14px;} .share-hd small{display:block; color:var(--sys-muted); font-size:12px;}
+  .share-list{margin:12px 14px 0; border-radius:12px; background:var(--sys-line); overflow:hidden; display:flex; flex-direction:column; gap:1px;}
+  .share-list div{background:var(--sys); padding:13px 16px; font-size:14px; display:flex; justify-content:space-between; align-items:center;}
+  .share-list div.hl{background:color-mix(in srgb,var(--sys) 82%, var(--logo-n));}
+  .share-list svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.6;}
+  .adddlg{position:absolute; inset:0; background:var(--sys); color:var(--sys-ink);}
+  .adddlg .top{display:flex; justify-content:space-between; align-items:center; padding:52px 16px 14px; font-size:15px; border-bottom:1px solid var(--sys-line);}
+  .adddlg .top b{font-weight:600;} .adddlg .top span{color:#3E7BFA;} .adddlg .top span.press{opacity:.5;}
+  .adddlg .card{margin:18px 16px; border-radius:12px; background:color-mix(in srgb,var(--sys) 92%, var(--sys-ink)); display:flex; gap:14px; padding:14px; align-items:center;}
+  .adddlg .card .ni{width:60px; height:60px;}
+  .adddlg .card .f{flex:1; min-width:0;}
+  .adddlg .card .f div{padding:6px 0; border-bottom:1px solid var(--sys-line); font-size:15px;}
+  .adddlg .card .f small{display:block; color:var(--sys-muted); font-size:12px; padding-top:6px;}
+  .adddlg p{margin:0 18px; font-size:12px; color:var(--sys-muted); line-height:1.45;}
+
+  /* app landing */
+  .landing{position:absolute; inset:0; background:var(--surface-2); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; text-align:center; padding:24px;}
+  .landing .lc{width:84px; height:84px; border-radius:50%; background:var(--accent); display:grid; place-items:center; color:var(--accent-ink); box-shadow:0 10px 24px -14px color-mix(in srgb,var(--accent) 55%,transparent), 0 3px 10px -4px var(--shadow);}
+  .landing h2{margin:0; font-size:30px; letter-spacing:-0.02em; color:var(--accent);}
+  .landing p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.5; max-width:250px;}
+  .landing .g{border:1px solid var(--border); background:var(--surface); border-radius:9px; padding:9px 14px; font-size:13px; font-weight:600;}
+  .landing.in{animation:appIn .45s ease both;} @keyframes appIn{from{opacity:0; transform:scale(.985);} to{opacity:1; transform:none;}}
+
+  .tapdot{position:absolute; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:rgba(255,255,255,0.55); pointer-events:none; z-index:30; opacity:0;}
+  .tapdot.go{animation:tap .5s ease-out;} @keyframes tap{0%{opacity:.9; transform:scale(.4);} 100%{opacity:0; transform:scale(1.3);}}
+
+  /* real NOTUA boot splash (same CSS as index.html, scoped to the phone) */
+
+  
+  .boot{position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; overflow:hidden;
+    background:var(--canvas); background-image:radial-gradient(var(--canvas-dot) 1.2px, transparent 1.4px); background-size:20px 20px;
+    font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; color:var(--ink); transition:opacity .45s ease, transform .45s ease;}
+  .boot.bs-out{opacity:0; transform:scale(1.015); pointer-events:none;}
+  .boot .bs-stage{position:relative; width:360px; height:620px; flex:none; transform:scale(var(--bs-s,1)); transform-origin:50% 50%;}
+  .boot .bs-card{position:absolute; left:20px; top:352px; width:320px; height:250px; border-radius:22px; background:var(--surface);
+    box-shadow:0 0 0 1px var(--border), 0 24px 60px var(--shadow-lg), 0 3px 10px var(--shadow); padding:26px 24px 20px; display:flex; flex-direction:column; box-sizing:border-box;}
+  .boot .bs-mark{display:flex; align-items:center; gap:12px;}
+  .boot .bs-dot{width:17px; height:17px; border-radius:5px; background:var(--accent); flex:none;}
+  .boot .bs-mark b{font-size:46px; font-weight:700; letter-spacing:-0.035em; line-height:0.9;}
+  .boot .bs-meta{margin-top:14px; font-size:12.5px; line-height:1.55;}
+  .boot .bs-st{color:var(--muted);}
+  .boot .bs-bar{margin-top:10px; height:3px; border-radius:2px; background:var(--surface-2); overflow:hidden;}
+  .boot .bs-bar i{display:block; height:100%; width:4%; background:var(--accent); border-radius:2px; transition:width .5s cubic-bezier(.3,.7,.3,1);}
+  .boot .bs-by{margin-top:auto; display:flex; align-items:baseline; gap:7px; font-size:12.5px; color:var(--muted);}
+  .boot .bs-by strong{font-size:17px; font-weight:600; color:var(--ink);}
+  .boot .bs-legal{margin-top:6px; font-size:9.5px; line-height:1.45; color:var(--faint);}
+  .boot .bs-el{position:absolute; border-radius:12px; background:var(--surface); box-shadow:0 0 0 1px var(--border), 0 2px 4px var(--shadow), 0 14px 32px var(--shadow-lg); box-sizing:border-box;}
+  .boot .bs-note{left:22px; top:58px; width:150px; padding:13px 14px; display:flex; flex-direction:column; gap:8px; transform:rotate(-6deg); z-index:1;
+    background:linear-gradient(rgba(var(--tag-yellow),var(--tag-alpha)),rgba(var(--tag-yellow),var(--tag-alpha))), var(--surface);}
+  .boot .bs-ttl{font-size:12.5px; font-weight:600; white-space:nowrap;}
+  .boot .bs-ln{height:6px; border-radius:3px; background:rgba(127,135,146,0.32);}
+  .boot .bs-img{left:168px; top:6px; width:160px; padding:8px; transform:rotate(4deg); z-index:2;}
+  .boot .bs-pic{height:170px; border-radius:7px; position:relative; overflow:hidden; background:linear-gradient(180deg,#8CB8E6 0%,#C7DDF2 55%,#F4D6B8 100%);}
+  .boot .bs-pic::before{content:''; position:absolute; left:-30%; right:20%; bottom:-46px; height:110px; border-radius:50%; background:#6FAE73;}
+  .boot .bs-pic::after{content:''; position:absolute; left:35%; right:-35%; bottom:-58px; height:118px; border-radius:50%; background:#4F8F5F;}
+  .boot .bs-pic em{position:absolute; left:22px; top:18px; width:22px; height:22px; border-radius:50%; background:#FFD27A; box-shadow:0 0 0 7px rgba(255,210,122,0.25);}
+  .boot .bs-cap{font:500 10px 'IBM Plex Mono',ui-monospace,monospace; color:var(--muted); padding:7px 2px 1px;}
+  .boot .bs-sel{position:absolute; inset:-5px; border:1.6px solid var(--accent); border-radius:15px;}
+  .boot .bs-sel i{position:absolute; width:8px; height:8px; background:var(--surface); border:1.6px solid var(--accent); border-radius:2.5px;}
+  .boot .bs-sel i:nth-child(1){left:-5px; top:-5px;} .boot .bs-sel i:nth-child(2){right:-5px; top:-5px;}
+  .boot .bs-sel i:nth-child(3){left:-5px; bottom:-5px;} .boot .bs-sel i:nth-child(4){right:-5px; bottom:-5px;}
+  .boot .bs-cal{left:30px; top:204px; width:136px; padding:12px 13px; transform:rotate(5deg); z-index:3;}
+  .boot .bs-day{display:flex; align-items:baseline; gap:8px;}
+  .boot .bs-day strong{font-size:28px; font-weight:700; letter-spacing:-0.03em; line-height:1; color:var(--accent);}
+  .boot .bs-day span{font:500 10px 'IBM Plex Mono',ui-monospace,monospace; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em;}
+  .boot .bs-ev{margin-top:9px; padding:6px 8px; border-radius:7px; font-size:11px; font-weight:500; background:rgba(var(--tag-pink),var(--tag-alpha)); display:flex; justify-content:space-between; gap:6px; white-space:nowrap;}
+  .boot .bs-ev em{font-style:normal; color:var(--muted); font-size:10px;}
+  .boot .bs-chk{left:172px; top:226px; width:164px; padding:13px 14px; display:flex; flex-direction:column; gap:8px; transform:rotate(-2.5deg); z-index:4;
+    background:linear-gradient(rgba(var(--tag-blue),var(--tag-alpha)),rgba(var(--tag-blue),var(--tag-alpha))), var(--surface);}
+  .boot .bs-c{display:flex; align-items:center; gap:8px; font-size:11px; color:var(--muted); white-space:nowrap;}
+  .boot .bs-c i{width:12px; height:12px; border-radius:3.5px; border:1.5px solid var(--faint); flex:none; position:relative; transition:background .2s, border-color .2s; box-sizing:border-box;}
+  .boot .bs-c i::after{content:''; position:absolute; left:3px; top:0; width:3.4px; height:6.5px; border:solid var(--accent-ink); border-width:0 1.6px 1.6px 0; transform:rotate(45deg) scale(0); transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
+  .boot .bs-c.on i{background:var(--accent); border-color:var(--accent);}
+  .boot .bs-c.on i::after{transform:rotate(45deg) scale(1);}
+  .boot .bs-c.on span{text-decoration:line-through; text-decoration-color:var(--faint);}
+  .boot svg{position:absolute; left:0; top:0; width:360px; height:620px; overflow:visible; z-index:0;}
+  .boot svg path{fill:none; stroke:var(--faint); stroke-width:1.7; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:bsWire .6s ease-in-out 1.2s forwards;}
+  .boot svg circle{fill:var(--surface); stroke:var(--faint); stroke-width:1.7; opacity:0; animation:bsFade .25s ease forwards;}
+  .boot .bs-card{animation:bsCard .5s cubic-bezier(.2,.8,.2,1) both;}
+  .boot .bs-dot{animation:bsDotIn .5s cubic-bezier(.34,1.56,.64,1) .15s both, bsDotRound .5s cubic-bezier(.34,1.56,.64,1) 1s forwards;}
+  .boot .bs-mark b, .boot .bs-meta, .boot .bs-bar{animation:bsRise .5s cubic-bezier(.2,.8,.2,1) .25s both;}
+  .boot .bs-by, .boot .bs-legal{animation:bsRise .5s cubic-bezier(.2,.8,.2,1) .4s both;}
+  .boot .bs-el{animation:bsFly .7s cubic-bezier(.18,.9,.25,1.12) both;}
+  .boot .bs-note{--r:-6deg; --fx:-30px; --fy:-40px; animation-delay:.35s;}
+  .boot .bs-img{--r:4deg; --fx:40px; --fy:-50px; animation-delay:.5s;}
+  .boot .bs-cal{--r:5deg; --fx:-10px; --fy:60px; animation-delay:.65s;}
+  .boot .bs-chk{--r:-2.5deg; --fx:60px; --fy:30px; animation-delay:.8s;}
+  .boot .bs-sel{animation:bsFade .25s ease 1.35s both;}
+  @keyframes bsCard{from{opacity:0; transform:scale(.965) translateY(8px);} to{opacity:1; transform:none;}}
+  @keyframes bsDotIn{from{transform:scale(0) rotate(-45deg);} to{transform:scale(1);}}
+  @keyframes bsDotRound{to{border-radius:50%;}}
+  @keyframes bsRise{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  @keyframes bsFly{0%{opacity:0; transform:translate(var(--fx),var(--fy)) rotate(calc(var(--r) * 3)) scale(.9);} 100%{opacity:1; transform:rotate(var(--r));}}
+  @keyframes bsWire{to{stroke-dashoffset:0;}}
+  @keyframes bsFade{from{opacity:0;} to{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){
+    .boot .bs-el, .boot .bs-card, .boot .bs-dot, .boot .bs-mark b, .boot .bs-meta, .boot .bs-bar, .boot .bs-by, .boot .bs-legal{animation:bsFade .3s ease both !important;}
+    .boot .bs-el{transform:rotate(var(--r));}
+    .boot svg path{animation:none; stroke-dashoffset:0;}
+  }
+
+</style>
+
+<div class="wrap">
+  <div class="info">
+    <div>
+      <h1>NOTUA auf dem Handy</h1>
+      <p class="lead">So installiert man NOTUA und so startet die App, mit dem echten Ladebildschirm. Android ist eine richtige App (APK), auf dem iPhone kommt NOTUA über Safari auf den Home-Bildschirm.</p>
+    </div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="System">
+        <button id="pA" aria-pressed="true">Android</button>
+        <button id="pI" aria-pressed="false">iPhone</button>
+      </div>
+      <div class="seg" role="group" aria-label="Farbmodus">
+        <button id="tL" aria-pressed="false">Hell</button>
+        <button id="tD" aria-pressed="false">Dunkel</button>
+      </div>
+      <button class="play" id="playAll">Ganzen Ablauf abspielen</button>
+    </div>
+    <ol class="steps" id="steps"></ol>
+    <p class="note" id="note"></p>
+  </div>
+  <div class="fit" id="fit">
+    <div class="phone" id="phone"><div class="screen" id="screen"></div></div>
+  </div>
+</div>
+
+<template id="tBoot"><div class="boot">
+  <div class="bs-stage">
+    <svg aria-hidden="true"><path pathLength="1" d="M70 172 C 70 230, 88 150, 92 210"/><circle cx="70" cy="172" r="3.5" style="animation-delay:1.2s"/><circle cx="92" cy="210" r="3.5" style="animation-delay:1.75s"/></svg>
+    <div class="bs-el bs-note"><div class="bs-ttl">Ideen Herbst</div><div class="bs-ln" style="width:92%"></div><div class="bs-ln" style="width:68%"></div><div class="bs-ln" style="width:80%"></div></div>
+    <div class="bs-el bs-img"><div class="bs-pic"><em></em></div><div class="bs-cap">moodboard.jpg</div><div class="bs-sel"><i></i><i></i><i></i><i></i></div></div>
+    <div class="bs-el bs-cal"><div class="bs-day"><strong class="bsd">23</strong><span class="bsm">Do · Okt</span></div><div class="bs-ev">Shooting <em>14:00</em></div></div>
+    <div class="bs-el bs-chk"><div class="bs-ttl">Diese Woche</div><div class="bs-c" data-t="1650"><i></i><span>Shooting planen</span></div><div class="bs-c" data-t="2100"><i></i><span>Flyer drucken</span></div><div class="bs-c"><i></i><span>Board teilen</span></div></div>
+    <div class="bs-card">
+      <div class="bs-mark"><span class="bs-dot"></span><b>NOTUA</b></div>
+      <div class="bs-meta">Boards, Notizen und Kalender<br><span class="bs-st" data-st>Starte NOTUA …</span></div>
+      <div class="bs-bar"><i data-bar></i></div>
+      <div class="bs-by">von <strong>Tom Nüßer</strong></div>
+      <div class="bs-legal">© 2026 Tom Nüßer · notua.site · Deine Boards sind auch offline verfügbar.</div>
+    </div>
+  </div></div></template>
+
+<script>
+(function(){
+  var N='<svg viewBox="0 0 512 512"><path fill="currentColor" d="M172 355V157h46l86 145V157h36v198h-46l-86-145v145z"/></svg>';
+  function icon(cls){ return '<div class="ni '+cls+'">'+N+'</div>'; }
+  var SB='<div class="sb"><span>9:41</span><i></i></div>', SBL='<div class="sb light"><span>9:41</span><i></i></div>';
+  function apps(n,ios){ var a=['Kamera','Galerie','Uhr','Kalender','Wetter','Musik','Karten','Rechner','Mail','Einstell.','Dateien']; var h=''; for(var i=0;i<n;i++) h+='<div class="app"><div class="ic"></div>'+a[i%a.length]+'</div>'; return h; }
+  var FLOW={
+    android:{
+      note:'Android: Die App läuft in Chrome. Deshalb funktioniert die Google-Anmeldung, und die Boards sind dieselben wie im Browser. Vorher zeigt Android kurz das Icon auf dunklem Grund.',
+      steps:[
+        {t:'Herunterladen und installieren', d:'APK über den Download-Knopf, dann „Installieren“.', run:aInstall, ms:4200},
+        {t:'Icon auf dem Startbildschirm', d:'NOTUA im Mono-Look zwischen den anderen Apps.', run:aHome, ms:2200},
+        {t:'Starten', d:'Kurz das Android-Startbild, dann der NOTUA-Ladebildschirm (ca. 2,5 s).', run:aLaunch, ms:4300},
+        {t:'Fertig', d:'NOTUA ist offen.', run:appScreen, ms:2000}
+      ]},
+    ios:{
+      note:'iPhone: Eine echte App aus dem App Store braucht ein Apple-Developer-Konto. Bis dahin kommt NOTUA über Safari auf den Home-Bildschirm und startet wie eine App, mit eigenem Startbild und Ladebildschirm.',
+      steps:[
+        {t:'In Safari teilen', d:'notua.site öffnen, Teilen-Knopf, „Zum Home-Bildschirm“.', run:iShare, ms:3200},
+        {t:'Hinzufügen', d:'Name und Icon bestätigen.', run:iAdd, ms:2600},
+        {t:'Icon auf dem Home-Bildschirm', d:'Das NOTUA-Icon im Mono-Look.', run:iHome, ms:2200},
+        {t:'Starten', d:'Punkte-Raster als Startbild, dann der NOTUA-Ladebildschirm (ca. 2,5 s).', run:iLaunch, ms:4100},
+        {t:'Fertig', d:'NOTUA ist offen, ohne Safari-Leiste.', run:appScreen, ms:2000}
+      ]}
+  };
+  var plat='android', timers=[], auto=false, cur=0;
+  var scr=document.getElementById('screen');
+  function T(fn,ms){ timers.push(setTimeout(fn,ms)); }
+  function clear(){ timers.forEach(clearTimeout); timers=[]; }
+  function set(html){ scr.innerHTML=html; }
+  function tapAt(x,y){ var d=document.createElement('div'); d.className='tapdot'; d.style.left=x+'px'; d.style.top=y+'px'; scr.appendChild(d); void d.offsetWidth; d.classList.add('go'); }
+
+  function aInstall(){
+    set('<div class="scr"><div class="webpage"></div>'+SB+'<div class="urlbar">notua.site</div><div class="dlmodal"><h4>NOTUA herunterladen</h4><div class="dlrow">Windows <span>↓</span></div><div class="dlrow hl">Android <span>↓</span></div><div class="dlrow">macOS <span>↓</span></div></div><div class="dim"></div>'+
+      '<div class="sheet down" id="sh"><div class="hd">'+icon('round')+'<div><b>NOTUA</b><small>notua.site · 3,7 MB</small></div></div><p id="shp">Möchtest du diese App installieren?</p><div class="pb" id="pb" hidden><i></i></div><div class="btns" id="bt"><span>Abbrechen</span><span class="pri" id="bi">Installieren</span></div></div></div>');
+    T(function(){ document.getElementById('sh').classList.remove('down'); },250);
+    T(function(){ var b=document.getElementById('bi'); b.classList.add('press'); tapAt(295,725); },1300);
+    T(function(){ document.getElementById('shp').textContent='Wird installiert …'; document.getElementById('bt').style.visibility='hidden'; var pb=document.getElementById('pb'); pb.hidden=false; void pb.offsetWidth; pb.firstChild.style.width='100%'; },1500);
+    T(function(){ document.getElementById('shp').textContent='App wurde installiert.'; document.getElementById('pb').hidden=true; var bt=document.getElementById('bt'); bt.innerHTML='<span>Fertig</span><span class="pri">Öffnen</span>'; bt.style.visibility='visible'; },3100);
+  }
+  function homeScreen(ios,isNew){
+    return '<div class="scr '+(ios?'ios':'')+'"><div class="home"></div>'+SBL+'<div class="grid">'+apps(7,ios)+'<div class="app notua'+(isNew?' new':'')+'" id="nApp">'+icon(ios?'squircle':'round')+'NOTUA</div>'+apps(4,ios)+'</div>'+(ios?'':'<div class="search"></div>')+'<div class="dock"><div class="ic"></div><div class="ic"></div><div class="ic"></div><div class="ic"></div></div></div>';
+  }
+  function aHome(){ set(homeScreen(false,true)); }
+  function launch(pre){
+    var a=document.getElementById('nApp'); if(a){ a.classList.add('tap'); var r=a.getBoundingClientRect(), s=scr.getBoundingClientRect(), k=s.width/360; tapAt((r.left-s.left+r.width/2)/k,(r.top-s.top+29*k)/k); }
+    T(function(){ set(pre); },350);
+    T(function(){ var b=document.getElementById('tBoot').content.firstElementChild.cloneNode(true); scr.appendChild(b); bootRun(b);
+      T(function(){ Array.prototype.slice.call(scr.children).forEach(function(c){ if(c!==b) c.remove(); }); },600); },1150);
+  }
+  function aLaunch(){ if(!document.getElementById('nApp')) set(homeScreen(false,false)); T(function(){ launch('<div class="scr"><div class="syssplash">'+icon('round')+'</div></div>'); },300); }
+  function bootRun(b){
+    var st=b.querySelector('[data-st]'), bar=b.querySelector('[data-bar]');
+    var d=new Date(), WD=['So','Mo','Di','Mi','Do','Fr','Sa'], MO=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    b.querySelector('.bsd').textContent=d.getDate(); b.querySelector('.bsm').textContent=WD[d.getDay()]+' · '+MO[d.getMonth()];
+    b.querySelectorAll('.bs-c[data-t]').forEach(function(c){ T(function(){ c.classList.add('on'); }, +c.getAttribute('data-t')); });
+    var steps=[[0,'Starte NOTUA …',8],[700,'Boards werden geladen …',30],[1500,'Bilder und Notizen vorbereiten …',55],[1700,'Mit der Cloud abgleichen …',86],[2200,'Fertig',100]];
+    steps.forEach(function(s){ T(function(){ st.textContent=s[1]; bar.style.width=s[2]+'%'; }, s[0]); });
+    T(function(){ b.classList.add('bs-out'); scr.insertAdjacentHTML('afterbegin', landingHTML()); },2500);
+  }
+  function landingHTML(){ return '<div class="scr"><div class="landing in"><div class="lc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div><h2>NOTUA</h2><p>Boards für deine kreativen Projekte – Notizen, Workflows, Moodboards und mehr, an einem Ort.</p><div class="g">Mit Google anmelden</div></div>'+SB+'</div>'; }
+  function appScreen(){ set(landingHTML()); }
+  function safariPage(){ return '<div class="webpage"></div><div class="landing" style="padding-bottom:80px"><div class="lc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div><h2>NOTUA</h2><p>Boards für deine kreativen Projekte.</p></div>'+SB+'<div class="urlbar bottom">notua.site</div>'; }
+  function iShare(){
+    set('<div class="scr ios">'+safariPage()+'<div class="dim"></div><div class="sheet down" id="sh"><div class="share-hd">'+icon('squircle')+'<div><b>NOTUA</b><small>notua.site</small></div></div><div class="share-list"><div>Kopieren</div><div>Zur Leseliste hinzufügen</div><div id="hs">Zum Home-Bildschirm <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></div><div>Lesezeichen hinzufügen</div></div></div></div>');
+    T(function(){ document.getElementById('sh').classList.remove('down'); },300);
+    T(function(){ document.getElementById('hs').classList.add('hl'); tapAt(180,560); },1800);
+  }
+  function iAdd(){
+    set('<div class="scr ios"><div class="adddlg">'+SB+'<div class="top"><span>Abbrechen</span><b>Zum Home-Bildschirm</b><span id="addb">Hinzufügen</span></div><div class="card">'+icon('squircle')+'<div class="f"><div>NOTUA</div><small>https://notua.site</small></div></div><p>NOTUA erscheint als Icon auf deinem Home-Bildschirm und öffnet sich wie eine App.</p></div></div>');
+    T(function(){ document.getElementById('addb').classList.add('press'); tapAt(310,74); },1500);
+  }
+  function iHome(){ set(homeScreen(true,true)); }
+  function iLaunch(){ if(!document.getElementById('nApp')) set(homeScreen(true,false)); T(function(){ launch('<div class="scr"><div class="startimg"></div></div>'); },300); }
+
+  var stepsEl=document.getElementById('steps');
+  function renderSteps(){
+    var f=FLOW[plat]; document.getElementById('note').textContent=f.note;
+    stepsEl.innerHTML=f.steps.map(function(s,i){ return '<li><button data-i="'+i+'"><b>'+(i+1)+'</b><span>'+s.t+'<small>'+s.d+'</small></span></button></li>'; }).join('');
+    stepsEl.querySelectorAll('button').forEach(function(b){ b.onclick=function(){ auto=false; show(+b.dataset.i); }; });
+  }
+  function show(i){
+    clear(); cur=i; var f=FLOW[plat];
+    stepsEl.querySelectorAll('button').forEach(function(b,j){ b.classList.toggle('on', j===i); });
+    f.steps[i].run();
+    if(auto && i<f.steps.length-1) T(function(){ show(i+1); }, f.steps[i].ms);
+  }
+  function setPlat(p){ plat=p; document.getElementById('pA').setAttribute('aria-pressed',p==='android'); document.getElementById('pI').setAttribute('aria-pressed',p==='ios'); renderSteps(); auto=false; show(0); }
+  function setTheme(t){ document.documentElement.setAttribute('data-theme',t); document.getElementById('tL').setAttribute('aria-pressed',t==='light'); document.getElementById('tD').setAttribute('aria-pressed',t==='dark'); }
+  document.getElementById('pA').onclick=function(){ setPlat('android'); };
+  document.getElementById('pI').onclick=function(){ setPlat('ios'); };
+  document.getElementById('tL').onclick=function(){ setTheme('light'); };
+  document.getElementById('tD').onclick=function(){ setTheme('dark'); };
+  document.getElementById('playAll').onclick=function(){ auto=true; show(0); };
+  if(!document.documentElement.getAttribute('data-theme')){ var dk=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches; document.getElementById(dk?'tD':'tL').setAttribute('aria-pressed','true'); }
+  var fit=document.getElementById('fit'), phone=document.getElementById('phone');
+  function size(){ var avail=Math.min(fit.parentNode.clientWidth, 380), s=Math.min(1, avail/380, (window.innerHeight*0.9)/800); phone.style.transform='scale('+s+')'; fit.style.width=(380*s)+'px'; fit.style.height=(800*s)+'px'; }
+  window.addEventListener('resize',size); size();
+  var h=(location.hash||'').replace('#',''); if(h==='ios'||h==='iphone') plat='ios';
+  setPlat(plat);
+})();
+</script>
+</body></html>

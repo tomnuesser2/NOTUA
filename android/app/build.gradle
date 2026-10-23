@@ -1,0 +1,48 @@
+plugins { id 'com.android.application' }
+
+// NOTUA für Android: Trusted Web Activity (läuft in Chrome, deshalb klappt die Google-Anmeldung und die Boards
+// sind dieselben wie in der installierten Web-App). Version hier erhöhen, dann neu bauen.
+android {
+    namespace 'site.notua.twa'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'site.notua.twa'
+        minSdk 24
+        targetSdk 35
+        versionCode 20
+        versionName '2.0.0'
+        manifestPlaceholders = [
+            hostName: 'notua.site',
+            defaultUrl: 'https://notua.site/',
+            launcherName: 'NOTUA'
+        ]
+    }
+    signingConfigs {
+        release {
+            // Schlüssel liegt NICHT im Repo. Pfad + Passwörter kommen aus Umgebungsvariablen
+            // (lokal oder als GitHub-Secrets): NOTUA_KEYSTORE, NOTUA_KEYSTORE_PASSWORD, NOTUA_KEY_ALIAS, NOTUA_KEY_PASSWORD
+            def ks = System.getenv('NOTUA_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('NOTUA_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('NOTUA_KEY_ALIAS') ?: 'notua'
+                keyPassword System.getenv('NOTUA_KEY_PASSWORD') ?: System.getenv('NOTUA_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('NOTUA_KEYSTORE')) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}
