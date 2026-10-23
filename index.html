@@ -349,7 +349,8 @@ try{
      landing-page instance adds `.download-cta-floating` for its fixed corner placement. Hidden
      entirely inside the packaged desktop app via the `notua-app-env` class set in the early boot
      script above (Electron/Nativefier detection). */
-  .notua-app-env .download-cta{display:none !important;}
+  /* Per Secret-Code (functiondownload / functioninstalls) freigeschaltet, erscheint der Knopf auch in der installierten App und der Desktop-App. */
+  .notua-app-env .download-cta:not([data-beta]){display:none !important;}
   .download-cta{
     position:relative; isolation:isolate; display:inline-flex; align-items:center; gap:7px; border:none; cursor:var(--custom-pointer-cursor,pointer);
     padding:11px 18px; border-radius:13px; font:inherit; font-size:0.85rem; font-weight:700; letter-spacing:.01em;
@@ -12255,7 +12256,7 @@ function showSecretPasswordModal(){
     // device pattern as strava/wow/control/template above.
     else if(v==='functionlook'){ scrim.remove(); unlockBetaFeature('look'); showToast(t('beta_look_unlocked_toast')); }
     else if(v==='functionzoomnote'){ scrim.remove(); unlockBetaFeature('zoomnote'); showToast(t('beta_zoomnote_unlocked_toast')); }
-    else if(v==='functioninstalls'){ scrim.remove(); unlockBetaFeature('installs'); showToast(t('beta_installs_unlocked_toast')); }
+    else if(v==='functioninstalls' || v==='functiondownload'){ scrim.remove(); unlockBetaFeature('installs'); showToast(t('beta_installs_unlocked_toast')); }
     else if(v==='functionupdate'){ scrim.remove(); unlockBetaFeature('update'); showToast(t('beta_update_unlocked_toast')); checkForAppUpdate(true); }
     else if(v==='functioncarousel'){ scrim.remove(); unlockBetaFeature('images'); showToast(t('beta_images_unlocked_toast')); showImageDropModal(); }
     else if(v==='functiontooltip'){ scrim.remove(); unlockBetaFeature('tooltip'); showToast(t('beta_tooltip_unlocked_toast')); }
@@ -16380,7 +16381,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.167';
+const APP_VERSION='2.4.168';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
