@@ -6,7 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <!-- App-Icons: app-icon.png / favicon.png / icon-512.png neben index.html ablegen -->
 <link rel="apple-touch-icon" href="app-icon.png">
-<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate icon" type="image/png" href="favicon.png">
 <!-- PWA: installierbar mit eigenem Icon, startet ohne Browserleiste, funktioniert offline -->
 <link rel="manifest" href="manifest.json">
 <!-- "Kannst du machen dass es immer Dunkelmodus oben integriert" — this used to track whichever
@@ -158,26 +159,29 @@ try{
 <style>
   :root{
     --vv-top:0px; --vv-height:100%;
-    --canvas:#E7EAEE;
-    --canvas-dot:#C6CCD4;
-    --surface:#FFFFFF;
-    --surface-rgb:255,255,255;
-    --surface-2:#F0F2F5;
-    --ink:#1B2027;
-    --muted:#5C6570;
-    --faint:#8A9099;
-    --border:#D7DBE1;
-    --border-strong:#C3C9D0;
-    --accent:#FF6B57;
+    /* Standard-Look = Mono (v2.4.167, Tom: "das Logo und die ganze Plattform soll jetzt als Main Ding immer den Mono look
+       in dunkel/hell haben"). Diese Werte sind exakt das, was applyCustomTheme(THEME_MONO) ableitet — wer keinen eigenen Look
+       gespeichert hat, sieht Mono schon ab dem ersten Bild; ein gespeicherter eigener Look überschreibt sie wie bisher.
+       Der alte Standard (Lachs-Akzent, dunkelblaues Dunkel) ist entfernt. */
+    --canvas:#E0E0E0;
+    --canvas-dot:#C1C1C2;
+    --surface:#EDEDED;
+    --surface-rgb:237,237,237;
+    --surface-2:#E8E8E8;
+    --ink:#242428;
+    --muted:#64646E;
+    --faint:#9797A0;
+    --border:#CECECF;
+    --border-strong:#B7B7B8;
+    --accent:#2B2D33;
     --accent-ink:#FFFFFF;
-    --accent-soft:#FFE3DD;
+    --accent-soft:#D1DBFA;
     --danger:#D64545;
     --danger-soft:#FBDFDD;
     --shadow:rgba(24,28,35,0.14);
     --shadow-lg:rgba(24,28,35,0.22);
-    --tag-yellow:235,186,66; --tag-pink:227,132,171; --tag-blue:90,159,214;
-    --tag-green:107,171,110; --tag-purple:158,128,193; --tag-grey:140,149,160; --tag-orange:222,138,79;
-    --tag-red:224,92,88;
+    --tag-yellow:102,130,214; --tag-pink:190,132,219; --tag-blue:202,129,104; --tag-green:162,178,83;
+    --tag-purple:112,194,119; --tag-grey:143,143,163; --tag-orange:121,90,216; --tag-red:71,71,215;
     --tag-alpha:0.20;
     --scrim:rgba(20,23,28,0.45);
     /* Custom accent-colored cursor (see updateCustomCursor()) — a plain fallback value lives here so
@@ -194,18 +198,20 @@ try{
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --canvas:#14171C; --canvas-dot:#262B33; --surface:#1E222A; --surface-rgb:30,34,42; --surface-2:#191C22;
-      --ink:#ECEEF2; --muted:#9AA3AF; --faint:#6B7480; --border:#2C3038; --border-strong:#383D46;
-      --accent:#FF7A66; --accent-ink:#1B0E0B; --accent-soft:rgba(255,122,102,0.18);
+      --canvas:#13161A; --canvas-dot:#232932; --surface:#1D2229; --surface-rgb:29,34,41; --surface-2:#171A20;
+      --ink:#E5E9F0; --muted:#95A4BB; --faint:#65738B; --border:#1F242C; --border-strong:#2A313B;
+      --accent:#9AA8DA; --accent-ink:#FFFFFF; --accent-soft:rgba(154,168,218,0.18);
+      --tag-yellow:102,126,214; --tag-pink:193,132,219; --tag-blue:202,132,104; --tag-green:159,178,83; --tag-purple:112,194,122; --tag-grey:143,151,163; --tag-orange:125,90,216; --tag-red:75,71,215;
       --danger:#FF6B6B; --danger-soft:rgba(255,107,107,0.16);
       --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6);
       --tag-alpha:0.26; --scrim:rgba(6,7,9,0.6);
     }
   }
   :root[data-theme="dark"]{
-    --canvas:#14171C; --canvas-dot:#262B33; --surface:#1E222A; --surface-rgb:30,34,42; --surface-2:#191C22;
-    --ink:#ECEEF2; --muted:#9AA3AF; --faint:#6B7480; --border:#2C3038; --border-strong:#383D46;
-    --accent:#FF7A66; --accent-ink:#1B0E0B; --accent-soft:rgba(255,122,102,0.18);
+    --canvas:#13161A; --canvas-dot:#232932; --surface:#1D2229; --surface-rgb:29,34,41; --surface-2:#171A20;
+    --ink:#E5E9F0; --muted:#95A4BB; --faint:#65738B; --border:#1F242C; --border-strong:#2A313B;
+    --accent:#9AA8DA; --accent-ink:#FFFFFF; --accent-soft:rgba(154,168,218,0.18);
+      --tag-yellow:102,126,214; --tag-pink:193,132,219; --tag-blue:202,132,104; --tag-green:159,178,83; --tag-purple:112,194,122; --tag-grey:143,151,163; --tag-orange:125,90,216; --tag-red:75,71,215;
     --danger:#FF6B6B; --danger-soft:rgba(255,107,107,0.16);
     --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6);
     --tag-alpha:0.26; --scrim:rgba(6,7,9,0.6);
@@ -265,7 +271,7 @@ try{
   .landing-circle{
     position:relative; width:96px; height:96px; border-radius:var(--lc-radius,50%); background:var(--accent); border:none; cursor:var(--custom-pointer-cursor,pointer); flex:none;
     display:flex; align-items:center; justify-content:center; color:#fff;
-    box-shadow:0 18px 46px -14px var(--accent), 0 4px 14px -4px var(--shadow-lg);
+    box-shadow:0 10px 24px -14px color-mix(in srgb,var(--accent) 55%,transparent), 0 3px 10px -4px var(--shadow);
     transition:transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
     animation:landingPulse 3.2s ease-in-out infinite, circlePop .7s cubic-bezier(.22,1,.36,1);
   }
@@ -291,12 +297,12 @@ try{
     animation:landingRipple 3.2s cubic-bezier(.22,.61,.36,1) infinite; pointer-events:none; z-index:-1;
   }
   @keyframes landingPulse{
-    0%,100%{box-shadow:0 18px 46px -14px var(--accent), 0 4px 14px -4px var(--shadow-lg);}
-    50%{box-shadow:0 20px 54px -10px var(--accent), 0 4px 14px -4px var(--shadow-lg);}
+    0%,100%{box-shadow:0 10px 24px -14px color-mix(in srgb,var(--accent) 55%,transparent), 0 3px 10px -4px var(--shadow);}
+    50%{box-shadow:0 12px 28px -13px color-mix(in srgb,var(--accent) 60%,transparent), 0 3px 10px -4px var(--shadow);}
   }
   @keyframes landingRipple{
-    0%{transform:scale(1); opacity:0.35;}
-    100%{transform:scale(1.8); opacity:0;}
+    0%{transform:scale(1); opacity:0.16;}
+    100%{transform:scale(1.55); opacity:0;}
   }
   @keyframes circlePop{
     0%{transform:scale(0.4); opacity:0;}
@@ -348,7 +354,7 @@ try{
     position:relative; isolation:isolate; display:inline-flex; align-items:center; gap:7px; border:none; cursor:var(--custom-pointer-cursor,pointer);
     padding:11px 18px; border-radius:13px; font:inherit; font-size:0.85rem; font-weight:700; letter-spacing:.01em;
     color:#fff; background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 58%,#000)); /* Verlauf: Akzentfarbe → dunklere Abstufung derselben Farbe (kein festes Orange mehr) */
-    box-shadow:0 8px 18px -10px var(--accent), 0 2px 6px -2px var(--shadow-lg);
+    box-shadow:0 6px 14px -10px color-mix(in srgb,var(--accent) 60%,transparent), 0 2px 6px -3px var(--shadow);
     transition:transform .2s cubic-bezier(.22,1,.36,1), filter .15s ease;
   }
   .download-cta .dc-icon, .download-cta span{position:relative; z-index:1; flex:none;}
@@ -531,11 +537,11 @@ try{
   /* ---------- PAPIERKORB (trash) VIEW ---------- */
   /* A muted, dusty amber rather than red/danger — clearly its own place without reading as a
      warning screen. Used for the header wash, tile spines/borders and the small restore icon. */
-  :root{ --trash-accent:#A9835A; --trash-accent-soft:rgba(169,131,90,0.16); --trash-accent-border:rgba(169,131,90,0.4); }
+  :root{ --trash-accent:#525B98; --trash-accent-soft:rgba(82,91,152,0.16); --trash-accent-border:rgba(82,91,152,0.4); }
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){ --trash-accent:#C9A877; --trash-accent-soft:rgba(201,168,119,0.16); --trash-accent-border:rgba(201,168,119,0.4); }
+    :root:not([data-theme="light"]){ --trash-accent:#8B9ABB; --trash-accent-soft:rgba(139,154,187,0.16); --trash-accent-border:rgba(139,154,187,0.4); }
   }
-  :root[data-theme="dark"]{ --trash-accent:#C9A877; --trash-accent-soft:rgba(201,168,119,0.16); --trash-accent-border:rgba(201,168,119,0.4); }
+  :root[data-theme="dark"]{ --trash-accent:#8B9ABB; --trash-accent-soft:rgba(139,154,187,0.16); --trash-accent-border:rgba(139,154,187,0.4); }
   #trashView{background:var(--trash-accent-soft);}
 
   /* ---------- WOW PVP-CHECK — Verlauf (history) chart accent ---------- */
@@ -585,9 +591,9 @@ try{
   .folder-reconnect-close:hover{opacity:1; background:rgba(0,0,0,0.08);}
   /* Cluster outline gets its own warm orange rather than reusing the app's coral/red --accent, so the
      cluster line reads as clearly "orange" at a glance instead of blending toward red. */
-  :root{ --cluster-accent:#FF9F1C; }
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --cluster-accent:#FFB13D; } }
-  :root[data-theme="dark"]{ --cluster-accent:#FFB13D; }
+  :root{ --cluster-accent:#E66337; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --cluster-accent:#E38763; } }
+  :root[data-theme="dark"]{ --cluster-accent:#E38763; }
   .trash-title-row{display:flex; align-items:center; gap:6px;}
   .trash-header .wordmark{cursor:default;}
   .trash-header .wordmark:hover h1{color:inherit;}
@@ -1261,7 +1267,7 @@ try{
   :root.anim-off-emptypulse .empty-board-hint svg{animation:none;}
 
   /* selection rectangle */
-  .marquee{position:absolute; border:1.5px solid var(--accent); background:rgba(255,107,87,0.10); pointer-events:none; z-index:5;}
+  .marquee{position:absolute; border:1.5px solid var(--accent); background:color-mix(in srgb,var(--accent) 10%,transparent); pointer-events:none; z-index:5;}
 
   /* ---------- CARDS ---------- */
   .card{
@@ -2653,7 +2659,7 @@ try{
   .bsm-toggle-label{font-size:0.56rem; font-weight:600; letter-spacing:.01em; white-space:nowrap;}
   .bsm-toggle:hover{background:var(--surface-2); color:var(--ink);}
   .bsm-toggle:active{transform:scale(.95);}
-  .bsm-toggle.toggled{background:var(--accent); color:#fff; box-shadow:0 14px 30px -8px var(--accent);}
+  .bsm-toggle.toggled{background:var(--accent); color:#fff; box-shadow:0 6px 14px -8px color-mix(in srgb,var(--accent) 55%,transparent);}
   /* "das Menü soll umgebaut werden und nun so aussehen wie die Eigenschaftsfelder in einem normalen
      Board" — rebuilt from a flat column of bare icon buttons into labeled sections styled exactly like
      the normal card inspector's own grouped fields (.insp-label's small uppercase caption over a row of
@@ -4246,7 +4252,7 @@ try{
   .dp-fx{z-index:4;}
   .dp-landing{background:var(--surface-2); isolation:isolate; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:16px;}
   .dp-lfx{z-index:-1;}
-  .dp-lcircle{width:46px; height:46px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 10px 24px -10px var(--accent);}
+  .dp-lcircle{width:46px; height:46px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 6px 14px -9px color-mix(in srgb,var(--accent) 55%,transparent);}
   .dp-ltitle{font-size:1.5rem; font-weight:700; letter-spacing:-0.02em;}
   .dp-ltag{font-size:0.72rem; color:var(--muted); max-width:220px; line-height:1.4;}
   @media (max-width:780px){
@@ -11592,7 +11598,7 @@ function showThemeMenuModal(){
     <div class="theme-menu-section">
       <h5>${t('theme_menu_custom_title')}</h5>
       <div class="theme-color-row"><label>${t('theme_menu_bg_label')}</label><input type="color" id="themeBgInput" value="#F0F2F5"/></div>
-      <div class="theme-color-row"><label>${t('theme_menu_accent_label')}</label><input type="color" id="themeAccentInput" value="#FF6B57"/></div>
+      <div class="theme-color-row"><label>${t('theme_menu_accent_label')}</label><input type="color" id="themeAccentInput" value="#2B2D33"/></div>
       <div class="theme-palette-preview" id="themePalettePreview"></div>
     </div>
     <div class="theme-menu-actions">
@@ -13023,7 +13029,7 @@ function showDesignMenuModal(){
 }
 
 // ---- Cursor-Spur + Klick-Animationen: ein fixer, klick-durchlässiger Canvas, der nur läuft, solange Partikel leben.
-const fx={canvas:null, ctx:null, parts:[], pts:[], raf:0, last:0, lx:-999, ly:-999, w:0, h:0, dpr:1, rgb:[255,107,87], rgbAt:0, bound:false};
+const fx={canvas:null, ctx:null, parts:[], pts:[], raf:0, last:0, lx:-999, ly:-999, w:0, h:0, dpr:1, rgb:[43,45,51], rgbAt:0, bound:false};
 function fxActive(){
   let reduce=false; try{ reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
   return !reduce && (designStyle.trail!=='off' || designStyle.clickFx!=='off');
@@ -13038,7 +13044,7 @@ function fxColor(now,F=fx){
   if(now-F.rgbAt<1500) return; F.rgbAt=now;
   try{ const ac=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); if(ac.startsWith('#')) F.rgb=hexToRgbArr(ac); }catch(e){}
 }
-function fxNew(canvas){ return {canvas,ctx:canvas.getContext('2d'),parts:[],pts:[],raf:0,last:0,w:0,h:0,dpr:1,rgb:[255,107,87],rgbAt:0}; }
+function fxNew(canvas){ return {canvas,ctx:canvas.getContext('2d'),parts:[],pts:[],raf:0,last:0,w:0,h:0,dpr:1,rgb:[43,45,51],rgbAt:0}; }
 function fxKick(F){ if(!F.raf){ F.last=0; F.raf=requestAnimationFrame((t)=>fxTick(t,F)); } }
 // Ein Punkt der Linien-Spur (kind 'line'): wird als verblassende, nach hinten dünner werdende Linie gezeichnet.
 function fxLinePt(F,x,y){ if(!F.canvas) return; F.pts.push({x,y,age:0}); fxKick(F); }
@@ -16374,7 +16380,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.166';
+const APP_VERSION='2.4.167';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -18392,13 +18398,14 @@ async function __syncInstallIcons(){
     if(!/^https?:$/.test(location.protocol)) return;
     let acc=null; const raw=localStorage.getItem('notua-custom-theme');
     if(raw){ const t=JSON.parse(raw); if(t && /^#[0-9a-f]{6}$/i.test(String(t.accent||''))) acc=String(t.accent).toUpperCase(); }
+    if(acc==='#2B2D33') acc=null; // gespeichertes Mono = Standard-Look → die festen Mono-Icon-Dateien (Graphit mit hellblauem N) verwenden
     const bar=liveBarColor(), key=(acc||'')+'|'+bar;
     if(key===__icKey) return;
     const lm=document.querySelector('link[rel="manifest"]'), lf=document.querySelector('link[rel="icon"]'), la=document.querySelector('link[rel="apple-touch-icon"]');
     if(!lm) return;
-    if(__icOrig.m===undefined){ __icOrig.m=lm.getAttribute('href'); __icOrig.f=lf&&lf.getAttribute('href'); __icOrig.a=la&&la.getAttribute('href'); }
+    if(__icOrig.m===undefined){ __icOrig.m=lm.getAttribute('href'); __icOrig.f=lf&&lf.getAttribute('href'); __icOrig.ft=lf&&lf.getAttribute('type'); __icOrig.a=la&&la.getAttribute('href'); }
     if(!acc && bar==='#191C22'){
-      lm.setAttribute('href',__icOrig.m); if(lf&&__icOrig.f) lf.setAttribute('href',__icOrig.f); if(la&&__icOrig.a) la.setAttribute('href',__icOrig.a);
+      lm.setAttribute('href',__icOrig.m); if(lf&&__icOrig.f){ lf.setAttribute('href',__icOrig.f); if(__icOrig.ft) lf.setAttribute('type',__icOrig.ft); } if(la&&__icOrig.a) la.setAttribute('href',__icOrig.a);
       if(__icBlob){ URL.revokeObjectURL(__icBlob); __icBlob=null; }
       __icKey=key; return;
     }
@@ -18415,7 +18422,7 @@ async function __syncInstallIcons(){
     if(Array.isArray(man.screenshots)) man.screenshots.forEach(sc=>{ sc.src=abs(sc.src); });
     const url=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));
     lm.setAttribute('href',url); if(__icBlob) URL.revokeObjectURL(__icBlob); __icBlob=url;
-    if(acc && lf) lf.setAttribute('href',__drawInstallIcon(64,acc,ink,0));
+    if(acc && lf){ lf.setAttribute('type','image/png'); lf.setAttribute('href',__drawInstallIcon(64,acc,ink,0)); }
     if(acc && la) la.setAttribute('href',__drawInstallIcon(180,acc,ink,2));
     __icKey=key;
   }catch(e){}

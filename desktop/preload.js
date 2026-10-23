@@ -11,7 +11,7 @@ contextBridge.exposeInMainWorld('notuaDesktop', {
   retry: () => ipcRenderer.send('notua:retry')
 });
 
-const VARS = ['--canvas', '--canvas-dot', '--surface', '--surface-2', '--ink', '--muted', '--faint', '--border', '--accent', '--accent-ink', '--shadow', '--shadow-lg'];
+const VARS = ['--canvas', '--canvas-dot', '--surface', '--surface-2', '--ink', '--muted', '--faint', '--border', '--accent', '--accent-ink', '--shadow', '--shadow-lg', '--tag-yellow', '--tag-blue', '--tag-pink', '--tag-alpha'];
 let last = '';
 function report() {
   try {

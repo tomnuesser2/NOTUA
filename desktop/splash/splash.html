@@ -8,17 +8,19 @@
 <style>
   /* Schwebendes Startbild: Das Fenster selbst ist durchsichtig (760x480), sichtbar sind nur Karte und Elemente. */
   :root{
-    --canvas:#E7EAEE; --surface:#FFFFFF; --surface-2:#F0F2F5;
-    --ink:#1B2027; --muted:#5C6570; --faint:#8A9099; --border:#D7DBE1; --accent:#FF6B57;
+    /* Standard = NOTUA Mono (hell); main.js reicht beim Start die echten Farben des zuletzt genutzten Looks herein. */
+    --canvas:#e0e0e0; --surface:#ededed; --surface-2:#e8e8e8;
+    --ink:#242428; --muted:#64646e; --faint:#9797a0; --border:#cececf; --accent:#2B2D33;
     --shadow:rgba(24,28,35,0.16); --shadow-lg:rgba(24,28,35,0.28);
-    --tag-yellow:235,186,66; --tag-blue:90,159,214; --tag-pink:227,132,171; --tag-alpha:0.22;
+    --tag-yellow:102,130,214; --tag-blue:202,129,104; --tag-pink:190,132,219; --tag-alpha:0.22;
     --f-sans:'IBM Plex Sans','Segoe UI',-apple-system,system-ui,sans-serif;
     --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Consolas,monospace;
   }
   :root.dark{
-    --canvas:#14171C; --surface:#1E222A; --surface-2:#191C22;
-    --ink:#ECEEF2; --muted:#9AA3AF; --faint:#6B7480; --border:#2C3038; --accent:#FF7A66;
+    --canvas:#13161a; --surface:#1d2229; --surface-2:#171a20;
+    --ink:#e5e9f0; --muted:#95a4bb; --faint:#65738b; --border:#1f242c; --accent:#9AA8DA;
     --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6); --tag-alpha:0.26;
+    --tag-yellow:102,126,214; --tag-blue:202,132,104; --tag-pink:193,132,219;
   }
   *,*::before,*::after{box-sizing:border-box;}
   html,body{margin:0; width:760px; height:480px; overflow:hidden; background:transparent; -webkit-user-select:none; user-select:none; cursor:default;}

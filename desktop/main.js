@@ -105,7 +105,7 @@ function openExternal(u) { try { const p = new URL(u).protocol; if (['http:', 'h
 function createMain() {
   const b = settings.bounds || {};
   const theme = themeForSplash();
-  const canvas = (theme.vars && theme.vars['--canvas']) || (theme.dark ? '#14171C' : '#E7EAEE');
+  const canvas = (theme.vars && theme.vars['--canvas']) || (theme.dark ? '#13161A' : '#E0E0E0');
   mainWin = new BrowserWindow({
     width: b.width || 1360, height: b.height || 860, x: b.x, y: b.y,
     minWidth: 420, minHeight: 480,
