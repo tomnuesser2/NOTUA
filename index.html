@@ -307,11 +307,23 @@ try{
     position:relative; width:96px; height:96px; border-radius:var(--lc-radius,50%); background:var(--accent); border:none; cursor:var(--custom-pointer-cursor,pointer); flex:none;
     display:flex; align-items:center; justify-content:center; color:#fff;
     box-shadow:0 10px 24px -14px color-mix(in srgb,var(--accent) 55%,transparent), 0 3px 10px -4px var(--shadow);
-    transition:transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
-    animation:landingPulse 3.2s ease-in-out infinite, circlePop .7s cubic-bezier(.22,1,.36,1);
+    /* Weicher: nur transform wird animiert (läuft auf der GPU), länger und mit sanftem Auslaufen. Das
+       Atmen des Schattens läuft jetzt über die Deckkraft von ::after statt über box-shadow selbst —
+       box-shadow neu zu malen hat jedes Bild gekostet und den Hover leicht ruckeln lassen. */
+    transition:transform .55s cubic-bezier(.22,1,.36,1);
+    will-change:transform; backface-visibility:hidden;
+    animation:circlePop .7s cubic-bezier(.22,1,.36,1);
   }
-  .landing-circle:hover{transform:scale(1.07) rotate(-4deg);}
-  .landing-circle:active{transform:scale(0.9);}
+  .landing-circle::after{
+    content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+    box-shadow:0 14px 32px -12px color-mix(in srgb,var(--accent) 70%,transparent);
+    opacity:0; animation:landingGlow 3.2s ease-in-out infinite; transition:opacity .55s ease;
+  }
+  .landing-circle:hover{transform:scale(1.06) rotate(-3deg);}
+  .landing-circle:hover::after{opacity:1; animation-play-state:paused;}
+  .landing-circle:active{transform:scale(0.93); transition-duration:.16s;}
+  @keyframes landingGlow{0%,100%{opacity:0;} 50%{opacity:.55;}}
+  .landing-circle .lc-arrow{transition:transform .55s cubic-bezier(.22,1,.36,1);}
   /* Wordless "this is pressable" affordance: a soft arrow that gently nudges rightward inside the
      circle. No icon existed here before — the plain colored circle read as decorative rather than
      as a button, which is exactly what people reported missing. Kept subtle (small travel, low
@@ -909,7 +921,8 @@ try{
     position:relative; grid-column:span 1; background:var(--accent-soft); border:1.5px dashed var(--border-strong);
     border-radius:10px; padding:14px 16px; height:158px; cursor:var(--custom-pointer-cursor,pointer);
     display:flex; flex-direction:column; justify-content:space-between;
-    transition:box-shadow .22s cubic-bezier(.22,1,.36,1), transform .22s cubic-bezier(.22,1,.36,1), border-color .22s ease;
+    transition:box-shadow .4s cubic-bezier(.22,1,.36,1), transform .4s cubic-bezier(.22,1,.36,1), border-color .3s ease;
+    will-change:transform;
     touch-action:pan-y; /* see .board-tile's touch-action comment above — same reasoning */
   }
   .project-tile.drop-target{border-color:var(--accent); box-shadow:0 0 0 2.5px var(--accent);}
@@ -4088,6 +4101,14 @@ try{
      eigenem Schatten-Design (auch "Flach"/Look-Finder) überschrieben → Ring + gewählter Schatten kombinieren. */
   html[data-d-shadow] .card.selected:not(.dragging){box-shadow:0 0 0 2px var(--accent), var(--d-shadow-sel,0 0 0 0 transparent);}
   html[data-d-bw] .card, html[data-d-bw] .dp-card{border-width:var(--d-bw);}
+  /* Transparente Bilder (PNG/WebP/SVG mit Alphakanal, erkannt in buildImageCard → .has-alpha): nie ein
+     Schatten und nie ein Rahmen/Hintergrund — egal was im Look eingestellt ist oder ob "Transparenz" aus ist.
+     Ein Kasten-Schatten hinter einer freigestellten Grafik sieht sonst wie ein falsches Rechteck aus.
+     Der Auswahl-Ring bleibt, damit man sieht, was markiert ist. */
+  .card.card-image.has-alpha, html[data-d-shadow] .card.card-image.has-alpha:not(.dragging), .card.card-image.has-alpha.dragging,
+  .card.card-image.has-alpha.framed, .card.card-image.has-alpha.has-caption{
+    box-shadow:none !important; background:transparent !important; border-color:transparent !important;}
+  .card.card-image.has-alpha.selected, html[data-d-shadow] .card.card-image.has-alpha.selected:not(.dragging){box-shadow:0 0 0 2px var(--accent) !important;}
   html[data-d-go] .grid-layer, html[data-d-go] .dp-grid{opacity:var(--d-go);}
   /* Ecken → Innenabstand (--d-inset, siehe applyDesign): Text/Icons rücken mit runderen Ecken vom Rand weg */
   html[data-d-radius] :is(.card-note,.card-checklist,.card-table,.card-boardlink,.card-colorpicker,.card-wowpvp,.card-file){padding:var(--d-inset);}
@@ -4135,14 +4156,15 @@ try{
        a neighbour) and the board badges spread apart — the cue that several boards are stacked in here. */
     .project-tile:hover .pt-layer.l1{transform:translate(6px,-8px);}
     .project-tile:hover .pt-layer.l2{transform:translate(11px,-12px); transition-delay:.03s;}
-    .project-tile:hover .pt-chips{padding-left:2px;}
-    .project-tile:hover .pt-chip{margin-left:4px;}
-    .project-tile:hover .pt-chip:first-child{margin-left:0;}
+    /* Auffächern per transform statt margin: margin hat bei jedem Bild das Layout neu berechnet (Ruckeln),
+       transform läuft flüssig auf der GPU. Gleiche Endpositionen wie vorher (4px Abstand), leicht gestaffelt. */
+    .project-tile:hover .pt-chip{transform:translateX(calc(var(--ci,0) * var(--chip-spread,12px) + var(--chip-shift,2px)));}
   }
   .pt-layer{
     position:absolute; left:0; right:0; top:0; bottom:0; border-radius:inherit; background:var(--surface);
     border:1px solid var(--border-strong); transform-origin:0 100%;
-    transition:transform .32s var(--ease-out,cubic-bezier(.22,1,.36,1)), opacity .2s ease;
+    transition:transform .5s var(--ease-out,cubic-bezier(.22,1,.36,1)), opacity .3s ease;
+    will-change:transform;
   }
   /* the stacked cards peek out behind the tile towards the top right */
   .pt-layer.l1{transform:translate(4px,-5px);}
@@ -4151,7 +4173,7 @@ try{
     position:relative; height:100%; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between;
     padding:calc(12px + var(--d-inset,0px)) calc(14px + var(--d-inset,0px)) calc(12px + var(--d-inset,0px)); border-radius:inherit; background:var(--surface);
     border:1px solid var(--border);
-    box-shadow:0 1px 2px rgba(0,0,0,.05); overflow:hidden; transition:box-shadow .22s var(--ease-out,cubic-bezier(.22,1,.36,1));
+    box-shadow:0 1px 2px rgba(0,0,0,.05); overflow:hidden; transition:box-shadow .4s var(--ease-out,cubic-bezier(.22,1,.36,1));
   }
   .project-badge{
     width:28px; height:28px; border-radius:8px; background:var(--pc, var(--accent)); color:#fff; align-items:center; justify-content:center;
@@ -4167,8 +4189,10 @@ try{
   .board-tile .board-badge{cursor:var(--custom-pointer-cursor,pointer);}
   .board-icon-opt.board-icon-remove{width:100%; height:28px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); font-size:0.76rem; cursor:var(--custom-pointer-cursor,pointer);}
   .board-icon-opt.board-icon-remove:hover{color:var(--ink); border-color:var(--border-strong);}
-  .pt-chips{display:flex; align-items:center; padding-left:8px; margin:4px 0; transition:padding .26s var(--ease-out,cubic-bezier(.22,1,.36,1));}
-  .pt-chip{width:34px; height:34px; border-radius:9px; margin-left:-8px; border:2px solid var(--surface); box-sizing:border-box; flex:none; transition:margin .26s var(--ease-out,cubic-bezier(.22,1,.36,1));}
+  .pt-chips{display:flex; align-items:center; padding-left:8px; margin:4px 0;}
+  .pt-chip{width:34px; height:34px; border-radius:9px; margin-left:-8px; border:2px solid var(--surface); box-sizing:border-box; flex:none;
+    transition:transform .45s var(--ease-out,cubic-bezier(.22,1,.36,1)); transition-delay:calc(var(--ci,0) * 22ms); will-change:transform;}
+  .pt-chip:nth-child(2){--ci:1;} .pt-chip:nth-child(3){--ci:2;} .pt-chip:nth-child(4){--ci:3;} .pt-chip:nth-child(5){--ci:4;} .pt-chip:nth-child(6){--ci:5;}
   .pt-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--pc, var(--accent)); margin-right:6px; vertical-align:baseline;}
   .pt-chip.board-badge svg{width:15px; height:15px;}
   .pt-chip-more{display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--muted); font-size:0.72rem; font-weight:700;}
@@ -4241,7 +4265,7 @@ try{
   .psp-ic:hover{color:var(--ink); border-color:var(--border-strong);}
   .psp-ic.active{background:var(--accent-soft); color:var(--accent); border-color:var(--accent);}
   @media (max-width:640px){
-    .pt-chip{width:28px; height:28px; margin-left:-7px;}
+    .pt-chip{width:28px; height:28px; margin-left:-7px; --chip-spread:11px; --chip-shift:1px;}
     .pt-layer.l1{transform:translate(3px,-4px);} .pt-layer.l2{transform:translate(6px,-8px);}
     .pt-card{padding:calc(9px + var(--d-inset,0px)) calc(11px + var(--d-inset,0px));}
   }
@@ -12135,14 +12159,16 @@ if(drawerCustomizeBtnEl) drawerCustomizeBtnEl.addEventListener('click',()=>{ clo
 // dock visibly widens/makes room exactly like the demo, instead of icons just bulging in place over
 // their neighbors. Gated to "(hover:hover) and (pointer:fine)" so it never attaches on the
 // touch-only mobile drawer, which has no equivalent effect and no toggle of its own.
-const DOCK_MAGNIFY_SPRING={mass:0.1,stiffness:150,damping:12};
-const DOCK_MAGNIFY_BASE=58, DOCK_MAGNIFY_MAX=88, DOCK_MAGNIFY_DISTANCE=160;
+// Tom, 28.10: "ein bisschen zu doll bouncy" → etwas weniger Vergrößerung (88→78 px), etwas engerer Einzugsbereich
+// und eine ruhigere Feder (mehr Dämpfung), damit die Leiste beim Drüberfahren weniger "pumpt".
+const DOCK_MAGNIFY_SPRING={mass:0.1,stiffness:140,damping:15};
+const DOCK_MAGNIFY_BASE=58, DOCK_MAGNIFY_MAX=78, DOCK_MAGNIFY_DISTANCE=140;
 // "Dieselbe Animation bei der Werkzeugleiste soll bitte auf Desktop auch auf die Werkzeugleiste für
 // Dunkelmodus und Ansichtssachen" — .viewctl is that second bar (dark-mode toggle + zoom/grid/snap/
 // export). Its buttons are plain fixed 28×28 icon squares rather than #dock's label+icon columns, so
 // this variant also grows `height` (see growHeight below), not just width, and uses smaller base/max/
 // distance values tuned to its smaller buttons/tighter spacing.
-const VIEWCTL_MAGNIFY_BASE=28, VIEWCTL_MAGNIFY_MAX=42, VIEWCTL_MAGNIFY_DISTANCE=110;
+const VIEWCTL_MAGNIFY_BASE=28, VIEWCTL_MAGNIFY_MAX=38, VIEWCTL_MAGNIFY_DISTANCE=100;
 // Every currently-live bar's magnify effect — was a single dockMagnifyState while this only ever ran
 // on #dock; now a small list so #dock and .viewctl can each run (and get cleanly stopped) independently
 // while sharing the exact same spring physics/on-off toggle (see refreshDockMagnify()/DYNAMIC_ANIM_KEYS'
@@ -16651,7 +16677,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.176';
+const APP_VERSION='2.4.178';
 try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
@@ -17996,6 +18022,7 @@ let wheelPref='auto';
 // gespeichert wird jetzt jede Wahl explizit, damit "Automatisch" nicht mehr mit "nichts gewählt" verwechselt wird.
 try{ const v=localStorage.getItem('notua-wheel-pref'); if(v==='zoom'||v==='pan'||v==='auto') wheelPref=v; }catch(e){}
 const WHEEL_BURST_GAP_MS=220, WHEEL_TRACKPAD_STICKY_MS=1500, WHEEL_PENDING_MS=45;
+const WHEEL_IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||'') || /Mac OS X/.test(navigator.userAgent||'');
 let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0, wheelPending=null;
 // ---- Flüssiges Trackpad-/Mausrad-Bewegen (v2.4.164) ----
 // Vorher wurde jedes einzelne Wheel-Ereignis sofort angewendet. Auf dem Mac (Trackpad, ProMotion 120 Hz) kommen
@@ -18084,7 +18111,9 @@ function classifyWheel(e,now){
   // VIELFACHE von 100 sind (100, 200, 300 …). Ein Trackpad-Wisch tut das praktisch nie. Solche Ereignisse
   // zoomen deshalb immer, auch mitten in einem schnellen Dreh, solange nicht gerade ein Trackpad-Wisch läuft.
   if(e.deltaX===0 && ady>=50 && Math.abs(ady/100-Math.round(ady/100))*100<2.5){
-    const trackpadRunning=(wheelBurstKind==='trackpad' && now-wheelTrackpadTs<WHEEL_BURST_GAP_MS);
+    // Mac: das Trackpad liefert dort oft ganzzahlige Deltas (bei Retina ×2 schnell genau 100) — kurz nach einer
+    // Trackpad-Bewegung oder einem Pinch ist so ein Wert deshalb fast sicher noch das Trackpad, nicht ein Mausrad.
+    const trackpadRunning=(wheelBurstKind==='trackpad' && now-wheelTrackpadTs<WHEEL_BURST_GAP_MS) || (WHEEL_IS_MAC && now-wheelTrackpadTs<WHEEL_TRACKPAD_STICKY_MS);
     if(!trackpadRunning){ wheelBurstKind='mouse'; return 'mouse'; }
   }
   if(wheelBurstKind){ if(wheelBurstKind==='trackpad') wheelTrackpadTs=now; return wheelBurstKind; } // the burst already has its kind — keep it
@@ -18112,6 +18141,7 @@ viewport.addEventListener('wheel',(e)=>{
   e.preventDefault();
   if(ctrlOrPinch){
     if(e.deltaY===0) return;
+    if(gestureBaseZoom!=null) return; // Safari zoomt schon über gesturechange — nicht doppelt
     // A trackpad pinch (synthetic ctrlKey, many small continuous deltas) zooms proportionally to how far
     // the fingers actually moved — a fixed step per event made it jump, and its size depended on how
     // many events the browser happened to emit. A real notch of a mouse wheel with a held Ctrl (lines
@@ -18119,6 +18149,16 @@ viewport.addEventListener('wheel',(e)=>{
     const ndy=Math.abs(e.deltaY)*(window.devicePixelRatio||1);
     const notch=(e.deltaMode!==0) || (e.deltaX===0 && ndy>=40 && Math.abs(ndy-Math.round(ndy))<0.02);
     const factor=notch ? (e.deltaY<0 ? 1.08 : 0.92) : clamp(Math.exp(-e.deltaY*0.01),0.8,1.25);
+    if(!notch){
+      // Tom, 28.10: "Zoomen und Verschieben muss gleichzeitig gehen" (wie beim Apple-Trackpad). Ein Pinch zählt
+      // jetzt als laufende Trackpad-Geste: Zwei-Finger-Bewegungen, die während/direkt nach dem Pinch kommen,
+      // verschieben deshalb sofort und ohne Warten — vorher konnte so ein Ereignis als "Mausrad" gelten (→ zoomte
+      // statt zu schieben) oder wurde erst kurz zurückgehalten. Verschieben und Zoomen laufen beide in dieselbe
+      // Engine und landen im selben Frame, unabhängig voneinander.
+      const now=performance.now();
+      if(wheelPending) wheelResolvePending('trackpad');
+      wheelBurstKind='trackpad'; wheelTrackpadTs=now; wheelLastTs=now;
+    }
     wheelEngZoom(e.clientX,e.clientY,factor);
     return;
   }
@@ -18138,10 +18178,12 @@ viewport.addEventListener('wheel',(e)=>{
 // what made pinch on a Mac (Safari) not behave. iOS Safari fires the same events for a two-finger touch
 // pinch, but that case is already fully handled by the pointer-based pinch below (which also pans), so
 // it is skipped here whenever two touches are down to avoid zooming twice.
-let gestureBaseZoom=null;
+let gestureBaseZoom=null, gestureLastX=null, gestureLastY=null;
 viewport.addEventListener('gesturestart',(e)=>{
   e.preventDefault();
   gestureBaseZoom=(activeTouches.size>=2) ? null : state.view.zoom;
+  gestureLastX=Number.isFinite(e.clientX)?e.clientX:null; gestureLastY=Number.isFinite(e.clientY)?e.clientY:null;
+  wheelTrackpadTs=performance.now(); wheelBurstKind='trackpad';
 });
 viewport.addEventListener('gesturechange',(e)=>{
   e.preventDefault();
@@ -18149,12 +18191,16 @@ viewport.addEventListener('gesturechange',(e)=>{
   const r=viewport.getBoundingClientRect();
   const cx=Number.isFinite(e.clientX) ? e.clientX : r.left+r.width/2;
   const cy=Number.isFinite(e.clientY) ? e.clientY : r.top+r.height/2;
+  // Wandert der Mittelpunkt der Geste (Finger bewegen sich beim Pinchen), verschiebt das gleichzeitig das Board.
+  if(gestureLastX!=null && Number.isFinite(e.clientX)){ const mx=e.clientX-gestureLastX, my=e.clientY-gestureLastY; if(mx||my){ wheelEng.dx-=mx; wheelEng.dy-=my; wheelEngKick(); } }
+  gestureLastX=Number.isFinite(e.clientX)?e.clientX:null; gestureLastY=Number.isFinite(e.clientY)?e.clientY:null;
+  wheelTrackpadTs=performance.now();
   const target=clamp(gestureBaseZoom*e.scale,0.2,2.5);
   // Safari-Pinch ebenfalls über die geglättete Engine (ein Update pro Frame, gleiche Weichheit wie Chrome-Pinch).
   const pendingZoom=state.view.zoom*Math.exp(wheelEng.lz);
   wheelEngZoom(cx,cy,target/pendingZoom);
 });
-viewport.addEventListener('gestureend',(e)=>{ e.preventDefault(); gestureBaseZoom=null; });
+viewport.addEventListener('gestureend',(e)=>{ e.preventDefault(); gestureBaseZoom=null; gestureLastX=gestureLastY=null; wheelTrackpadTs=performance.now(); });
 
 function zoomInAtCenter(){ const r=viewport.getBoundingClientRect(); smoothViewJump(()=>zoomAt(r.left+r.width/2,r.top+r.height/2,1.2)); }
 function zoomOutAtCenter(){ const r=viewport.getBoundingClientRect(); smoothViewJump(()=>zoomAt(r.left+r.width/2,r.top+r.height/2,0.82)); }
@@ -21502,6 +21548,24 @@ function buildChecklistCard(card){
 function resizeChecklistIfNeeded(el,card){ fitCardHeight(el,card); }
 function iconCross(){return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>`;}
 
+// Hat das Bild echte transparente Pixel? Klein herunterskaliert prüfen (schnell), Ergebnis pro Bild merken.
+const imageAlphaCache=new Map();
+function imageHasAlpha(img,key){
+  if(key && imageAlphaCache.has(key)) return imageAlphaCache.get(key);
+  let res=false;
+  try{
+    const W=img.naturalWidth, H=img.naturalHeight;
+    if(W && H){
+      const s=Math.min(1,96/Math.max(W,H)), w=Math.max(1,Math.round(W*s)), h=Math.max(1,Math.round(H*s));
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0,w,h);
+      const d=ctx.getImageData(0,0,w,h).data; let n=0;
+      for(let i=3;i<d.length;i+=4){ if(d[i]<235){ n++; if(n>Math.max(2,w*h*0.002)){ res=true; break; } } }
+    }
+  }catch(e){ res=false; }
+  if(key) imageAlphaCache.set(key,res);
+  return res;
+}
 function buildImageCard(card){
   const el=baseCardShell(card,'card-image');
   // No .card-head/.type-chip badge here (unlike every other card type) — "Bilder sollen auch das
@@ -21515,7 +21579,13 @@ function buildImageCard(card){
   const slot=el.querySelector('.img-slot');
   slot.style.cssText='flex:1;position:relative;overflow:hidden;';
   if(card.data.imageId){
-    withImagePlaceholder(card.data.imageId,slot,(url)=>{ const img=document.createElement('img'); img.src=url; img.alt=''; slot.appendChild(img); });
+    withImagePlaceholder(card.data.imageId,slot,(url)=>{
+      const img=document.createElement('img'); img.alt='';
+      const known=imageAlphaCache.get(card.data.imageId);
+      if(known!==undefined) el.classList.toggle('has-alpha',known);
+      img.addEventListener('load',()=>{ const a=imageHasAlpha(img,card.data.imageId); el.classList.toggle('has-alpha',a); },{once:true});
+      img.src=url; slot.appendChild(img);
+    });
   }else{
     slot.innerHTML=`<div class="img-drop-overlay">${typeChipIconBig()}<span>${t('image_drop_hint')}</span></div>`;
   }
