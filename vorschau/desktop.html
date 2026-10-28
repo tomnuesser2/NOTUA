@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>NOTUA Installer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: preview page with one stage; the installer window (760x470) and the Mac DMG window (640x420)
+     are drawn at fixed size and scaled to fit. Tokens = NOTUA's palette; dark mirrors the app. */
+  :root{
+    --canvas:#e0e0e0; --canvas-dot:#c1c1c2; --surface:#ededed; --surface-2:#e8e8e8;
+    --ink:#242428; --muted:#64646e; --faint:#9797a0; --border:#cececf;
+    --accent:#2B2D33; --accent-ink:#FFFFFF; --accent-soft:#d1dbfa; --ok:#3E9B5C;
+    --shadow:rgba(24,28,35,0.14); --shadow-lg:rgba(24,28,35,0.26);
+    --tag-yellow:102,130,214; --tag-blue:202,129,104; --tag-green:162,178,83; --tag-pink:190,132,219; --tag-alpha:0.22;
+    --page:#DDE1E6; --wall:linear-gradient(135deg,#3B4B7A,#7A5A8E 55%,#C9876E);
+    --f-sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --canvas:#13161a; --canvas-dot:#232932; --surface:#1d2229; --surface-2:#171a20;
+      --ink:#e5e9f0; --muted:#95a4bb; --faint:#65738b; --border:#2a313b;
+      --accent:#9AA8DA; --accent-ink:#13161A; --accent-soft:rgba(154,168,218,0.18);
+      --tag-yellow:102,126,214; --tag-blue:202,132,104; --tag-green:159,178,83; --tag-pink:193,132,219; --ok:#5CC27E;
+      --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6); --tag-alpha:0.26; --page:#0F1115; color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas:#13161a; --canvas-dot:#232932; --surface:#1d2229; --surface-2:#171a20;
+      --ink:#e5e9f0; --muted:#95a4bb; --faint:#65738b; --border:#2a313b;
+      --accent:#9AA8DA; --accent-ink:#13161A; --accent-soft:rgba(154,168,218,0.18);
+      --tag-yellow:102,126,214; --tag-blue:202,132,104; --tag-green:159,178,83; --tag-pink:193,132,219; --ok:#5CC27E;
+    --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6); --tag-alpha:0.26; --page:#0F1115; color-scheme:dark;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{min-height:100%;}
+  body{background:var(--page); color:var(--ink); font-family:var(--f-sans);
+    padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:24px 40px;}
+  .wrap{max-width:940px; margin:0 auto; display:flex; flex-direction:column; gap:16px;}
+  header h1{margin:0; font-size:1.25rem; font-weight:700; letter-spacing:-0.01em;}
+  header p{margin:4px 0 0; color:var(--muted); font-size:0.9rem; max-width:64ch; line-height:1.45;}
+  .controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .seg{display:inline-flex; flex-wrap:wrap; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px; gap:2px;}
+  .seg button{border:0; background:transparent; color:var(--muted); font:500 0.82rem var(--f-sans); padding:6px 12px; border-radius:7px; cursor:pointer;}
+  .seg button[aria-pressed="true"]{background:var(--surface-2); color:var(--ink); box-shadow:0 1px 2px var(--shadow);}
+  .pill{border:1px solid var(--border); background:var(--surface); color:var(--ink); font:500 0.82rem var(--f-sans); padding:7px 12px; border-radius:10px; cursor:pointer;}
+  button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .stage{border-radius:16px; overflow:hidden; background:var(--wall); display:flex; align-items:center; justify-content:center; padding:34px 12px; min-height:300px;}
+  .fit{position:relative;} .fit > .design{position:absolute; left:0; top:0; transform-origin:0 0;}
+  .notes{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px;}
+  .notes div{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:0.86rem; line-height:1.5; color:var(--muted); min-width:0;}
+  .notes b{display:block; color:var(--ink); font-size:0.78rem; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.06em;}
+
+  /* ---------- Windows installer window ---------- */
+  .inst{width:760px; height:470px; border-radius:14px; overflow:hidden; display:grid; grid-template-columns:300px 1fr;
+    background:var(--surface); box-shadow:0 0 0 1px var(--border), 0 30px 80px rgba(0,0,0,0.4); font-family:var(--f-sans); color:var(--ink);}
+  .art{position:relative; background:var(--canvas); background-image:radial-gradient(var(--canvas-dot) 1.2px, transparent 1.4px); background-size:20px 20px; overflow:hidden; border-right:1px solid var(--border);}
+  .art .mk{position:absolute; left:26px; top:24px; display:flex; align-items:center; gap:9px; font-weight:700; font-size:17px; letter-spacing:-0.02em;}
+  .art .mk i{width:11px; height:11px; border-radius:3px; background:var(--accent); transition:border-radius .4s cubic-bezier(.34,1.56,.64,1);}
+  .inst.s-done .art .mk i, .inst.s-run .art .mk i{border-radius:50%;}
+  .c{position:absolute; border-radius:11px; background:var(--surface); box-shadow:0 0 0 1px var(--border), 0 10px 26px var(--shadow-lg);
+    opacity:0; transform:translate(var(--fx),var(--fy)) rotate(calc(var(--r)*3)) scale(.9); transition:opacity .45s ease, transform .7s cubic-bezier(.18,.9,.25,1.12);}
+  .c.in{opacity:1; transform:rotate(var(--r));}
+  .c1{left:30px; top:96px; width:150px; padding:12px 13px; display:flex; flex-direction:column; gap:7px; --r:-5deg; --fx:-40px; --fy:-20px;
+    background:linear-gradient(rgba(var(--tag-yellow),var(--tag-alpha)),rgba(var(--tag-yellow),var(--tag-alpha))), var(--surface);}
+  .c1 b{font-size:12px; font-weight:600;} .c1 span{height:5px; border-radius:3px; background:rgba(127,135,146,0.32);}
+  .c2{left:138px; top:150px; width:136px; padding:7px; --r:4deg; --fx:40px; --fy:-30px;}
+  .c2 .pic{height:120px; border-radius:6px; position:relative; overflow:hidden; background:linear-gradient(180deg,#8CB8E6,#C7DDF2 55%,#F4D6B8);}
+  .c2 .pic::before{content:''; position:absolute; left:-30%; right:20%; bottom:-34px; height:80px; border-radius:50%; background:#6FAE73;}
+  .c2 .pic::after{content:''; position:absolute; left:35%; right:-35%; bottom:-44px; height:86px; border-radius:50%; background:#4F8F5F;}
+  .c2 .pic em{position:absolute; left:16px; top:14px; width:18px; height:18px; border-radius:50%; background:#FFD27A;}
+  .c3{left:26px; top:288px; width:128px; padding:10px 11px; --r:5deg; --fx:-30px; --fy:40px;}
+  .c3 strong{font-size:24px; font-weight:700; color:var(--accent); letter-spacing:-0.03em; line-height:1;}
+  .c3 small{font:500 9.5px var(--f-mono); color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-left:6px;}
+  .c3 div{margin-top:7px; padding:5px 7px; border-radius:6px; font-size:10px; font-weight:500; background:rgba(var(--tag-pink),var(--tag-alpha));}
+  .c4{left:146px; top:330px; width:138px; padding:11px 12px; display:flex; flex-direction:column; gap:6px; --r:-3deg; --fx:40px; --fy:40px;
+    background:linear-gradient(rgba(var(--tag-blue),var(--tag-alpha)),rgba(var(--tag-blue),var(--tag-alpha))), var(--surface);}
+  .c4 b{font-size:11.5px; font-weight:600;} .c4 span{display:flex; gap:6px; align-items:center; font-size:10px; color:var(--muted);}
+  .c4 span i{width:10px; height:10px; border-radius:3px; border:1.4px solid var(--faint);} .c4 span.ok i{background:var(--accent); border-color:var(--accent);}
+  .art .ver{position:absolute; left:26px; bottom:18px; font:500 10.5px var(--f-mono); color:var(--faint);}
+
+  .side{display:flex; flex-direction:column; min-width:0; position:relative;}
+  .tb{height:40px; flex:none; display:flex; justify-content:flex-end; align-items:center; padding:0 6px; -webkit-user-select:none; user-select:none;}
+  .tb button{width:36px; height:28px; border:0; background:transparent; color:var(--muted); border-radius:6px; display:grid; place-items:center; cursor:pointer;}
+  .tb button:hover{background:var(--surface-2); color:var(--ink);} .tb button.x:hover{background:#E5484D; color:#fff;}
+  .tb svg{width:12px; height:12px; stroke:currentColor; stroke-width:1.4; fill:none;}
+  .pane{flex:1; padding:6px 40px 28px 40px; display:flex; flex-direction:column; min-height:0;}
+  .eyebrow{font:500 11px var(--f-mono); color:var(--muted); letter-spacing:0.06em; text-transform:uppercase;}
+  .pane h2{margin:10px 0 0; font-size:30px; font-weight:700; letter-spacing:-0.025em; line-height:1.1; text-wrap:balance;}
+  .pane p.lead{margin:12px 0 0; font-size:14px; line-height:1.55; color:var(--muted); max-width:380px;}
+  .facts{margin-top:20px; display:grid; grid-template-columns:auto 1fr; gap:6px 16px; font-size:12.5px;}
+  .facts dt{color:var(--faint);} .facts dd{margin:0; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .actions{margin-top:auto; display:flex; align-items:center; gap:10px;}
+  .actions .sp{flex:1;}
+  .bp{border:0; background:var(--accent); color:var(--accent-ink); font:600 14px var(--f-sans); padding:11px 20px; border-radius:11px; cursor:pointer; box-shadow:0 2px 6px -2px rgba(0,0,0,0.25);}
+  .bp:hover{filter:brightness(1.05);} .bp:active{transform:translateY(1px);}
+  .bs{border:1px solid var(--border); background:var(--surface); color:var(--ink); font:500 13.5px var(--f-sans); padding:10px 16px; border-radius:11px; cursor:pointer;}
+  .bl{border:0; background:none; color:var(--muted); font:500 13px var(--f-sans); padding:8px 4px; cursor:pointer; text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--border);}
+  .field{margin-top:18px;}
+  .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .path{display:flex; gap:8px;}
+  .path input{flex:1; min-width:0; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); border-radius:9px; padding:9px 11px; font:400 12px var(--f-mono);}
+  .opts{margin-top:16px; display:flex; flex-direction:column; gap:2px;}
+  .opt{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13.5px; cursor:pointer;}
+  .opt:last-child{border-bottom:0;}
+  .opt small{display:block; color:var(--faint); font-size:11.5px; margin-top:1px;}
+  .sw{position:relative; width:36px; height:21px; flex:none;}
+  .sw input{position:absolute; opacity:0; inset:0; margin:0; cursor:pointer;}
+  .sw span{position:absolute; inset:0; border-radius:11px; background:var(--border); transition:background .2s;}
+  .sw span::after{content:''; position:absolute; left:3px; top:3px; width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
+  .sw input:checked + span{background:var(--accent);} .sw input:checked + span::after{transform:translateX(15px);}
+  .sw input:focus-visible + span{outline:2px solid var(--accent); outline-offset:2px;}
+  .prog{margin-top:22px;}
+  .prog .row{display:flex; justify-content:space-between; font:500 12px var(--f-mono); color:var(--muted); font-variant-numeric:tabular-nums;}
+  .bar{margin-top:8px; height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden;}
+  .bar span{display:block; height:100%; width:0; border-radius:4px; background:var(--accent); transition:width .25s linear;}
+  .steps{margin:18px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:9px; font-size:13px; color:var(--faint);}
+  .steps li{display:flex; align-items:center; gap:10px;}
+  .steps li i{width:16px; height:16px; border-radius:50%; border:1.5px solid var(--border); flex:none; position:relative;}
+  .steps li.now{color:var(--ink);} .steps li.now i{border-color:var(--accent); border-top-color:transparent; animation:spin .8s linear infinite;}
+  .steps li.ok{color:var(--muted);} .steps li.ok i{background:var(--ok); border-color:var(--ok);}
+  .steps li.ok i::after{content:''; position:absolute; left:4.6px; top:1.6px; width:3.6px; height:7px; border:solid #fff; border-width:0 1.6px 1.6px 0; transform:rotate(45deg);}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .check{display:flex; align-items:center; gap:10px; margin-top:20px; font-size:13.5px; cursor:pointer;}
+  .check input{width:16px; height:16px; accent-color:var(--accent); margin:0;}
+  .fade{animation:fadeIn .35s ease both;} @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  .done-badge{width:44px; height:44px; border-radius:50%; background:var(--accent-soft); display:grid; place-items:center; margin-bottom:4px;}
+  .done-badge svg{width:22px; height:22px; stroke:var(--accent); stroke-width:2.4; fill:none; stroke-linecap:round; stroke-linejoin:round;}
+
+  /* ---------- Mac DMG window ---------- */
+  .dmg{width:640px; height:420px; border-radius:12px; overflow:hidden; background:var(--surface); box-shadow:0 0 0 1px rgba(0,0,0,0.2), 0 30px 80px rgba(0,0,0,0.45); display:flex; flex-direction:column; font-family:var(--f-sans); color:var(--ink);}
+  .dmg .mtb{height:38px; flex:none; display:flex; align-items:center; gap:8px; padding:0 14px; background:var(--surface-2); border-bottom:1px solid var(--border);}
+  .dmg .mtb i{width:12px; height:12px; border-radius:50%;} .dmg .mtb i:nth-child(1){background:#FF5F57;} .dmg .mtb i:nth-child(2){background:#FEBC2E;} .dmg .mtb i:nth-child(3){background:#28C840;}
+  .dmg .mtb span{flex:1; text-align:center; font-size:13px; font-weight:600; color:var(--muted); margin-right:52px;}
+  .bg{position:relative; flex:1; background:var(--canvas); background-image:radial-gradient(var(--canvas-dot) 1.2px, transparent 1.4px); background-size:20px 20px;}
+  .bg h3{position:absolute; left:0; right:0; top:34px; margin:0; text-align:center; font-size:22px; font-weight:700; letter-spacing:-0.02em;}
+  .bg p{position:absolute; left:0; right:0; top:68px; margin:0; text-align:center; font-size:13px; color:var(--muted);}
+  .bg svg.link{position:absolute; left:0; top:0; width:640px; height:382px; overflow:visible;}
+  .bg svg.link path{fill:none; stroke:var(--faint); stroke-width:2; stroke-dasharray:6 7; stroke-linecap:round; animation:dash 1.2s linear infinite;}
+  .bg svg.link circle{fill:var(--surface); stroke:var(--faint); stroke-width:2;}
+  @keyframes dash{to{stroke-dashoffset:-13;}}
+  .ico{position:absolute; width:128px; text-align:center; font-size:13px; font-weight:500; -webkit-user-select:none; user-select:none;}
+  .ico .g{width:112px; height:112px; margin:0 auto 8px; display:grid; place-items:center;}
+  .appi{left:96px; top:150px; cursor:grab; touch-action:none; z-index:2;}
+  .appi .g div{width:100px; height:100px; border-radius:50%; background:#2B2D33; display:grid; place-items:center; color:#9AA8DA; font:700 54px/1 'Helvetica Neue',Arial,sans-serif; box-shadow:0 6px 16px -6px rgba(0,0,0,0.35);}
+  .appi.drag{cursor:grabbing;} .appi.drag .g div{transform:scale(1.06); box-shadow:0 12px 24px -8px rgba(0,0,0,0.4);}
+  .fold{left:416px; top:150px;}
+  .fold .g svg{width:108px; height:92px;}
+  .fold.hot .g{transform:scale(1.08); transition:transform .15s;}
+  .copied{position:absolute; left:0; right:0; bottom:30px; text-align:center; font-size:13px; color:var(--ok); font-weight:600; opacity:0; transition:opacity .3s;}
+  .copied.on{opacity:1;}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>NOTUA Installer</h1>
+    <p>Eigener Installer im NOTUA-Look. Auf Windows ein eigenes Installationsfenster, auf dem Mac das übliche Hineinziehen in Programme, aber mit NOTUA-Hintergrund. Alles ist klickbar.</p>
+  </header>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="System">
+      <button id="vWin" aria-pressed="true">Windows-Installer</button>
+      <button id="vMac" aria-pressed="false">Mac (DMG)</button>
+    </div>
+    <div class="seg" role="group" aria-label="Farbmodus">
+      <button id="tLight" aria-pressed="false">Hell</button>
+      <button id="tDark" aria-pressed="false">Dunkel</button>
+    </div>
+    <button class="pill" id="restart">Von vorn</button>
+  </div>
+  <div class="stage" id="stage"><div class="fit" id="fit"></div></div>
+  <div class="notes">
+    <div><b>Windows</b>Ein eigenes Fenster ohne Standard-Rahmen: Willkommen, Optionen, Installieren, Fertig. Während der Installation füllt sich links das Board Karte für Karte.</div>
+    <div><b>Mac</b>Auf dem Mac installiert man durch Hineinziehen. Das DMG-Fenster bekommt einen eigenen Hintergrund mit Punkte-Raster und einer NOTUA-Verbindungslinie zum Ordner Programme.</div>
+    <div><b>Deinstallieren</b>Unter Windows erscheint NOTUA normal in „Apps & Features“. Das Entfernen läuft über dasselbe Fenster, deine Boards bleiben im Konto.</div>
+  </div>
+</div>
+
+<template id="tWin">
+  <div class="inst s-welcome" id="inst">
+    <div class="art">
+      <div class="mk"><i></i>NOTUA</div>
+      <div class="c c1"><b>Ideen Herbst</b><span style="width:90%"></span><span style="width:66%"></span></div>
+      <div class="c c2"><div class="pic"><em></em></div></div>
+      <div class="c c3"><strong>23</strong><small>Do · Okt</small><div>Shooting 14:00</div></div>
+      <div class="c c4"><b>Diese Woche</b><span class="ok"><i></i>Installieren</span><span><i></i>Board anlegen</span></div>
+      <div class="ver">Setup 1.0.0 · Windows 10/11</div>
+    </div>
+    <div class="side">
+      <div class="tb"><button aria-label="Minimieren"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button><button class="x" aria-label="Schließen"><svg viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button></div>
+      <div class="pane" id="pane"></div>
+    </div>
+  </div>
+</template>
+
+<template id="tMac">
+  <div class="dmg">
+    <div class="mtb"><i></i><i></i><i></i><span>NOTUA</span></div>
+    <div class="bg" id="bg">
+      <h3>NOTUA installieren</h3>
+      <p>Zieh NOTUA in den Ordner Programme.</p>
+      <svg class="link" aria-hidden="true"><path d="M232 214 C 300 170, 340 170, 408 214"/><circle cx="232" cy="214" r="5"/><circle cx="408" cy="214" r="5"/></svg>
+      <div class="ico appi" id="appi"><div class="g"><div>N</div></div>NOTUA</div>
+      <div class="ico fold" id="fold"><div class="g"><svg viewBox="0 0 108 92"><path d="M6 14a8 8 0 0 1 8-8h26l10 10h44a8 8 0 0 1 8 8v54a8 8 0 0 1-8 8H14a8 8 0 0 1-8-8z" fill="#5AA2E8"/><path d="M6 30h96v48a8 8 0 0 1-8 8H14a8 8 0 0 1-8-8z" fill="#7DB8F0"/><path d="M42 48l12 12 12-12M54 60V38" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/></svg></div>Programme</div>
+      <div class="copied" id="copied">NOTUA wurde nach Programme kopiert</div>
+    </div>
+  </div>
+</template>
+
+<script>
+(function(){
+  var view='win', timers=[];
+  var fit=document.getElementById('fit'), stage=document.getElementById('stage');
+  var opts={path:'C:\\Users\\Tommy\\AppData\\Local\\Programs\\NOTUA', desk:true, start:true, auto:false};
+  var STEPS=['Dateien entpacken','NOTUA einrichten','Verknüpfungen anlegen','In „Apps & Features“ eintragen'];
+
+  function clear(){ timers.forEach(clearTimeout); timers=[]; }
+  function cards(n){ document.querySelectorAll('#inst .c').forEach(function(c,i){ c.classList.toggle('in', i<n); }); }
+
+  function screen(name){
+    var inst=document.getElementById('inst'), pane=document.getElementById('pane'); if(!pane) return;
+    inst.className='inst s-'+name;
+    var h='';
+    if(name==='welcome'){
+      cards(4);
+      h='<div class="fade"><div class="eyebrow">Installation</div><h2>Willkommen bei NOTUA</h2>'+
+        '<p class="lead">Boards, Notizen und Kalender als eigene App. Deine Boards kommen aus deinem Konto und sind danach auch offline da.</p>'+
+        '<dl class="facts"><dt>Version</dt><dd>1.0.0</dd><dt>Größe</dt><dd>ca. 280 MB</dd><dt>Ort</dt><dd>Nur für dich, kein Admin nötig</dd></dl></div>'+
+        '<div class="actions"><button class="bl" data-go="options">Optionen</button><span class="sp"></span><button class="bp" data-go="run">Installieren</button></div>';
+    }else if(name==='options'){
+      cards(4);
+      h='<div class="fade"><div class="eyebrow">Optionen</div><h2>So richten wir NOTUA ein</h2>'+
+        '<div class="field"><label for="ipath">Installieren in</label><div class="path"><input id="ipath" value="'+opts.path.replace(/"/g,'&quot;')+'" spellcheck="false"><button class="bs" id="pick">Ändern</button></div></div>'+
+        '<div class="opts">'+
+        opt('odesk','Verknüpfung auf dem Desktop','',opts.desk)+
+        opt('ostart','Im Startmenü anzeigen','',opts.start)+
+        opt('oauto','Mit Windows starten','NOTUA öffnet sich nach dem Anmelden',opts.auto)+
+        '</div></div>'+
+        '<div class="actions"><button class="bs" data-go="welcome">Zurück</button><span class="sp"></span><button class="bp" data-go="run">Installieren</button></div>';
+    }else if(name==='run'){
+      cards(0);
+      h='<div class="fade"><div class="eyebrow">Installieren</div><h2>NOTUA wird eingerichtet</h2>'+
+        '<div class="prog"><div class="row"><span id="pst">'+STEPS[0]+' …</span><span id="ppc">0 %</span></div><div class="bar"><span id="pbar"></span></div></div>'+
+        '<ul class="steps" id="psteps">'+STEPS.map(function(s){ return '<li><i></i>'+s+'</li>'; }).join('')+'</ul></div>'+
+        '<div class="actions"><span class="sp"></span><button class="bs" disabled style="opacity:.5;cursor:default">Bitte kurz warten</button></div>';
+    }else if(name==='done'){
+      cards(4);
+      h='<div class="fade"><div class="done-badge"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>NOTUA ist bereit</h2>'+
+        '<p class="lead">Du findest NOTUA'+(opts.desk?' auf dem Desktop und':'')+' im Startmenü. Beim ersten Start meldest du dich einmal an, dann sind deine Boards da.</p>'+
+        '<label class="check"><input type="checkbox" id="launch" checked> NOTUA jetzt starten</label></div>'+
+        '<div class="actions"><span class="sp"></span><button class="bp" data-go="welcome">Fertig</button></div>';
+    }
+    pane.innerHTML=h;
+    pane.querySelectorAll('[data-go]').forEach(function(b){ b.onclick=function(){ readOpts(); screen(b.dataset.go); }; });
+    var pick=document.getElementById('pick'); if(pick) pick.onclick=function(){ var i=document.getElementById('ipath'); i.focus(); i.select(); };
+    if(name==='run') run();
+  }
+  function opt(id,label,sub,on){ return '<label class="opt" for="'+id+'"><span>'+label+(sub?'<small>'+sub+'</small>':'')+'</span><span class="sw"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+'><span></span></span></label>'; }
+  function readOpts(){
+    var p=document.getElementById('ipath'); if(p) opts.path=p.value;
+    var d=document.getElementById('odesk'); if(d){ opts.desk=d.checked; opts.start=document.getElementById('ostart').checked; opts.auto=document.getElementById('oauto').checked; }
+  }
+  function run(){
+    clear();
+    var pct=0, bar=document.getElementById('pbar'), pc=document.getElementById('ppc'), pst=document.getElementById('pst'), lis=document.querySelectorAll('#psteps li');
+    var marks=[0,48,72,90,100], dur=4200, t0=performance.now();
+    lis[0].className='now';
+    (function tick(){
+      var t=Math.min(1,(performance.now()-t0)/dur); pct=Math.round(100*(1-Math.pow(1-t,1.6)));
+      if(!document.getElementById('pbar')) return;
+      bar.style.width=pct+'%'; pc.textContent=pct+' %';
+      var step=0; for(var i=1;i<marks.length;i++){ if(pct>=marks[i]) step=i; }
+      lis.forEach(function(li,i){ li.className= i<step?'ok':(i===step && step<lis.length?'now':''); });
+      if(step<STEPS.length) pst.textContent=STEPS[step]+' …'; else pst.textContent='Fertig';
+      cards(Math.min(4, Math.floor(pct/25)+ (pct>=100?0:0)));
+      if(t<1) timers.push(setTimeout(tick,60)); else timers.push(setTimeout(function(){ screen('done'); },650));
+    })();
+  }
+
+  function buildMac(){
+    var appi=document.getElementById('appi'), fold=document.getElementById('fold'), copied=document.getElementById('copied'), design=fit.firstElementChild;
+    var start=null, base={x:96,y:150};
+    appi.addEventListener('pointerdown',function(e){ appi.setPointerCapture(e.pointerId); appi.classList.add('drag'); start={x:e.clientX,y:e.clientY}; });
+    appi.addEventListener('pointermove',function(e){
+      if(!start) return; var s=parseFloat(design.dataset.s)||1;
+      var dx=(e.clientX-start.x)/s, dy=(e.clientY-start.y)/s;
+      appi.style.left=(base.x+dx)+'px'; appi.style.top=(base.y+dy)+'px';
+      fold.classList.toggle('hot', Math.abs(base.x+dx-416)<70 && Math.abs(base.y+dy-150)<70);
+    });
+    function end(){
+      if(!start) return; start=null; appi.classList.remove('drag');
+      var hit=fold.classList.contains('hot'); fold.classList.remove('hot');
+      appi.style.transition='left .3s ease, top .3s ease, opacity .3s';
+      if(hit){ appi.style.opacity='0'; copied.classList.add('on'); timers.push(setTimeout(function(){ appi.style.left=base.x+'px'; appi.style.top=base.y+'px'; appi.style.opacity='1'; },1800)); timers.push(setTimeout(function(){ copied.classList.remove('on'); },2600)); }
+      else { appi.style.left=base.x+'px'; appi.style.top=base.y+'px'; }
+      timers.push(setTimeout(function(){ appi.style.transition=''; },350));
+    }
+    appi.addEventListener('pointerup',end); appi.addEventListener('pointercancel',end);
+  }
+
+  function build(){
+    clear(); fit.innerHTML='';
+    var design=document.createElement('div'); design.className='design';
+    design.appendChild(document.getElementById(view==='win'?'tWin':'tMac').content.firstElementChild.cloneNode(true));
+    fit.appendChild(design);
+    fit.dataset.w=view==='win'?760:640; fit.dataset.h=view==='win'?470:420;
+    size();
+    if(view==='win'){ requestAnimationFrame(function(){ screen('welcome'); }); } else buildMac();
+  }
+  function size(){
+    var design=fit.firstElementChild; if(!design) return;
+    var w=+fit.dataset.w, h=+fit.dataset.h, s=Math.min(1,(stage.clientWidth-24)/w);
+    design.style.transform='scale('+s+')'; design.dataset.s=s;
+    fit.style.width=(w*s)+'px'; fit.style.height=(h*s)+'px';
+  }
+  function setView(v){ view=v; document.getElementById('vWin').setAttribute('aria-pressed',v==='win'); document.getElementById('vMac').setAttribute('aria-pressed',v==='mac'); build(); }
+  function setTheme(t){ document.documentElement.setAttribute('data-theme',t);
+    document.getElementById('tLight').setAttribute('aria-pressed',t==='light'); document.getElementById('tDark').setAttribute('aria-pressed',t==='dark');
+    try{ localStorage.setItem('inst-theme',t); }catch(e){} }
+  document.getElementById('vWin').onclick=function(){ setView('win'); };
+  document.getElementById('vMac').onclick=function(){ setView('mac'); };
+  document.getElementById('tLight').onclick=function(){ setTheme('light'); };
+  document.getElementById('tDark').onclick=function(){ setTheme('dark'); };
+  document.getElementById('restart').onclick=build;
+  try{ var t=localStorage.getItem('inst-theme'); if(t==='light'||t==='dark') setTheme(t); }catch(e){}
+  if(!document.documentElement.getAttribute('data-theme')){
+    var dk=window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+    document.getElementById(dk?'tDark':'tLight').setAttribute('aria-pressed','true');
+  }
+  window.addEventListener('resize',size);
+  build();
+})();
+</script>
+</body></html>

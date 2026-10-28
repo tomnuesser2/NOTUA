@@ -1,0 +1,69 @@
+# Baut die NOTUA-Desktop-App für Windows (.exe) und macOS (.dmg) und veröffentlicht beides als GitHub-Release.
+# Starten: auf github.com im Repo → Actions → "NOTUA Desktop bauen" → "Run workflow".
+# Die Versionsnummer kommt aus desktop/package.json ("version"). Für ein Update dort erhöhen, pushen, neu starten.
+name: NOTUA Desktop bauen
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win
+            file: desktop/dist/NOTUA-Setup.exe
+          - os: macos-latest
+            target: --mac
+            file: desktop/dist/NOTUA-macOS.dmg
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: desktop
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notua-${{ matrix.os }}
+          path: ${{ matrix.file }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: desktop
+      - id: v
+        run: echo "version=$(node -p "require('./desktop/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v${{ steps.v.outputs.version }}
+          name: NOTUA Desktop ${{ steps.v.outputs.version }}
+          make_latest: "true"
+          body: |
+            NOTUA als Desktop-App.
+            Windows: NOTUA-Setup.exe herunterladen und starten. Falls Windows "Der Computer wurde geschützt" zeigt: "Weitere Informationen" und dann "Trotzdem ausführen".
+            macOS: NOTUA-macOS.dmg öffnen und NOTUA in den Programme-Ordner ziehen. Beim ersten Start: Systemeinstellungen → Datenschutz & Sicherheit → "Trotzdem öffnen".
+          files: |
+            out/NOTUA-Setup.exe
+            out/NOTUA-macOS.dmg

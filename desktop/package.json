@@ -1,0 +1,78 @@
+{
+  "name": "notua-desktop",
+  "productName": "NOTUA",
+  "version": "1.0.0",
+  "description": "NOTUA als Desktop-App für Windows und macOS",
+  "author": "Tom Nüßer",
+  "homepage": "https://notua.site",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "38.2.0",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "site.notua.desktop",
+    "productName": "NOTUA",
+    "copyright": "© 2026 Tom Nüßer",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash/**",
+      "offline.html",
+      "assets/**",
+      "package.json"
+    ],
+    "afterPack": "build/after-pack.js",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "NOTUA-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NOTUA",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "artifactName": "NOTUA-macOS.${ext}",
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "NOTUA",
+      "artifactName": "NOTUA-macOS.${ext}"
+    }
+  }
+}

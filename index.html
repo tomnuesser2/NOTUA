@@ -20,8 +20,7 @@
      (see syncThemeMetaColor further down, and manifest.json itself, for the same fixed value). -->
 <meta name="theme-color" content="#191C22" id="themeColorMeta">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<!-- iPhone-Home-Bildschirm-App: NOTUA zeichnet bis unter die Statusleiste (so nah an Vollbild, wie iOS es Web-Apps erlaubt). Oben/unten hält das Layout per env(safe-area-inset-*) Abstand. -->
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="NOTUA">
 <!-- iOS-Startbilder (Home-Bildschirm-App): Punkte-Raster im Mono-Look, hell/dunkel — danach übernimmt der animierte Ladebildschirm (#bootSplash). -->
 <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)" href="splash/ios-1320x2868-dark.png">
@@ -300,9 +299,6 @@ try{
     gap:34px; background:var(--surface-2); text-align:center; padding:24px;
   }
   .landing-center{display:flex; flex-direction:column; align-items:center; gap:26px;}
-  /* Versionsnummer oben links, leicht transparent (Tom: "damit man sieht, welche Version gerade läuft"). */
-  .landing-version{position:absolute; top:calc(16px + env(safe-area-inset-top,0px)); left:calc(18px + env(safe-area-inset-left,0px)); z-index:5;
-    font-size:0.72rem; letter-spacing:0.02em; color:var(--muted); opacity:0.5; pointer-events:none; user-select:none; font-variant-numeric:tabular-nums;}
   .landing-circle{
     position:relative; width:96px; height:96px; border-radius:var(--lc-radius,50%); background:var(--accent); border:none; cursor:var(--custom-pointer-cursor,pointer); flex:none;
     display:flex; align-items:center; justify-content:center; color:#fff;
@@ -367,7 +363,7 @@ try{
   .home-view-enter .home-main{animation-delay:.06s;}
   @keyframes homeEnter{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
   .landing-footer{
-    position:absolute; bottom:calc(20px + env(safe-area-inset-bottom,0px)); left:0; right:0; display:flex; align-items:center; justify-content:center;
+    position:absolute; bottom:20px; left:0; right:0; display:flex; align-items:center; justify-content:center;
     gap:14px; flex-wrap:wrap; font-size:0.78rem; color:var(--muted); padding:0 20px;
   }
   .landing-footer a, .landing-footer button.linklike{
@@ -627,19 +623,6 @@ try{
     transition:opacity .15s ease, background .15s ease;
   }
   .folder-reconnect-close:hover{opacity:1; background:rgba(0,0,0,0.08);}
-  .sync-hint-banner{display:flex; flex-wrap:wrap; align-items:center; gap:12px 14px; max-width:1180px; margin:0 auto 20px;
-    padding:14px 16px; border-radius:12px; background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 35%,transparent); color:var(--ink);}
-  .sync-hint-banner > svg{flex:none; color:var(--accent);}
-  .sync-hint-text{flex:1; display:flex; flex-direction:column; gap:3px; min-width:200px;}
-  .sync-hint-text strong{font-size:0.92rem;}
-  .sync-hint-text span{font-size:0.8rem; color:var(--muted); line-height:1.45;}
-  .sync-hint-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-  .sync-hint-actions button{border:none; border-radius:8px; padding:9px 14px; font:inherit; font-size:0.82rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);}
-  .sync-hint-actions .sh-primary{background:var(--accent); color:var(--accent-ink);}
-  .sync-hint-actions .sh-secondary{background:transparent; color:var(--ink); border:1px solid var(--border);}
-  .sync-hint-actions .sh-close{width:28px; height:28px; padding:0; border-radius:50%; background:transparent; color:var(--ink); opacity:.55; display:flex; align-items:center; justify-content:center;}
-  .sync-hint-actions .sh-close:hover{opacity:1;}
-  .sync-hint-actions button:disabled{opacity:.5; cursor:default;}
   /* Cluster outline gets its own warm orange rather than reusing the app's coral/red --accent, so the
      cluster line reads as clearly "orange" at a glance instead of blending toward red. */
   :root{ --cluster-accent:#E66337; }
@@ -4613,7 +4596,7 @@ try{
   @media (max-width:640px) and (max-height:620px){
     .landing-center{gap:16px; transform:translateY(-4vh);}
     .landing-circle{width:80px; height:80px;}
-    .landing-footer{bottom:calc(8px + env(safe-area-inset-bottom,0px)); gap:2px 10px; font-size:0.72rem;}
+    .landing-footer{bottom:8px; gap:2px 10px; font-size:0.72rem;}
     .landing-footer a, .landing-footer button.linklike{padding:2px;}
   }
 
@@ -4904,7 +4887,6 @@ try{
 
   <!-- ============ LANDING VIEW ============ -->
   <div id="landingView">
-    <div class="landing-version mono" id="landingVersion" aria-label="Version"></div>
     <!-- Temporarily taken off the landing page on request ("erstmal den download app button
          wegnehmen") — everything else (CSS, showDownloadModal(), the notua-app-env auto-hide for
          the packaged desktop/Android app) is left in place so this is just a `hidden` flip away
@@ -5076,17 +5058,6 @@ try{
           <span id="folderReconnectBody"></span>
         </div>
         <button id="folderReconnectBtn" class="primary">Ordner erneut verbinden</button>
-      </div>
-      <!-- Sync-Hinweis: zeigt, wenn DIESE App/Verknüpfung/dieser Browser nicht mit dem Konto abgleicht. Jede davon hat
-           einen eigenen Speicher (Desktop-App, installierte Verknüpfung, Browser-Tab) und muss einzeln verbunden sein. -->
-      <div id="syncHintBanner" class="sync-hint-banner" hidden role="status">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 9.1 4.5 4.5 0 0 0 7 18z"/><path d="M12 11v4M12 17.5v.01"/></svg>
-        <div class="sync-hint-text"><strong id="syncHintTitle"></strong><span id="syncHintBody"></span></div>
-        <div class="sync-hint-actions">
-          <button type="button" id="syncHintPrimary" class="sh-primary"></button>
-          <button type="button" id="syncHintSecondary" class="sh-secondary" hidden></button>
-          <button type="button" id="syncHintClose" class="sh-close" aria-label="Ausblenden"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-        </div>
       </div>
       <div id="boardGrid" class="board-grid"></div>
       <div id="emptyHome" class="empty-home" hidden>
@@ -5816,8 +5787,6 @@ const I18N={
   autosort_title:{de:'Autosort: Lücken schließen & ordnen',en:'Autosort: close gaps & tidy up',es:'Autoordenar: cerrar huecos',da:'Autosortér: luk huller'},
   autosort_label:{de:'Autosort',en:'Autosort',es:'Autoordenar',da:'Autosortér'},
   autosort_done:{de:'Autosort: {n} Kacheln geordnet',en:'Autosort: {n} tiles arranged',es:'Autoordenar: {n} tarjetas ordenadas',da:'Autosortér: {n} kort ordnet'},
-  insp_align_grid:{de:'Am Raster ausrichten',en:'Align to grid',es:'Alinear a la cuadrícula',da:'Justér til gitter'},
-  align_grid_done:{de:'{n} Element(e) am Raster ausgerichtet',en:'{n} item(s) aligned to the grid',es:'{n} elemento(s) alineados a la cuadrícula',da:'{n} element(er) justeret til gitter'},
   autosort_nothing:{de:'Autosort: nichts zu ordnen, alles liegt schon eng und sauber',en:'Autosort: nothing to tidy, everything is already tight and clean',es:'Autoordenar: nada que ordenar',da:'Autosortér: intet at ordne'},
   fit_label:{de:'Einpassen',en:'Fit to screen',es:'Ajustar a pantalla',da:'Tilpas til skærm'},
   grid_toggle_title:{de:'Raster ein/aus',en:'Toggle grid',es:'Mostrar/ocultar cuadrícula',da:'Gitter til/fra'},
@@ -6370,21 +6339,6 @@ const I18N={
   r2_sync_reconnect_label:{de:'Cloud Sync — neu anmelden',en:'Cloud sync — reconnect',es:'Sincronización en la nube — volver a iniciar sesión',da:'Cloud Sync — log ind igen'},
   r2_sync_reconnect_title:{de:'Anmeldung abgelaufen — antippen, um dich neu anzumelden und das Synchronisieren fortzusetzen',en:'Sign-in expired — tap to reconnect and resume syncing',es:'La sesión ha caducado — toca para volver a iniciar sesión y seguir sincronizando',da:'Login udløbet — tryk for at logge ind igen og fortsætte synkroniseringen'},
   r2_reconnect_success_toast:{de:'Wieder angemeldet — Cloud Sync läuft weiter',en:'Reconnected — cloud sync is running again',es:'Sesión reiniciada — la sincronización en la nube sigue funcionando',da:'Logget ind igen — Cloud Sync kører videre'},
-  synchint_where_desktop:{de:'Diese Desktop-App',en:'This desktop app',es:'Esta app de escritorio',da:'Denne desktop-app'},
-  synchint_where_installed:{de:'Diese installierte App',en:'This installed app',es:'Esta app instalada',da:'Denne installerede app'},
-  synchint_where_browser:{de:'Dieser Browser',en:'This browser',es:'Este navegador',da:'Denne browser'},
-  synchint_off_title:{de:'{where} gleicht nicht mit deinem Konto ab',en:'{where} isn\'t syncing with your account',es:'{where} no se sincroniza con tu cuenta',da:'{where} synkroniserer ikke med din konto'},
-  synchint_off_body:{de:'{n} Board(s) liegen nur hier. Desktop-App, installierte App und Browser haben jeweils einen eigenen Speicher. Melde dich hier einmal an oder verknüpfe mit einem anderen Gerät, dann sind überall dieselben Boards.',en:'{n} board(s) are stored only here. The desktop app, installed app and browser each keep their own storage. Sign in once here or link to another device to get the same boards everywhere.',es:'{n} tablero(s) solo están aquí. La app de escritorio, la app instalada y el navegador tienen cada uno su propio almacenamiento. Inicia sesión aquí o vincula otro dispositivo para tener los mismos tableros en todas partes.',da:'{n} board(s) ligger kun her. Desktop-app, installeret app og browser har hver deres eget lager. Log ind her én gang eller tilknyt en anden enhed for at have de samme boards overalt.'},
-  synchint_link_title:{de:'{where} ist noch nicht verknüpft',en:'{where} isn\'t linked yet',es:'{where} aún no está vinculada',da:'{where} er ikke tilknyttet endnu'},
-  synchint_link_body:{de:'Cloud Sync ist an, aber hier fehlt der Schlüssel deines Kontos. Verknüpfe mit einem Gerät, auf dem NOTUA schon synchronisiert (dort „Gerät verknüpfen“), oder melde dich mit Google an.',en:'Cloud sync is on, but this place doesn\'t have your account key yet. Link it with a device that already syncs (“Link device” there) or sign in with Google.',es:'La sincronización está activada, pero aquí falta la clave de tu cuenta. Vincúlala con un dispositivo que ya sincroniza («Vincular dispositivo») o inicia sesión con Google.',da:'Cloud sync er slået til, men her mangler din kontos nøgle. Tilknyt med en enhed, der allerede synkroniserer („Tilknyt enhed“ dér), eller log ind med Google.'},
-  synchint_reconnect_title:{de:'Anmeldung abgelaufen',en:'Sign-in expired',es:'La sesión ha caducado',da:'Login udløbet'},
-  synchint_reconnect_body:{de:'Änderungen von hier werden gerade nicht hochgeladen. Einmal neu anmelden, dann geht es automatisch weiter.',en:'Changes from here aren\'t being uploaded right now. Sign in again once and it continues automatically.',es:'Los cambios de aquí no se están subiendo. Inicia sesión de nuevo y continuará automáticamente.',da:'Ændringer herfra bliver ikke uploadet lige nu. Log ind igen én gang, så fortsætter det automatisk.'},
-  synchint_stuck_title:{de:'Sync hängt',en:'Sync is stuck',es:'La sincronización está detenida',da:'Synkronisering sidder fast'},
-  synchint_stuck_body:{de:'{n} Board(s) konnten seit einigen Minuten nicht hochgeladen werden. Prüfe die Internetverbindung und versuche es erneut.',en:'{n} board(s) couldn\'t be uploaded for a few minutes. Check the internet connection and try again.',es:'{n} tablero(s) no se han podido subir desde hace unos minutos. Comprueba la conexión y vuelve a intentarlo.',da:'{n} board(s) kunne ikke uploades i nogle minutter. Tjek internetforbindelsen og prøv igen.'},
-  synchint_btn_google:{de:'Mit Google anmelden',en:'Sign in with Google',es:'Iniciar sesión con Google',da:'Log ind med Google'},
-  synchint_btn_code:{de:'Mit Code verknüpfen',en:'Link with code',es:'Vincular con código',da:'Tilknyt med kode'},
-  synchint_btn_reconnect:{de:'Neu anmelden',en:'Sign in again',es:'Iniciar sesión de nuevo',da:'Log ind igen'},
-  synchint_btn_retry:{de:'Erneut versuchen',en:'Try again',es:'Reintentar',da:'Prøv igen'},
   r2_sync_on_toast:{de:'Cloud Sync aktiviert',en:'Cloud sync turned on',es:'Sincronización en la nube activada',da:'Cloud Sync aktiveret'},
   r2_sync_off_toast:{de:'Cloud Sync deaktiviert',en:'Cloud sync turned off',es:'Sincronización en la nube desactivada',da:'Cloud Sync deaktiveret'},
   cloud_explainer_title:{de:'Wie deine Daten gesichert werden',en:'How your data is secured',es:'Cómo se protegen tus datos',da:'Sådan sikres dine data'},
@@ -9101,70 +9055,6 @@ async function r2Reconnect(){
     scheduleSyncSoon(200);
   }catch(e){ showToast(t('r2_signin_failed_toast')); }
 }
-// ---------- Sync-Hinweis auf der Board-Übersicht ----------
-// "eine Person hat ... die Boards sind nicht gesynct ... aus der installierten Verknüpfung nicht in der App": Desktop-App,
-// installierte Verknüpfung und Browser-Tab haben jeweils einen EIGENEN Speicher und gleichen nur ab, wenn sie selbst angemeldet
-// und verknüpft sind. Vorher kam dazu höchstens ein kurzer Toast — so entstanden unbemerkt "Inseln". Dieser Hinweis bleibt
-// sichtbar, bis es behoben ist (oder 3 Tage weggeklickt), und nennt den genauen Grund samt passendem Knopf.
-const SYNC_HINT_SNOOZE_MS=3*24*3600*1000, syncHintPageStart=Date.now();
-function syncHintWhere(){
-  try{
-    if(navigator.userAgent.indexOf('NOTUADesktopApp')!==-1) return t('synchint_where_desktop');
-    if(typeof isInstalledApp==='function' ? isInstalledApp() : document.documentElement.classList.contains('notua-app-env')) return t('synchint_where_installed');
-  }catch(e){}
-  return t('synchint_where_browser');
-}
-function syncHintState(){
-  if(!R2_SYNC_SUPPORTED) return null;
-  const boards=(state.boards||[]).filter(b=>b && !b.trashed);
-  const where=syncHintWhere();
-  if(!isR2SyncEnabled()){
-    if(!boards.length) return null;
-    return {k:'off',title:t('synchint_off_title',{where}),body:t('synchint_off_body',{n:boards.length}),primary:'google',secondary:'code'};
-  }
-  if(!r2State.encKey) return {k:'link',title:t('synchint_link_title',{where}),body:t('synchint_link_body'),primary:'code',secondary:'google'};
-  if(r2NeedsReconnect()) return {k:'reconnect',title:t('synchint_reconnect_title'),body:t('synchint_reconnect_body'),primary:'reconnect'};
-  try{
-    const ph=V2.status.phase, pending=V2.dirty.size, since=V2.status.lastOkAt||syncHintPageStart;
-    if(pending && (ph==='error' || ph==='offline') && Date.now()-since>180000)
-      return {k:'stuck',title:t('synchint_stuck_title'),body:t('synchint_stuck_body',{n:pending}),primary:'retry'};
-  }catch(e){}
-  return null;
-}
-function syncHintSnoozed(k){ try{ return Date.now()-(+localStorage.getItem('notua-synchint-snooze-'+k)||0) < SYNC_HINT_SNOOZE_MS; }catch(e){ return false; } }
-let syncHintBusy=false;
-function updateSyncHint(){
-  const el=document.getElementById('syncHintBanner'); if(!el) return;
-  const st=(state.screen==='home') ? syncHintState() : null;
-  if(!st || syncHintSnoozed(st.k)){ el.hidden=true; return; }
-  el.dataset.k=st.k;
-  document.getElementById('syncHintTitle').textContent=st.title;
-  document.getElementById('syncHintBody').textContent=st.body;
-  const label={google:'synchint_btn_google',code:'synchint_btn_code',reconnect:'synchint_btn_reconnect',retry:'synchint_btn_retry'};
-  const p=document.getElementById('syncHintPrimary'), s2=document.getElementById('syncHintSecondary');
-  p.textContent=t(label[st.primary]); p.dataset.act=st.primary; p.disabled=syncHintBusy;
-  s2.hidden=!st.secondary; if(st.secondary){ s2.textContent=t(label[st.secondary]); s2.dataset.act=st.secondary; s2.disabled=syncHintBusy; }
-  el.hidden=false;
-}
-async function runSyncHintAction(act){
-  if(syncHintBusy) return; syncHintBusy=true; updateSyncHint();
-  try{
-    if(act==='google'){ if(!isR2SyncEnabled() || !r2State.encKey){ await setR2SyncEnabled(true); } }
-    else if(act==='code'){ const ok=await showR2JoinModal(); if(ok){ try{ await r2RunFullCheckupOnce(); }catch(e){} } }
-    else if(act==='reconnect'){ await r2Reconnect(); }
-    else if(act==='retry'){ V2.fail=0; v2Kick(); scheduleSyncSoon(200); }
-  }catch(e){}
-  syncHintBusy=false;
-  try{ await refreshHome(); }catch(e){}
-  updateSyncHint();
-}
-(function(){
-  const el=document.getElementById('syncHintBanner'); if(!el) return;
-  document.getElementById('syncHintPrimary').addEventListener('click',e=>runSyncHintAction(e.currentTarget.dataset.act));
-  document.getElementById('syncHintSecondary').addEventListener('click',e=>runSyncHintAction(e.currentTarget.dataset.act));
-  document.getElementById('syncHintClose').addEventListener('click',()=>{ try{ localStorage.setItem('notua-synchint-snooze-'+(el.dataset.k||'x'),String(Date.now())); }catch(e){} el.hidden=true; });
-  setInterval(()=>{ if(state.screen==='home' && !document.hidden) updateSyncHint(); },4000);
-})();
 function refreshR2SyncToggleUI(){
   updateLandingGoogleBtnUI();
   const item=document.getElementById('homeR2SyncBtn');
@@ -16651,8 +16541,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.175';
-try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
+const APP_VERSION='2.4.171';
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
   // The exact icons8 "Füller" silhouette from iconBlanketPenFountain() at demo size (fill swapped to
@@ -18444,7 +18333,7 @@ function autoSortVariants(c,d){
   if(c.type==='image' && c.data && c.data.lockAspect!==false){
     const img=el && el.querySelector('.img-slot img');
     const ratio=(img && img.naturalWidth && img.naturalHeight) ? img.naturalWidth/img.naturalHeight : (d.w/d.h);
-    F.forEach(f=>{ const g=gridImageSize(ratio,d.w*f); add(g.w,g.h); });
+    F.forEach(f=>{ const w=Math.max(140,Math.round(d.w*f/GRID_SIZE)*GRID_SIZE); const h=Math.max(80,Math.round(w/ratio)); add(w,h); });
     return out;
   }
   const hF=[0.9,0.95,1,1.05,1.1];
@@ -18553,7 +18442,6 @@ function toggleSnap(){
   state.snapEnabled=!state.snapEnabled;
   syncGridSnapUI();
   persistView();
-  if(state.selection && state.selection.size) updateInspector(); // "Am Raster ausrichten" ein-/ausblenden
 }
 document.getElementById('gridToggle').addEventListener('click',toggleGrid);
 document.getElementById('snapToggle').addEventListener('click',toggleSnap);
@@ -18565,63 +18453,6 @@ function snap(v){return state.snapEnabled ? Math.round(v/GRID_SIZE)*GRID_SIZE : 
 // card's height down below what its text actually needs is exactly what made the content's own
 // overflow:auto sliver in a scrollbar instead of the card simply being a few px taller.
 function snapUp(v){return state.snapEnabled ? Math.ceil(v/GRID_SIZE)*GRID_SIZE : Math.ceil(v);}
-// "Bilder haben verschiedene Formate, dadurch entstehen unterschiedlich große Lücken" — a locked image
-// used to get w snapped but h = w/ratio left wherever it landed, so its bottom edge sat between grid
-// lines and the gap to whatever came below could never match the other gaps. Now BOTH sides land on
-// the grid: from the widths around the requested one, pick the one whose ratio-height is closest to a
-// whole grid row (small pull toward the requested width so a drag doesn't jump around), then snap h.
-// The leftover (at most half a cell, usually 0–3 px) is absorbed by the image's own object-fit:cover.
-function gridImageSize(ratio,targetW,minW,maxW,settle){
-  minW=minW||140; maxW=maxW||2000;
-  if(!(ratio>0)) ratio=1;
-  if(!state.snapEnabled){ const w=Math.round(clamp(targetW,minW,maxW)); return {w, h:clamp(Math.round(w/ratio),80,2000)}; }
-  const G=GRID_SIZE, base=Math.round(clamp(targetW,minW,maxW)/G);
-  let best=null;
-  const span=settle?2:1, pull=settle?0.1:0.3; // settle: inserting/aligning — no cursor to follow, so prefer the snuggest fit
-  for(let k=base-span;k<=base+span;k++){
-    const w=k*G; if(w<minW-G/2 || w>maxW) continue;
-    const hx=w/ratio, h=clamp(Math.max(G*5,Math.round(hx/G)*G),G*5,2016);
-    const score=Math.abs(h-hx)+pull*Math.abs(w-targetW);
-    if(!best || score<best.score) best={w,h,score};
-  }
-  if(!best){ const w=Math.max(G,base*G); best={w,h:Math.max(G*5,Math.round(w/ratio/G)*G)}; }
-  return {w:best.w,h:best.h};
-}
-function cardImageRatio(card){
-  const img=cardsLayer.querySelector(`.card[data-id="${card.id}"] .img-slot img`);
-  return (img && img.naturalWidth && img.naturalHeight) ? img.naturalWidth/img.naturalHeight : ((card.w&&card.h)?card.w/card.h:1);
-}
-const GRID_SIZE_TYPES=new Set(['image','note','checklist','column','boardlink','link']);
-function cardOffGrid(c){
-  const G=GRID_SIZE, off=v=>Math.abs(v-Math.round(v/G)*G)>0.5;
-  if(c.type==='heading') return off(c.x)||off(c.y);
-  return off(c.x)||off(c.y)||(GRID_SIZE_TYPES.has(c.type)&&(off(c.w)||off(c.h)));
-}
-// One-click fix for boards made before this: puts position AND size of the selected items back on the
-// grid (images keep their ratio via gridImageSize, text cards only ever round their height UP so no
-// text gets cut). Undo via the toast, same as Autosort.
-function alignCardsToGrid(cards){
-  if(!state.snapEnabled){ state.snapEnabled=true; syncGridSnapUI(); persistView(); }
-  const G=GRID_SIZE, sn=v=>Math.round(v/G)*G;
-  const before=new Map(cards.map(c=>[c.id,{x:c.x,y:c.y,w:c.w,h:c.h}]));
-  const list=[];
-  cards.forEach(c=>{
-    let x=sn(c.x), y=sn(c.y), w=c.w, h=c.h;
-    if(c.type==='image' && c.data && c.data.lockAspect!==false){ const r=gridImageSize(cardImageRatio(c),c.w,140,2000,true); w=r.w; h=r.h; }
-    else if(GRID_SIZE_TYPES.has(c.type)){ w=Math.max(G*4,sn(c.w)); h=Math.max(G*3,Math.ceil((c.h-0.5)/G)*G); }
-    if(x!==c.x||y!==c.y||w!==c.w||h!==c.h) list.push({card:c,x,y,w,h});
-  });
-  if(!list.length) return;
-  applyCardPositions(list,true);
-  cards.filter(c=>c.type==='heading').forEach(c=>{ const el=cardsLayer.querySelector(`.card[data-id="${c.id}"]`); if(el && el._layoutHeading) el._layoutHeading(); });
-  const changed=list.map(l=>l.card);
-  DB.putCards(changed);
-  showToast(t('align_grid_done',{n:changed.length}),()=>{
-    applyCardPositions(changed.map(c=>({card:c,...before.get(c.id)})),true);
-    DB.putCards(changed);
-  });
-  updateInspector();
-}
 
 /* ---- dynamic content: note/checklist cards grow (and shrink back) with their content ---- */
 function syncDynamicUI(){
@@ -19409,9 +19240,6 @@ function updateInspector(){
     <div class="insp-row"><div class="insp-label">${t('insp_color_label')}</div><div class="swatches" id="swatchRow"></div></div>
     <div class="insp-row-line"><div class="insp-row insp-row-opacity"><div class="insp-label">${t('insp_opacity_label')}</div><div class="opacity-steps" id="opacityRow"></div></div>${dateBtnHtml}</div>
   </div>`;
-  if(state.snapEnabled && cards.some(cardOffGrid)){
-    html+=`<div class="insp-row"><button type="button" id="alignGridBtn" class="insp-action-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9h16M4 15h16M9 4v16M15 4v16"/></svg>${t('insp_align_grid')}</button></div>`;
-  }
   if(cards.length===1 && cards[0].type==='heading'){
     html+=`<div class="insp-row"><div class="insp-label">${t('insp_heading_font_label')}</div><div class="heading-font-row" id="headingFontRow"></div></div>`;
   }
@@ -19753,8 +19581,6 @@ function updateInspector(){
   // `!c.data[key]` flip, which breaks for a field whose default (unset) state means "on" (locked) —
   // flipping `undefined` gives `true`, i.e. a no-op on the very first click. This flips off the
   // DISPLAYED state instead, so unset/true -> false -> true -> ... behaves as shown.
-  const alignGridBtn=inspectorEl.querySelector('#alignGridBtn');
-  if(alignGridBtn) alignGridBtn.addEventListener('click',()=>alignCardsToGrid(cards));
   const lockAspectToggle=inspectorEl.querySelector('#imageLockAspectToggle');
   if(lockAspectToggle){
     lockAspectToggle.addEventListener('click',()=>{
@@ -20907,15 +20733,10 @@ function layoutHeading(el,card,opts){
   const fs=card.data.fs;
   const m=measureHeading(text,fs,hf,ph);
   const pad=Math.max(5,Math.round(fs*0.07));
-  const w0=Math.ceil(m.inkW+2*pad), h0=Math.ceil(m.inkH+fs*0.04+2*pad); // + Platz für den Schlagschatten (.035em)
-  // Mit Raster: Box auf ganze Rasterzellen aufrunden, damit auch Überschriften sauber in den Abständen
-  // zwischen Bildern/Notizen sitzen. Der Text bleibt oben links verankert (der Rest geht nach rechts/unten),
-  // so verschiebt sich keine bestehende Überschrift sichtbar.
-  const w=state.snapEnabled?Math.ceil(w0/GRID_SIZE)*GRID_SIZE:w0, h=state.snapEnabled?Math.ceil(h0/GRID_SIZE)*GRID_SIZE:h0;
-  const ox=0, oy=0;
+  const w=Math.ceil(m.inkW+2*pad), h=Math.ceil(m.inkH+fs*0.04+2*pad); // + Platz für den Schlagschatten (.035em)
   tx.style.fontSize=fs+'px';
-  tx.style.left=Math.round((pad+ox-m.inkLeft)*100)/100+'px';
-  tx.style.top=Math.round((pad+oy-m.inkTop)*100)/100+'px';
+  tx.style.left=Math.round((pad-m.inkLeft)*100)/100+'px';
+  tx.style.top=Math.round((pad-m.inkTop)*100)/100+'px';
   tx.style.width=Math.ceil(m.width)+'px';
   el.style.width=w+'px'; el.style.height=h+'px';
   if(w!==card.w || h!==card.h){
@@ -25291,8 +25112,8 @@ function attachResize(handle,el,card){
       // the drag (same convention as the youtube/widget case above), height follows via the ratio.
       const imgEl=el.querySelector('.img-slot img');
       const ratio=(imgEl && imgEl.naturalWidth && imgEl.naturalHeight) ? imgEl.naturalWidth/imgEl.naturalHeight : (rs.w/rs.h);
-      const gs=gridImageSize(ratio,rs.w+dx);
-      card.w=gs.w; card.h=gs.h;
+      card.w=snap(clamp(rs.w+dx,140,2000));
+      card.h=clamp(Math.round(card.w/ratio),80,2000);
     }else if(card.type==='heading'){
       // Überschrift: Resize skaliert die Schrift, die Box umschließt den Text danach exakt (layoutHeading).
       // Schrift skaliert mit der Breite (Seitenverhältnis bleibt); die Box umschließt den Text danach wieder exakt.
@@ -28657,11 +28478,8 @@ async function addImageFile(file, at){
   const dims=await imageDims(file).catch(()=>({w:280,h:200}));
   const maxW=340;
   let w=dims.w,h=dims.h;
-  const ratio=(dims.w>0&&dims.h>0)?dims.w/dims.h:1.4;
-  let tw=Math.min(w,maxW);
-  if(tw/ratio>480) tw=480*ratio;      // very tall picture: limit by height, keep the ratio
-  tw=Math.max(tw,160);
-  ({w,h}=gridImageSize(ratio,tw,140,maxW+GRID_SIZE,true));
+  if(w>maxW){ h=Math.round(h*(maxW/w)); w=maxW; }
+  h=clamp(h,120,480); w=clamp(w,160,maxW);
   const id=uid();
   await DB.putImage(id,file);
   const card=await addCard('image',{imageId:id, at:at||viewportCenterCanvas()});
@@ -30938,19 +30756,7 @@ if(window.visualViewport){
   // Registration is best-effort: file:// pages and browsers without support just skip it silently.
   if('serviceWorker' in navigator && location.protocol!=='file:'){
     window.addEventListener('load',()=>{
-      // updateViaCache:'none' → sw.js wird nie aus dem 10-Minuten-HTTP-Cache von GitHub Pages genommen,
-      // update() prüft bei jedem Start sofort auf eine neue Version.
-      navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{ try{ r.update().catch(()=>{}); }catch(e){} }).catch(()=>{});
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
     });
-    // Übernimmt kurz nach dem Start ein neuerer Service Worker (= neue NOTUA-Version), einmal neu laden,
-    // damit man nicht erst beim übernächsten Öffnen die aktuelle Version sieht. Nur in den ersten 10 s.
-    (function(){
-      const t0=Date.now(), hadController=!!navigator.serviceWorker.controller;
-      navigator.serviceWorker.addEventListener('controllerchange',()=>{
-        if(!hadController || Date.now()-t0>10000) return;
-        try{ if(sessionStorage.getItem('notua-sw-reloaded')) return; sessionStorage.setItem('notua-sw-reloaded','1'); }catch(e){ return; }
-        location.reload();
-      });
-    })();
   }
 </script>
