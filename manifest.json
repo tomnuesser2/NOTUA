@@ -5,18 +5,48 @@
   "description": "Boards für deine kreativen Projekte – Notizen, Workflows, Moodboards und mehr, an einem Ort.",
   "start_url": "/index.html",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
   "orientation": "any",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "lang": "de",
   "dir": "ltr",
-  "background_color": "#F0F2F5",
-  "theme_color": "#F0F2F5",
-  "categories": ["productivity", "utilities"],
+  "background_color": "#171A20",
+  "theme_color": "#171A20",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "screenshots": [
     {
