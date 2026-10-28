@@ -8,7 +8,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('notuaDesktop', {
   isDesktop: true,
   platform: process.platform,
-  retry: () => ipcRenderer.send('notua:retry')
+  retry: () => ipcRenderer.send('notua:retry'),
+  openInBrowser: () => ipcRenderer.send('notua:open-in-browser'),
+  showLog: () => ipcRenderer.send('notua:show-log')
 });
 
 const VARS = ['--canvas', '--canvas-dot', '--surface', '--surface-2', '--ink', '--muted', '--faint', '--border', '--accent', '--accent-ink', '--shadow', '--shadow-lg', '--tag-yellow', '--tag-blue', '--tag-pink', '--tag-alpha'];

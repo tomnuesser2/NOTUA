@@ -15,7 +15,7 @@ const RELEASES_API = 'https://api.github.com/repos/tomnuesser2/NOTUA/releases/la
 const RELEASES_PAGE = 'https://github.com/tomnuesser2/NOTUA/releases/latest';
 const IS_MAC = process.platform === 'darwin';
 const SPLASH_MIN_MS = 2500;   // Startbild mindestens so lange zeigen (Tom: "ein kleines bisschen länger, dass man das Gefühl hat, es lädt was")
-const SPLASH_MAX_MS = 12000;  // spätestens dann die App zeigen, egal was passiert
+const SPLASH_MAX_MS = 16000;  // spätestens dann die App zeigen, egal was passiert
 const SPLASH_W = 760, SPLASH_H = 480;
 
 // ---------- Einstellungen (Fenstergröße, letztes Farbschema fürs Startbild) ----------
@@ -27,6 +27,30 @@ function saveSettings() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => { try { fs.writeFileSync(settingsFile(), JSON.stringify(settings, null, 2)); } catch (e) {} }, 300);
 }
+
+// ---------- Protokoll (Hilfe bei Problemen) ----------
+// Schreibt Startschritte und Fehler nach <Benutzerdaten>/notua-desktop.log. Über die Fehlerseite lässt
+// sich die Datei im Finder/Explorer zeigen.
+const logFile = () => path.join(app.getPath('userData'), 'notua-desktop.log');
+const recentLog = [];
+function log(...parts) {
+  const line = new Date().toISOString() + ' ' + parts.map(p => typeof p === 'string' ? p : JSON.stringify(p)).join(' ');
+  recentLog.push(line); if (recentLog.length > 40) recentLog.shift();
+  try {
+    const f = logFile();
+    try { if (fs.statSync(f).size > 200000) fs.renameSync(f, f + '.old'); } catch (e) {}
+    fs.appendFileSync(f, line + '\n');
+  } catch (e) {}
+}
+
+// ---------- Netzwerk im Hauptprozess (Selbstreparatur) ----------
+// Stürzt der Netzwerk-Hintergrundprozess ab (z. B. weil macOS eine Hilfsdatei einer nicht bei Apple
+// geprüften App nicht startet), merkt sich die App das und lässt das Netzwerk beim nächsten Start im
+// Hauptprozess laufen. Ohne das hängt die Verbindung zu notua.site und das Fenster bleibt leer.
+try {
+  const early = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'notua-desktop.json'), 'utf8')) || {};
+  if (early.netInProcess) app.commandLine.appendSwitch('enable-features', 'NetworkServiceInProcess2');
+} catch (e) {}
 
 // ---------- User-Agent: wie normales Chrome + eigener Marker ----------
 // Ohne "Electron" im UA lässt Google die Anmeldung im Popup zu; der Marker NOTUADesktopApp lässt
@@ -72,7 +96,11 @@ function createSplash() {
   splashWin.loadFile(path.join(__dirname, 'splash', 'splash.html'), {
     query: { v: app.getVersion(), t: JSON.stringify(theme), os: process.platform }
   });
-  splashWin.once('ready-to-show', () => { splashShownAt = Date.now(); splashWin.showInactive(); });
+  splashWin.once('ready-to-show', () => {
+    splashShownAt = Date.now(); splashWin.showInactive(); log('splash shown');
+    // Nicht dauerhaft ganz oben: Systemabfragen (z. B. Schlüsselbund, Netzwerkfreigabe) dürfen nicht verdeckt werden.
+    setTimeout(() => { if (splashWin && !splashWin.isDestroyed()) splashWin.setAlwaysOnTop(false); }, 3000);
+  });
   splashWin.on('closed', () => { splashWin = null; });
 }
 function splashStatus(text, pct) {
@@ -120,8 +148,31 @@ function createMain() {
   if (!IS_MAC) { try { mainWin.webContents.session.setSpellCheckerLanguages(['de-DE', 'en-US']); } catch (e) {} }
 
   const wc = mainWin.webContents;
-  wc.on('did-start-loading', () => { if (!revealed) splashStatus('Verbinde mit notua.site …', 22); });
-  wc.on('dom-ready', () => { if (!revealed) splashStatus('Boards werden geladen …', 55); });
+  let domReady = false, watchdog = null;
+  const armWatchdog = () => {
+    clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      if (domReady || !mainWin || mainWin.isDestroyed()) return;
+      log('watchdog: no dom-ready after 15 s');
+      if (IS_MAC && !settings.netInProcess) {
+        // Mac: einmalig mit Netzwerk im Hauptprozess neu starten (siehe "Selbstreparatur" oben).
+        settings.netInProcess = true;
+        try { fs.writeFileSync(settingsFile(), JSON.stringify(settings, null, 2)); } catch (err) {}
+        log('mac: relaunch with in-process network');
+        app.relaunch(); app.exit(0); return;
+      }
+      showProblem('timeout', 'Keine Antwort von notua.site nach 15 Sekunden.');
+    }, 15000);
+  };
+  wc.on('did-start-loading', () => {
+    const u = wc.getURL(); if (u.startsWith('file:')) return;
+    domReady = false; armWatchdog(); log('did-start-loading', APP_URL);
+    if (!revealed) splashStatus('Verbinde mit notua.site …', 22);
+  });
+  wc.on('dom-ready', () => {
+    domReady = true; clearTimeout(watchdog); log('dom-ready', wc.getURL().slice(0, 80));
+    if (!revealed) splashStatus('Boards werden geladen …', 55);
+  });
   wc.on('did-finish-load', () => {
     if (revealed) return;
     splashStatus(loadFailed ? 'Offline' : 'Bilder und Notizen vorbereiten …', 86);
@@ -129,11 +180,14 @@ function createMain() {
   });
   wc.on('did-fail-load', (e, code, desc, url, isMainFrame) => {
     if (!isMainFrame || code === -3) return; // -3 = abgebrochen (z. B. Weiterleitung)
-    loadFailed = true;
-    if (!revealed) splashStatus('Keine Verbindung, öffne Offline-Seite …', 70);
-    mainWin.loadFile(path.join(__dirname, 'offline.html'));
+    log('did-fail-load', code, desc, String(url).slice(0, 80));
+    if (String(url).startsWith('file:')) return;
+    clearTimeout(watchdog);
+    showProblem('offline', `${desc} (${code})`);
   });
-  wc.on('render-process-gone', () => { setTimeout(() => { if (mainWin) mainWin.loadURL(APP_URL); }, 800); });
+  wc.on('render-process-gone', (e, d) => { log('render-process-gone', d && d.reason); setTimeout(() => { if (mainWin) mainWin.loadURL(APP_URL); }, 800); });
+  wc.on('unresponsive', () => log('main window unresponsive'));
+  wc.on('certificate-error', (e, url, err) => log('certificate-error', err, String(url).slice(0, 80)));
 
   // Neue Fenster: Google-Anmeldung als Popup in der App, alles Fremde im Standardbrowser.
   wc.setWindowOpenHandler(({ url }) => {
@@ -198,6 +252,24 @@ function createMain() {
   setTimeout(() => { if (!revealed) reveal(); }, SPLASH_MAX_MS);
 }
 
+// Statt eines leeren Fensters: Seite mit Grund und Knöpfen (Erneut versuchen, Im Browser öffnen, Protokoll).
+function showProblem(reason, detail) {
+  if (!mainWin || mainWin.isDestroyed()) return;
+  loadFailed = true;
+  if (!revealed) splashStatus(reason === 'offline' ? 'Keine Verbindung …' : 'notua.site antwortet nicht …', 70);
+  mainWin.loadFile(path.join(__dirname, 'offline.html'), { query: { reason, detail: String(detail || '').slice(0, 300), v: app.getVersion() } });
+  if (!revealed) setTimeout(reveal, 300);
+}
+app.on('child-process-gone', (e, d) => {
+  log('child-process-gone', d.type, d.reason, d.serviceName || '', d.exitCode);
+  if (d.type === 'Utility' && /network/i.test(d.serviceName || d.name || '') && !settings.netInProcess) {
+    settings.netInProcess = true;
+    try { fs.writeFileSync(settingsFile(), JSON.stringify(settings, null, 2)); } catch (err) {}
+    log('network service crashed → relaunch with in-process network');
+    app.relaunch(); app.exit(0);
+  }
+});
+
 // ---------- Nachrichten aus der Seite (preload.js) ----------
 ipcMain.on('notua:theme', (e, theme) => {
   if (!theme || typeof theme !== 'object') return;
@@ -208,7 +280,9 @@ ipcMain.on('notua:theme', (e, theme) => {
   settings.theme = { dark: !!theme.dark, vars };
   saveSettings();
 });
-ipcMain.on('notua:retry', () => { if (mainWin) { loadFailed = false; mainWin.loadURL(APP_URL); } });
+ipcMain.on('notua:retry', () => { if (mainWin) { loadFailed = false; log('retry'); mainWin.loadURL(APP_URL); } });
+ipcMain.on('notua:open-in-browser', () => openExternal(APP_URL));
+ipcMain.on('notua:show-log', () => { try { shell.showItemInFolder(logFile()); } catch (e) {} });
 
 // ---------- Neue Version der Desktop-App? ----------
 function newer(a, b) { // a > b ?
@@ -284,6 +358,7 @@ if (process.platform === 'win32') app.setAppUserModelId('site.notua.desktop');
 
 app.whenReady().then(() => {
   loadSettings();
+  log('start', app.getVersion(), process.platform, process.arch, 'electron ' + process.versions.electron, settings.netInProcess ? 'net-in-process' : '');
   buildMenu();
   createSplash();
   createMain();

@@ -15,20 +15,38 @@
   .mark span{width:12px; height:12px; border-radius:50%; background:var(--accent);}
   h1{font-size:17px; margin:18px 0 6px;}
   p{margin:0; color:var(--muted); font-size:14px; line-height:1.55;}
-  button{margin-top:20px; border:0; border-radius:10px; padding:10px 16px; font:600 14px inherit; font-family:inherit; background:var(--accent); color:var(--accent-ink); cursor:pointer;}
+  .btns{display:flex; gap:8px; flex-wrap:wrap; margin-top:20px;}
+  .detail{margin-top:10px; font:12px ui-monospace,'SF Mono',Consolas,monospace; color:var(--muted); opacity:.8; word-break:break-word;}
+  button.sec{background:transparent; color:var(--ink); border:1px solid var(--border);}
+  button.link{margin-top:14px; background:none; border:0; padding:0; color:var(--muted); font-weight:500; text-decoration:underline; text-underline-offset:3px;}
+  button{ border:0; border-radius:10px; padding:10px 16px; font:600 14px inherit; font-family:inherit; background:var(--accent); color:var(--accent-ink); cursor:pointer;}
   button:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
 </style>
 </head>
 <body>
   <div class="box">
     <div class="mark"><span></span>NOTUA</div>
-    <h1>Keine Verbindung zu notua.site</h1>
-    <p>Beim allerersten Start braucht NOTUA einmal Internet. Danach öffnen sich deine Boards auch offline. Prüfe die Verbindung und versuche es nochmal.</p>
-    <button id="retry">Erneut versuchen</button>
+    <h1 id="h">Keine Verbindung zu notua.site</h1>
+    <p id="p">Beim allerersten Start braucht NOTUA einmal Internet. Danach öffnen sich deine Boards auch offline. Prüfe die Verbindung und versuche es nochmal.</p>
+    <p class="detail" id="d" hidden></p>
+    <div class="btns">
+      <button id="retry">Erneut versuchen</button>
+      <button id="browser" class="sec">Im Browser öffnen</button>
+    </div>
+    <button id="log" class="link">Protokoll anzeigen</button>
   </div>
   <script>
-    document.getElementById('retry').addEventListener('click', function(){ if(window.notuaDesktop) window.notuaDesktop.retry(); else location.reload(); });
-    window.addEventListener('online', function(){ if(window.notuaDesktop) window.notuaDesktop.retry(); });
+    var q=new URLSearchParams(location.search);
+    if(q.get('reason')==='timeout'){
+      document.getElementById('h').textContent='NOTUA lädt gerade nicht';
+      document.getElementById('p').textContent='notua.site hat nicht rechtzeitig geantwortet. Meist hilft „Erneut versuchen“. Klappt es dauerhaft nicht, öffne NOTUA im Browser und schick Tom das Protokoll.';
+    }
+    if(q.get('detail')){ var d=document.getElementById('d'); d.hidden=false; d.textContent=q.get('detail')+(q.get('v')?' · App '+q.get('v'):''); }
+    var D=window.notuaDesktop||{};
+    document.getElementById('retry').addEventListener('click', function(){ if(D.retry) D.retry(); else location.reload(); });
+    document.getElementById('browser').addEventListener('click', function(){ if(D.openInBrowser) D.openInBrowser(); });
+    document.getElementById('log').addEventListener('click', function(){ if(D.showLog) D.showLog(); });
+    window.addEventListener('online', function(){ if(D.retry) D.retry(); });
   </script>
 </body>
 </html>

@@ -8,9 +8,9 @@ android {
     defaultConfig {
         applicationId 'site.notua.twa'
         minSdk 24
-        targetSdk 35
-        versionCode 20
-        versionName '2.0.0'
+        targetSdk 36
+        versionCode 26
+        versionName '2.0.6'
         manifestPlaceholders = [
             hostName: 'notua.site',
             defaultUrl: 'https://notua.site/',
@@ -36,6 +36,7 @@ android {
             if (System.getenv('NOTUA_KEYSTORE')) signingConfig signingConfigs.release
         }
     }
+    buildFeatures { buildConfig true }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -44,5 +45,4 @@ android {
 
 dependencies {
     implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
 }
