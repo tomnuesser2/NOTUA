@@ -922,7 +922,6 @@ try{
     border-radius:10px; padding:14px 16px; height:158px; cursor:var(--custom-pointer-cursor,pointer);
     display:flex; flex-direction:column; justify-content:space-between;
     transition:box-shadow .4s cubic-bezier(.22,1,.36,1), transform .4s cubic-bezier(.22,1,.36,1), border-color .3s ease;
-    will-change:transform;
     touch-action:pan-y; /* see .board-tile's touch-action comment above — same reasoning */
   }
   .project-tile.drop-target{border-color:var(--accent); box-shadow:0 0 0 2.5px var(--accent);}
@@ -4164,7 +4163,6 @@ try{
     position:absolute; left:0; right:0; top:0; bottom:0; border-radius:inherit; background:var(--surface);
     border:1px solid var(--border-strong); transform-origin:0 100%;
     transition:transform .5s var(--ease-out,cubic-bezier(.22,1,.36,1)), opacity .3s ease;
-    will-change:transform;
   }
   /* the stacked cards peek out behind the tile towards the top right */
   .pt-layer.l1{transform:translate(4px,-5px);}
@@ -4191,7 +4189,7 @@ try{
   .board-icon-opt.board-icon-remove:hover{color:var(--ink); border-color:var(--border-strong);}
   .pt-chips{display:flex; align-items:center; padding-left:8px; margin:4px 0;}
   .pt-chip{width:34px; height:34px; border-radius:9px; margin-left:-8px; border:2px solid var(--surface); box-sizing:border-box; flex:none;
-    transition:transform .45s var(--ease-out,cubic-bezier(.22,1,.36,1)); transition-delay:calc(var(--ci,0) * 22ms); will-change:transform;}
+    transition:transform .45s var(--ease-out,cubic-bezier(.22,1,.36,1)); transition-delay:calc(var(--ci,0) * 22ms);}
   .pt-chip:nth-child(2){--ci:1;} .pt-chip:nth-child(3){--ci:2;} .pt-chip:nth-child(4){--ci:3;} .pt-chip:nth-child(5){--ci:4;} .pt-chip:nth-child(6){--ci:5;}
   .pt-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--pc, var(--accent)); margin-right:6px; vertical-align:baseline;}
   .pt-chip.board-badge svg{width:15px; height:15px;}
@@ -12264,8 +12262,15 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
   function onMove(e){
     if(e.pointerType && e.pointerType!=='mouse') return;
     const inZone=e.clientX>=zone.left && e.clientX<=zone.right && e.clientY>=zone.top && e.clientY<=zone.bottom;
-    mouseX=inZone?e.clientX:null;
+    const nx=inZone?e.clientX:null;
+    if(nx===mouseX) return;
+    mouseX=nx;
+    wake();
   }
+  // Leerlauf: Die Leiste rechnet nur noch, solange sich etwas bewegt. Vorher lief die Schleife pausenlos und
+  // schrieb jedes Bild width/height neu → der Browser hat 60×/s das ganze Layout neu berechnet, auch wenn
+  // niemand in der Nähe der Leiste war (auf großen Boards spürbar als Ruckeln/Lag).
+  function wake(){ const st=dockMagnifyStates.find(x=>x.containerEl===containerEl); if(st && !st.raf){ last=performance.now(); st.raf=requestAnimationFrame(frame); } }
   document.addEventListener('pointermove',onMove);
   const state={containerEl,raf:0,items,onMove};
   dockMagnifyStates.push(state);
@@ -12296,6 +12301,7 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
     if(++fcount%20===1) items.forEach(it=>{ if(it.span) it.ibase=Math.max(base,Math.ceil(it.span.offsetWidth+16)); });
     const steps=Math.max(1,Math.ceil(dt/MAX_SUBSTEP));
     const subDt=dt/steps;
+    let busy=false;
     items.forEach(it=>{
       let target=it.ibase;
       if(mouseX!=null){
@@ -12312,15 +12318,19 @@ function startDockMagnifyBar(containerEl,itemSelector,base,max,distance,growHeig
       // Hard safety clamp — independent of the fixes above, so a single stray frame can never again
       // balloon a button past its intended max (or shrink it below something reasonable).
       it.size=Math.min(Math.max(it.size,it.ibase),it.ibase+(max-base)*1.15);
-      it.el.style.width=it.size+'px';
-      if(growHeight) it.el.style.height=it.size+'px';
+      if(Math.abs(it.target-it.size)<0.05 && Math.abs(it.vel)<0.5){ it.size=it.target; it.vel=0; } else busy=true;
+      const w=Math.round(it.size*100)/100;
+      if(it.lastW===w) return; // nichts geändert → kein Schreiben, kein Layout
+      it.lastW=w;
+      it.el.style.width=w+'px';
+      if(growHeight) it.el.style.height=w+'px';
       if(it.svg){
         const iconSize=Math.round(it.iconBase*((it.size-it.ibase+base)/base));
         it.svg.setAttribute('width',iconSize);
         it.svg.setAttribute('height',iconSize);
       }
     });
-    if(dockMagnifyStates.includes(state)) state.raf=requestAnimationFrame(frame);
+    if(dockMagnifyStates.includes(state)) state.raf=(busy || fcount<3) ? requestAnimationFrame(frame) : 0;
   }
   state.raf=requestAnimationFrame(frame);
 }
@@ -16677,7 +16687,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.178';
+const APP_VERSION='2.4.179';
 try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
@@ -21548,23 +21558,47 @@ function buildChecklistCard(card){
 function resizeChecklistIfNeeded(el,card){ fitCardHeight(el,card); }
 function iconCross(){return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>`;}
 
-// Hat das Bild echte transparente Pixel? Klein herunterskaliert prüfen (schnell), Ergebnis pro Bild merken.
+// Hat das Bild echte transparente Pixel? Wird im Leerlauf geprüft (nie während man arbeitet), über ein
+// verkleinertes ImageBitmap (dekodiert der Browser abseits des Haupt-Threads) und pro Bild dauerhaft gemerkt —
+// so kostet ein Board mit vielen großen Fotos beim Öffnen nichts mehr.
 const imageAlphaCache=new Map();
-function imageHasAlpha(img,key){
-  if(key && imageAlphaCache.has(key)) return imageAlphaCache.get(key);
+try{ const o=JSON.parse(localStorage.getItem('notua-alpha-cache')||'{}'); Object.keys(o).forEach(k=>imageAlphaCache.set(k,!!o[k])); }catch(e){}
+let imageAlphaSaveT=0;
+function imageAlphaRemember(key,val){
+  if(!key) return; imageAlphaCache.set(key,val);
+  clearTimeout(imageAlphaSaveT);
+  imageAlphaSaveT=setTimeout(()=>{ try{ const o={}; [...imageAlphaCache.entries()].slice(-3000).forEach(([k,v])=>{ o[k]=v?1:0; }); localStorage.setItem('notua-alpha-cache',JSON.stringify(o)); }catch(e){} },1500);
+}
+const imageAlphaQueue=[]; let imageAlphaRunning=false;
+function imageAlphaIdle(fn){ (window.requestIdleCallback||((f)=>setTimeout(()=>f({timeRemaining:()=>8}),120)))(fn,{timeout:2500}); }
+function imageHasAlphaAsync(img,key,cb){
+  if(key && imageAlphaCache.has(key)){ cb(imageAlphaCache.get(key)); return; }
+  imageAlphaQueue.push({img,key,cb});
+  if(!imageAlphaRunning){ imageAlphaRunning=true; imageAlphaIdle(imageAlphaPump); }
+}
+async function imageAlphaPump(){
+  const job=imageAlphaQueue.shift();
+  if(!job){ imageAlphaRunning=false; return; }
   let res=false;
   try{
-    const W=img.naturalWidth, H=img.naturalHeight;
-    if(W && H){
-      const s=Math.min(1,96/Math.max(W,H)), w=Math.max(1,Math.round(W*s)), h=Math.max(1,Math.round(H*s));
-      const c=document.createElement('canvas'); c.width=w; c.height=h;
-      const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(img,0,0,w,h);
-      const d=ctx.getImageData(0,0,w,h).data; let n=0;
-      for(let i=3;i<d.length;i+=4){ if(d[i]<235){ n++; if(n>Math.max(2,w*h*0.002)){ res=true; break; } } }
+    if(job.key && imageAlphaCache.has(job.key)) res=imageAlphaCache.get(job.key);
+    else{
+      const W=job.img.naturalWidth, H=job.img.naturalHeight;
+      if(W && H){
+        const sc=Math.min(1,64/Math.max(W,H)), w=Math.max(1,Math.round(W*sc)), h=Math.max(1,Math.round(H*sc));
+        let src=job.img;
+        if(window.createImageBitmap){ try{ src=await createImageBitmap(job.img,{resizeWidth:w,resizeHeight:h,resizeQuality:'low'}); }catch(e){ src=job.img; } }
+        const c=document.createElement('canvas'); c.width=w; c.height=h;
+        const ctx=c.getContext('2d',{willReadFrequently:true}); ctx.drawImage(src,0,0,w,h);
+        if(src.close) try{ src.close(); }catch(e){}
+        const d=ctx.getImageData(0,0,w,h).data; let n=0;
+        for(let i=3;i<d.length;i+=4){ if(d[i]<235){ n++; if(n>Math.max(2,w*h*0.002)){ res=true; break; } } }
+      }
+      imageAlphaRemember(job.key,res);
     }
   }catch(e){ res=false; }
-  if(key) imageAlphaCache.set(key,res);
-  return res;
+  try{ job.cb(res); }catch(e){}
+  imageAlphaIdle(imageAlphaPump);
 }
 function buildImageCard(card){
   const el=baseCardShell(card,'card-image');
@@ -21583,7 +21617,7 @@ function buildImageCard(card){
       const img=document.createElement('img'); img.alt='';
       const known=imageAlphaCache.get(card.data.imageId);
       if(known!==undefined) el.classList.toggle('has-alpha',known);
-      img.addEventListener('load',()=>{ const a=imageHasAlpha(img,card.data.imageId); el.classList.toggle('has-alpha',a); },{once:true});
+      if(known===undefined) img.addEventListener('load',()=>{ imageHasAlphaAsync(img,card.data.imageId,(a)=>el.classList.toggle('has-alpha',a)); },{once:true});
       img.src=url; slot.appendChild(img);
     });
   }else{
