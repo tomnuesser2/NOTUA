@@ -540,7 +540,7 @@ try{
      what's constant: a plain circle (border-radius, not clip-path — see irisTransition's own comment
      on why) that only ever animates via `transform`, so the browser can composite it on the GPU
      instead of repainting it every frame. */
-  .reveal-overlay{position:fixed; background:var(--accent); z-index:200; pointer-events:none; border-radius:50%; will-change:transform;}
+  .reveal-overlay{position:fixed; background:var(--accent); z-index:200; pointer-events:none; border-radius:50%; will-change:transform; transform-origin:50% 50%; backface-visibility:hidden; contain:strict;}
 
   /* ---------- HOME VIEW ---------- */
   /* overscroll-behavior:none on html/body/#app (above) only contains the bounce for THOSE
@@ -16488,77 +16488,76 @@ homeWordmark.addEventListener('keydown',(e)=>{
 // as a geometric wipe (never a flat colour fade) is what reads as smooth — a straight opacity fade
 // of a saturated accent colour over a dark background looks like it "holds then cuts" instead of
 // gradually blending, because the eye tracks the shrinking/growing edge, not a colour ramp.
+// v2.4.180 — "Übergänge sind manchmal verbuggt, werden nicht angezeigt oder laggen auf Handys": neu aufgebaut.
+//  • Web Animations API statt CSS-Transition + transitionend: startet garantiert (kein "Start- und Endzustand im
+//    selben Frame zusammengefallen" mehr → Kreis erschien gar nicht und es sprang nach 1,2 s einfach um) und
+//    meldet sein Ende zuverlässig über .finished. Läuft komplett auf dem Compositor (nur transform).
+//  • Der teure Teil (Ansicht wechseln, Board-Übersicht layouten/malen) passiert, während der Kreis den Bildschirm
+//    VOLL bedeckt — und das Zusammenziehen startet erst, wenn der Browser das neue Bild wirklich fertig hat
+//    (zwei Frames später). Vorher lief diese Arbeit mitten in die Animation hinein → Ruckler auf Handys.
+//  • Schwache Geräte: der Kreis wird mit halber Auflösung gezeichnet und hochskaliert (an einer einfarbigen
+//    Fläche unsichtbar), das spart ~75 % Grafikspeicher und hält die Animation flüssig.
+//  • Kein Doppelstart mehr: ein zweiter Klick / Zurück-Taste während eines laufenden Übergangs wartet nicht
+//    halb fertige Overlays übereinander, sondern wird ignoriert; ein festhängendes Overlay wird immer entfernt.
+let irisBusy=false;
+function irisLowEnd(){
+  try{
+    const mem=navigator.deviceMemory||8, cores=navigator.hardwareConcurrency||8;
+    return mem<=4 || cores<=4 || matchMedia('(pointer:coarse)').matches;
+  }catch(e){ return false; }
+}
+function irisNextPaint(){ return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r()))); }
 function irisTransition(fromEl, swapViews, toAnchor){
-  const rect=fromEl.getBoundingClientRect();
+  if(irisBusy) return false;
+  irisBusy=true;
+  document.querySelectorAll('.reveal-overlay').forEach(o=>o.remove()); // Reste eines abgebrochenen Übergangs
+  const rect=(fromEl && fromEl.getBoundingClientRect) ? fromEl.getBoundingClientRect() : {left:innerWidth/2,top:innerHeight/2,width:0,height:0};
   const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
-  const maxR=Math.hypot(Math.max(cx,window.innerWidth-cx), Math.max(cy,window.innerHeight-cy));
-  const startR=Math.max(rect.width,rect.height)/2;
+  const maxR=Math.hypot(Math.max(cx,window.innerWidth-cx), Math.max(cy,window.innerHeight-cy))+2;
+  const startR=Math.max(8,Math.max(rect.width,rect.height)/2);
+  const res=irisLowEnd()?0.5:1;            // Zeichen-Auflösung des Kreises
+  const R=maxR*res;                        // tatsächliche Größe des Elements
+  const full=1/res;                        // Skalierung, bei der er den Bildschirm bedeckt
   const overlay=document.createElement('div');
   overlay.className='reveal-overlay';
-  // "die animation auf smartphone laggt bisschen" — this used to be one clip-path(circle(...at x y))
-  // value the browser had to repaint on the CPU on every single frame, geometry and all. A plain
-  // circle (border-radius:50%, fixed at maxR in size and centered on (cx,cy) for its entire life) that
-  // only ever animates via `transform` (scale to grow/shrink, translate to drift its center toward a
-  // different anchor for the shrink-back phase) is compositor-only — the GPU can run it on its own
-  // thread, so it stays smooth even while the main thread is busy with something else at the same
-  // moment, like the crypto/network work a device-link handshake does right as this plays.
-  overlay.style.left=(cx-maxR)+'px';
-  overlay.style.top=(cy-maxR)+'px';
-  overlay.style.width=overlay.style.height=(maxR*2)+'px';
-  overlay.style.transform=`scale(${(startR/maxR).toFixed(6)})`;
+  overlay.style.left=(cx-R)+'px'; overlay.style.top=(cy-R)+'px';
+  overlay.style.width=overlay.style.height=(R*2)+'px';
+  const s0=(startR/maxR)*full;
+  overlay.style.transform=`scale(${s0.toFixed(6)})`;
   document.body.appendChild(overlay);
-  // "die Webapp auf handy lädt nach dem verknüpfen neu und bleibt in der orangenen animation der
-  // landingpage hängen" — this accent-coloured (orange) overlay used to only ever shrink back down
-  // again inside the 'transitionend' handler below. A mobile browser can drop that event entirely —
-  // most commonly right here, since scanning the QR code hands off to another app for a moment and
-  // the tab gets backgrounded/throttled mid-transition — and whatever swapViews() callback runs here
-  // (revealToHome's own view-swap) could in principle throw too. Either way, the old code never
-  // reached the shrink-back setTimeout below it, leaving this overlay permanently covering the whole
-  // screen in solid accent orange. The done-flags + setTimeout fallbacks here mean both phases now
-  // always complete — via the real transitionend when it fires, or via the fallback timer when it
-  // doesn't — so this can no longer get stuck no matter what interrupted it.
-  let expandDone=false;
-  function afterExpand(){
-    if(expandDone) return;
-    expandDone=true;
-    try{ swapViews(); }catch(e){ try{ console.warn('irisTransition swapViews failed', e); }catch(e2){} }
-    const anchor=toAnchor ? toAnchor() : null;
-    let tx=cx, ty=cy;
-    if(anchor){ const r2=anchor.getBoundingClientRect(); tx=r2.left+r2.width/2; ty=r2.top+r2.height/2; }
-    const dx=tx-cx, dy=ty-cy;
-    let contractDone=false;
-    function afterContract(){
-      if(contractDone) return;
-      contractDone=true;
-      overlay.remove();
-    }
-    setTimeout(()=>{
-      overlay.style.transition='transform .5s cubic-bezier(.55,0,.2,1)';
-      overlay.style.transform=`translate(${dx}px, ${dy}px) scale(0.001)`;
-      overlay.addEventListener('transitionend',function onContract(ev2){
-        if(ev2.propertyName!=='transform') return;
-        overlay.removeEventListener('transitionend',onContract);
-        afterContract();
-      });
-      setTimeout(afterContract,900); // fallback: force-remove even if transitionend never arrives
-    },90); // tiny playful hold at full coverage before it irises away
+  const canAnimate=typeof overlay.animate==='function';
+  let finished=false;
+  function cleanup(){ if(finished) return; finished=true; overlay.remove(); irisBusy=false; }
+  const hardStop=setTimeout(()=>{ try{ swapOnce(); }catch(e){} cleanup(); },2600); // Notbremse, egal was passiert
+  let swapped=false;
+  function swapOnce(){ if(swapped) return; swapped=true; try{ swapViews(); }catch(e){ try{ console.warn('irisTransition swapViews failed', e); }catch(e2){} } }
+  function run(keyframes,opts){
+    if(!canAnimate){ overlay.style.transform=keyframes[keyframes.length-1].transform; return new Promise(r=>setTimeout(r,opts.duration)); }
+    const anim=overlay.animate(keyframes,Object.assign({fill:'forwards'},opts));
+    return Promise.race([anim.finished.catch(()=>{}), new Promise(r=>setTimeout(r,opts.duration+400))]);
   }
-  // one frame to let the small starting circle paint, then animate it out to cover the screen —
-  // forcing the transition across two frames like this is what makes it reliably animate instead
-  // of the browser collapsing the start+end state into a single, instant jump.
-  requestAnimationFrame(()=>{
-    overlay.style.transition='transform .62s cubic-bezier(.3,1.4,.5,1)';
-    overlay.style.transform='scale(1)';
-  });
-  overlay.addEventListener('transitionend',function onExpand(ev){
-    if(ev.propertyName!=='transform') return;
-    overlay.removeEventListener('transitionend',onExpand);
-    afterExpand();
-  });
-  setTimeout(afterExpand,1200); // fallback: force the swap even if the expand transitionend never arrives
+  (async()=>{
+    try{
+      await run([{transform:`scale(${s0.toFixed(6)})`},{transform:`scale(${full})`}],
+                {duration:520, easing:'cubic-bezier(.45,0,.2,1)'});
+      overlay.style.transform=`scale(${full})`;
+      swapOnce();
+      await irisNextPaint();               // neue Ansicht ist fertig gemalt, bevor sich der Kreis öffnet
+      const anchor=toAnchor ? toAnchor() : null;
+      let tx=cx, ty=cy;
+      if(anchor && anchor.getBoundingClientRect){ const r2=anchor.getBoundingClientRect(); if(r2.width||r2.height){ tx=r2.left+r2.width/2; ty=r2.top+r2.height/2; } }
+      const dx=tx-cx, dy=ty-cy;
+      await run([{transform:`translate(0px,0px) scale(${full})`},{transform:`translate(${dx}px,${dy}px) scale(${(0.002*full).toFixed(5)})`}],
+                {duration:480, easing:'cubic-bezier(.55,0,.25,1)'});
+    }catch(e){ swapOnce(); }
+    clearTimeout(hardStop);
+    cleanup();
+  })();
+  return true;
 }
 function revealToHome(originEl){
-  irisTransition(originEl, ()=>{
+  if(state.screen==='home' && !homeView.hidden) return;
+  const started=irisTransition(originEl, ()=>{
     landingView.hidden=true;
     homeView.hidden=false;
     homeView.classList.add('home-view-enter');
@@ -16571,13 +16570,14 @@ function revealToHome(originEl){
     // dropdown's) can ever escape that once both sides are separately stacked. Stripping the class once
     // the (short, one-shot) entrance animation is actually done removes that ambient stacking context
     // again, so a floating menu opened from the header can correctly sit on top of the boards below it.
-    setTimeout(()=>homeView.classList.remove('home-view-enter'),700);
+    setTimeout(()=>homeView.classList.remove('home-view-enter'),900);
     state.screen='home';
     pushNavState();
   }, ()=>document.querySelector('#homeWordmark .logo-dot'));
-  setTimeout(()=>runFirstRunFlow(),1300);
+  if(started) setTimeout(()=>runFirstRunFlow(),1300);
 }
 function revealToLanding(originEl){
+  if(state.screen==='landing' && !landingView.hidden) return;
   irisTransition(originEl, ()=>{
     homeView.hidden=true;
     landingView.hidden=false;
@@ -16600,6 +16600,14 @@ function pushNavState(){
 window.addEventListener('popstate',(e)=>{
   const s=e.state || {screen:'landing'};
   suppressNavPush=true;
+  // Läuft gerade noch ein Kreis-Übergang, kurz warten und dann ausführen (statt ihn zu verschlucken).
+  if(irisBusy && (s.screen==='landing' || s.screen==='home')){
+    const again=()=>{ if(irisBusy){ setTimeout(again,120); return; }
+      if(s.screen==='landing' && state.screen==='home') revealToLanding(document.body);
+      else if(s.screen==='home' && state.screen==='landing') revealToHome(document.body);
+      setTimeout(()=>{ suppressNavPush=false; },1400); };
+    setTimeout(again,120); return;
+  }
   if(s.screen==='landing'){
     if(state.screen==='home') revealToLanding(document.body);
     else if(state.screen==='board'){ boardView.hidden=true; homeView.hidden=true; landingView.hidden=false; state.screen='landing'; }
@@ -16687,7 +16695,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.179';
+const APP_VERSION='2.4.180';
 try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
