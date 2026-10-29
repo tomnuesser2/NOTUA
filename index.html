@@ -3884,13 +3884,18 @@ try{
   @keyframes modalIn{ from{opacity:0; transform:scale(.94) translateY(6px);} to{opacity:1; transform:scale(1) translateY(0);} }
   .modal h4{margin:0; font-size:1.02rem;}
   .modal p{margin:0; font-size:0.86rem; color:var(--muted); line-height:1.5;}
-  .modal-actions{display:flex; justify-content:flex-end; gap:8px;}
+  .modal-actions{display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;}
+  /* Dialoge passen immer komplett auf den Bildschirm: nie seitlich scrollen (große/breite Schriften im eigenen
+     Look haben die Knopfzeile über den Rand gedrückt → waagerechte Scrollleiste), Knöpfe brechen in die nächste
+     Zeile um, und nur wenn es in der Höhe wirklich nicht passt, scrollt der Dialog senkrecht. */
+  .modal{max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px); box-sizing:border-box; overflow-x:hidden; overflow-y:auto; overflow-wrap:anywhere;}
+  .modal-actions button{flex:0 1 auto; min-width:0; white-space:normal;}
   .modal-actions button{
     padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.84rem; cursor:var(--custom-pointer-cursor,pointer);
   }
   .modal-actions button.primary{background:var(--danger); border-color:var(--danger); color:#fff;}
   .modal-actions button:hover{filter:brightness(0.97);}
-  .modal.modal-wide{width:380px; max-height:80vh; overflow-y:auto;}
+  .modal.modal-wide{width:380px; max-height:min(80vh, calc(100dvh - 24px)); overflow-y:auto;}
   /* QR/code device-linking modal (showR2LinkDeviceModal) — the qrcodejs library draws straight into
      r2-link-qr as a plain <canvas>/<table>, this just centers and frames it; r2-link-code is the same
      code as large, spaced-out monospace text underneath, for typing by hand on a device with no camera. */
@@ -16695,7 +16700,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.181';
+const APP_VERSION='2.4.182';
 try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
@@ -17570,7 +17575,24 @@ function updateEmptyHint(){
 // so they glide instead of snapping — continuous gestures (wheel-pan, pinch-zoom, click-drag-pan)
 // call applyView() every frame and must stay untransitioned, or they'd feel laggy/rubber-banded.
 let smoothViewTimer=null;
+// Springt-rum-Schutz (v2.4.182): Sobald man selbst wischt/zoomt, wird ein gerade laufendes weiches Gleiten
+// (smoothViewJump, 300 ms CSS-Transition) sofort beendet — sonst wurde jede Fingerbewegung zusätzlich
+// "nachgezogen" und das Board sprang/gummibandete. Außerdem merkt sich die Bearbeiten-Automatik, dass man
+// selbst navigiert hat, und holt die Ansicht dann NICHT mehr zur gerade bearbeiteten Notiz zurück.
+let viewGestureTs=0;
+function cancelSmoothView(){
+  if(canvasInner.classList.contains('smooth-view')){ canvasInner.classList.remove('smooth-view'); gridLayer.classList.remove('smooth-view'); clearTimeout(smoothViewTimer); }
+}
+function noteViewGesture(){
+  viewGestureTs=performance.now();
+  cancelSmoothView();
+  if(typeof editFitState!=='undefined' && editFitState) editFitState.userMoved=true;
+}
+function wheelEngCancel(){
+  try{ if(wheelEng.raf) cancelAnimationFrame(wheelEng.raf); wheelEng.raf=0; wheelEng.dx=wheelEng.dy=wheelEng.lz=0; wheelEng.last=0; }catch(e){}
+}
 function smoothViewJump(fn){
+  wheelEngCancel(); // kein Rest-Schwung vom Trackpad, der nach dem Gleiten noch dazukommt
   canvasInner.classList.add('smooth-view');
   gridLayer.classList.add('smooth-view'); // see .grid-layer.smooth-view's own CSS comment
   clearTimeout(smoothViewTimer);
@@ -17893,6 +17915,7 @@ function caretOutsideComfort(el){
 }
 function refitEditingCardForViewport(){
   if(!editFitState || !editFitState.cardId || editFitState.mode==='pc') return;
+  if(editFitState.userMoved) return; // selbst weggewischt/gezoomt → Ansicht nicht zurückreißen
   const card=state.cards.find(c=>c.id===editFitState.cardId);
   if(!card) return;
   const el=document.activeElement;
@@ -17942,8 +17965,12 @@ viewport.addEventListener('focusin',(e)=>{
 // lines); the view only re-centers once it leaves the comfortable band (see caretOutsideComfort).
 viewport.addEventListener('scroll',()=>{ if(viewport.scrollLeft||viewport.scrollTop){ viewport.scrollLeft=0; viewport.scrollTop=0; } },{passive:true});
 let editRecenterTimer=null;
-function recenterOnCaretWhileTyping(){
+function recenterOnCaretWhileTyping(ev){
   if(!editFitState || !editFitState.cardId || editFitState.mode==='pc') return;
+  // Erst wenn wirklich getippt wird, darf die Ansicht der Schreibmarke wieder folgen — eine bloße
+  // Auswahl-Änderung (Antippen, Wischen) nach eigenem Navigieren holt das Board nicht mehr zurück.
+  if(ev && ev.type==='input') editFitState.userMoved=false;
+  else if(editFitState.userMoved || performance.now()-viewGestureTs<600) return;
   clearTimeout(editRecenterTimer);
   editRecenterTimer=setTimeout(()=>{
     if(!editFitState || !editFitState.cardId) return;
@@ -17955,7 +17982,7 @@ function recenterOnCaretWhileTyping(){
   },120);
 }
 viewport.addEventListener('input',recenterOnCaretWhileTyping);
-document.addEventListener('selectionchange',()=>{ if(editFitState) recenterOnCaretWhileTyping(); });
+document.addEventListener('selectionchange',(e)=>{ if(editFitState) recenterOnCaretWhileTyping(e); });
 viewport.addEventListener('focusout',()=>{
   // A short delay so a focus change that lands on ANOTHER field (same card, or a direct tab/click
   // into a different card) has already happened by the time this checks document.activeElement —
@@ -18068,7 +18095,7 @@ function wheelHasTrackpadEvidence(){ return Date.now()-wheelTrackpadEvidenceTs <
 // Momentum-Ausklingen) wird verkürzt, aber nicht ganz entfernt.
 const WHEEL_PAN_GAIN=0.8, WHEEL_SMOOTH_TAU=45, WHEEL_MOMENTUM_DAMP=0.93, WHEEL_MOMENTUM_FLOOR=0.25;
 const wheelEng={dx:0,dy:0,lz:0,fx:0,fy:0,raf:0,last:0,prevMag:0,decayN:0,lastEvTs:0};
-function wheelEngKick(){ if(!wheelEng.raf){ wheelEng.last=0; wheelEng.raf=requestAnimationFrame(wheelEngTick); } }
+function wheelEngKick(){ noteViewGesture(); if(!wheelEng.raf){ wheelEng.last=0; wheelEng.raf=requestAnimationFrame(wheelEngTick); } }
 function wheelEngPan(dx,dy){
   const now=performance.now();
   if(now-wheelEng.lastEvTs>160){ wheelEng.decayN=0; wheelEng.prevMag=0; } // neue Geste
@@ -18147,7 +18174,7 @@ function classifyWheel(e,now){
   }
   if(e.deltaMode!==0){ wheelBurstKind='mouse'; return 'mouse'; } // lines/pages mode: only a physical wheel
   // Eindeutiger Trackpad-Beweis: schräge Bewegung (beide Achsen gleichzeitig) — kann ein Mausrad nicht.
-  if(e.deltaX!==0 && e.deltaY!==0 && !e.shiftKey){ wheelMarkTrackpad(); wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; }
+  if(e.deltaX!==0 && e.deltaY!==0 && !e.shiftKey){ if(wheelBurstKind==='mouse' && gap<WHEEL_BURST_GAP_MS) wheelEng.lz=0; wheelMarkTrackpad(); wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; }
   // Kein Trackpad in letzter Zeit gesehen → senkrecht = Mausrad = zoomen, egal wie klein/krumm die Werte sind.
   if(!wheelHasTrackpadEvidence()){
     if(e.deltaX===0 || e.shiftKey){ wheelBurstKind='mouse'; return 'mouse'; }
@@ -18950,6 +18977,7 @@ viewport.addEventListener('pointerdown',(e)=>{
   if(e.pointerType==='touch') return; // touch gets its own pan/pinch handling below, not mouse marquee-select
   if(e.target.closest('.card') || e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
   if(e.button===1 || spaceDown || e.button===0 && e.altKey){
+    wheelEngCancel(); cancelSmoothView();
     panState={sx:e.clientX,sy:e.clientY,ox:state.view.x,oy:state.view.y};
     viewport.classList.add('panning-active');
     viewport.setPointerCapture(e.pointerId);
@@ -18983,6 +19011,7 @@ viewport.addEventListener('pointerdown',(e)=>{
 viewport.addEventListener('pointerdown',(e)=>{
   if(e.pointerType==='touch' || e.button!==1) return;
   if(e.target.closest('.viewctl') || e.target.closest('.dock') || e.target.closest('.inspector')) return;
+  wheelEngCancel(); cancelSmoothView();
   panState={sx:e.clientX,sy:e.clientY,ox:state.view.x,oy:state.view.y};
   viewport.classList.add('panning-active');
   try{ viewport.setPointerCapture(e.pointerId); }catch(err){}
@@ -19002,6 +19031,7 @@ viewport.addEventListener('auxclick',(e)=>{
 viewport.addEventListener('pointermove',(e)=>{
   state.lastPointer=screenToCanvas(e.clientX,e.clientY);
   if(panState){
+    noteViewGesture();
     state.view.x=panState.ox+(e.clientX-panState.sx);
     state.view.y=panState.oy+(e.clientY-panState.sy);
     applyView();
@@ -19100,6 +19130,7 @@ function pinchFrame(){
   const mx=(pts[0].x+pts[1].x)/2-pinchG.left, my=(pts[0].y+pts[1].y)/2-pinchG.top;
   const raw=pinchG.z0*(d/pinchG.d0);
   const z=clamp(raw,0.2,2.5);
+  noteViewGesture();
   state.view.zoom=z;
   state.view.x=mx-pinchG.ax*z;
   state.view.y=my-pinchG.ay*z;
@@ -19127,6 +19158,7 @@ function clearTouchLongPress(){ clearTimeout(touchLongPressTimer); touchLongPres
 // pinch (second finger onward) — see pinchLastMid's own comment on why BOTH distance AND midpoint are
 // captured now, not just distance.
 function beginPinchTouch(pointerId,x,y){
+  wheelEngCancel(); cancelSmoothView();
   activeTouches.set(pointerId,{x,y});
   try{ viewport.setPointerCapture(pointerId); }catch(err){}
   if(activeTouches.size>=2){
@@ -19239,6 +19271,7 @@ viewport.addEventListener('pointermove',(e)=>{
       if(touchLongPressTimer) clearTouchLongPress();
       touchLastTap=null; // this turned into a real pan, not a tap — doesn't count toward a double-tap
     }
+    noteViewGesture();
     state.view.x=touchPanState.ox+(e.clientX-touchPanState.sx);
     state.view.y=touchPanState.oy+(e.clientY-touchPanState.sy);
     applyView();
