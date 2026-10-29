@@ -16695,7 +16695,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.180';
+const APP_VERSION='2.4.181';
 try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
@@ -18042,6 +18042,23 @@ try{ const v=localStorage.getItem('notua-wheel-pref'); if(v==='zoom'||v==='pan'|
 const WHEEL_BURST_GAP_MS=220, WHEEL_TRACKPAD_STICKY_MS=1500, WHEEL_PENDING_MS=45;
 const WHEEL_IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||'') || /Mac OS X/.test(navigator.userAgent||'');
 let wheelLastTs=0, wheelBurstKind=null, wheelTrackpadTs=0, wheelPending=null;
+// v2.4.181 — "schnell scrollen scrollt manchmal hoch statt zu zoomen": Mausräder mit Freilauf/hoher Auflösung
+// (Logitech MX & Co.), Windows mit "1 Zeile pro Rastung" oder Glättungs-Treibern schicken beim schnellen Drehen
+// viele kleine, krumme Werte — genau wie ein Trackpad. Deshalb gilt jetzt: Ein rein senkrechtes Rad-Ereignis ist
+// IMMER Mausrad (= zoomen), solange dieses Gerät in letzter Zeit keinen eindeutigen Trackpad-Beweis geliefert hat.
+// Eindeutige Beweise gibt es nur vom Trackpad: Pinch (Strg-Wheel mit krummen Werten / Safari-Gesten) oder eine
+// Wisch-Bewegung mit Seitenanteil (deltaX und deltaY gleichzeitig). Kommt so ein Beweis mitten in einer Geste,
+// wird sie sofort zum Verschieben. Der Beweis gilt 20 Minuten (auch über Neuladen hinweg) und wird bei jeder
+// Trackpad-Geste erneuert — am Laptop ohne Maus bleibt also alles wie gewohnt.
+const WHEEL_TRACKPAD_EVIDENCE_MS=20*60*1000;
+let wheelTrackpadEvidenceTs=0, wheelEvidenceSaveTs=0;
+try{ wheelTrackpadEvidenceTs=+localStorage.getItem('notua-trackpad-evidence')||0; }catch(e){}
+function wheelMarkTrackpad(){
+  const now=Date.now(); wheelTrackpadEvidenceTs=now;
+  if(now-wheelEvidenceSaveTs>15000){ wheelEvidenceSaveTs=now; try{ localStorage.setItem('notua-trackpad-evidence',String(now)); }catch(e){} }
+}
+// Mac: fast jeder Mac hat Trackpad/Magic Mouse — dort hält der Beweis 30 Tage (die bisherige Mausrad-Erkennung greift weiter).
+function wheelHasTrackpadEvidence(){ return Date.now()-wheelTrackpadEvidenceTs < (WHEEL_IS_MAC ? 30*864e5 : WHEEL_TRACKPAD_EVIDENCE_MS); }
 // ---- Flüssiges Trackpad-/Mausrad-Bewegen (v2.4.164) ----
 // Vorher wurde jedes einzelne Wheel-Ereignis sofort angewendet. Auf dem Mac (Trackpad, ProMotion 120 Hz) kommen
 // die Ereignisse aber unregelmäßig und seltener als die Bildschirm-Frames → das wirkte ruckelig wie "low fps".
@@ -18094,7 +18111,12 @@ function wheelEngTick(ts){
 function wheelApply(kind,x,y,dx,dy){
   if(kind==='mouse'){
     if(dy===0) return; // e.g. a tilt-wheel's sideways click — nothing to zoom by
-    wheelEngZoom(x,y, dy<0 ? 1.08 : 0.92);
+    // Zoom proportional zur gedrehten Strecke: eine normale Rastung (≈100) = ~8 % wie bisher, ein Freilauf-/
+    // Hochauflösungs-Rad mit vielen kleinen Werten zoomt dadurch genauso weit wie gleich viele Rastungen —
+    // statt bei jedem winzigen Ereignis volle 8 % zu springen.
+    const unit=wheelLastMode===1 ? 33.34 : (wheelLastMode===2 ? 800 : (window.devicePixelRatio||1));
+    const n=dy*unit;
+    wheelEngZoom(x,y, clamp(Math.exp(-n*0.00077),0.75,1.33));
   }else{
     wheelEngPan(dx,dy);
   }
@@ -18124,6 +18146,13 @@ function classifyWheel(e,now){
     wheelResolvePending(same?'mouse':'trackpad');
   }
   if(e.deltaMode!==0){ wheelBurstKind='mouse'; return 'mouse'; } // lines/pages mode: only a physical wheel
+  // Eindeutiger Trackpad-Beweis: schräge Bewegung (beide Achsen gleichzeitig) — kann ein Mausrad nicht.
+  if(e.deltaX!==0 && e.deltaY!==0 && !e.shiftKey){ wheelMarkTrackpad(); wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; }
+  // Kein Trackpad in letzter Zeit gesehen → senkrecht = Mausrad = zoomen, egal wie klein/krumm die Werte sind.
+  if(!wheelHasTrackpadEvidence()){
+    if(e.deltaX===0 || e.shiftKey){ wheelBurstKind='mouse'; return 'mouse'; }
+    wheelMarkTrackpad(); wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; // rein seitlich: Wisch
+  }
   // v2.4.76 — "manchmal zoomt er nicht, sondern wischt": ein echtes Mausrad liefert (auf Windows, auch mit
   // schnell gedrehtem Rad/Beschleunigung) rein vertikale Werte, die — mit devicePixelRatio normiert — GANZE
   // VIELFACHE von 100 sind (100, 200, 300 …). Ein Trackpad-Wisch tut das praktisch nie. Solche Ereignisse
@@ -18140,8 +18169,10 @@ function classifyWheel(e,now){
   if(now-wheelTrackpadTs<WHEEL_TRACKPAD_STICKY_MS){ wheelBurstKind='trackpad'; return 'trackpad'; }
   return null; // genuinely ambiguous — the handler below holds it back and decides on the next event/timeout
 }
+let wheelLastMode=0;
 viewport.addEventListener('wheel',(e)=>{
   const ctrlOrPinch=e.ctrlKey||e.metaKey;
+  wheelLastMode=e.deltaMode||0;
   // Let the wheel event fall through to native scrolling when it started over content that can
   // scroll itself (a non-dynamic note whose text overflows its box, a checklist's item list, a
   // table's own scroll area) — without this, preventDefault() below fired unconditionally and ate
@@ -18174,6 +18205,7 @@ viewport.addEventListener('wheel',(e)=>{
       // statt zu schieben) oder wurde erst kurz zurückgehalten. Verschieben und Zoomen laufen beide in dieselbe
       // Engine und landen im selben Frame, unabhängig voneinander.
       const now=performance.now();
+      if(Math.abs(ndy-Math.round(ndy))>0.02 || ndy<10) wheelMarkTrackpad(); // krummer/kleiner Pinch-Wert = Trackpad
       if(wheelPending) wheelResolvePending('trackpad');
       wheelBurstKind='trackpad'; wheelTrackpadTs=now; wheelLastTs=now;
     }
@@ -18201,7 +18233,7 @@ viewport.addEventListener('gesturestart',(e)=>{
   e.preventDefault();
   gestureBaseZoom=(activeTouches.size>=2) ? null : state.view.zoom;
   gestureLastX=Number.isFinite(e.clientX)?e.clientX:null; gestureLastY=Number.isFinite(e.clientY)?e.clientY:null;
-  wheelTrackpadTs=performance.now(); wheelBurstKind='trackpad';
+  wheelTrackpadTs=performance.now(); wheelBurstKind='trackpad'; wheelMarkTrackpad();
 });
 viewport.addEventListener('gesturechange',(e)=>{
   e.preventDefault();
