@@ -1,0 +1,25 @@
+# Systemdateien
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Desktop-App (Electron)
+desktop/node_modules/
+desktop/dist/
+
+# Android
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+
+# Signierschlüssel und Passwörter gehören NIE ins Repo
+*.jks
+*.keystore
+android-signing/
+
+# Arbeits- und Sicherungskopien
+*.bak
+*-sicherungskopie.html
+Claude outputs/
+version.outputs/

@@ -232,7 +232,7 @@ try{
     :root:not([data-theme="light"]){
       --canvas:#13161A; --canvas-dot:#232932; --surface:#1D2229; --surface-rgb:29,34,41; --surface-2:#171A20;
       --ink:#E5E9F0; --muted:#95A4BB; --faint:#65738B; --border:#1F242C; --border-strong:#2A313B;
-      --accent:#9AA8DA; --accent-ink:#FFFFFF; --accent-soft:rgba(154,168,218,0.18);
+      --accent:#9AA8DA; --accent-ink:#1B2027; --accent-soft:rgba(154,168,218,0.18);
       --tag-yellow:102,126,214; --tag-pink:193,132,219; --tag-blue:202,132,104; --tag-green:159,178,83; --tag-purple:112,194,122; --tag-grey:143,151,163; --tag-orange:125,90,216; --tag-red:75,71,215;
       --danger:#FF6B6B; --danger-soft:rgba(255,107,107,0.16);
       --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6);
@@ -242,7 +242,7 @@ try{
   :root[data-theme="dark"]{
     --canvas:#13161A; --canvas-dot:#232932; --surface:#1D2229; --surface-rgb:29,34,41; --surface-2:#171A20;
     --ink:#E5E9F0; --muted:#95A4BB; --faint:#65738B; --border:#1F242C; --border-strong:#2A313B;
-    --accent:#9AA8DA; --accent-ink:#FFFFFF; --accent-soft:rgba(154,168,218,0.18);
+    --accent:#9AA8DA; --accent-ink:#1B2027; --accent-soft:rgba(154,168,218,0.18);
       --tag-yellow:102,126,214; --tag-pink:193,132,219; --tag-blue:202,132,104; --tag-green:159,178,83; --tag-purple:112,194,122; --tag-grey:143,151,163; --tag-orange:125,90,216; --tag-red:75,71,215;
     --danger:#FF6B6B; --danger-soft:rgba(255,107,107,0.16);
     --shadow:rgba(0,0,0,0.45); --shadow-lg:rgba(0,0,0,0.6);
@@ -305,7 +305,7 @@ try{
     font-size:0.72rem; letter-spacing:0.02em; color:var(--muted); opacity:0.5; pointer-events:none; user-select:none; font-variant-numeric:tabular-nums;}
   .landing-circle{
     position:relative; width:96px; height:96px; border-radius:var(--lc-radius,50%); background:var(--accent); border:none; cursor:var(--custom-pointer-cursor,pointer); flex:none;
-    display:flex; align-items:center; justify-content:center; color:#fff;
+    display:flex; align-items:center; justify-content:center; color:var(--accent-ink,#fff);
     box-shadow:0 10px 24px -14px color-mix(in srgb,var(--accent) 55%,transparent), 0 3px 10px -4px var(--shadow);
     /* Weicher: nur transform wird animiert (läuft auf der GPU), länger und mit sanftem Auslaufen. Das
        Atmen des Schattens läuft jetzt über die Deckkraft von ::after statt über box-shadow selbst —
@@ -401,7 +401,7 @@ try{
   .download-cta{
     position:relative; isolation:isolate; display:inline-flex; align-items:center; gap:7px; border:none; cursor:var(--custom-pointer-cursor,pointer);
     padding:11px 18px; border-radius:13px; font:inherit; font-size:0.85rem; font-weight:700; letter-spacing:.01em;
-    color:#fff; background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 58%,#000)); /* Verlauf: Akzentfarbe → dunklere Abstufung derselben Farbe (kein festes Orange mehr) */
+    color:var(--accent-ink,#fff); background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 58%,#000)); /* Verlauf: Akzentfarbe → dunklere Abstufung derselben Farbe (kein festes Orange mehr) */
     box-shadow:0 6px 14px -10px color-mix(in srgb,var(--accent) 60%,transparent), 0 2px 6px -3px var(--shadow);
     transition:transform .2s cubic-bezier(.22,1,.36,1), filter .15s ease;
   }
@@ -886,7 +886,7 @@ try{
   .tile-go-btn{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     display:flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; border:none;
-    background:var(--accent); color:#fff; font:inherit; font-size:0.82rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);
+    background:var(--accent); color:var(--accent-ink,#fff); font:inherit; font-size:0.82rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);
     box-shadow:0 10px 24px -8px var(--shadow-lg); z-index:4; white-space:nowrap;
   }
   .tile-go-btn:hover{filter:brightness(1.08);}
@@ -1176,7 +1176,7 @@ try{
   }
   .cal-day:hover{background:var(--surface-2);}
   .cal-day.outside{color:var(--faint);}
-  .cal-day.today{font-weight:700; box-shadow:inset 0 0 0 1.5px var(--accent);}
+  .cal-day.today{font-weight:700; box-shadow:inset 0 0 0 2px var(--accent), inset 0 0 0 3px color-mix(in srgb, var(--ink) 20%, transparent);}
   .cal-day.active{background:var(--accent); color:var(--accent-ink);}
   .cal-day.active:hover{background:var(--accent);}
   .cal-day-dots{display:flex; gap:2px;}
@@ -1289,7 +1289,7 @@ try{
     color:var(--muted); font:inherit; font-size:0.8rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);
     transition:background .14s ease, color .14s ease, border-color .14s ease;
   }
-  .gcal-type-btn.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .gcal-type-btn.active{background:var(--accent); border-color:var(--accent); color:var(--accent-ink,#fff);}
   .gcal-type-hint{font-size:0.76rem; color:var(--muted); line-height:1.4; margin:-4px 0 0;}
   .gcal-field-input, .gcal-modal textarea{
     border:1px solid var(--border); border-radius:8px; padding:9px 10px; font:inherit; font-size:0.86rem;
@@ -1410,7 +1410,7 @@ try{
   .tour-tooltip-text{ font-size:0.87rem; line-height:1.5; color:var(--ink); margin:0; padding-right:16px; }
   .tour-tooltip-actions{ display:flex; justify-content:flex-end; margin-top:12px; }
   .tour-tooltip-next{
-    border:1px solid var(--accent); background:var(--accent); color:#fff; font-size:0.82rem; font-weight:600;
+    border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink,#fff); font-size:0.82rem; font-weight:600;
     padding:6px 14px; border-radius:20px; cursor:pointer;
   }
   .tour-tooltip-arrow{ position:absolute; width:0; height:0; }
@@ -1510,6 +1510,39 @@ try{
   .lf-pill span{font-size:0.8rem;}
   .lf-pill:hover{border-color:var(--border-strong);}
   .lf-pill.sel{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px var(--accent);}
+  /* Kontrast-Schritt: echte Karten im gewählten Look + Mess-Anzeige */
+  .lf-sl-board.lf-kt-board{height:auto; min-height:176px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:14px; align-content:center; overflow:visible; transition:filter .2s ease;}
+  .lf-sl-board.lf-kt-board.matte{filter:contrast(.74) brightness(1.07) saturate(.85);}
+  .lf-kt-card{position:relative; display:flex; flex-direction:column; gap:3px; min-width:0; padding:8px 11px 11px; box-sizing:border-box; text-align:left;
+    border:var(--lf-bw,1px) solid var(--lf-bc,var(--border)); border-radius:var(--lf-r,12px); box-shadow:var(--lf-sh,0 2px 8px rgba(0,0,0,.10)); font-family:var(--lf-ff,inherit); color:var(--k-ink,var(--ink));}
+  .lf-kt-card .hd{display:flex; align-items:center; gap:5px; font-size:0.66rem; font-weight:600; color:var(--k-muted,var(--muted));}
+  .lf-kt-card .hd svg{width:11px; height:11px; flex:none;}
+  .lf-kt-card .tx{display:block; font-size:0.84rem; font-weight:600; line-height:1.4; color:var(--k-ink,var(--ink)); overflow-wrap:anywhere;}
+  .lf-kt-card small{font-size:0.68rem; font-weight:500; color:var(--k-muted,var(--muted)); padding-right:30px;}
+  .lf-kt-card ul{list-style:none; margin:2px 0 0; padding:0 0 12px; display:flex; flex-direction:column; gap:4px; font-size:0.8rem; font-weight:600;}
+  .lf-kt-card li{display:flex; align-items:center; gap:7px; min-width:0;}
+  .lf-kt-card li span, .lf-kt-card li s{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lf-kt-card li s{color:var(--k-muted,var(--muted));}
+  .lf-kt-card .bx{width:12px; height:12px; flex:none; box-sizing:border-box; border:1.6px solid var(--k-muted,var(--muted)); border-radius:calc(var(--lf-r,12px) * .3);}
+  .lf-kt-card .bx.on{background:var(--k-muted,var(--muted));}
+  .lf-kt-card .cr{position:absolute; right:6px; bottom:5px; font-style:normal; font:600 0.6rem 'IBM Plex Mono',ui-monospace,monospace; padding:1px 5px; border-radius:5px; color:var(--k-muted,var(--muted)); background:color-mix(in srgb, var(--k-ink,var(--ink)) 9%, transparent);}
+  .lf-kt-meter{display:flex; flex-direction:column; gap:5px;}
+  .lf-kt-read{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .lf-kt-num{font:700 1.15rem 'IBM Plex Mono',ui-monospace,monospace; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .lf-kt-word{font-size:0.84rem; font-weight:600; color:var(--muted);}
+  .lf-kt-matte{margin-left:auto; display:inline-flex; align-items:center; gap:6px; font-size:0.76rem; color:var(--muted); cursor:var(--custom-pointer-cursor,pointer);}
+  .lf-kt-matte input{accent-color:var(--accent); margin:0;}
+  .lf-kt-track{position:relative; height:10px; border-radius:5px; background:var(--surface-2); border:1px solid var(--border); overflow:hidden;}
+  .lf-kt-track .fill{position:absolute; left:0; top:0; bottom:0; width:0; background:var(--accent); border-radius:5px 0 0 5px; transition:width .22s cubic-bezier(.22,1,.36,1);}
+  .lf-kt-track u{position:absolute; top:0; bottom:0; width:2px; margin-left:-1px; background:var(--surface); mix-blend-mode:normal; opacity:.9;}
+  .lf-kt-ticks{position:relative; height:1.1em; font-size:0.64rem; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .lf-kt-ticks span{position:absolute; top:0; transform:translateX(-50%); white-space:nowrap;}
+  .lf-kt-ticks span:first-child{transform:none;} .lf-kt-ticks span:last-child{transform:translateX(-100%);}
+  @media (max-width:640px){
+    .lf-shape-live > .lf-sl-board.lf-kt-board{min-height:min(260px,36dvh); gap:10px; padding:12px;}
+    .lf-kt-card .tx{font-size:0.9rem;} .lf-kt-card ul{font-size:0.86rem;}
+  }
+  @media (max-width:380px){ .lf-kt-card small{display:none;} }
   .lf-sl-ctl{display:flex; flex-direction:column; gap:8px;}
   .lf-sl-lab{font-size:0.72rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);}
   .lf-slider{-webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px; outline:none; background:linear-gradient(to right, var(--accent) var(--p,40%), var(--surface-2) var(--p,40%)); border:1px solid var(--border); cursor:var(--custom-pointer-cursor,pointer);}
@@ -1817,13 +1850,13 @@ try{
   .card.connect-source{outline:2px solid var(--accent); outline-offset:3px; background-image:linear-gradient(var(--accent-soft),var(--accent-soft));}
   .connect-source-badge{
     position:absolute; top:-8px; right:-8px; width:20px; height:20px; border-radius:50%;
-    background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center;
+    background:var(--accent); color:var(--accent-ink,#fff); display:flex; align-items:center; justify-content:center;
     box-shadow:0 2px 6px -1px var(--shadow-lg); pointer-events:none; z-index:3;
   }
   .connect-source-badge svg{width:12px; height:12px;}
   .date-badge{
-    position:absolute; top:-9px; left:8px; border:none; border-radius:10px; padding:2px 7px;
-    background:var(--ink); color:var(--canvas); font-size:0.64rem; font-weight:600; letter-spacing:.01em;
+    position:absolute; top:-12px; left:8px; border:none; border-radius:12px; padding:3px 10px;
+    background:var(--ink); color:var(--canvas); font-size:0.78rem; font-weight:700; letter-spacing:.01em; line-height:1.25;
     box-shadow:0 2px 6px -1px var(--shadow-lg); cursor:var(--custom-pointer-cursor,pointer); z-index:2; font-family:inherit;
   }
   .date-badge:hover{background:var(--accent); color:var(--accent-ink);}
@@ -2640,7 +2673,7 @@ try{
   }
   #drawerBlanketSection .dsm-row button:active{transform:scale(.9);}
   #drawerBlanketSection .dsm-row button.toggled{background:var(--accent-soft); color:var(--accent);}
-  #drawerBlanketSection .dsm-row button.armed{background:var(--accent); color:#fff;}
+  #drawerBlanketSection .dsm-row button.armed{background:var(--accent); color:var(--accent-ink,#fff);}
   #drawerBlanketSection .dsm-row button:disabled{opacity:.35; cursor:default; pointer-events:none;}
   #drawerBlanketSection .dsm-frame-label{flex:1; font-size:0.78rem; color:var(--ink); text-align:center; font-variant-numeric:tabular-nums;}
   #drawerBlanketSection .dsm-fps-btn{width:auto !important; min-width:54px; padding:0 10px; font-size:0.68rem; font-weight:600; font-family:inherit;}
@@ -2722,7 +2755,7 @@ try{
   .bsm-toggle-label{font-size:0.56rem; font-weight:600; letter-spacing:.01em; white-space:nowrap;}
   .bsm-toggle:hover{background:var(--surface-2); color:var(--ink);}
   .bsm-toggle:active{transform:scale(.95);}
-  .bsm-toggle.toggled{background:var(--accent); color:#fff; box-shadow:0 6px 14px -8px color-mix(in srgb,var(--accent) 55%,transparent);}
+  .bsm-toggle.toggled{background:var(--accent); color:var(--accent-ink,#fff); box-shadow:0 6px 14px -8px color-mix(in srgb,var(--accent) 55%,transparent);}
   /* "das Menü soll umgebaut werden und nun so aussehen wie die Eigenschaftsfelder in einem normalen
      Board" — rebuilt from a flat column of bare icon buttons into labeled sections styled exactly like
      the normal card inspector's own grouped fields (.insp-label's small uppercase caption over a row of
@@ -2764,7 +2797,7 @@ try{
   .bsm-section-row button:hover{background:var(--surface-2); color:var(--ink);}
   .bsm-section-row button:active{transform:scale(.88);}
   .bsm-section-row button.toggled{background:var(--accent-soft); color:var(--accent);}
-  .bsm-section-row button.armed, .bsm-section-row button.armed:hover{background:var(--accent); color:#fff;}
+  .bsm-section-row button.armed, .bsm-section-row button.armed:hover{background:var(--accent); color:var(--accent-ink,#fff);}
   .bsm-section-row button:disabled{opacity:.35; cursor:default; pointer-events:none;}
   .bsm-frame-label{flex:1; font-size:0.72rem; color:var(--ink); text-align:center; padding:2px 0; font-variant-numeric:tabular-nums;}
   .vbf-fps-btn{width:auto !important; min-width:46px; padding:0 8px; height:32px; font-size:0.62rem; font-weight:600; font-family:inherit;}
@@ -3894,6 +3927,10 @@ try{
     padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.84rem; cursor:var(--custom-pointer-cursor,pointer);
   }
   .modal-actions button.primary{background:var(--danger); border-color:var(--danger); color:#fff;}
+  /* v2.4.185 — Knöpfe, die per Inline-Style die Akzentfarbe bekommen (Anwenden, Weiter, …), nehmen die passende
+     Schriftfarbe dazu — sonst stand bei hellen Akzenten (z. B. Mono im Dunkelmodus, helle Duo-Paletten) weiße
+     Schrift auf hellem Knopf und war unlesbar. */
+  button[style*="background:var(--accent)"], a[style*="background:var(--accent)"]{color:var(--accent-ink,#fff) !important;}
   .modal-actions button:hover{filter:brightness(0.97);}
   .modal.modal-wide{width:380px; max-height:min(80vh, calc(100dvh - 24px)); overflow-y:auto;}
   /* QR/code device-linking modal (showR2LinkDeviceModal) — the qrcodejs library draws straight into
@@ -3946,7 +3983,7 @@ try{
   }
   .segmented button:last-child{border-right:none;}
   .segmented button:hover:not(:disabled){background:var(--surface-2);}
-  .segmented button.active{background:var(--accent); color:#fff;}
+  .segmented button.active{background:var(--accent); color:var(--accent-ink,#fff);}
   .segmented button:disabled{color:var(--faint); cursor:not-allowed; opacity:.55;}
   .fs-modal-toggle-row{display:flex; align-items:center; gap:8px; font-size:0.86rem; cursor:var(--custom-pointer-cursor,pointer);}
   .fs-modal-toggle-row input[type="checkbox"]{width:16px; height:16px; accent-color:var(--accent); cursor:var(--custom-pointer-cursor,pointer);}
@@ -4293,7 +4330,7 @@ try{
     padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
     font:inherit; font-size:0.78rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer); transition:background .15s, color .15s, border-color .15s;
   }
-  .dm-tab.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .dm-tab.active{background:var(--accent); border-color:var(--accent); color:var(--accent-ink,#fff);}
   .dm-body{overflow-y:auto; flex:1; min-height:200px; display:flex; flex-direction:column; gap:10px; padding:2px 2px 4px;}
   .dm-sec{display:flex; flex-direction:column; gap:10px; animation:dmSecIn .22s ease;}
   @keyframes dmSecIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
@@ -4330,7 +4367,7 @@ try{
   .dp-fx{z-index:4;}
   .dp-landing{background:var(--surface-2); isolation:isolate; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:16px;}
   .dp-lfx{z-index:-1;}
-  .dp-lcircle{width:46px; height:46px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 6px 14px -9px color-mix(in srgb,var(--accent) 55%,transparent);}
+  .dp-lcircle{width:46px; height:46px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:var(--accent-ink,#fff); box-shadow:0 6px 14px -9px color-mix(in srgb,var(--accent) 55%,transparent);}
   .dp-ltitle{font-size:1.5rem; font-weight:700; letter-spacing:-0.02em;}
   .dp-ltag{font-size:0.72rem; color:var(--muted); max-width:220px; line-height:1.4;}
   @media (max-width:780px){
@@ -4394,7 +4431,7 @@ try{
   .theme-menu-actions button{
     padding:8px 14px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink); font:inherit; font-size:0.84rem; cursor:var(--custom-pointer-cursor,pointer);
   }
-  .theme-menu-actions button.primary{color:#fff;}
+  .theme-menu-actions button.primary{color:var(--accent-ink,#fff);}
   .theme-menu-actions button:hover{filter:brightness(0.97);}
 
   /* ---------- TEMPLATES (Vorlagen) picker — deliberately echoes the board overview's own tiles
@@ -4412,7 +4449,7 @@ try{
     flex:1; padding:6px 10px; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface);
     color:var(--ink); font:inherit; font-size:0.78rem; font-weight:600; cursor:var(--custom-pointer-cursor,pointer);
   }
-  .template-insert-btn:hover{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .template-insert-btn:hover{background:var(--accent); border-color:var(--accent); color:var(--accent-ink,#fff);}
   .template-delete-btn{
     flex:none; width:30px; border:none; border-radius:6px; background:var(--surface); color:var(--muted);
     display:flex; align-items:center; justify-content:center; cursor:var(--custom-pointer-cursor,pointer);
@@ -4511,8 +4548,11 @@ try{
   /* ---------- Kalender: größere Punkte + größere Einträge, Google-Verknüpfung ---------- */
   .cal-day{gap:4px;}
   .cal-day-dots{display:flex; gap:3px; align-items:center; justify-content:center; flex-wrap:wrap; max-width:100%;}
-  .cal-day-dots span{width:9px; height:9px; border-radius:50%; background:currentColor; opacity:.95; box-shadow:0 0 0 1.5px var(--surface);}
-  .cal-day.active .cal-day-dots span{box-shadow:0 0 0 1.5px var(--accent); opacity:1;}
+  .cal-day-dots span{width:9px; height:9px; border-radius:50%; background:currentColor; opacity:1; box-shadow:0 0 0 1.5px var(--surface), 0 0 0 2.6px color-mix(in srgb, var(--ink) 55%, transparent);}
+  /* Punkte für Kalendereinträge: zusätzlicher dunkler/heller Außenring (Schriftfarbe), damit sie auf jeder Farbwelt sichtbar
+     sind — vorher verschwanden helle Markierungsfarben auf hellem Grund fast. */
+  .cal-item-dot{box-shadow:0 0 0 1.5px var(--surface), 0 0 0 2.6px color-mix(in srgb, var(--ink) 55%, transparent);}
+  .cal-day.active .cal-day-dots span{box-shadow:0 0 0 1.5px var(--accent), 0 0 0 2.6px var(--accent-ink); opacity:1;}
   .cal-day-dots em{font-style:normal; font-size:0.62rem; font-weight:800; line-height:1; margin-left:1px;}
   .cal-day-item{align-items:stretch; gap:4px; border:1px solid var(--border); background:var(--surface); border-radius:12px; margin-bottom:8px; padding:3px;}
   .cal-day-item:hover{background:var(--surface-2);}
@@ -5705,7 +5745,10 @@ function iconColorWheel(){return `<svg width="13" height="13" viewBox="0 0 24 24
 // user gesture when it's the actual element the pointer went down on. currentHex is the color to
 // show as already active (null if this card/connector isn't using a custom color right now); onPick
 // is called with the chosen hex string once the user commits a color in the native picker.
-function buildCustomSwatchButton(currentHex,onPick){
+// v2.4.185 — "Farben sollen beim Auswählen sofort aktualisiert werden, nicht erst nach Enter/Rausklicken":
+// onLive (optional) wird schon WÄHREND man im Farbfeld/mit der Pipette sucht aufgerufen (gedrosselt auf ein Update pro
+// Frame), onPick wie bisher beim endgültigen Übernehmen (Speichern). Das Farbfeld selbst färbt sich immer live mit.
+function buildCustomSwatchButton(currentHex,onPick,onLive){
   const sw=document.createElement('span');
   sw.className='swatch swatch-custom'+(currentHex?' active':'');
   sw.title=t('color_custom_title');
@@ -5715,7 +5758,13 @@ function buildCustomSwatchButton(currentHex,onPick){
   picker.type='color';
   picker.className='swatch-custom-input';
   picker.value=currentHex||'#8A9099';
-  picker.addEventListener('change',()=>onPick(picker.value));
+  let liveRaf=0, liveVal=null;
+  picker.addEventListener('input',()=>{
+    liveVal=picker.value;
+    sw.style.background=liveVal; sw.classList.add('active'); const ic=sw.querySelector('svg'); if(ic) ic.style.opacity='0';
+    if(onLive && !liveRaf) liveRaf=requestAnimationFrame(()=>{ liveRaf=0; try{ onLive(liveVal); }catch(e){} });
+  });
+  picker.addEventListener('change',()=>{ if(liveRaf){ cancelAnimationFrame(liveRaf); liveRaf=0; } onPick(picker.value); });
   sw.appendChild(picker);
   return sw;
 }
@@ -5920,7 +5969,7 @@ const I18N={
   calendar_more:{de:'+{n} weitere',en:'+{n} more',es:'+{n} más',da:'+{n} flere'},
   insp_date_label:{de:'Datum',en:'Date',es:'Fecha',da:'Dato'},
   date_clear_title:{de:'Datum entfernen',en:'Remove date',es:'Quitar fecha',da:'Fjern dato'},
-  date_badge_title:{de:'Im Kalender öffnen',en:'Open in calendar',es:'Abrir en el calendario',da:'Åbn i kalender'},
+  date_badge_title:{de:'Datum bearbeiten',en:'Edit date',es:'Editar fecha',da:'Redigér dato'},
   gcal_export_title:{de:'In Google Kalender übernehmen',en:'Add to Google Calendar',es:'Añadir a Google Calendar',da:'Tilføj til Google Kalender'},
   gcal_modal_title:{de:'In Google Kalender übernehmen',en:'Add to Google Calendar',es:'Añadir a Google Calendar',da:'Tilføj til Google Kalender'},
   gcal_type_event:{de:'Termin',en:'Event',es:'Evento',da:'Begivenhed'},
@@ -6247,6 +6296,33 @@ const I18N={
   lf_o_click_hearts:{de:"Herzen|verspielt",en:"Hearts|playful",es:"Corazones|juguetón",da:"Hjerter|legende"},
   lf_o_click_bubbles:{de:"Blasen|steigen auf",en:"Bubbles|rise up",es:"Burbujas|suben",da:"Bobler|stiger op"},
   lf_o_click_firework:{de:"Feuerwerk|Strahlen",en:"Firework|rays",es:"Fuegos artificiales|rayos",da:"Fyrværkeri|stråler"},
+  lf_q14:{de:"Wie kräftig soll die Schrift im Board sein?",en:"How strong should text be on the board?",es:"¿Qué intensidad debe tener el texto en el tablero?",da:"Hvor kraftig skal teksten være på tavlen?"},
+  lf_q14_sub:{de:"Der Kontrast der Schrift auf Notizen und Listen – in deinem gewählten Look.",en:"The contrast of text on notes and lists – in your chosen look.",es:"El contraste del texto en notas y listas, con tu estilo elegido.",da:"Tekstens kontrast på noter og lister – i dit valgte look."},
+  lf_cat_contrast:{de:"Kontrast",en:"Contrast",es:"Contraste",da:"Kontrast"},
+  lf_contrast_live_label:{de:"Schrift-Kontrast",en:"Text contrast",es:"Contraste del texto",da:"Tekstkontrast"},
+  lf_o_contrast_k0:{de:"Sanft|weiche, graue Schrift – wie bisher",en:"Soft|gentle grey text – as before",es:"Suave|texto gris suave, como hasta ahora",da:"Blød|blød grå tekst – som hidtil"},
+  lf_o_contrast_k1:{de:"Klar|etwas dunkler, angenehm zu lesen",en:"Clear|a little darker, easy to read",es:"Claro|algo más oscuro, cómodo de leer",da:"Klar|lidt mørkere, behagelig at læse"},
+  lf_o_contrast_k2:{de:"Kräftig|deutlich lesbar, auch auf matten Displays",en:"Strong|clearly readable, even on matte displays",es:"Fuerte|muy legible, también en pantallas mate",da:"Kraftig|tydeligt læsbar, også på matte skærme"},
+  lf_o_contrast_k3:{de:"Stark|fast schwarz bzw. weiß",en:"Bold|almost black or white",es:"Intenso|casi negro o blanco",da:"Stærk|næsten sort eller hvid"},
+  lf_o_contrast_k4:{de:"Maximal|reines Schwarz bzw. Weiß – härtester Kontrast",en:"Maximum|pure black or white – hardest contrast",es:"Máximo|negro o blanco puro, el contraste más duro",da:"Maksimal|ren sort eller hvid – hårdeste kontrast"},
+  lf_kt_v0:{de:"schwach lesbar",en:"hard to read",es:"poco legible",da:"svært læsbar"},
+  lf_kt_v1:{de:"gut lesbar",en:"easy to read",es:"legible",da:"let læsbar"},
+  lf_kt_v2:{de:"sehr gut lesbar",en:"very easy to read",es:"muy legible",da:"meget let læsbar"},
+  lf_kt_v3:{de:"maximal lesbar",en:"maximum readability",es:"legibilidad máxima",da:"maksimal læsbarhed"},
+  lf_kt_min:{de:"Minimum",en:"minimum",es:"mínimo",da:"minimum"},
+  lf_kt_matte:{de:"Matten Bildschirm simulieren",en:"Simulate a matte display",es:"Simular pantalla mate",da:"Simulér mat skærm"},
+  lf_kt_h_note:{de:"Notiz",en:"Note",es:"Nota",da:"Note"},
+  lf_kt_h_list:{de:"Aufgaben",en:"Tasks",es:"Tareas",da:"Opgaver"},
+  lf_kt_n1:{de:"So sieht der Text deiner Notizen aus.",en:"This is what your note text looks like.",es:"Así se ve el texto de tus notas.",da:"Sådan ser teksten i dine noter ud."},
+  lf_kt_n2:{de:"Farbige Notizen bleiben genauso lesbar.",en:"Colored notes stay just as readable.",es:"Las notas de color siguen igual de legibles.",da:"Farvede noter er lige så læsbare."},
+  lf_kt_n3:{de:"Auch hier passt sich die Schrift an.",en:"Text adapts here as well.",es:"Aquí el texto también se adapta.",da:"Også her tilpasser teksten sig."},
+  lf_kt_m1:{de:"Nebentext, Titel und Icons",en:"Secondary text, titles and icons",es:"Texto secundario, títulos e iconos",da:"Sekundær tekst, titler og ikoner"},
+  lf_kt_m2:{de:"Markiert in Farbe 1",en:"Tagged with color 1",es:"Marcada con el color 1",da:"Markeret med farve 1"},
+  lf_kt_m3:{de:"Markiert in Farbe 2",en:"Tagged with color 2",es:"Marcada con el color 2",da:"Markeret med farve 2"},
+  lf_kt_l1:{de:"Look auswählen",en:"Pick a look",es:"Elegir estilo",da:"Vælg look"},
+  lf_kt_l2:{de:"Kontrast einstellen",en:"Set contrast",es:"Ajustar contraste",da:"Indstil kontrast"},
+  lf_kt_l3:{de:"Losschreiben",en:"Start writing",es:"Empezar a escribir",da:"Begynd at skrive"},
+  dm_label_contrast:{de:"Schrift-Kontrast auf Karten",en:"Text contrast on cards",es:"Contraste del texto en tarjetas",da:"Tekstkontrast på kort"},
   lf_cat_light:{de:"Licht",en:"Light",es:"Luz",da:"Lys"},
   lf_cat_shape:{de:"Ecken",en:"Corners",es:"Esquinas",da:"Hjørner"},
   lf_cat_font:{de:"Schrift",en:"Typeface",es:"Tipografía",da:"Skrifttype"},
@@ -7111,6 +7187,7 @@ function saveProjects(){
   const now=Date.now();
   persistProjectsLocal(now);
   scheduleProjectsPushSoon();
+  try{ if(typeof r2Mode==='function' && r2Mode()==='v2'){ clearTimeout(saveProjects._t); saveProjects._t=setTimeout(()=>v2Kick(),900); } }catch(e){}
 }
 let projectsPushTimer=null;
 function scheduleProjectsPushSoon(){
@@ -7133,7 +7210,7 @@ async function pushProjectsToTargets(){
 // actually changed (so the caller knows to repaint), false otherwise (nothing connected, nothing
 // newer out there, or every target failed).
 async function pullProjectsFromTargets(){
-  const targets=syncTargets();
+  const targets=legacyOnly(syncTargets()); // läuft Cloud-Sync schon über v2, kommen Projekte aus dem v2-Index (nicht aus meta/projects.json)
   if(!targets.length) return false;
   let best=null;
   for(const target of targets){
@@ -10155,7 +10232,7 @@ const DESIGN_FONTS={
 };
 const designStyle=(()=>{
   const d={radius:null,shadow:'default',shadowAmt:1,border:'default',borderW:null,font:'default',fontScale:1,
-           bg:'grid',bgMove:false,gridOpacity:1,trail:'off',trailAmt:1,clickFx:'off',clickAmt:1};
+           bg:'grid',bgMove:false,gridOpacity:1,trail:'off',trailAmt:1,clickFx:'off',clickAmt:1,contrast:0};
   const num=(v,lo,hi,def)=>typeof v==='number'&&isFinite(v)?Math.min(hi,Math.max(lo,v)):def;
   try{
     const r=JSON.parse(localStorage.getItem(DESIGN_KEY)||'null');
@@ -10168,6 +10245,7 @@ const designStyle=(()=>{
       if(r.font==='hand') d.font='helvetica'; // Handschrift entfernt → Helvetica
       else if(r.font==='default'||DESIGN_FONTS[r.font]) d.font=r.font;
       d.fontScale=num(r.fontScale,0.85,1.3,1);
+      d.contrast=Math.round(num(r.contrast,0,4,0));
       if(['grid','lines','cross','paper','gradient','plain'].includes(r.bg)) d.bg=r.bg;
       d.bgMove=!!r.bgMove;
       d.gridOpacity=num(r.gridOpacity,0.1,1,1);
@@ -10385,7 +10463,7 @@ function v2MarkDirty(boardId){
 async function v2ResetLocalState(){
   V2.bases.clear(); V2.dirty.clear(); V2.imgUp.clear(); V2.upQ.clear(); V2.downQ.clear(); V2.imgExt.clear(); V2.boardState.clear();
   V2.ready=false; V2.probeDone=false; V2.needsWorker=false; V2.scanned=false;
-  try{ localStorage.removeItem(V2_PROBE_FLAG); localStorage.removeItem(V2_MIGRATED_FLAG); }catch(e){}
+  try{ localStorage.removeItem(V2_PROBE_FLAG); localStorage.removeItem(V2_MIGRATED_FLAG); localStorage.removeItem('notua-v2-projects-imported'); }catch(e){}
   try{ await v2DbClearAll(); }catch(e){}
   V2.loaded=false; V2.loading=null;
   v2RenderChipSoon();
@@ -10591,6 +10669,99 @@ function v2Lock(id,fn){
 // hintEtag: der aktuelle Stand laut Listenabfrage dieses Durchlaufs. Entspricht er dem zuletzt
 // abgeglichenen Stand, ist das Dokument unverändert — dann spart sich der erste Versuch das erneute
 // Laden (ein Schreiben mit veraltetem ETag würde ohnehin mit 412 abgelehnt und neu geladen).
+// ---------- Projekte (Ordner auf der Startseite) im v2-Index ----------
+// v2.4.187 — "Projekte werden beim Verknüpfen per QR-Code nicht mitgesynct": Projekte lagen bisher nur als
+// ganze Liste in meta/projects.json, und die neue Engine hat diese Datei nie gelesen. Jetzt haben sie ein
+// eigenes v2-Dokument (v2/projects.json, ein Datensatz 'p:<id>' pro Projekt) — mit derselben Zusammenführung
+// pro Eigenschaft (Name, Farbe, Icon, Logo, Board-Reihenfolge, Position) und denselben Löschmarkern wie Boards.
+// Bewusst NICHT im Board-Index: ältere App-Versionen würden fremde Datensätze dort für Boards halten.
+// Was nur dieses Gerät betrifft (auf-/zugeklappt), bleibt lokal.
+const V2_PROJECTS_KEY='v2/projects.json';
+const V2_PROJECT_LOCAL_ONLY=new Set(['collapsed']);
+function v2ProjectItems(){
+  const items=new Map();
+  (state.projects||[]).forEach((p,i)=>{
+    if(!p || !p.id) return;
+    const o={}; for(const k of Object.keys(p)){ if(k==='id' || V2_PROJECT_LOCAL_ONLY.has(k)) continue; o[k]=p[k]; }
+    o.pos=i;
+    items.set('p:'+p.id,v2Flatten(o));
+  });
+  return items;
+}
+function v2ProjectsSnap(){ try{ return v2Stable((state.projects||[]).map(p=>{ const o=Object.assign({},p); delete o.collapsed; return o; })); }catch(e){ return ''; } }
+function v2ApplyProjectsDoc(merged,snapBefore){
+  if(v2ProjectsSnap()!==snapBefore) return false; // während des Abgleichs lokal geändert → gewinnt, wird beim nächsten Lauf hochgeladen
+  const local=new Map((state.projects||[]).map(p=>[p.id,p]));
+  const list=[];
+  for(const rid in merged.r){
+    if(!rid.startsWith('p:')) continue;
+    const flat=v2Materialize(merged.r[rid]); if(!flat) continue;
+    const id=rid.slice(2), o=v2Unflatten(id,null,flat);
+    if(!Array.isArray(o.boardIds)) o.boardIds=[];
+    const cur=local.get(id);
+    o.collapsed=cur ? !!cur.collapsed : true; // neu angekommene Projekte starten zugeklappt
+    list.push(o);
+  }
+  list.sort((a,b)=>(a.pos??0)-(b.pos??0));
+  // Ein Board gehört höchstens in ein Projekt: taucht es (z. B. nach gleichzeitigen Änderungen) doppelt auf,
+  // behält es das Projekt, das weiter vorne steht.
+  const seen=new Set();
+  list.forEach(o=>{ o.boardIds=o.boardIds.filter(id=>{ if(seen.has(id)) return false; seen.add(id); return true; }); delete o.pos; });
+  const next=list;
+  const before=v2ProjectsSnap();
+  const nowSnap=v2Stable(next.map(p=>{ const o=Object.assign({},p); delete o.collapsed; return o; }));
+  if(nowSnap===before) return false;
+  state.projects=next;
+  persistProjectsLocal(Math.max(getProjectsUpdatedAt(),Date.now()));
+  return true;
+}
+// Ältere Cloud-Daten: Projekte, die nur in meta/projects.json liegen, einmalig übernehmen, bevor der Index
+// zum ersten Mal mit Projekten abgeglichen wird (damit sie danach als v2-Datensätze weiterleben).
+async function v2ImportLegacyProjectsOnce(){
+  let done=false; try{ done=localStorage.getItem('notua-v2-projects-imported')==='1'; }catch(e){}
+  if(done) return;
+  try{
+    const remote=await r2GetJSON('meta/projects.json', null);
+    if(remote && Array.isArray(remote.projects) && remote.projects.length && (remote.updatedAt||0)>getProjectsUpdatedAt()){
+      const have=new Set((state.projects||[]).map(p=>p.id));
+      remote.projects.forEach(p=>{ if(p && p.id && !have.has(p.id)) state.projects.push(Object.assign({collapsed:true},p)); });
+      persistProjectsLocal(remote.updatedAt||Date.now());
+    }
+    try{ localStorage.setItem('notua-v2-projects-imported','1'); }catch(e){}
+  }catch(e){ /* offline o. Ä. — nächster Lauf versucht es erneut */ }
+}
+// Ist ein Board, das in einem Projekt steht, nachweislich gelöscht? Nur dann darf die Startseite es aus dem
+// Projekt nehmen. Unbekannt ≠ gelöscht: Auf einem frisch verknüpften Gerät sind viele Boards nur noch nicht da.
+function projectBoardGoneForSure(id){
+  try{
+    const idx=(typeof V2!=='undefined') && V2.bases && V2.bases.get('#index');
+    if(idx){ const rec=idx.doc.r['b:'+id]; return !rec || v2IsDead(rec); }
+    const syncing=(typeof r2Mode==='function' && r2Mode()!=='off') || (typeof fsState!=='undefined' && fsState.root);
+    return !syncing; // ohne Sync gibt es keine Boards "unterwegs" — fehlt es hier, ist es weg
+  }catch(e){ return false; }
+}
+async function v2SyncProjects(hintEtag){
+  for(let attempt=0;attempt<5;attempt++){
+    const base=V2.bases.get('#projects');
+    const remote=(attempt===0 && base && hintEtag && hintEtag===base.etag) ? {doc:base.doc,etag:base.etag} : await v2GetDoc(V2_PROJECTS_KEY);
+    const snap=v2ProjectsSnap();
+    const ts=getProjectsUpdatedAt()||1;
+    const L=v2ApplyLocalDiff(base?base.doc:V2_EMPTY(),v2ProjectItems(),()=>ts);
+    const merged=v2MergeDocs(remote?remote.doc:V2_EMPTY(),L.doc);
+    let etag=remote?remote.etag:null;
+    if(!remote || v2DocDiffers(merged,remote.doc)){
+      const res=await v2PutDoc(V2_PROJECTS_KEY,merged,remote?remote.etag:null);
+      if(res.conflict) continue;
+      etag=res.etag;
+      V2.stats.pushed++;
+    }
+    V2.bases.set('#projects',{doc:merged,etag});
+    await v2DbPut('base','#projects',{doc:merged,etag}).catch(()=>{});
+    if(v2ApplyProjectsDoc(merged,snap)) v2AfterIndexApplied(null);
+    return;
+  }
+  throw new Error('v2-projects-conflict');
+}
 async function v2SyncIndex(hintEtag){
   for(let attempt=0;attempt<5;attempt++){
     const base=V2.bases.get('#index');
@@ -10618,7 +10789,7 @@ async function v2SyncIndex(hintEtag){
     V2.bases.set('#index',{doc:merged,etag});
     await v2DbPut('base','#index',{doc:merged,etag}).catch(()=>{});
     // Bestätigte Löschungen: das Board-Dokument selbst ist jetzt überflüssig
-    for(const rid of L.deleted) r2Fetch('/object/'+v2BoardKey(rid.slice(2)),{method:'DELETE'}).catch(()=>{});
+    for(const rid of L.deleted) if(rid.startsWith('b:')) r2Fetch('/object/'+v2BoardKey(rid.slice(2)),{method:'DELETE'}).catch(()=>{});
     return;
   }
   throw new Error('v2-index-conflict');
@@ -10627,6 +10798,7 @@ async function v2ApplyIndexToLocal(merged,boards,snap){
   const local=new Map(boards.map(b=>[b.id,b]));
   let touched=false, openMeta=null;
   for(const rid in merged.r){
+    if(!rid.startsWith('b:')) continue; // Projekte: siehe v2ApplyProjectsFromIndex
     const id=rid.slice(2);
     const flat=v2Materialize(merged.r[rid]);
     const cur=local.get(id);
@@ -10940,7 +11112,7 @@ async function v2EnsureReady(){
 function todoPreview(boards,heads,force){
   if(force || V2.dirty.size) return true;
   for(const b of boards){ if(!V2.bases.has(b.id)) return true; }
-  for(const [id,base] of V2.bases){ if(id!=='#index' && (heads.get(v2BoardKey(id))||null)!==(base.etag||null)) return true; }
+  for(const [id,base] of V2.bases){ if(id[0]!=='#' && (heads.get(v2BoardKey(id))||null)!==(base.etag||null)) return true; }
   return false;
 }
 // ---------- Ein kompletter Durchlauf ----------
@@ -10971,6 +11143,7 @@ async function v2RunPass(force){
       if(!V2.scanned){ V2.scanned=true; await v2StartupScan().catch(()=>{}); }
       if(!(await v2EnsureReady())){ v2SetPhase(V2.needsWorker?'needs-worker':'offline'); delay=V2.needsWorker?300000:30000; return; }
       await v2MigrateOnce();
+      await v2ImportLegacyProjectsOnce();
       const heads=await v2ListHeads();
       const boards=await v2AllLocalBoards();
       // Boards, die dieses Gerät noch nie abgeglichen hat, gelten als "geändert" (erste Übertragung).
@@ -10986,10 +11159,14 @@ async function v2RunPass(force){
       }
       if(needIndex || todoPreview(boards,heads,force)){ v2SetPhase('syncing'); }
       if(needIndex) await v2SyncIndex(heads.get(V2_INDEX_KEY));
+      // 1b) Projekte (eigenes Dokument) — nur bei Änderung hier oder in der Cloud
+      { const pb=V2.bases.get('#projects');
+        const needP=force || !pb || heads.get(V2_PROJECTS_KEY)!==pb.etag || v2ApplyLocalDiff(pb.doc,v2ProjectItems(),()=>0).changed;
+        if(needP) await v2SyncProjects(heads.get(V2_PROJECTS_KEY)); }
       // 2) Board-Dokumente
       const idx=V2.bases.get('#index');
       const alive=[];
-      if(idx) for(const rid in idx.doc.r){ if(!v2IsDead(idx.doc.r[rid])) alive.push(rid.slice(2)); }
+      if(idx) for(const rid in idx.doc.r){ if(rid.startsWith('b:') && !v2IsDead(idx.doc.r[rid])) alive.push(rid.slice(2)); }
       const byUpdated=new Map(boards.map(b=>[b.id,b.updatedAt||0]));
       const todo=alive.filter(id=>{
         const base=V2.bases.get(id);
@@ -11225,7 +11402,9 @@ function relLuminance(hex){
   const rgb=hexToRgbArr(hex).map(v=>{ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4); });
   return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
 }
-function contrastInkFor(hex){ return relLuminance(hex)>0.55 ? '#1B2027' : '#FFFFFF'; }
+// v2.4.185: wählt die Schriftfarbe mit dem echt höheren Kontrast (statt fester Helligkeits-Schwelle 0,55 — die gab z. B.
+// weiße Schrift auf hellem Blau #9AA8DA, Kontrast nur 2,4:1).
+function contrastInkFor(hex){ const L=relLuminance(hex); const crDark=(L+0.05)/(0.0140+0.05), crWhite=1.05/(L+0.05); return crDark>=crWhite ? '#1B2027' : '#FFFFFF'; }
 function contrastRatioHex(hexA,hexB){
   const la=relLuminance(hexA), lb=relLuminance(hexB);
   const lighter=Math.max(la,lb), darker=Math.min(la,lb);
@@ -11929,6 +12108,15 @@ function showThemeMenuModal(){
     applyCustomTheme(theme);
     showToast(t('theme_menu_applied_toast'));
   }
+  // Live: Farbwahl wirkt sofort (Vorschau-Balken + ganze Oberfläche), nicht erst über "Anwenden".
+  let themeLiveRaf=0;
+  const themeLive=()=>{
+    renderPreview({accent:accentInput.value,background:bgInput.value});
+    if(themeLiveRaf) return;
+    themeLiveRaf=requestAnimationFrame(()=>{ themeLiveRaf=0; try{ applyCustomTheme({accent:accentInput.value,background:bgInput.value}); }catch(e){} });
+  };
+  accentInput.addEventListener('input',themeLive); bgInput.addEventListener('input',themeLive);
+  accentInput.addEventListener('change',themeLive); bgInput.addEventListener('change',themeLive);
   scrim.querySelector('#themeRandomBtn').addEventListener('click',()=>applyAndAnnounce(pickRandomPalette()));
   scrim.querySelector('#themeMonoBtn').addEventListener('click',()=>applyAndAnnounce({background:THEME_MONO.background,accent:THEME_MONO.accent}));
   scrim.querySelector('[data-a="apply"]').addEventListener('click',()=>{
@@ -11949,6 +12137,14 @@ function showThemeMenuModal(){
 function isBetaFeatureUnlocked(key){
   try{ return localStorage.getItem('notua-beta-'+key)==='1'; }catch(e){ return false; }
 }
+// v2.4.184 — Download-Button für alle wieder ausblenden, die ihn je per Code freigeschaltet haben (einmalig pro
+// Gerät). Wer den Code danach erneut eingibt, bekommt ihn wieder.
+try{
+  if(!localStorage.getItem('notua-installs-reset-2411')){
+    localStorage.removeItem('notua-beta-installs'); localStorage.removeItem('notua-betaoff-installs');
+    localStorage.setItem('notua-installs-reset-2411','1');
+  }
+}catch(e){}
 function unlockBetaFeature(key){
   try{ localStorage.setItem('notua-beta-'+key,'1'); localStorage.removeItem('notua-betaoff-'+key); }catch(e){}
   applyBetaFeatureVisibility();
@@ -13139,7 +13335,8 @@ function showDesignMenuModal(){
       ${dd('border',t('dm_label_border'))}
       ${range('dBorderW',t('dm_border_w'),0,6,0.5)}`,
     text:`${dd('font',t('dm_label_font'))}
-      ${range('dFontScale',t('dm_label_size'),0.85,1.3,0.05)}`,
+      ${range('dFontScale',t('dm_label_size'),0.85,1.3,0.05)}
+      ${range('dContrast',t('dm_label_contrast'),0,4,1)}`,
     bg:`${dd('bg',t('dm_label_bgtype'))}
       ${dd('shape',t('dm_bg_shape'),'data-when="grid"')}
       ${range('dGridSize',t('dm_label_size'),0.5,3,0.25,'data-when="grid"')}
@@ -13261,13 +13458,15 @@ function showDesignMenuModal(){
     dRadius:()=>(D.radius===null?6:D.radius)+' px', dShadowAmt:()=>Math.round(D.shadowAmt*100)+' %', dBorderW:()=>(D.borderW===null?1:D.borderW)+' px',
     dFontScale:()=>Math.round(D.fontScale*100)+' %', dGridSize:()=>Math.round(gridStyle.size*100)+' %', dGridSpacing:()=>'×'+gridStyle.spacing.toFixed(1),
     dGridOpacity:()=>Math.round(D.gridOpacity*100)+' %', dLandSpeed:()=>'×'+gridStyle.landingSpeed.toFixed(1), dLandDensity:()=>'×'+gridStyle.landingDensity.toFixed(1),
-    dTrailAmt:()=>'×'+D.trailAmt.toFixed(1), dClickAmt:()=>'×'+D.clickAmt.toFixed(1)
+    dTrailAmt:()=>'×'+D.trailAmt.toFixed(1), dClickAmt:()=>'×'+D.clickAmt.toFixed(1),
+    dContrast:()=>lfParts('contrast','k'+(D.contrast|0)).label
   };
   const VAL={ // id → [get, set]
     dRadius:[()=>D.radius===null?6:D.radius, v=>{D.radius=v;}], dShadowAmt:[()=>D.shadowAmt, v=>{D.shadowAmt=v;}], dBorderW:[()=>D.borderW===null?1:D.borderW, v=>{D.borderW=v;}],
     dFontScale:[()=>D.fontScale, v=>{D.fontScale=v;}], dGridSize:[()=>gridStyle.size, v=>{gridStyle.size=v;}], dGridSpacing:[()=>gridStyle.spacing, v=>{gridStyle.spacing=v;}],
     dGridOpacity:[()=>D.gridOpacity, v=>{D.gridOpacity=v;}], dLandSpeed:[()=>gridStyle.landingSpeed, v=>{gridStyle.landingSpeed=v;}], dLandDensity:[()=>gridStyle.landingDensity, v=>{gridStyle.landingDensity=v;}],
-    dTrailAmt:[()=>D.trailAmt, v=>{D.trailAmt=v;}], dClickAmt:[()=>D.clickAmt, v=>{D.clickAmt=v;}]
+    dTrailAmt:[()=>D.trailAmt, v=>{D.trailAmt=v;}], dClickAmt:[()=>D.clickAmt, v=>{D.clickAmt=v;}],
+    dContrast:[()=>D.contrast|0, v=>{ D.contrast=Math.max(0,Math.min(4,Math.round(v))); if(state.screen==='board'){ try{ renderAllCards(); applySelectionClasses(); }catch(e){} } }]
   };
   function updateWhen(){
     scrim.querySelectorAll('[data-when]').forEach(el=>{ el.hidden=!el.dataset.when.split(' ').includes(D.bg); });
@@ -13299,7 +13498,8 @@ function showDesignMenuModal(){
   });
   $('dBgMove').addEventListener('change',()=>{ D.bgMove=$('dBgMove').checked; commit(); });
   scrim.querySelector('[data-a="reset"]').addEventListener('click',()=>{
-    Object.assign(D,{radius:null,shadow:'default',shadowAmt:1,border:'default',borderW:null,font:'default',fontScale:1,bg:'grid',bgMove:false,gridOpacity:1,trail:'off',trailAmt:1,clickFx:'off',clickAmt:1});
+    Object.assign(D,{radius:null,shadow:'default',shadowAmt:1,border:'default',borderW:null,font:'default',fontScale:1,bg:'grid',bgMove:false,gridOpacity:1,trail:'off',trailAmt:1,clickFx:'off',clickAmt:1,contrast:0});
+    if(state.screen==='board'){ try{ renderAllCards(); applySelectionClasses(); }catch(e){} }
     Object.assign(gridStyle,{shape:'circle',size:1,spacing:1,landingMode:'none',landingSpeed:1,landingDensity:1});
     DD.wheel.set('zoom');
     sync(); commit();
@@ -14183,7 +14383,17 @@ const LF_QUESTIONS=[
     {id:'dock',   dynamic:true,  groups:[]},
     {id:'calm',   dynamic:true,  groups:['boardzoom','menustagger']},
     {id:'full',   dynamic:true,  groups:'all'}]},
+  // --- Lesbarkeit: Schrift-Kontrast auf den Karten (letzter Schritt — die Vorschau zeigt den bis hierhin gewählten Look) ---
+  {id:'contrast', q:'lf_q14', sub:'lf_q14_sub', opts:[
+    {id:'k0', level:0},
+    {id:'k1', level:1},
+    {id:'k2', level:2},
+    {id:'k3', level:3},
+    {id:'k4', level:4}]},
 ];
+// Reihenfolge der Fragen IM LOOK-CODE: neu hinzugekommene Fragen stehen hier VORNE (höchstwertige Ziffer) und ihre
+// erste Option ist das frühere Verhalten — so lösen alte Look-Codes weiter exakt denselben Look aus.
+const LF_CODE_Q=[LF_QUESTIONS.find(q=>q.id==='contrast'), ...LF_QUESTIONS.filter(q=>q.id!=='contrast')];
 const LF_WIDE=new Set(['palette','landing','board','boardmove','uianim','trail','click','shape','shadow','border','font']);
 const LF_BOARDPREV=new Set(['font']); // zeigen eine Mini-Board-Vorschau mit zwei Karten
 function lfOpt(qid,oid){
@@ -14227,10 +14437,11 @@ function lfRndParamsOf(oid){
 function lfInv(a){ let x=a; for(let i=0;i<7;i++) x=(x*(2n-a*x))&LF_MASK; return x; }
 function lfEncode(ans){
   let v=0n;
-  for(const q of LF_QUESTIONS){
+  for(const q of LF_CODE_Q){
     const isP=q.id==='palette', rad=q.opts.length+(isP?1:0), o=ans[q.id];
     let idx;
     if(isP && typeof o==='string' && o.startsWith('rnd:')) idx=q.opts.length;
+    else if(q.id==='contrast' && o==null) idx=0; // ältere gespeicherte Antworten ohne Kontrast-Frage
     else idx=q.opts.findIndex(x=>x.id===o);
     if(idx<0) return null;
     v=v*BigInt(rad)+BigInt(idx);
@@ -14254,11 +14465,11 @@ function lfDecode(str){
     v=((v-LF_ADD)*lfInv(LF_MULT))&LF_MASK;
     let extra=v%LF_RND_EXTRA; v=v/LF_RND_EXTRA;
     const idxs=[];
-    for(let k=LF_QUESTIONS.length-1;k>=0;k--){ const q=LF_QUESTIONS[k], rad=BigInt(q.opts.length+(q.id==='palette'?1:0)); idxs[k]=Number(v%rad); v=v/rad; }
+    for(let k=LF_CODE_Q.length-1;k>=0;k--){ const q=LF_CODE_Q[k], rad=BigInt(q.opts.length+(q.id==='palette'?1:0)); idxs[k]=Number(v%rad); v=v/rad; }
     if(v!==0n) return null;
     const ans={};
-    for(let k=0;k<LF_QUESTIONS.length;k++){
-      const q=LF_QUESTIONS[k], i=idxs[k];
+    for(let k=0;k<LF_CODE_Q.length;k++){
+      const q=LF_CODE_Q[k], i=idxs[k];
       if(q.id==='palette' && i===q.opts.length){
         const p=[]; for(let j=LF_RND_DIMS.length-1;j>=0;j--){ const d=BigInt(LF_RND_DIMS[j]); p[j]=Number(extra%d); extra=extra/d; }
         ans.palette=lfRndOid(p);
@@ -14289,7 +14500,9 @@ function lfColors(ans){
 function lfApplyAll(ans,final){
   const root=document.documentElement;
   const g=(q)=>lfOpt(q,ans[q]);
-  const l=g('light'), col=lfColors(ans), s=g('shape'), f=g('font'), sh=g('shadow'), bo=g('border'), la=g('landing'), bd=g('board'), mv=g('boardmove'), ui=g('uianim'), tr=g('trail'), ck=g('click');
+  const l=g('light'), col=lfColors(ans), s=g('shape'), f=g('font'), sh=g('shadow'), bo=g('border'), la=g('landing'), bd=g('board'), mv=g('boardmove'), ui=g('uianim'), tr=g('trail'), ck=g('click'), kt=g('contrast');
+  const prevContrast=designStyle.contrast|0;
+  if(kt) designStyle.contrast=kt.level;
   if(l) root.setAttribute('data-theme',l.theme);
   if(col) applyCustomTheme(col,false);
   else if(l){ try{ reapplyCustomThemeForCurrentMode(); }catch(e){} }
@@ -14305,6 +14518,8 @@ function lfApplyAll(ans,final){
   if(ck) designStyle.clickFx=ck.click;
   if(ui && final) lfSetUiAnimQuiet(ui);
   try{ applyDesign(); landingFxSync(); fxSync(); }catch(e){}
+  // Kontrast wirkt auf die Schriftfarben der Karten → offenes Board gleich neu zeichnen
+  if((designStyle.contrast|0)!==prevContrast && state.screen==='board' && typeof renderAllCards==='function'){ try{ renderAllCards(); applySelectionClasses(); }catch(e){} }
 }
 function lfRestore(snap){
   const root=document.documentElement;
@@ -14428,6 +14643,80 @@ function lfBindShapeUi(box,q,ans,onChange){
   if(!ans[q.id]){ ans[q.id]=q.opts[+sl.value].id; onChange(); }
   sl.style.setProperty('--p',(+sl.value)/(q.opts.length-1)*100+'%');
 }
+/* Kontrast-Frage (v2.4.186): Die Vorschau zeigt echte Karten im BISHER GEWÄHLTEN Look (Farbwelt, Hell/Dunkel, Ecken,
+   Schrift, Schatten, Rahmen, Board-Hintergrund) — die Schriftfarben werden mit genau derselben Rechnung bestimmt wie
+   im Board. Darunter: Regler für die Stärke und eine Anzeige, wie stark der Kontrast der Notiz-Schrift wirklich ist
+   (gemessen, 1 : 1 bis 21 : 1) mit Einordnung. Die kleine Zahl an jeder Karte ist deren eigener Messwert. */
+const LF_CONTRAST_Q=new Set(['contrast']);
+function lfKtFmt(r){ return (Math.round(r*10)/10).toLocaleString(LANG_LOCALE[state.lang]||'de-DE',{minimumFractionDigits:1,maximumFractionDigits:1}); }
+function lfKtVerdict(r){ return t(r<4.5?'lf_kt_v0':(r<7?'lf_kt_v1':(r<11?'lf_kt_v2':'lf_kt_v3'))); }
+function lfKtPos(r){ return Math.max(0,Math.min(100,Math.log(r)/Math.log(21)*100)); }
+function lfKtCards(){
+  const tk=computeCardBuildTokens();
+  const tri=(s)=>String(s||'').split(',').map(Number);
+  const sur=tri(tk.surfaceRgb), ok=(a)=>a.length===3 && !a.some(isNaN);
+  const col=(name)=>{ const a=tri(tk.tagRgb[name]); return ok(a)?a:sur; };
+  return [
+    {k:'note',  bg:ok(sur)?sur:[237,237,237], main:true},
+    {k:'tag1',  bg:col('yellow')},
+    {k:'list',  bg:ok(sur)?sur:[237,237,237]},
+    {k:'tag2',  bg:col('pink')}
+  ];
+}
+function lfKtLookVars(ans){
+  const sp=lfOpt('shape',ans.shape), sh=lfOpt('shadow',ans.shadow), bo=lfOpt('border',ans.border), f=lfOpt('font',ans.font);
+  const shCss=sh?designShadowCss(sh.shadow,sh.shadowAmt):'0 2px 8px rgba(0,0,0,.10)';
+  const bc=bo?({none:'transparent',default:'var(--border)',strong:'var(--border-strong)',accent:'var(--accent)'}[bo.border]||'var(--border)'):'var(--border)';
+  return `--lf-r:${sp?Math.min(sp.radius,26):12}px;--lf-sh:${shCss==='none'?'0 0 0 0 transparent':shCss};--lf-bw:${bo?(bo.borderW==null?1:bo.borderW):1}px;--lf-bc:${bc};--lf-ff:${f?lfPickFont(f):'inherit'}`;
+}
+function lfContrastUi(selId,ans){
+  const q=LF_QUESTIONS.find(x=>x.id==='contrast'); let i=q.opts.findIndex(o=>o.id===selId); if(i<0) i=1; // Vorschlag: "Klar"
+  const p=lfParts('contrast',q.opts[i].id), lab=t('lf_contrast_live_label');
+  const ico='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>';
+  const icoL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7l2 2 3-3M4 15l2 2 3-3M12 8h8M12 16h8"/></svg>';
+  const card=(c)=>{
+    const body=c.k==='list'
+      ? `<ul><li><i class="bx on"></i><s>${t('lf_kt_l1')}</s></li><li><i class="bx"></i><span>${t('lf_kt_l2')}</span></li><li><i class="bx"></i><span>${t('lf_kt_l3')}</span></li></ul>`
+      : `<span class="tx">${t(c.k==='note'?'lf_kt_n1':(c.k==='tag1'?'lf_kt_n2':'lf_kt_n3'))}</span><small>${t(c.k==='note'?'lf_kt_m1':(c.k==='tag1'?'lf_kt_m2':'lf_kt_m3'))}</small>`;
+    return `<span class="lf-kt-card" data-k="${c.k}" style="background:rgb(${c.bg.map(Math.round).join(',')})"><span class="hd">${c.k==='list'?icoL:ico}${t(c.k==='list'?'lf_kt_h_list':'lf_kt_h_note')}</span>${body}<em class="cr"></em></span>`;
+  };
+  return `<div class="lf-shape-live lf-kt" style="${lfKtLookVars(ans)}">
+    <div class="lf-sl-board lf-kt-board lf-bd-${(ans&&ans.board)||'grid'}">${lfKtCards().map(card).join('')}</div>
+    <div class="lf-kt-meter" role="img" aria-label="${lab}">
+      <div class="lf-kt-read"><b class="lf-kt-num"></b><span class="lf-kt-word"></span><label class="lf-kt-matte"><input type="checkbox" id="lfKtMatte"><span>${t('lf_kt_matte')}</span></label></div>
+      <div class="lf-kt-track"><i class="fill"></i><u style="left:${lfKtPos(4.5)}%"></u><u style="left:${lfKtPos(7)}%"></u></div>
+      <div class="lf-kt-ticks"><span style="left:0">1</span><span style="left:${lfKtPos(4.5)}%">${lfKtFmt(4.5)} ${t('lf_kt_min')}</span><span style="left:${lfKtPos(7)}%">7</span><span style="left:100%">21</span></div>
+    </div>
+    <div class="lf-sl-ctl">
+      <span class="lf-sl-lab">${lab}</span>
+      <input type="range" class="lf-slider" min="0" max="${q.opts.length-1}" step="1" value="${i}" aria-label="${lab}">
+      <div class="lf-sl-text"><b class="n">${p.label}</b><span class="d">${p.desc}</span></div>
+    </div></div>`;
+}
+function lfBindContrastUi(box,q,ans,onChange){
+  const wrap=box.querySelector('.lf-kt'), sl=box.querySelector('.lf-slider'); if(!wrap||!sl) return;
+  const cards=lfKtCards();
+  const css=(a)=>'rgb('+a.map(v=>Math.round(v)).join(',')+')';
+  const paint=()=>{
+    const o=q.opts[+sl.value]; let mainRatio=0;
+    cards.forEach(c=>{
+      const el=wrap.querySelector('.lf-kt-card[data-k="'+c.k+'"]'); if(!el) return;
+      const m=cardContrastMeasure(c.bg,o.level);
+      el.style.setProperty('--k-ink',css(m.ink.rgb)); el.style.setProperty('--k-muted',css(m.muted.rgb));
+      el.querySelector('.cr').textContent=lfKtFmt(m.ink.ratio);
+      if(c.main) mainRatio=m.ink.ratio;
+    });
+    wrap.querySelector('.lf-kt-num').textContent=lfKtFmt(mainRatio)+' : 1';
+    wrap.querySelector('.lf-kt-word').textContent=lfKtVerdict(mainRatio);
+    wrap.querySelector('.lf-kt-track .fill').style.width=lfKtPos(mainRatio)+'%';
+    const p=lfParts(q.id,o.id); wrap.querySelector('.n').textContent=p.label; wrap.querySelector('.d').textContent=p.desc;
+    sl.style.setProperty('--p',(+sl.value)/(q.opts.length-1)*100+'%');
+  };
+  sl.addEventListener('input',()=>{ paint(); ans[q.id]=q.opts[+sl.value].id; onChange(); });
+  const mt=wrap.querySelector('#lfKtMatte'); if(mt) mt.addEventListener('change',()=>wrap.querySelector('.lf-kt-board').classList.toggle('matte',mt.checked));
+  paint();
+  if(!ans[q.id]){ ans[q.id]=q.opts[+sl.value].id; onChange(); }
+}
 function lfVisual(qid,o){
   if(qid==='palette') return `<span class="lf-pal" style="background:${o.bg}"><i class="c"></i><i class="p" style="background:${o.accent}"></i><i class="l" style="background:${o.accent}"></i><i class="d" style="background:${o.accent}"></i></span>`;
   if(qid==='light') return `<span class="lf-win${o.id==='dark'?' dk':''}"></span>`;
@@ -14509,8 +14798,8 @@ function showLookFinder(opts){
     box.innerHTML=`
       <div class="lf-head"><span class="lf-step">${step+1}/${N}</span><div class="lf-prog"><i style="width:${Math.round(step/N*100)}%"></i></div>${(!first&&step>0)?`<button type="button" class="lf-x" data-a="later" title="${t('lf_cancel')}">&times;</button>`:''}</div>
       <h4 class="lf-q">${t(q.q)}</h4>
-      ${LF_SLIDER_Q.has(q.id)?lfShapeUi(q.id,ans[q.id]):(LF_PICK_Q.has(q.id)?lfPickUi(q.id,ans[q.id],ans):'')}
-      <div class="lf-opts"${(LF_SLIDER_Q.has(q.id)||LF_PICK_Q.has(q.id))?' hidden':''}>${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}${LF_BOARDPREV.has(q.id)?' mb':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
+      ${LF_CONTRAST_Q.has(q.id)?lfContrastUi(ans[q.id],ans):(LF_SLIDER_Q.has(q.id)?lfShapeUi(q.id,ans[q.id]):(LF_PICK_Q.has(q.id)?lfPickUi(q.id,ans[q.id],ans):''))}
+      <div class="lf-opts"${(LF_SLIDER_Q.has(q.id)||LF_PICK_Q.has(q.id)||LF_CONTRAST_Q.has(q.id))?' hidden':''}>${q.opts.map(o=>{ const pt=lfParts(q.id,o.id); return `<button type="button" class="lf-opt${ans[q.id]===o.id?' sel':''}" data-id="${o.id}"><span class="lf-vis${LF_WIDE.has(q.id)?' w':''}${LF_BOARDPREV.has(q.id)?' mb':''}">${lfVisual(q.id,o)}</span><b>${pt.label}</b><small>${pt.desc}</small></button>`; }).join('')}</div>
       <div class="lf-foot lf-nav">
         ${step===0?`<button type="button" class="lf-later" data-a="later">${t(first?'lf_later':'lf_cancel')}</button>`:`<button type="button" data-a="back">${t('lf_back')}</button>`}
         <span class="lf-spacer"></span>
@@ -14526,6 +14815,7 @@ function showLookFinder(opts){
     }));
     if(LF_PICK_Q.has(q.id)) lfBindPickUi(box,q,ans,()=>{ box.querySelector('[data-a="next"]').disabled=false; lfApplyAll(ans,false); });
     if(LF_SLIDER_Q.has(q.id)) lfBindShapeUi(box,q,ans,()=>{ box.querySelector('[data-a="next"]').disabled=false; lfApplyAll(ans,false); });
+    if(LF_CONTRAST_Q.has(q.id)) lfBindContrastUi(box,q,ans,()=>{ box.querySelector('[data-a="next"]').disabled=false; lfApplyAll(ans,false); });
     const lt=box.querySelector('[data-a="later"]'); if(lt) lt.addEventListener('click',cancel);
     const bk=box.querySelector('[data-a="back"]'); if(bk) bk.addEventListener('click',()=>{ step--; render(); });
     box.querySelector('[data-a="next"]').addEventListener('click',()=>{ if(!ans[q.id]) return; step++; render(); });
@@ -15023,10 +15313,17 @@ async function paintHomeGrid(allIn){
   // rip every non-Drive board out of its project the first time Home repaints. So this checks against
   // every board that actually still exists (the UNFILTERED list), not just the ones currently painted.
   const unfilteredRootIds=new Set(allIn.filter(b=>!b.parentBoardId && !state.optimisticHidden.has(b.id)).map(b=>b.id));
+  // v2.4.187 — "Boards aus einem Projekt kommen auf einem neu verknüpften Gerät einzeln an": Auf einem frisch
+  // per QR-Code verbundenen Gerät treffen die Boards nacheinander ein. Die Selbstheilung hielt jedes noch nicht
+  // angekommene Board für gelöscht, warf es aus dem Projekt, löste das Projekt (≤ 1 Board) auf und SPEICHERTE
+  // das — mit neuem Zeitstempel, der dann an alle Geräte ging. Jetzt fliegt ein Board nur raus, wenn es
+  // nachweislich weg ist (siehe projectBoardGoneForSure); noch fehlende Boards bleiben im Projekt stehen und
+  // werden einfach erst angezeigt, sobald sie da sind.
+  const allIdsHere=new Set(allIn.map(b=>b.id));
   let projectsChanged=false;
   state.projects.forEach(p=>{
     const before=p.boardIds.length;
-    p.boardIds=p.boardIds.filter(id=>unfilteredRootIds.has(id));
+    p.boardIds=p.boardIds.filter(id=>unfilteredRootIds.has(id) || !(allIdsHere.has(id) || state.optimisticHidden.has(id) || projectBoardGoneForSure(id)));
     if(p.boardIds.length!==before) projectsChanged=true;
   });
   const keptProjects=state.projects.filter(p=>p.boardIds.length>1);
@@ -15056,7 +15353,8 @@ async function paintHomeGrid(allIn){
   try{
     [standaloneTiles,projectEls]=await Promise.all([
       Promise.all(standaloneRoots.map(b=>buildBoardTile(b))),
-      Promise.all(state.projects.map(p=>p.collapsed ? buildProjectTile(p) : buildProjectPanel(p))),
+      // Projekte, deren Boards (noch) alle fehlen — z. B. gerade erst per Sync angekündigt — werden noch nicht gezeigt
+      Promise.all(state.projects.filter(p=>p.boardIds.some(id=>unfilteredRootIds.has(id))).map(p=>p.collapsed ? buildProjectTile(p) : buildProjectPanel(p))),
     ]);
   }catch(err){
     clearTimeout(skelTimer); boardGrid.querySelectorAll('.skeleton-tile').forEach(n=>n.remove());
@@ -15974,7 +16272,7 @@ function openProjectStylePopover(anchor,p,panel){
     pop.querySelectorAll('.psp-ic').forEach(b=>b.classList.toggle('active',!p.logo && b.dataset.icon===(p.icon||'folder')));
   };
   const commit=()=>{ saveProjects(); applyProjectLookToEl(panel,p); lastHomePaintSig=null; refresh(); };
-  colors.appendChild(buildCustomSwatchButton(customHex,(hex)=>{ p.color=hex; commit(); }));
+  colors.appendChild(buildCustomSwatchButton(customHex,(hex)=>{ p.color=hex; commit(); },(hex)=>{ p.color=hex; try{ applyProjectLookToEl(panel,p); }catch(e){} }));
   pop.addEventListener('click',(e)=>{
     const sw=e.target.closest('.psp-sw[data-color]'), ic=e.target.closest('.psp-ic[data-icon]'), lb=e.target.closest('.psp-logo-btn[data-act]');
     if(sw){ p.color=sw.dataset.color||null; commit(); }
@@ -16340,7 +16638,7 @@ function promptNewBoardSetup(board){
       swatchRow.appendChild(sw);
     });
     const customHex=(chosenColor && !presetHexes.includes(chosenColor.toLowerCase()))?chosenColor:null;
-    swatchRow.appendChild(buildCustomSwatchButton(customHex, (hex)=>{ chosenColor=hex; renderSwatches(); }));
+    swatchRow.appendChild(buildCustomSwatchButton(customHex, (hex)=>{ chosenColor=hex; renderSwatches(); }, (hex)=>{ chosenColor=hex; }));
   }
   renderSwatches();
   bindScrimDismiss(scrim,()=>scrim.remove());
@@ -16700,7 +16998,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.182';
+const APP_VERSION='2.4.187';
 try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
@@ -16845,13 +17143,9 @@ const DOWNLOAD_PLATFORMS=[
   // Desktop-App (eigenes Electron-Projekt im Ordner desktop/, gebaut per GitHub Actions → Releases).
   {key:'windows', label:'download_windows', href:'https://github.com/tomnuesser2/NOTUA/releases/latest/download/NOTUA-Setup.exe', enabled:true,
     icon:'<rect x="3.5" y="4.5" width="17" height="12" rx="1.5"/><path d="M8 19.5h8M12 16.5v3"/>'},
-  {key:'android', label:'download_android', href:'/NOTUAMobileApp.apk', enabled:true,
-    icon:'<rect x="7.5" y="2.5" width="9" height="19" rx="2"/><path d="M11 18.2h2"/>'},
   {key:'macos', label:'download_macos', href:'https://github.com/tomnuesser2/NOTUA/releases/latest/download/NOTUA-macOS.dmg', enabled:true,
     icon:'<path d="M3.5 5.5h17v10h-17z"/><path d="M1.5 19.5h21l-2-3.5h-17z"/>'},
-  // iPhone: keine App-Store-App ohne Apple-Developer-Konto → öffnet die Anleitung „Zum Home-Bildschirm“ (startet wie eine App).
-  {key:'ios', label:'download_ios', guide:'ios', enabled:true,
-    icon:'<rect x="7.5" y="2.5" width="9" height="19" rx="2"/><path d="M11 18.2h2"/>'},
+  // Handy-Apps (Android/iOS) vorerst entfernt (Tom, 07.11.: "noch nicht so brauchbar") — Projekt bleibt in der Git-Historie.
 ];
 function showDownloadModal(){
   const scrim=document.createElement('div'); scrim.className='modal-scrim';
@@ -16876,7 +17170,7 @@ function showDownloadModal(){
     <p style="margin:0 0 12px;color:var(--muted);font-size:0.85rem;">${t('download_intro')}</p>
     <div class="download-platform-list">${rows}</div>
     <p style="margin:10px 0 0;color:var(--faint);font-size:0.76rem;line-height:1.45;">${t('download_unsigned_note')}</p>
-    <p class="dl-preview" style="margin:8px 0 0;color:var(--muted);font-size:0.78rem;">${t('download_preview')}: <a href="/vorschau/apps.html#android" target="_blank" rel="noopener">Android</a> · <a href="/vorschau/apps.html#ios" target="_blank" rel="noopener">iPhone</a> · <a href="/vorschau/desktop.html" target="_blank" rel="noopener">Windows &amp; Mac</a> · <a href="/vorschau/startbild.html" target="_blank" rel="noopener">${t('download_preview_splash')}</a></p>
+    <p class="dl-preview" style="margin:8px 0 0;color:var(--muted);font-size:0.78rem;">${t('download_preview')}: <a href="/vorschau/desktop.html" target="_blank" rel="noopener">Windows &amp; Mac</a> · <a href="/vorschau/startbild.html" target="_blank" rel="noopener">${t('download_preview_splash')}</a></p>
     ${isInstalledApp()?'':`<button type="button" class="ig-open-link" data-a="guide">${t('ig_open_guide')}</button>`}
     <div class="modal-actions">
       <button data-a="ok" class="primary" style="background:var(--accent);border-color:var(--accent);">${t('close_title')}</button>
@@ -18175,6 +18469,22 @@ function classifyWheel(e,now){
   if(e.deltaMode!==0){ wheelBurstKind='mouse'; return 'mouse'; } // lines/pages mode: only a physical wheel
   // Eindeutiger Trackpad-Beweis: schräge Bewegung (beide Achsen gleichzeitig) — kann ein Mausrad nicht.
   if(e.deltaX!==0 && e.deltaY!==0 && !e.shiftKey){ if(wheelBurstKind==='mouse' && gap<WHEEL_BURST_GAP_MS) wheelEng.lz=0; wheelMarkTrackpad(); wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad'; }
+  // v2.4.183 — Windows: "Trackpad kann man nicht hin und her bewegen". Präzisions-Touchpads unter Windows schicken
+  // senkrechte Wische fast immer mit deltaX=0 (Windows legt Bewegungen auf "Schienen"), dadurch gab es nie einen
+  // Seitenanteil als Trackpad-Beweis und jeder Zwei-Finger-Wisch zoomte. Neuer, eindeutiger Unterschied: Ein Mausrad
+  // meldet unter Windows immer ganze Vielfache seiner kleinsten Einheit (1/120 Rastung → bei normiertem Wert ein
+  // Vielfaches von 100/360 px) — auch Freilauf- und Hochauflösungs-Räder (12,5 / 25 / 33,33 / 100 …). Ein Touchpad
+  // liefert beliebige Kommawerte. Jedes Ereignis wird so geprüft: passt es nicht ins Raster → Touchpad (verschieben,
+  // auch mitten in einer Geste umschaltend), passt es → Mausrad (zoomen). Mac bleibt bei der bisherigen Erkennung.
+  if(!WHEEL_IS_MAC && e.deltaX===0 && !e.shiftKey){
+    const q=ady*3.6, off=Math.abs(q-Math.round(q));
+    if(off>0.06){
+      if(wheelBurstKind==='mouse' && gap<WHEEL_BURST_GAP_MS) wheelEng.lz=0; // Fehlzoom vom Gestenanfang verwerfen
+      wheelMarkTrackpad(); wheelBurstKind='trackpad'; wheelTrackpadTs=now; return 'trackpad';
+    }
+    if(wheelBurstKind==='trackpad' && gap<WHEEL_BURST_GAP_MS){ wheelTrackpadTs=now; return 'trackpad'; } // zufällig "runder" Wert mitten im Wisch
+    wheelBurstKind='mouse'; return 'mouse';
+  }
   // Kein Trackpad in letzter Zeit gesehen → senkrecht = Mausrad = zoomen, egal wie klein/krumm die Werte sind.
   if(!wheelHasTrackpadEvidence()){
     if(e.deltaX===0 || e.shiftKey){ wheelBurstKind='mouse'; return 'mouse'; }
@@ -19716,7 +20026,8 @@ function updateInspector(){
         freshSwatch.classList.remove('swatch-pop'); void freshSwatch.offsetWidth; freshSwatch.classList.add('swatch-pop');
         freshSwatch.addEventListener('animationend',()=>freshSwatch.classList.remove('swatch-pop'),{once:true});
       }
-    }
+    },
+    (hex)=>{ cards.forEach(c=>{ c.color='custom'; c.customColor=hex; saveCardSoon(c); }); renderAllCards(); applySelectionClasses(); }
   ));
   // Überschrift: the normal tag-color swatches make little sense for free-standing big text, so the
   // same row becomes a "Textfarbe" row with strong, hex-based colors (stored as color:'custom').
@@ -19740,7 +20051,8 @@ function updateInspector(){
       sw.addEventListener('click',()=>applyHex(hex)); swatchRow.appendChild(sw);
     });
     const presetLc=HEADING_COLORS.map(h=>h.toLowerCase());
-    swatchRow.appendChild(buildCustomSwatchButton((curHex && !presetLc.includes(curHex))?hc.customColor:null,(hex)=>applyHex(hex)));
+    swatchRow.appendChild(buildCustomSwatchButton((curHex && !presetLc.includes(curHex))?hc.customColor:null,(hex)=>applyHex(hex),
+      (hex)=>{ hc.color='custom'; hc.customColor=hex; saveCardSoon(hc); renderAllCards(); applySelectionClasses(); }));
   }
   const headingFontRow=inspectorEl.querySelector('#headingFontRow');
   if(headingFontRow){
@@ -20037,7 +20349,8 @@ function renderConnectorInspector(connId, prevSig){
         freshSwatch.classList.remove('swatch-pop'); void freshSwatch.offsetWidth; freshSwatch.classList.add('swatch-pop');
         freshSwatch.addEventListener('animationend',()=>freshSwatch.classList.remove('swatch-pop'),{once:true});
       }
-    }
+    },
+    (hex)=>{ cn.color='custom'; cn.customColor=hex; renderConnectors(); }
   ));
   const labelEdit=inspectorEl.querySelector('.conn-label-edit');
   wireEnterConfirms(labelEdit);
@@ -20725,6 +21038,7 @@ function baseCardShell(card,extraClass){
     const accentVars=cardAccentTextColors(effectiveTriplet);
     if(accentVars){
       el.style.setProperty('--ink', accentVars.ink); el.style.setProperty('--muted', accentVars.muted);
+      if(accentVars.faint) el.style.setProperty('--faint', accentVars.faint); // nur bei erhöhtem Kontrast (Stufe ≥ 1)
       // Placeholder text (an empty note, an unnamed column's "Bereich benennen…") should also stay
       // legible at whatever Deckkraft the card is at, not fade with the flat neutral --faint every
       // card used before it had this treatment.
@@ -20779,7 +21093,28 @@ function mixPctForContrast(rgb, bgLum, mixRgb, targetRatio, maxPct){
   }
   return 0; // even pure black/white barely clears the target (a rare, very mid-grey fill) — go all the way.
 }
-function cardAccentTextColors(rgbTriplet){
+// v2.4.186 — Schrift-Kontrast auf Karten ist einstellbar (Look-Finder-Schritt "Kontrast", Design-Menü → Schrift).
+// Stufe 0 ist das bisherige Verhalten (Mindestnorm 4,5 : 1 → auf hellen Karten ein Mittelgrau); höhere Stufen
+// dunkeln/hellen die Schrift stärker ab, bis hin zu reinem Schwarz/Weiß. ink = Notiz-Text, muted = Icon/Titel/
+// Nebentext, faint = ganz blasse Texte (nur ab Stufe 1 angefasst, Stufe 0 bleibt exakt wie vorher).
+const CARD_CONTRAST_LEVELS=[
+  {id:'k0', ink:4.5, muted:3.5, faint:0},
+  {id:'k1', ink:6,   muted:4,   faint:3.2},
+  {id:'k2', ink:8,   muted:4.8, faint:3.8},
+  {id:'k3', ink:11,  muted:6,   faint:4.5},
+  {id:'k4', ink:21,  muted:8,   faint:5.5}
+];
+function cardContrastLevel(lv){ const i=(lv==null)?(designStyle.contrast|0):(lv|0); return CARD_CONTRAST_LEVELS[Math.max(0,Math.min(CARD_CONTRAST_LEVELS.length-1,i))]; }
+// Gemessene Werte für eine Kartenfarbe bei einer Stufe: echte Schriftfarben als [r,g,b] + ihr Kontrast zur Fläche.
+// Dieselbe Rechnung wie cardAccentTextColors() — für die Kontrast-Anzeige im Look-Finder.
+function cardContrastMeasure(rgb,lv){
+  const L=cardContrastLevel(lv), bgLum=relLuminance(rgbArrToHex(rgb[0],rgb[1],rgb[2]));
+  const light=((bgLum+0.05)/0.05)>=(1.05/(bgLum+0.05)), mixRgb=light?[0,0,0]:[255,255,255];
+  const mk=(target,maxPct)=>{ const pct=mixPctForContrast(rgb,bgLum,mixRgb,target,maxPct); const c=[0,1,2].map(i=>rgb[i]*pct/100+mixRgb[i]*(100-pct)/100);
+    const lum=relLuminance(rgbArrToHex(c[0],c[1],c[2])); return {rgb:c, ratio:(Math.max(lum,bgLum)+0.05)/(Math.min(lum,bgLum)+0.05)}; };
+  return {ink:mk(L.ink,70), muted:mk(L.muted,80)};
+}
+function cardAccentTextColors(rgbTriplet,lv){
   if(!rgbTriplet) return null;
   const parts=rgbTriplet.split(',').map(Number);
   if(parts.length<3 || parts.some(isNaN)) return null;
@@ -20799,11 +21134,13 @@ function cardAccentTextColors(rgbTriplet){
   // ink (the actual note/card text) targets WCAG AA body-text contrast (4.5:1); muted (icon + title,
   // more decorative/secondary) targets the WCAG non-text/UI-component floor (3:1, with a small margin)
   // — both real, checked ratios now, not a guessed-at flat percentage.
-  const inkPct=mixPctForContrast([r,g,b], bgLum, mixRgb, 4.5, 70);
-  const mutedPct=mixPctForContrast([r,g,b], bgLum, mixRgb, 3.5, 80);
+  const KL=cardContrastLevel(lv);
+  const inkPct=mixPctForContrast([r,g,b], bgLum, mixRgb, KL.ink, 70);
+  const mutedPct=mixPctForContrast([r,g,b], bgLum, mixRgb, KL.muted, 80);
   return {
     ink:`color-mix(in srgb, rgb(${r},${g},${b}) ${inkPct}%, ${mixWith})`,
     muted:`color-mix(in srgb, rgb(${r},${g},${b}) ${mutedPct}%, ${mixWith})`,
+    faint:KL.faint ? `color-mix(in srgb, rgb(${r},${g},${b}) ${mixPctForContrast([r,g,b], bgLum, mixRgb, KL.faint, 86)}%, ${mixWith})` : null,
   };
 }
 
@@ -20839,7 +21176,14 @@ function buildCardEl(card){
     }
     dateBadge.appendChild(document.createTextNode(fmtCardDateShort(card.date)+(card.time?' · '+card.time:'')));
     dateBadge.addEventListener('pointerdown',e=>e.stopPropagation());
-    dateBadge.addEventListener('click',(e)=>{ e.stopPropagation(); openCalendarPanel(card.date); });
+    // v2.4.185: Klick auf das Datum bearbeitet es direkt (Datum/Uhrzeit-Feld) — den Kalender öffnet nur noch das
+    // Kalender-Symbol oben.
+    dateBadge.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      state.selection=new Set([card.id]); applySelectionClasses(); updateInspector();
+      const live=state.cards.find(c=>c.id===card.id)||card;
+      showCardDatePopover(live);
+    });
     el.appendChild(dateBadge);
   }
   if(['note','column','checklist','table','image','youtube','wowpvp','carousel','blanket','heading','boardlink'].includes(card.type)){
@@ -26338,7 +26682,7 @@ function hideCardDatePopover(){
 }
 document.addEventListener('pointerdown',(e)=>{
   if(!cardDatePopoverEl || !cardDatePopoverEl.classList.contains('show')) return;
-  if(e.target.closest('.card-date-popover') || e.target.closest('.insp-date-btn')) return;
+  if(e.target.closest('.card-date-popover') || e.target.closest('.insp-date-btn') || e.target.closest('.date-badge')) return;
   hideCardDatePopover();
 });
 window.addEventListener('keydown',(e)=>{
