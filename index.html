@@ -17087,7 +17087,7 @@ document.getElementById('aboutBtn').addEventListener('click',showAbout);
    and so on. APP_VERSION is only ever compared for plain string equality (see whatsNewSeenVersion()/
    markWhatsNewSeen() below) — nothing parses it as a number — so this format needs no code changes
    anywhere else, just this one string bumped by hand at ship time same as always. */
-const APP_VERSION='2.4.189';
+const APP_VERSION='2.4.190';
 try{ const lv=document.getElementById('landingVersion'); if(lv) lv.textContent='v'+APP_VERSION; }catch(e){}
 const WHATSNEW_ITEMS=[
   {demo:'cloudsync2', demoHtml:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M7 18.5a4 4 0 0 1-.4-7.98A5.5 5.5 0 0 1 17.2 9.1 4.25 4.25 0 0 1 16.5 18.5H7z"/><path d="M9.5 14.5l2 2 3.5-4" /></svg>'},
@@ -31441,9 +31441,21 @@ if(window.visualViewport){
     }
   }catch(e){}
   document.addEventListener('contextmenu',(e)=>{ if(e.target.closest('#app')) e.preventDefault(); });
-  await tryReconnectFolder();
+  // v2.4.190 — "Nach dem Neuladen in Chrome keine Boards, nicht mal die Lade-Anzeige": Der gemerkte Ordner wird beim
+  // Start geprüft (Berechtigung, Verzeichnis lesen). Hing dieser Schritt (Chrome, Ordner offline/gesperrt), wartete der
+  // ganze Start darauf — die Startseite wurde nie aufgebaut, auch der Hintergrund-Abgleich startete nie. Jetzt wartet der
+  // Start höchstens 2,5 s; die Übersicht erscheint mit den lokalen Boards, der Ordner wird im Hintergrund fertig geprüft
+  // und die Übersicht danach aktualisiert.
+  startHomeLoading(Date.now());
+  let folderSlow=false;
+  const folderBoot=tryReconnectFolder().catch(()=>{});
+  await Promise.race([folderBoot,new Promise(r=>setTimeout(()=>{ folderSlow=true; r(); },2500))]);
   updateLandingGoogleBtnUI();
-  await refreshHome();
+  if(folderSlow){
+    console.warn('[NOTUA home] Ordner-Prüfung beim Start zu langsam — Übersicht startet ohne sie');
+    folderBoot.then(()=>{ updateLandingGoogleBtnUI(); if(state.screen==='home') refreshHome(); });
+  }
+  await Promise.race([refreshHome(),new Promise(r=>setTimeout(r,4000))]); // darf den restlichen Start (Abgleich, Neuigkeiten) nie blockieren
   // state.screen's own default is 'home', but the landing view is what's actually visible on a
   // fresh load (it's the only view not [hidden] in the markup) — seed history with what's really
   // on screen, not the state field's unrelated initial value.
